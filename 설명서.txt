@@ -1,0 +1,36 @@
+클론 후 : 
+gitbash
+--
+1. 작업할 공간 ( ex)C:study 로 cd)
+2. git clone https://github.com/kinggusi/myDefense.git
+3. cd mydefenst
+4. git checkout dev
+5. git lfs pull
+
+1. 유니티hub 실행 -> add(추가)
+2. myDefenst/Client 폴더 선택 (루트폴더 말고 client폴더 클릭)
+3. 프로젝트 열기 (라이브러리 설치 함으로 오래걸림)
+
+
+------------------------------------
+
+유니티는 "에셋(Asset)" 중심
+작업의 핵심: Assets 폴더
+유니티 에디터의 하단 [Project] 탭이 실제 윈도우 탐색기의 Client/Assets 폴더와 1:1로 매칭
+유니티 작업은 유니티 스크립트 더블 클릭 -> visual studio 에서
+
+1. 파일생성
+ 1-1. 유니티 에디터에서 우클릭 -> Create -> C# Script를 하면, 실제 폴더에 .cs 파일이 생깁니다.
+ 1-2이미지(PNG)를 탐색기에서 Assets 폴더로 드래그하면, 유니티가 이를 인식하고 임포트합니다.
+
+2. 주의: .meta 파일 (웹 개발자가 가장 많이 하는 실수)
+ 2-1.유니티는 Monster.png가 들어오면, 자동으로 **Monster.png.meta**라는 주민등록증(식별자) 파일을 만듬
+ 2-2. 절대 윈도우 탐색기에서 파일 이름을 바꾸거나 삭제금지. (메타 파일 연결이 끊겨서 게임에서 "Missing" 에러가 뜸)
+ 2-3. 파일 수정/이동/삭제는 무조건 유니티 에디터(Project 탭) 안에서 하셈. 그래야 유니티가 메타 파일도 같이 처리해줌
+
+3. 작업흐름
+ 3-1. Scene (게임 맵) 저장 -> .unity 파일 변경됨.
+ 3-2. Prefab (유닛 원형) 수정 -> .prefab 파일 변경됨.
+ 3-3 .스크립트 수정 -> .cs 파일 변경됨.
+
+인텔리제이에서 server(api) + 유니티 깃 관리
