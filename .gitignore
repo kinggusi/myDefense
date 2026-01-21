@@ -25,6 +25,8 @@ sysinfo.txt
 *.apk
 *.aab
 *.unitypackage
+*.slnx
+*.csproj
 
 # --- Java / Spring Boot ---
 .gradle/
@@ -58,3 +60,4 @@ hs_err_pid*
 # --- OS ---
 .DS_Store
 Thumbs.db
+
