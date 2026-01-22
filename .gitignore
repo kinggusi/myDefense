@@ -27,6 +27,7 @@ sysinfo.txt
 *.unitypackage
 *.slnx
 *.csproj
+SampleScene.unity
 
 # --- Java / Spring Boot ---
 .gradle/
