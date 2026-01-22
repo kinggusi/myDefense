@@ -16,7 +16,7 @@ public class UserAlienResponseDto {
     public UserAlienResponseDto(UserAlien entity) {
         this.alienId = entity.getAlienId();
         this.level = entity.getLevel();
-        this.pieces = entity.getPieces(); //
+        this.pieces = entity.getPieces(); ////
 
     }
 }
