@@ -3,9 +3,11 @@ package com.denfense.server.domain;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Getter
+@Setter
 @NoArgsConstructor
 @Table(name = "users") // DB 테이블 이름 지정
 public class User {
