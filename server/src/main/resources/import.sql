@@ -1,6 +1,6 @@
 -- 서버 켜질 때 자동으로 들어갈 데이터
-INSERT INTO users (username, gold, diamond) VALUES ('MyDev', 5000, 100);
-INSERT INTO users (username, gold, diamond) VALUES ('TeamDev', 0, 0);
+INSERT INTO users (username, gold, diamond) VALUES ('MyDev', 500000000, 1000000);
+INSERT INTO users (username, gold, diamond) VALUES ('TeamDev', 500000000, 1000000);
 
 -- [NEW] 1. 아군 왹져 데이터 (AlienSpec) 2026.01.21
 -- 1번: 잡졸 왹져 (공속 빠름, 사거리 짧음)
