@@ -1,5 +1,6 @@
 package com.denfense.server.repository;
 
+import com.denfense.server.domain.AlienSpec;
 import com.denfense.server.domain.User;
 import com.denfense.server.domain.UserAlien;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -13,5 +14,5 @@ public interface UserAlienRepository extends JpaRepository<UserAlien, Long> {
     List<UserAlien> findAllByUser(User user);
 
     // SELECT * FROM user_aliens WHERE user_id = ? AND alien_id = ?
-    Optional<UserAlien> findByUserAndAlienId(User user, int alienId);
+    Optional<UserAlien> findByUserAndAlienSpec(User user, AlienSpec alienSpec);
 }
