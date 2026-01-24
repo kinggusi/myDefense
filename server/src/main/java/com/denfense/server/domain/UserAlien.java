@@ -19,13 +19,17 @@ public class UserAlien {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User user;
-    private int alienId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "alien_id")
+    private AlienSpec alienSpec;
+
     private int level;
     private int pieces;
 
-    public UserAlien(User user, int alienId) {
+    public UserAlien(User user, AlienSpec alienSpec) {
         this.user = user;
-        this.alienId = alienId;
+        this.alienSpec = alienSpec;
         this.level = 1; // 처음 얻으면 1레벨
         this.pieces = 0;
     }
