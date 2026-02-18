@@ -1,8 +1,10 @@
 package com.denfense.server.test;
 
 import com.denfense.server.domain.AlienSpec;
+import com.denfense.server.domain.MonsterSpec;
 import com.denfense.server.domain.User;
 import com.denfense.server.repository.AlienSpecRepository;
+import com.denfense.server.repository.MonsterSpecRepository;
 import com.denfense.server.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +20,7 @@ public class DataInit implements CommandLineRunner {
 
     private final AlienSpecRepository alienSpecRepository;
     private final UserRepository userRepository;
+    private final MonsterSpecRepository monsterSpecRepository;
 
     @Override
     @Transactional
@@ -42,6 +45,12 @@ public class DataInit implements CommandLineRunner {
         // Normal 1 -> Epic 1 로 진화
         List<AlienSpec> normals = createAliens(AlienSpec.Grade.NORMAL, 7, 1.0, epics);
 
+        List<MonsterSpec> mc = createMonster(1, MonsterSpec.MonsterType.NORMAL, 3);
+        List<MonsterSpec> mc1 = createMonster(2, MonsterSpec.MonsterType.NORMAL, 3);
+        List<MonsterSpec> mc2 = createMonster(3, MonsterSpec.MonsterType.NORMAL, 3);
+        List<MonsterSpec> mc3 = createMonster(4, MonsterSpec.MonsterType.NORMAL, 3);
+        List<MonsterSpec> mc4 = createMonster(5, MonsterSpec.MonsterType.NORMAL, 3);
+
         // (전설 합성은 선택권 방식이라 고정 타겟 ID는 일단 null로 둠)
         createAliens(AlienSpec.Grade.EVOLUTION, 20, 10.0, null);
 
@@ -58,6 +67,55 @@ public class DataInit implements CommandLineRunner {
 
         System.out.println("====== [TEST DATA] 생성 완료 (총 41종) ======");
     }
+
+    private List<MonsterSpec> createMonster(int grade, MonsterSpec.MonsterType type, int count) {
+        List<MonsterSpec> createdSpecs = new ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            /*private Long id;
+            private int grade;
+            private String name;
+            private int hp;
+            private double moveSpeed;
+            private int dropGold;
+            // 몬스터 등급 구분
+            @Enumerated(EnumType.STRING)
+            private MonsterType type;*/
+
+            MonsterSpec ms = new MonsterSpec();
+            int monhp1 = 30;
+            int monhp2 = 50;
+            int monhp3 = 150;
+
+            if(grade>3){
+                if(count == 0){
+                    ms.setHp(monhp1*grade);
+                } else if (count == 1) {
+                    ms.setHp(monhp2*grade);
+                }else if (count == 2) {
+                    ms.setHp(monhp3*grade);
+                }
+            }
+
+            ms.setGrade(grade);
+            ms.setName("몬스터"+i);
+            ms.setMoveSpeed(1.2);
+            ms.setDropGold(20);
+            if(count == 0){
+                ms.setHp(monhp1);
+            } else if (count == 1) {
+                ms.setHp(monhp2);
+            }else if (count == 2) {
+                ms.setHp(monhp3);
+            }
+
+            monsterSpecRepository.save(ms);
+            createdSpecs.add(ms);
+        }
+        return createdSpecs;
+    }
+
+
+
 
     private List<AlienSpec> createAliens(AlienSpec.Grade grade, int count, double multiplier, List<AlienSpec> upperSpecs) {
         List<AlienSpec> createdSpecs = new ArrayList<>();
