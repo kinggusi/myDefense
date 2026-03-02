@@ -1195,7 +1195,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::WaveManager
   monsterPrefab: {fileID: 7463564369751362190, guid: e3cf9e38a0e0abd47a450e45ffa2152d, type: 3}
   spawnPoint: {fileID: 1270379404}
-  spawnInterval: 1
+  spawnInterval: 2
 --- !u!4 &704521328
 Transform:
   m_ObjectHideFlags: 0
