@@ -38,12 +38,18 @@ public class UnitDrag : MonoBehaviour
             // 부딪힌게 유닛이고, 자기 자신이 아닐 때
             if (hit.collider.CompareTag("Unit") && hit.collider.gameObject != gameObject)
             {
-                RequestMerge(hit.collider.gameObject);
-                return;
+                UnitData myData = GetComponent<UnitData>();
+                UnitData targetData = hit.collider.GetComponent<UnitData>();
+
+                if (myData != null && targetData != null && myData.grade == targetData.grade && myData.specId == targetData.specId)
+                {
+                    RequestMerge(hit.collider.gameObject);
+                    return;
+                }
             }
         }
         
-        // 머지 대상이 없으면 원래 자리로 복귀
+        // 머지 대상이 없거나 조건에 맞지 않으면 원래 자리로 복귀
         transform.position = startPos;
     }
 
