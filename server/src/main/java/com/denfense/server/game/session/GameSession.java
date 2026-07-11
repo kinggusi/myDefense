@@ -26,6 +26,7 @@ public class GameSession {
     // 유닛 ID 발급기 (1부터 시작, 중복 방지)
     private final AtomicLong idCounter = new AtomicLong(0);
     private int inGameGold = 500;
+    private int kidnapSuccessCount = 0;
 
     // 4x6 그리드를 관리할 인메모리 배열
     private final BoardObject[][] grid = new BoardObject[4][6];
@@ -69,6 +70,121 @@ public class GameSession {
 
         boardObjects.put(newId, newInjector);
         grid[x][y] = newInjector;
+        return newInjector;
+    }
+
+    /**
+     * 납치 횟수에 따른 선형 증가 비용 계산
+     */
+    public synchronized int getCurrentKidnapCost() {
+        return 50 + kidnapSuccessCount * 10;
+    }
+
+    /**
+     * synchronized 왹져 납치 소환 원자 처리
+     */
+    public synchronized BoardObject kidnapAlien(AlienSpec spec) {
+        // AlienSpec null 검증
+        if (spec == null) {
+            throw new IllegalArgumentException("AlienSpec은 null일 수 없습니다.");
+        }
+
+        // 1. 첫 빈칸 검색 (화면 기준 왼쪽->오른쪽, 위->아래 순서)
+        int emptyX = -1;
+        int emptyY = -1;
+        boolean foundEmpty = false;
+        for (int i = 3; i >= 0; i--) {
+            for (int j = 0; j < 6; j++) {
+                if (grid[i][j] == null) {
+                    emptyX = i;
+                    emptyY = j;
+                    foundEmpty = true;
+                    break;
+                }
+            }
+            if (foundEmpty) break;
+        }
+        if (!foundEmpty) {
+            throw new IllegalStateException("필드에 빈 공간이 없습니다!");
+        }
+
+        // 2. 현재 비용 계산
+        int cost = getCurrentKidnapCost();
+
+        // 3. 골드 부족 여부 확인
+        if (inGameGold < cost) {
+            throw new IllegalStateException("골드가 부족합니다! (보유: " + this.inGameGold + ", 필요: " + cost + ")");
+        }
+
+        // 4. 객체 ID 발급 및 객체 생성
+        Long newId = idCounter.incrementAndGet();
+        InGameAlien newAlien = new InGameAlien(newId, spec, MutationType.NONE, MutationType.NONE, 0, emptyX, emptyY);
+
+        // 5. boardObjects와 grid에 등록
+        boardObjects.put(newId, newAlien);
+        grid[emptyX][emptyY] = newAlien;
+
+        // 6. inGameGold 차감
+        inGameGold -= cost;
+
+        // 7. kidnapSuccessCount 증가
+        kidnapSuccessCount++;
+
+        // 8. 생성 객체 반환
+        return newAlien;
+    }
+
+    /**
+     * synchronized 인젝터 납치 소환 원자 처리
+     */
+    public synchronized BoardObject kidnapInjector(MutationType mutationType) {
+        // MutationType 유효성 검증 (null, NONE, BLANK 차단)
+        if (mutationType == null || mutationType == MutationType.NONE || mutationType == MutationType.BLANK) {
+            throw new IllegalArgumentException("사용 불가능한 MutationType입니다.");
+        }
+
+        // 1. 첫 빈칸 검색 (화면 기준 왼쪽->오른쪽, 위->아래 순서)
+        int emptyX = -1;
+        int emptyY = -1;
+        boolean foundEmpty = false;
+        for (int i = 3; i >= 0; i--) {
+            for (int j = 0; j < 6; j++) {
+                if (grid[i][j] == null) {
+                    emptyX = i;
+                    emptyY = j;
+                    foundEmpty = true;
+                    break;
+                }
+            }
+            if (foundEmpty) break;
+        }
+        if (!foundEmpty) {
+            throw new IllegalStateException("필드에 빈 공간이 없습니다!");
+        }
+
+        // 2. 현재 비용 계산
+        int cost = getCurrentKidnapCost();
+
+        // 3. 골드 부족 여부 확인
+        if (inGameGold < cost) {
+            throw new IllegalStateException("골드가 부족합니다! (보유: " + this.inGameGold + ", 필요: " + cost + ")");
+        }
+
+        // 4. 객체 ID 발급 및 객체 생성
+        Long newId = idCounter.incrementAndGet();
+        InGameInjector newInjector = new InGameInjector(newId, mutationType, emptyX, emptyY);
+
+        // 5. boardObjects와 grid에 등록
+        boardObjects.put(newId, newInjector);
+        grid[emptyX][emptyY] = newInjector;
+
+        // 6. inGameGold 차감
+        inGameGold -= cost;
+
+        // 7. kidnapSuccessCount 증가
+        kidnapSuccessCount++;
+
+        // 8. 생성 객체 반환
         return newInjector;
     }
 

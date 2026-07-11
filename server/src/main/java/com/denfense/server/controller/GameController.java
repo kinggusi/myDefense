@@ -46,7 +46,7 @@ public class GameController {
         try {
             BoardObject newAlien = inGameService.summonAlien(userId);
             // 헬퍼 메서드(makeResponse)로 통일
-            return makeResponse(userId, "소환 성공! (-50 Gold)", newAlien);
+            return makeResponse(userId, "납치 성공!", newAlien);
         } catch (Exception e) {
             return errorResponse(e);
         }

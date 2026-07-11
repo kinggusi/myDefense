@@ -146,54 +146,26 @@ public class InGameServiceImpl implements InGameService {
     public BoardObject summonAlien(Long userId) {
         GameSession session = sessionManager.getSession(userId);
 
-        // 죽었거나, 80마리 넘었으면 소환 금지
+        // 1. 세션/게임 상태 검증
         checkGameOver(session);
         checkPopulationLimit(session);
 
-        // 필드가 꽉 찼는지 확인 (4 * 6 = 24칸)
-        if (session.isFull(24)) {
-            throw new IllegalStateException("필드에 빈 공간이 없습니다!");
-        }
-
-        // 1. 빈 자리 먼저 찾기 (화면 기준 왼쪽->오른쪽, 위->아래 순으로 첫 번째 빈칸 탐색)
-        int emptyX = -1;
-        int emptyY = -1;
-        BoardObject[][] grid = session.getGrid();
-        boolean foundEmpty = false;
-
-        for (int i = 3; i >= 0; i--) {
-            for (int j = 0; j < 6; j++) {
-                if (grid[i][j] == null) {
-                    emptyX = i;
-                    emptyY = j;
-                    foundEmpty = true;
-                    break;
-                }
-            }
-            if (foundEmpty) {
-                break;
-            }
-        }
-
-        if (!foundEmpty) {
-            throw new IllegalStateException("필드에 빈 공간이 없습니다!");
-        }
-
-        // 2. 돈 차감
-        session.spendGold(50);
-
-        // 3. 확률 뽑기 (nextInt(10000) 사용하여 0.5% 확률로 인젝터 스폰)
+        // 2. 99.5% Alien / 0.5% Injector 결과 결정
         int kidnapChance = random.nextInt(10000);
 
         if (kidnapChance >= 9950) {
             // Mutation Injector 0.5% 스폰 (7종 동일 확률로 균등 소환)
             List<MutationType> pool = MutationType.getInjectableTypes();
             MutationType injectorType = pool.get(random.nextInt(pool.size()));
-            return session.spawnInjector(injectorType, emptyX, emptyY);
+
+            // 4. GameSession의 Kidnap 전용 원자 메서드 호출
+            return session.kidnapInjector(injectorType);
         } else {
             // Normal Alien 99.5% 스폰 (NORMAL 등급 고정 - Kidnap Policy 적용)
             AlienSpec spec = drawNormalAlienSpec();
-            return session.spawnAlien(spec, MutationType.NONE, MutationType.NONE, 0, emptyX, emptyY);
+
+            // 4. GameSession의 Kidnap 전용 원자 메서드 호출
+            return session.kidnapAlien(spec);
         }
     }
 
