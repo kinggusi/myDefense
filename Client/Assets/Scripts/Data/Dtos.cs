@@ -163,3 +163,37 @@ public static class BoardObjectHelper
         return false;
     }
 }
+
+[Serializable]
+public class UseInjectorRequestDto
+{
+    public long userId;
+    public long injectorId;
+    public long alienId;
+}
+
+[Serializable]
+public class UseInjectorResponseDto
+{
+    public long alienId;
+    public string pendingMutationType;
+    public string activeMutationType;
+    public long consumedInjectorId;
+    public int gridX;
+    public int gridY;
+}
+
+[Serializable]
+public class GameStateRequestDto
+{
+    public long userId;
+}
+
+[Serializable]
+public class GameSessionStateDto
+{
+    public long userId;
+    public int remainingGold;
+    public bool isGameOver;
+    public System.Collections.Generic.List<BoardObjectDto> boardObjects;
+}
