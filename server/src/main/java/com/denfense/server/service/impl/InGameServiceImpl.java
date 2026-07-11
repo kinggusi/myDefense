@@ -104,8 +104,8 @@ public class InGameServiceImpl implements InGameService {
         checkGameOver(session);
         checkPopulationLimit(session);
 
-        // 필드가 꽉 찼는지 확인 (4 * 7 = 28칸)
-        if (session.getAliens().size() >= 28) {
+        // 필드가 꽉 찼는지 확인 (4 * 6 = 24칸)
+        if (session.getAliens().size() >= 24) {
             throw new IllegalStateException("필드에 빈 공간이 없습니다!");
         }
 
@@ -132,7 +132,7 @@ public class InGameServiceImpl implements InGameService {
         // 랜덤하게 빈 자리 찾기 (비어있는 타일 리스트 생성)
         List<int[]> emptyTiles = new ArrayList<>();
         for (int i = 0; i < 4; i++) {
-            for (int j = 0; j < 7; j++) {
+            for (int j = 0; j < 6; j++) {
                 if (grid[i][j] == null) {
                     emptyTiles.add(new int[]{i, j});
                 }
