@@ -249,6 +249,7 @@ class GameControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.alien.objectType", is("ALIEN")))
                 .andExpect(jsonPath("$.alien.alienSpec.name", is("일반왹져")))
                 .andExpect(jsonPath("$.alien.alienSpec.grade", is("NORMAL")))
                 .andExpect(jsonPath("$.alien.pendingMutationType", is("NONE")));
@@ -269,6 +270,7 @@ class GameControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.alien.objectType", is("MUTATION_INJECTOR")))
                 .andExpect(jsonPath("$.alien.mutationType", is("BERSERK")));
     }
 }

@@ -3,7 +3,15 @@ using System;
 [Serializable]
 public class GameResponseDto {
     public string message;
-    public InGameAlien alien;
+    public InGameAlien alien; // 레거시 호환성을 위해 InGameAlien 유지
+    public int remainingGold;
+    public bool isGameOver;
+}
+
+[Serializable]
+public class GameResponseObjectDto {
+    public string message;
+    public BoardObjectDto alien; // 다형성 수용이 필요한 새 응답을 위한 DTO
     public int remainingGold;
     public bool isGameOver;
 }
@@ -38,4 +46,41 @@ public class MergeRequestDto {
     public long userId;
     public long sourceId;
     public long targetId;
+}
+
+[Serializable]
+public class ApiErrorResponse
+{
+    public string code;
+    public string message;
+}
+
+[Serializable]
+public class BoardObjectDto
+{
+    public const string TypeAlien = "ALIEN";
+    public const string TypeInjector = "MUTATION_INJECTOR";
+
+    public long id;
+    public string objectType; // ALIEN 또는 MUTATION_INJECTOR
+    public int gridX;
+    public int gridY;
+
+    // Alien 전용 속성들
+    public AlienSpec alienSpec;
+    public string pendingMutationType;
+    public string activeMutationType;
+    public int mutationRerollCount;
+
+    // Injector 전용 속성들
+    public string mutationType;
+}
+
+public class ApiResult<T>
+{
+    public bool IsSuccess;
+    public long StatusCode;
+    public T Data;
+    public ApiErrorResponse Error;
+    public string NetworkError;
 }

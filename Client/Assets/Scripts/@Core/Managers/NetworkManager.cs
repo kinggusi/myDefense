@@ -74,4 +74,94 @@ public class NetworkManager : MonoBehaviour
             }
         }
     }
+
+    // 타임아웃 기본값
+    private const int DefaultTimeoutSeconds = 10;
+
+    // 제네릭 POST 공통 처리 API
+    public void PostJsonAsync<TRequest, TResponse>(string uri, TRequest requestBody, Action<ApiResult<TResponse>> callback)
+    {
+        StartCoroutine(PostJsonCoroutine(BaseUrl + uri, requestBody, callback));
+    }
+
+    private IEnumerator PostJsonCoroutine<TRequest, TResponse>(string url, TRequest requestBody, Action<ApiResult<TResponse>> callback)
+    {
+        string json = JsonUtility.ToJson(requestBody);
+        using (var www = new UnityWebRequest(url, "POST"))
+        {
+            byte[] bodyRaw = Encoding.UTF8.GetBytes(json);
+            www.uploadHandler = new UploadHandlerRaw(bodyRaw);
+            www.downloadHandler = new DownloadHandlerBuffer();
+            www.SetRequestHeader("Content-Type", "application/json");
+            www.timeout = DefaultTimeoutSeconds;
+
+            yield return www.SendWebRequest();
+
+            var result = new ApiResult<TResponse>();
+            result.StatusCode = www.responseCode;
+
+            if (www.result == UnityWebRequest.Result.Success)
+            {
+                result.IsSuccess = true;
+                try
+                {
+                    result.Data = JsonUtility.FromJson<TResponse>(www.downloadHandler.text);
+                }
+                catch (Exception e)
+                {
+                    result.IsSuccess = false;
+                    result.NetworkError = "JSON_PARSE_ERROR: " + e.Message;
+                }
+            }
+            else
+            {
+                result.IsSuccess = false;
+                string errorBody = www.downloadHandler.text;
+
+                if (www.result == UnityWebRequest.Result.ConnectionError)
+                {
+                    result.StatusCode = 0; // 연결 자체가 실패한 경우
+                    result.NetworkError = "CONNECTION_FAILED: " + www.error;
+                }
+                else if (www.result == UnityWebRequest.Result.ProtocolError)
+                {
+                    // HTTP 4xx/5xx 에러 본문 파싱
+                    if (!string.IsNullOrEmpty(errorBody) && errorBody.Trim().StartsWith("{") && errorBody.Trim().EndsWith("}"))
+                    {
+                        try
+                        {
+                            result.Error = JsonUtility.FromJson<ApiErrorResponse>(errorBody);
+                        }
+                        catch (Exception ex)
+                        {
+                            result.NetworkError = "ERROR_JSON_PARSE_FAILED: Failed to parse ErrorResponse. " + ex.Message;
+                        }
+                    }
+                    else
+                    {
+                        result.NetworkError = "HTTP_PROTOCOL_ERROR: " + www.error;
+                    }
+                }
+                else if (www.result == UnityWebRequest.Result.DataProcessingError)
+                {
+                    result.NetworkError = "DATA_PROCESSING_ERROR: " + www.error;
+                }
+                else
+                {
+                    // 타임아웃 등 기타 네트워크 장애
+                    if (www.error != null && www.error.Contains("Request timeout"))
+                    {
+                        result.StatusCode = 0;
+                        result.NetworkError = "TIMEOUT_ERROR: Request timed out.";
+                    }
+                    else
+                    {
+                        result.NetworkError = "UNKNOWN_NETWORK_ERROR: " + www.error;
+                    }
+                }
+            }
+
+            callback?.Invoke(result);
+        }
+    }
 }
