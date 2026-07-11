@@ -1,8 +1,7 @@
 package com.denfense.server.game.object;
 
 import com.denfense.server.domain.AlienSpec;
-
-import lombok.AllArgsConstructor;
+import com.denfense.server.domain.MutationType;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -12,14 +11,40 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-@AllArgsConstructor
 public class InGameAlien {
 
     private Long id; // 메모리 상의 고유 ID (AtomicLong으로 발급)
     private AlienSpec alienSpec; // 유닛 스펙 정보
-    private String pendingMutationType; // NORMAL~LEGENDARY 구간 주입 DNA
-    private String activeMutationType;  // MYTHIC 실제 발현 변이
+    private MutationType pendingMutationType; // NORMAL~LEGENDARY 구간 주입 DNA
+    
+    @Setter(lombok.AccessLevel.NONE)
+    private MutationType activeMutationType;  // MYTHIC 실제 발현 변이
+    
     private int mutationRerollCount;    // 재변이 리롤 횟수 카운터
     private int gridX;
     private int gridY;
+
+    public InGameAlien(Long id, AlienSpec alienSpec, MutationType pendingMutationType, MutationType activeMutationType, int mutationRerollCount, int gridX, int gridY) {
+        this.id = id;
+        this.alienSpec = alienSpec;
+        this.pendingMutationType = pendingMutationType;
+        this.mutationRerollCount = mutationRerollCount;
+        this.gridX = gridX;
+        this.gridY = gridY;
+
+        // MYTHIC이 아닌 등급에서는 activeMutationType이 NONE이 되도록 방어
+        if (alienSpec.getGrade() != AlienSpec.Grade.MYTHIC) {
+            this.activeMutationType = MutationType.NONE;
+        } else {
+            this.activeMutationType = activeMutationType;
+        }
+    }
+
+    public void setActiveMutationType(MutationType activeMutationType) {
+        if (this.alienSpec.getGrade() != AlienSpec.Grade.MYTHIC) {
+            this.activeMutationType = MutationType.NONE;
+        } else {
+            this.activeMutationType = activeMutationType;
+        }
+    }
 }

@@ -2,6 +2,7 @@ package com.denfense.server.service.impl;
 
 import com.denfense.server.domain.AlienSpec;
 import com.denfense.server.domain.MonsterSpec;
+import com.denfense.server.domain.MutationType;
 import com.denfense.server.dto.response.WaveSpawnDto;
 import com.denfense.server.game.manager.GameSessionManager;
 import com.denfense.server.game.object.InGameAlien;
@@ -99,8 +100,8 @@ public class InGameServiceImpl implements InGameService {
 
         return session.spawnAlien(
                 resultSpec,
-                "NONE",
-                "NONE",
+                MutationType.NONE,
+                MutationType.NONE,
                 0,
                 target.getGridX(),
                 target.getGridY()
@@ -163,7 +164,7 @@ public class InGameServiceImpl implements InGameService {
         emptyY = selectedTile[1];
 
         // 6. 소환
-        return session.spawnAlien(spec, "NONE", "NONE", 0, emptyX, emptyY);
+        return session.spawnAlien(spec, MutationType.NONE, MutationType.NONE, 0, emptyX, emptyY);
     }
 
     /**
