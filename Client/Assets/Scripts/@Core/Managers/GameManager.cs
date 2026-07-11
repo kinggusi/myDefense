@@ -446,4 +446,41 @@ public class GameManager : MonoBehaviour
             summonBtn.interactable = false;
         }
     }
+
+    // 💡 신규 Merge 결과 Alien 전용 안전 생성 메서드
+    public bool TrySpawnMergedAlien(BoardObjectDto data, bool isMine)
+    {
+        if (data == null)
+        {
+            Debug.LogError("🚨 [TrySpawnMergedAlien] 전달된 BoardObjectDto 데이터가 null 입니다.");
+            return false;
+        }
+
+        if (data.objectType != BoardObjectDto.TypeAlien)
+        {
+            Debug.LogError($"🚨 [TrySpawnMergedAlien] 허용되지 않는 objectType 감지: {data.objectType}");
+            return false;
+        }
+
+        try
+        {
+            // BoardObjectDto -> InGameAlien 모델 변환
+            InGameAlien alien = new InGameAlien();
+            alien.id = data.id;
+            alien.gridX = data.gridX;
+            alien.gridY = data.gridY;
+            alien.pendingMutationType = data.pendingMutationType;
+            alien.activeMutationType = data.activeMutationType;
+            alien.mutationRerollCount = data.mutationRerollCount;
+            alien.alienSpec = data.alienSpec;
+
+            SpawnUnit(alien, isMine);
+            return true;
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"🚨 [TrySpawnMergedAlien] 결과 Alien 생성 중 예외 발생: {ex.Message}");
+            return false;
+        }
+    }
 }

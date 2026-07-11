@@ -6,8 +6,13 @@ public class UnitDrag : MonoBehaviour
     private Camera cam;
     private Vector3 startPos;
     private bool isDragging = false;
+    private GameManager gameManager; // 캐싱용 변수
 
-    void Start() { cam = Camera.main; }
+    void Start() 
+    { 
+        cam = Camera.main; 
+        gameManager = Object.FindFirstObjectByType<GameManager>(); // 씬 검색 최소화 단 1회 수행
+    }
 
     // 1. 마우스 클릭 시
     void OnMouseDown()
@@ -231,35 +236,113 @@ public class UnitDrag : MonoBehaviour
 
     void RequestMerge(GameObject targetUnit)
     {
+        // A. 머지 요청 전 상태 캐싱 및 입력 잠금
+        Vector3 sourceStartPos = startPos;
+        Vector3 targetStartPos = targetUnit.transform.position;
+
+        UnitDrag sourceDrag = this;
+        UnitDrag targetDrag = targetUnit.GetComponent<UnitDrag>();
+
+        sourceDrag.enabled = false;
+        if (targetDrag != null) targetDrag.enabled = false;
+
+        // serverId 획득
         long sourceId = GetComponent<UnitData>().serverId;
         long targetId = targetUnit.GetComponent<UnitData>().serverId;
 
-        GameManager gm = FindObjectOfType<GameManager>();
-        long userId = gm != null ? gm.UserId : 1;
+        long userId = gameManager != null ? gameManager.UserId : 1;
 
-        // 서버에 보낼 데이터 구성 (MergeRequestDto)
-        MergeRequestDto request = new MergeRequestDto {
+        MergeRequestDto req = new MergeRequestDto
+        {
             userId = userId,
             sourceId = sourceId,
             targetId = targetId
         };
 
-        string json = JsonUtility.ToJson(request);
+        string requestUri = "/game/merge";
+        NetworkManager.Instance.PostJsonAsync<MergeRequestDto, GameResponseObjectDto>(requestUri, req, (result) =>
+        {
+            // 잠금 해제 헬퍼 (실패 시에만 원복하여 켜줌)
+            System.Action unlockAll = () =>
+            {
+                if (sourceDrag != null) sourceDrag.enabled = true;
+                if (targetDrag != null) targetDrag.enabled = true;
+            };
 
-        // 서버에 머지 요청 전송
-        NetworkManager.Instance.PostJson("/merge", json, (resJson) => {
-            GameResponseDto res = JsonUtility.FromJson<GameResponseDto>(resJson);
-            
-            // 성공하면 기존 두 마리 지우기
-            Destroy(gameObject);
-            Destroy(targetUnit);
+            if (result.IsSuccess)
+            {
+                GameResponseObjectDto res = result.Data;
+                if (res != null && res.alien != null)
+                {
+                    if (res.alien.objectType == BoardObjectDto.TypeAlien)
+                    {
+                        // 1/2. 결과 Alien 로컬 생성 시도 및 성공 여부 확인
+                        bool spawnSuccess = gameManager != null && gameManager.TrySpawnMergedAlien(res.alien, true);
 
-            // 서버가 준 새로운 유닛 소환
-            FindObjectOfType<GameManager>().SpawnUnit(res.alien, true);
-            Debug.Log("머지 성공! " + res.message);
-        }, (err) => {
-            Debug.LogError("머지 실패: " + err);
-            transform.position = startPos; // 에러나면 복귀
+                        if (spawnSuccess)
+                        {
+                            // 3/4. 한 프레임 내 중복 조작을 막기 위해 즉시 비활성화 처리 후 파괴
+                            gameObject.SetActive(false);
+                            targetUnit.SetActive(false);
+
+                            Destroy(gameObject);
+                            Destroy(targetUnit);
+
+                            // remainingGold 갱신 (서버 응답 데이터를 바탕으로 GameManager 내에서 동기화됨)
+                            if (gameManager != null)
+                            {
+                                // GameManager의 TrySpawnMergedAlien 내부에서 Gold UI가 갱신되도록 연계
+                            }
+
+                            Debug.Log($"🎉 [머지 성공] 새로운 유닛 ID: {res.alien.id} ({res.alien.alienSpec.name}) 생성 완료!");
+                        }
+                        else
+                        {
+                            // 결과 Alien 생성 실패 시 기존 객체 제거 금지 및 유지
+                            unlockAll();
+                            Debug.LogError($"🚨 [로컬 동기화 실패] 서버 머지는 성공하였으나 결과 Alien 씬 배치에 실패했습니다. (결과 ID: {res.alien.id}). [TODO: SyncBoardState API]");
+                        }
+                    }
+                    else
+                    {
+                        unlockAll();
+                        Debug.LogError($"🚨 [머지 오류] 반환된 객체 타입이 ALIEN이 아닙니다: {res.alien.objectType}");
+                    }
+                }
+                else
+                {
+                    unlockAll();
+                    Debug.LogError("🚨 [머지 성공 응답] 서버 성공 응답에 결과 유닛 데이터가 누락되었습니다.");
+                }
+            }
+            else
+            {
+                // B. 실패 시 상태 원복 및 잠금 해제
+                transform.position = sourceStartPos;
+                if (targetUnit != null)
+                {
+                    targetUnit.transform.position = targetStartPos;
+                }
+
+                unlockAll();
+
+                if (result.Error != null)
+                {
+                    string errCode = result.Error.code;
+                    if (errCode == "BOARD_STATE_INCONSISTENT")
+                    {
+                        Debug.LogError($"🚨 [보드 상태 불일치] 머지 대상 보드 정합성이 손상되었습니다. (ErrorCode: BOARD_STATE_INCONSISTENT). [TODO: SyncBoardState API]");
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"⚠️ [머지 실패] 비즈니스 에러 ({errCode}): {result.Error.message}");
+                    }
+                }
+                else
+                {
+                    Debug.LogError("🚨 [머지 실패] 네트워크 오류 또는 알 수 없는 실패 발생: " + result.NetworkError);
+                }
+            }
         });
     }
 
