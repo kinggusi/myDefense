@@ -27,8 +27,6 @@ public class GameController {
     /**
      * startGame - 세션생성
      * @param userId
-     *
-     *
      */
     @PostMapping("/start")
     public String startGame(@RequestParam Long userId) {
@@ -39,60 +37,45 @@ public class GameController {
     /**
      * summon - 소환
      * @param userId
-     *
-     *
      */
     @PostMapping("/summon")
     public GameResponseDto summon(@RequestParam Long userId) {
-        try {
-            BoardObject newAlien = inGameService.summonAlien(userId);
-            // 헬퍼 메서드(makeResponse)로 통일
-            return makeResponse(userId, "납치 성공!", newAlien);
-        } catch (Exception e) {
-            return errorResponse(e);
-        }
+        BoardObject newAlien = inGameService.summonAlien(userId);
+        // 헬퍼 메서드(makeResponse)로 통일
+        return makeResponse(userId, "납치 성공!", newAlien);
     }
 
+    /**
+     * move - 이동 및 Swap
+     */
     @PostMapping("/move")
     public GameResponseDto move(@RequestBody MoveObjectRequestDto request) {
-        try {
-            BoardObject movedObject = inGameService.moveBoardObject(
-                    request.getUserId(),
-                    request.getObjectId(),
-                    request.getNewX(),
-                    request.getNewY()
-            );
-            return makeResponse(request.getUserId(), "이동 성공!", movedObject);
-        } catch (Exception e) {
-            return errorResponse(e);
-        }
+        BoardObject movedObject = inGameService.moveBoardObject(
+                request.getUserId(),
+                request.getObjectId(),
+                request.getNewX(),
+                request.getNewY()
+        );
+        return makeResponse(request.getUserId(), "이동 성공!", movedObject);
     }
 
     /**
      * merge - 머지
      * @param request
-     *
-     *
      */
     @PostMapping("/merge")
     public GameResponseDto merge(@RequestBody MergeRequestDto request) {
-        try {
-            InGameAlien result = inGameService.processMerge(
-                    request.getUserId(),
-                    request.getSourceId(),
-                    request.getTargetId()
-            );
-            return makeResponse(request.getUserId(), "머지 성공!", result);
-        } catch (Exception e) {
-            return errorResponse(e);
-        }
+        InGameAlien result = inGameService.processMerge(
+                request.getUserId(),
+                request.getSourceId(),
+                request.getTargetId()
+        );
+        return makeResponse(request.getUserId(), "머지 성공!", result);
     }
 
     /**
      * startWave - 웨이브시작
      * @param userId
-     *
-     *
      */
     @PostMapping("/wave/start")
     public GameResponseDto startWave(@RequestParam Long userId) {
@@ -117,7 +100,6 @@ public class GameController {
             }
 
             return new GameResponseDto(msg, null, session.getInGameGold(), session.isGameOver());
-
         } catch (Exception e) {
             return errorResponse(e);
         }
@@ -126,8 +108,6 @@ public class GameController {
     /**
      * startMission - 보스미션
      * @param userId
-     *
-     *
      */
     @PostMapping("/mission/start")
     public GameResponseDto startMission(@RequestParam Long userId) {
@@ -141,9 +121,8 @@ public class GameController {
 
     /**
      * 킬 - killEnemy
-     * @param userId,  monsterSpecId
-     *
-     *
+     * @param userId
+     * @param monsterSpecId
      */
     @PostMapping("/enemy/kill")
     public GameResponseDto killEnemy(@RequestParam Long userId, @RequestParam Long monsterSpecId) {
@@ -158,16 +137,12 @@ public class GameController {
     /**
      * reportGameOver - 게임종료
      * @param userId
-     *
-     *
      */
     @PostMapping("/gameover")
     public GameResponseDto reportGameOver(@RequestParam Long userId) {
         try {
             GameSession session = sessionManager.getSession(userId);
-
             session.setGameOver(true); // 서버 상태 강제 사망 처리
-
             return new GameResponseDto("사망 처리됨", null, session.getInGameGold(), true);
         } catch (Exception e) {
             return errorResponse(e);
@@ -177,13 +152,9 @@ public class GameController {
     // 8. 치트키
     @PostMapping("/cheat/gold")
     public String addGold(@RequestParam Long userId, @RequestParam int amount) {
-        try {
-            GameSession session = sessionManager.getSession(userId);
-            session.earnGold(amount);
-            return "치트 성공! 현재 골드: " + session.getInGameGold();
-        } catch (Exception e) {
-            return "오류: " + e.getMessage();
-        }
+        GameSession session = sessionManager.getSession(userId);
+        session.earnGold(amount);
+        return "치트 성공! 현재 골드: " + session.getInGameGold();
     }
 
     // 9. 인젝터 사용 API

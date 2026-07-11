@@ -1,5 +1,7 @@
 package com.denfense.server.service.impl;
 
+import com.denfense.server.exception.BusinessException;
+import com.denfense.server.exception.ErrorCode;
 import com.denfense.server.domain.AlienSpec;
 import com.denfense.server.domain.MonsterSpec;
 import com.denfense.server.domain.MutationType;
@@ -51,7 +53,7 @@ public class InGameServiceImpl implements InGameService {
         BoardObject targetObj = session.getBoardObject(targetId);
 
         if (!(sourceObj instanceof InGameAlien) || !(targetObj instanceof InGameAlien)) {
-            throw new IllegalArgumentException("합성은 오직 왹져끼리만 가능합니다.");
+            throw new BusinessException(ErrorCode.INVALID_MERGE, "합성은 오직 왹져끼리만 가능합니다.");
         }
 
         InGameAlien source = (InGameAlien) sourceObj;
@@ -59,7 +61,7 @@ public class InGameServiceImpl implements InGameService {
 
         // 3. 등급 검사
         if (source.getAlienSpec().getGrade() != target.getAlienSpec().getGrade()) {
-            throw new IllegalArgumentException("같은 등급끼리만 합칠 수 있습니다.");
+            throw new BusinessException(ErrorCode.INVALID_MERGE, "같은 등급끼리만 합칠 수 있습니다.");
         }
 
         // [A] 결과물 스펙 결정
@@ -68,7 +70,7 @@ public class InGameServiceImpl implements InGameService {
 
         // 1. 같은 종인지 검사
         if (!source.getAlienSpec().getId().equals(target.getAlienSpec().getId())) {
-            throw new IllegalArgumentException("같은 종끼리만 합칠 수 있습니다.");
+            throw new BusinessException(ErrorCode.INVALID_MERGE, "같은 종끼리만 합칠 수 있습니다.");
         }
 
         if (currentGrade == AlienSpec.Grade.LEGEND) {
@@ -280,13 +282,13 @@ public class InGameServiceImpl implements InGameService {
 
     private void checkGameOver(GameSession session) {
         if (session.isGameOver()) {
-            throw new IllegalStateException("GAME_OVER");
+            throw new BusinessException(ErrorCode.GAME_ALREADY_OVER, "이미 종료된 게임 세션입니다.");
         }
     }
 
     private void checkPopulationLimit(GameSession session) {
         if (session.getAliveMonsterCount() > MAX_MONSTER_LIMIT) {
-            throw new IllegalStateException("인구수 초과! 몬스터를 먼저 처치하세요!");
+            throw new BusinessException(ErrorCode.BOARD_FULL, "인구수 초과! 몬스터를 먼저 처치하세요!");
         }
     }
 

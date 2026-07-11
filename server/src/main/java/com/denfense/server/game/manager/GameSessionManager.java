@@ -1,5 +1,7 @@
 package com.denfense.server.game.manager;
 
+import com.denfense.server.exception.BusinessException;
+import com.denfense.server.exception.ErrorCode;
 import com.denfense.server.game.session.GameSession;
 import org.springframework.stereotype.Component;
 
@@ -32,7 +34,7 @@ public class GameSessionManager {
     public GameSession getSession(Long userId) {
         GameSession session = sessions.get(userId);
         if (session == null) {
-            throw new IllegalStateException("진행 중인 게임이 없습니다. (UserId: " + userId + ")");
+            throw new BusinessException(ErrorCode.GAME_SESSION_NOT_FOUND, "진행 중인 게임이 없습니다. (UserId: " + userId + ")");
         }
         return session;
     }

@@ -1,5 +1,7 @@
 package com.denfense.server.game.session;
 
+import com.denfense.server.exception.BusinessException;
+import com.denfense.server.exception.ErrorCode;
 import com.denfense.server.domain.AlienSpec;
 import com.denfense.server.domain.MutationType;
 import com.denfense.server.game.object.BoardObject;
@@ -86,7 +88,7 @@ public class GameSession {
     public synchronized BoardObject kidnapAlien(AlienSpec spec) {
         // AlienSpec null 검증
         if (spec == null) {
-            throw new IllegalArgumentException("AlienSpec은 null일 수 없습니다.");
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "AlienSpec은 null일 수 없습니다.");
         }
 
         // 1. 첫 빈칸 검색 (화면 기준 왼쪽->오른쪽, 위->아래 순서)
@@ -105,7 +107,7 @@ public class GameSession {
             if (foundEmpty) break;
         }
         if (!foundEmpty) {
-            throw new IllegalStateException("필드에 빈 공간이 없습니다!");
+            throw new BusinessException(ErrorCode.BOARD_FULL, "필드에 빈 공간이 없습니다!");
         }
 
         // 2. 현재 비용 계산
@@ -113,7 +115,7 @@ public class GameSession {
 
         // 3. 골드 부족 여부 확인
         if (inGameGold < cost) {
-            throw new IllegalStateException("골드가 부족합니다! (보유: " + this.inGameGold + ", 필요: " + cost + ")");
+            throw new BusinessException(ErrorCode.INSUFFICIENT_GOLD, "골드가 부족합니다! (보유: " + this.inGameGold + ", 필요: " + cost + ")");
         }
 
         // 4. 객체 ID 발급 및 객체 생성
@@ -140,7 +142,7 @@ public class GameSession {
     public synchronized BoardObject kidnapInjector(MutationType mutationType) {
         // MutationType 유효성 검증 (null, NONE, BLANK 차단)
         if (mutationType == null || mutationType == MutationType.NONE || mutationType == MutationType.BLANK) {
-            throw new IllegalArgumentException("사용 불가능한 MutationType입니다.");
+            throw new BusinessException(ErrorCode.INVALID_INJECTOR, "사용 불가능한 MutationType입니다.");
         }
 
         // 1. 첫 빈칸 검색 (화면 기준 왼쪽->오른쪽, 위->아래 순서)
@@ -159,7 +161,7 @@ public class GameSession {
             if (foundEmpty) break;
         }
         if (!foundEmpty) {
-            throw new IllegalStateException("필드에 빈 공간이 없습니다!");
+            throw new BusinessException(ErrorCode.BOARD_FULL, "필드에 빈 공간이 없습니다!");
         }
 
         // 2. 현재 비용 계산
@@ -167,7 +169,7 @@ public class GameSession {
 
         // 3. 골드 부족 여부 확인
         if (inGameGold < cost) {
-            throw new IllegalStateException("골드가 부족합니다! (보유: " + this.inGameGold + ", 필요: " + cost + ")");
+            throw new BusinessException(ErrorCode.INSUFFICIENT_GOLD, "골드가 부족합니다! (보유: " + this.inGameGold + ", 필요: " + cost + ")");
         }
 
         // 4. 객체 ID 발급 및 객체 생성
@@ -279,14 +281,14 @@ public class GameSession {
         // 1. source 객체 조회
         BoardObject source = boardObjects.get(id);
 
-        // 2. source가 없으면 IllegalArgumentException
+        // 2. source가 없으면 BusinessException(BOARD_OBJECT_NOT_FOUND)
         if (source == null) {
-            throw new IllegalArgumentException("존재하지 않는 객체입니다. (ID: " + id + ")");
+            throw new BusinessException(ErrorCode.BOARD_OBJECT_NOT_FOUND, "존재하지 않는 객체입니다. (ID: " + id + ")");
         }
 
         // 3. newX/newY 범위 검증
         if (newX < 0 || newX >= 4 || newY < 0 || newY >= 6) {
-            throw new IllegalArgumentException("유효하지 않은 목적지 좌표입니다. (x: " + newX + ", y: " + newY + ")");
+            throw new BusinessException(ErrorCode.INVALID_BOARD_POSITION, "유효하지 않은 목적지 좌표입니다. (x: " + newX + ", y: " + newY + ")");
         }
 
         // 4. source의 oldX/oldY 확보
@@ -295,12 +297,12 @@ public class GameSession {
 
         // 5. source 현재 좌표 범위 검증
         if (oldX < 0 || oldX >= 4 || oldY < 0 || oldY >= 6) {
-            throw new IllegalStateException("객체의 현재 좌표가 보드 범위를 벗어났습니다. (x: " + oldX + ", y: " + oldY + ")");
+            throw new BusinessException(ErrorCode.BOARD_STATE_INCONSISTENT, "객체의 현재 좌표가 보드 범위를 벗어났습니다. (x: " + oldX + ", y: " + oldY + ")");
         }
 
         // 6. grid[oldX][oldY]가 실제 source인지 정합성 검증
         if (grid[oldX][oldY] != source) {
-            throw new IllegalStateException("보드 상태 불일치: grid[" + oldX + "][" + oldY + "]가 실제 객체와 다릅니다.");
+            throw new BusinessException(ErrorCode.BOARD_STATE_INCONSISTENT, "보드 상태 불일치: grid[" + oldX + "][" + oldY + "]가 실제 객체와 다릅니다.");
         }
 
         // 7. oldX == newX && oldY == newY이면 no-op 성공 반환
@@ -322,18 +324,19 @@ public class GameSession {
             // [점유 칸 Swap]
             // 1. target이 source와 동일 객체가 아닌지 확인 (no-op 조건 검증 후이므로 이론상 다르겠지만 안전 가드)
             if (target.getId().equals(source.getId())) {
-                throw new IllegalStateException("동일한 객체 간 Swap은 불가능합니다.");
+                throw new BusinessException(ErrorCode.INVALID_BOARD_POSITION, "동일한 객체 간 Swap은 불가능합니다.");
             }
 
             // 2. target 내부 좌표가 newX/newY와 일치하는지 검증
             if (target.getGridX() != newX || target.getGridY() != newY) {
-                throw new IllegalStateException("보드 상태 불일치: 대상 타겟의 내부 좌표가 실제 타일과 다릅니다.");
+                throw new BusinessException(ErrorCode.BOARD_STATE_INCONSISTENT, "보드 상태 불일치: 대상 타겟의 내부 좌표가 실제 타일과 다릅니다.");
             }
 
             // 3. target이 boardObjects에 동일 인스턴스로 등록되어 있는지 검증
             BoardObject mappedTarget = boardObjects.get(target.getId());
             if (mappedTarget != target) {
-                throw new IllegalStateException(
+                throw new BusinessException(
+                    ErrorCode.BOARD_STATE_INCONSISTENT,
                     "보드 상태 불일치: 대상 객체가 boardObjects와 일치하지 않습니다."
                 );
             }
@@ -411,10 +414,10 @@ public class GameSession {
     public synchronized InGameAlien applyInjector(Long injectorId, Long alienId) {
         // 1. injectorId와 alienId null 및 동일 ID 검사
         if (injectorId == null || alienId == null) {
-            throw new IllegalArgumentException("인젝터 ID와 왹져 ID는 필수입니다.");
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "인젝터 ID와 왹져 ID는 필수입니다.");
         }
         if (injectorId.equals(alienId)) {
-            throw new IllegalArgumentException("인젝터 ID와 왹져 ID는 동일할 수 없습니다.");
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "인젝터 ID와 왹져 ID는 동일할 수 없습니다.");
         }
 
         // 2. 두 BoardObject 존재 여부 검사
@@ -422,17 +425,17 @@ public class GameSession {
         BoardObject injectorObj = boardObjects.get(injectorId);
 
         if (alienObj == null || injectorObj == null) {
-            throw new IllegalArgumentException("대상 유닛 또는 인젝터를 찾을 수 없습니다.");
+            throw new BusinessException(ErrorCode.INVALID_INJECTOR, "대상 유닛 또는 인젝터를 찾을 수 없습니다.");
         }
 
         // 3. injector가 InGameInjector인지 검사
         if (!(injectorObj instanceof InGameInjector)) {
-            throw new IllegalArgumentException("대상이 올바른 인젝터가 아닙니다.");
+            throw new BusinessException(ErrorCode.INVALID_INJECTOR, "대상이 올바른 인젝터가 아닙니다.");
         }
 
         // 4. 대상이 InGameAlien인지 검사
         if (!(alienObj instanceof InGameAlien)) {
-            throw new IllegalArgumentException("대상이 올바른 왹져가 아닙니다.");
+            throw new BusinessException(ErrorCode.INVALID_INJECTOR, "대상이 올바른 왹져가 아닙니다.");
         }
 
         InGameAlien alien = (InGameAlien) alienObj;
@@ -441,7 +444,7 @@ public class GameSession {
         // 5. mutationType이 null, NONE, BLANK가 아닌지 검사
         MutationType mutationType = injector.getMutationType();
         if (mutationType == null || mutationType == MutationType.NONE || mutationType == MutationType.BLANK) {
-            throw new IllegalArgumentException("사용 불가능한 인젝터입니다.");
+            throw new BusinessException(ErrorCode.INVALID_INJECTOR, "사용 불가능한 인젝터입니다.");
         }
 
         // 6. 기존 activeMutationType 값 보존 및 7. pendingMutationType 변경
