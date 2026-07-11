@@ -23,6 +23,12 @@ public class GameManager : MonoBehaviour
     private int cols = 6;
     private int rows = 4;
 
+    // --- API 경로 상수 ---
+    private const string ApiStart = "/game/start";
+    private const string ApiSummon = "/game/summon";
+    private const string ApiKill = "/game/enemy/kill";
+    private const string ApiGameOver = "/game/gameover";
+
     // ★ 상태 관리 (웹의 const [isLoading, setIsLoading] = useState(false) 와 동일)
     private bool isSummoning = false; 
 
@@ -42,24 +48,28 @@ public class GameManager : MonoBehaviour
         WWWForm myForm = new WWWForm();
         myForm.AddField("userId", userId.ToString());
 
-        NetworkManager.Instance.Post("/start", myForm, (json) =>
+        NetworkManager.Instance.Post(ApiStart, myForm, (json) =>
         {
             Debug.Log($"[내 게임 시작 성공] 서버 응답: {json}");
             // 서버에서 응답 올 때 아직 골드 정보는 없지만 기본 500으로 맞춰줍니다.
             UpdateGoldUI(500);
             UpdateMonsterUI();
         },
-        (err) => Debug.LogError($"[내 게임 시작 실패] 서버 켜져 있나요? 에러: {err}"));
+        (err) => {
+            Debug.LogError($"[내 게임 시작 실패] 서버 켜져 있나요? 에러: {err}");
+        });
 
         // 가상 상대방 세션 생성
         WWWForm enemyForm = new WWWForm();
         enemyForm.AddField("userId", enemyId.ToString());
 
-        NetworkManager.Instance.Post("/start", enemyForm, (json) =>
+        NetworkManager.Instance.Post(ApiStart, enemyForm, (json) =>
         {
             Debug.Log($"[적 게임 시작 성공] 서버 응답: {json}");
         },
-        (err) => Debug.LogError($"[적 게임 시작 실패] 에러: {err}"));
+        (err) => {
+            Debug.LogError($"[적 게임 시작 실패] 에러: {err}");
+        });
     }
 
     // 2. 소환 버튼 누르면 실행
@@ -76,7 +86,7 @@ public class GameManager : MonoBehaviour
         WWWForm myForm = new WWWForm();
         myForm.AddField("userId", userId.ToString());
 
-        NetworkManager.Instance.Post("/summon", myForm, (json) =>
+        NetworkManager.Instance.Post(ApiSummon, myForm, (json) =>
         {
             // 통신 완료 시 다시 버튼 활성화
             isSummoning = false;
@@ -116,7 +126,7 @@ public class GameManager : MonoBehaviour
         WWWForm enemyForm = new WWWForm();
         enemyForm.AddField("userId", enemyId.ToString());
 
-        NetworkManager.Instance.Post("/summon", enemyForm, (json) =>
+        NetworkManager.Instance.Post(ApiSummon, enemyForm, (json) =>
         {
             Debug.Log($"[적 소환 시도] 서버 응답: {json}");
             GameResponseDto res = JsonUtility.FromJson<GameResponseDto>(json);
@@ -124,27 +134,15 @@ public class GameManager : MonoBehaviour
             {
                 SpawnUnit(res.alien, false); // false: 적 필드
             }
-        }, (err) => Debug.Log("상대방 소환 에러 (무시가능)"));
+        }, (err) => {
+            Debug.Log("상대방 소환 에러 (무시가능)");
+        });
     }
 
     // 3. 유닛 소환 (클라이언트 랜덤 삭제, 서버 데이터 100% 신뢰)
     // isMine 파라미터를 추가하여 내 필드인지 상대 필드인지 구분합니다.
     public void SpawnUnit(InGameAlien data, bool isMine)
     {
-        float interval = 1.1f;
-        // CSS의 margin: 0 auto 처럼 중앙 정렬을 위한 오프셋
-        float offsetX = (cols - 1) * interval * 0.5f;
-        float offsetZ = (rows - 1) * interval * 0.5f;
-
-        // 🚨 핵심 수정: x와 y를 바꾸어서 매핑합니다!
-        // 서버의 grid[4][7] 구조: 첫번째 인덱스(0~3)가 세로(row, y축), 두번째 인덱스(0~6)가 가로(col, x축)입니다.
-        int x = data.gridY; // 서버의 0~6 값이 가로 축 (x)
-        int y = data.gridX; // 서버의 0~3 값이 세로 축 (z/y)
-
-        // 최종 3D 월드 좌표 계산 (x가 가로, y가 세로(z)로 매핑)
-        float localX = (x * interval) - offsetX;
-        float localZ = (y * interval) - offsetZ;
-
         // 내 필드인지 상대 필드인지에 따라 부모 Transform 결정
         Transform targetGridParent = isMine ? myGridParent : enemyGridParent;
 
@@ -162,7 +160,32 @@ public class GameManager : MonoBehaviour
             return;
         }
 
-        Vector3 finalPos = targetGridParent.position + new Vector3(localX, 0.8f, localZ);
+        // 🚨 핵심 수정: 수식 추정 대신 타일 Transform 검색 및 정렬
+        // 서버의 gridX(0~3)는 세로(row, z), gridY(0~5)는 가로(col, x)입니다.
+        // 타일 이름은 Tile_{gridY}_{gridX} 입니다.
+        string targetTileName = $"Tile_{data.gridY}_{data.gridX}";
+        Transform targetTile = targetGridParent.Find(targetTileName);
+
+        Vector3 finalPos;
+        if (targetTile != null)
+        {
+            // 타일이 발견되면 타일 정중앙 + Y오프셋(0.8f) 배치
+            finalPos = targetTile.position + new Vector3(0, 0.8f, 0);
+            Debug.Log($"👽 [SpawnUnit] Target tile '{targetTileName}' found! Aligning unit perfectly to center.");
+        }
+        else
+        {
+            // 타일을 못 찾는 극단적 예외 상황을 위한 기존 수학 수식 폴백(Fallback) 방어막
+            float interval = 1.1f;
+            float offsetX = (cols - 1) * interval * 0.5f;
+            float offsetZ = (rows - 1) * interval * 0.5f;
+            int x = data.gridY;
+            int y = data.gridX;
+            float localX = (x * interval) - offsetX;
+            float localZ = (y * interval) - offsetZ;
+            finalPos = targetGridParent.position + new Vector3(localX, 0.8f, localZ);
+            Debug.LogWarning($"[SpawnUnit] Target tile '{targetTileName}' NOT found! Falling back to mathematical approximation.");
+        }
 
         // 소환 (DOM 렌더링)
         GameObject unit = Instantiate(unitPrefab, finalPos, Quaternion.identity);
@@ -176,7 +199,7 @@ public class GameManager : MonoBehaviour
         UnitData unitData = unit.GetComponent<UnitData>();
         if (unitData != null) unitData.SetInfo(data);
         
-        Debug.Log($"👽 [{owner} 소환 완료] 왹져가 DB 좌표 ({data.gridX}, {data.gridY}) -> 클라 좌표 ({x}, {y}) 에 배치되었습니다!");
+        Debug.Log($"👽 [{owner} 소환 완료] 왹져가 DB 좌표 ({data.gridX}, {data.gridY}) -> 클라 좌표 ({data.gridY}, {data.gridX}) 에 배치되었습니다!");
     }
 
     // 4. 몬스터 처치 신고
@@ -186,7 +209,7 @@ public class GameManager : MonoBehaviour
         form.AddField("userId", userId.ToString());
         form.AddField("monsterSpecId", monsterSpecId.ToString()); 
 
-        NetworkManager.Instance.Post("/enemy/kill", form, (json) =>
+        NetworkManager.Instance.Post(ApiKill, form, (json) =>
         {
             Debug.Log($"💰 [처치 신고 성공] 서버 응답: {json}");
 
@@ -245,7 +268,7 @@ public class GameManager : MonoBehaviour
         // 서버에도 게임 오버 알리기
         WWWForm form = new WWWForm();
         form.AddField("userId", userId.ToString());
-        NetworkManager.Instance.Post("/gameover", form, (json) =>
+        NetworkManager.Instance.Post(ApiGameOver, form, (json) =>
         {
             Debug.Log("서버에 게임 오버 등록 완료");
         }, (err) => Debug.LogError("게임 오버 등록 실패"));
