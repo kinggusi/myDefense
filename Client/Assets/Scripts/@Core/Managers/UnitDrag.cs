@@ -35,16 +35,25 @@ public class UnitDrag : MonoBehaviour
         Ray ray = cam.ScreenPointToRay(Input.mousePosition);
         if (Physics.Raycast(ray, out RaycastHit hit))
         {
-            // 부딪힌게 유닛이고, 자기 자신이 아닐 때
-            if (hit.collider.CompareTag("Unit") && hit.collider.gameObject != gameObject)
+            // 자기 자신이 아닌 객체와 충돌했을 때
+            if (hit.collider.gameObject != gameObject)
             {
-                UnitData myData = GetComponent<UnitData>();
-                UnitData targetData = hit.collider.GetComponent<UnitData>();
-
-                if (myData != null && targetData != null && myData.grade == targetData.grade && myData.specId == targetData.specId)
+                // 공통 헬퍼로 양쪽의 보드 오브젝트 타입 판정 검사
+                if (BoardObjectHelper.TryGetBoardObject(gameObject, out long myId, out BoardObjectKind myKind) &&
+                    BoardObjectHelper.TryGetBoardObject(hit.collider.gameObject, out long targetId, out BoardObjectKind targetKind))
                 {
-                    RequestMerge(hit.collider.gameObject);
-                    return;
+                    // Merge 판정은 Alien끼리만 허용
+                    if (myKind == BoardObjectKind.Alien && targetKind == BoardObjectKind.Alien)
+                    {
+                        UnitData myData = GetComponent<UnitData>();
+                        UnitData targetData = hit.collider.GetComponent<UnitData>();
+
+                        if (myData != null && targetData != null && myData.grade == targetData.grade && myData.specId == targetData.specId)
+                        {
+                            RequestMerge(hit.collider.gameObject);
+                            return;
+                        }
+                    }
                 }
             }
         }
