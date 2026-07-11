@@ -39,3 +39,28 @@ public class MergeRequestDto {
     public long sourceId;
     public long targetId;
 }
+
+[Serializable]
+public class LobbyResponseDto {
+    public UserDto user;
+    public System.Collections.Generic.List<AlienInventoryDto> aliens;
+}
+
+[Serializable]
+public class UserDto {
+    public string username;
+    public int gold;
+    public int diamond;
+    public int heart;
+}
+
+[Serializable]
+public class AlienInventoryDto {
+    public long id;
+    public string name;
+    public string grade;
+    public int level;
+    public int pieces;
+    public int requiredPieces;
+    public bool locked;
+}

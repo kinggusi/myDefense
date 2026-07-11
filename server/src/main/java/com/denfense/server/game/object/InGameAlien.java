@@ -1,6 +1,7 @@
 package com.denfense.server.game.object;
 
 import com.denfense.server.domain.AlienSpec;
+import com.denfense.server.domain.BoardObjectType;
 import com.denfense.server.domain.MutationType;
 import lombok.Getter;
 import lombok.Setter;
@@ -11,9 +12,8 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class InGameAlien {
+public class InGameAlien extends BoardObject {
 
-    private Long id; // 메모리 상의 고유 ID (AtomicLong으로 발급)
     private AlienSpec alienSpec; // 유닛 스펙 정보
     private MutationType pendingMutationType; // NORMAL~LEGENDARY 구간 주입 DNA
     
@@ -21,16 +21,12 @@ public class InGameAlien {
     private MutationType activeMutationType;  // MYTHIC 실제 발현 변이
     
     private int mutationRerollCount;    // 재변이 리롤 횟수 카운터
-    private int gridX;
-    private int gridY;
 
     public InGameAlien(Long id, AlienSpec alienSpec, MutationType pendingMutationType, MutationType activeMutationType, int mutationRerollCount, int gridX, int gridY) {
-        this.id = id;
+        super(id, gridX, gridY);
         this.alienSpec = alienSpec;
         this.pendingMutationType = pendingMutationType != null ? pendingMutationType : MutationType.NONE;
         this.mutationRerollCount = mutationRerollCount;
-        this.gridX = gridX;
-        this.gridY = gridY;
 
         MutationType targetActive = activeMutationType != null ? activeMutationType : MutationType.NONE;
         // MYTHIC이 아닌 등급에서는 activeMutationType이 NONE이 되도록 방어
@@ -48,5 +44,10 @@ public class InGameAlien {
         } else {
             this.activeMutationType = targetActive;
         }
+    }
+
+    @Override
+    public BoardObjectType getObjectType() {
+        return BoardObjectType.ALIEN;
     }
 }

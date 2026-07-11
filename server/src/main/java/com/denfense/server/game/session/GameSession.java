@@ -2,7 +2,9 @@ package com.denfense.server.game.session;
 
 import com.denfense.server.domain.AlienSpec;
 import com.denfense.server.domain.MutationType;
+import com.denfense.server.game.object.BoardObject;
 import com.denfense.server.game.object.InGameAlien;
+import com.denfense.server.game.object.InGameInjector;
 import lombok.Getter;
 
 import java.util.Map;
@@ -18,40 +20,56 @@ public class GameSession {
 
     private final Long userId; // 이 세션의 주인
 
-    // 현재 필드에 나와있는 유닛들 (Key: 유닛ID, Value: 유닛객체)
-    // ConcurrentHashMap: 멀티스레드 환경에서도 안전함 (혹시 모를 동시성 이슈 방지)
-    private final Map<Long, InGameAlien> aliens = new ConcurrentHashMap<>();
+    // 현재 필드에 나와있는 모든 객체들 (Key: 객체ID, Value: BoardObject)
+    private final Map<Long, BoardObject> boardObjects = new ConcurrentHashMap<>();
 
     // 유닛 ID 발급기 (1부터 시작, 중복 방지)
     private final AtomicLong idCounter = new AtomicLong(0);
     private int inGameGold = 500;
 
-    // 4x6 그리드를 관리할 인메모리 배열 (DB 접근 X)
-    private final InGameAlien[][] grid = new InGameAlien[4][6];
+    // 4x6 그리드를 관리할 인메모리 배열
+    private final BoardObject[][] grid = new BoardObject[4][6];
 
     public GameSession(Long userId) {
         this.userId = userId;
     }
 
     /**
-     * 유닛 소환 (Spawn)
-     * - 고유 ID를 발급하고 Map과 Grid에 저장합니다.
-     * - 배열 접근 시 동시성 보장을 위해 synchronized 추가
+     * 왹져 소환 (Spawn)
      */
     public synchronized InGameAlien spawnAlien(AlienSpec spec, MutationType pendingMutation, MutationType activeMutation, int rerollCount, int x, int y) {
         if (x < 0 || x >= 4 || y < 0 || y >= 6) {
             throw new IllegalArgumentException("유효하지 않은 좌표입니다. (x: " + x + ", y: " + y + ")");
         }
         if (grid[x][y] != null) {
-            throw new IllegalStateException("해당 위치에 이미 유닛이 존재합니다.");
+            throw new IllegalStateException("해당 위치에 이미 유닛/인젝터가 존재합니다.");
         }
 
-        Long newId = idCounter.incrementAndGet(); // 1, 2, 3... 증가
+        Long newId = idCounter.incrementAndGet();
         InGameAlien newAlien = new InGameAlien(newId, spec, pendingMutation, activeMutation, rerollCount, x, y);
 
-        aliens.put(newId, newAlien);
-        grid[x][y] = newAlien; // 그리드에 배치
+        boardObjects.put(newId, newAlien);
+        grid[x][y] = newAlien;
         return newAlien;
+    }
+
+    /**
+     * 생체변이 인젝터 소환 (Spawn)
+     */
+    public synchronized InGameInjector spawnInjector(MutationType mutationType, int x, int y) {
+        if (x < 0 || x >= 4 || y < 0 || y >= 6) {
+            throw new IllegalArgumentException("유효하지 않은 좌표입니다. (x: " + x + ", y: " + y + ")");
+        }
+        if (grid[x][y] != null) {
+            throw new IllegalStateException("해당 위치에 이미 유닛/인젝터가 존재합니다.");
+        }
+
+        Long newId = idCounter.incrementAndGet();
+        InGameInjector newInjector = new InGameInjector(newId, mutationType, x, y);
+
+        boardObjects.put(newId, newInjector);
+        grid[x][y] = newInjector;
+        return newInjector;
     }
 
     // ✨ [추가] 돈 쓰기 (소환 시 호출)
@@ -68,51 +86,102 @@ public class GameSession {
     }
 
     /**
-     * 유닛 조회
+     * 객체 조회 (전체 보드용)
      */
-    public InGameAlien getAlien(Long alienId) {
-        return aliens.get(alienId);
+    public BoardObject getBoardObject(Long id) {
+        return boardObjects.get(id);
     }
 
     /**
-     * 유닛 삭제 (머지 재료로 쓰였을 때 등)
+     * 왹져 조회 (기존 API 호환용)
+     */
+    public InGameAlien getAlien(Long alienId) {
+        BoardObject obj = boardObjects.get(alienId);
+        if (obj instanceof InGameAlien) {
+            return (InGameAlien) obj;
+        }
+        return null;
+    }
+
+    /**
+     * 왹져 전용 조회 맵 구성 (기존 호출부 호환 보장)
+     * [IMPORTANT] 이 반환 Map은 필터링된 복사본(new ConcurrentHashMap)이므로,
+     * 이 Map 자체의 원소를 추가/삭제하는 행위가 실제 GameSession 내부 
+     * boardObjects 세션 상태를 변경시키지 않습니다.
+     */
+    public Map<Long, InGameAlien> getAliens() {
+        Map<Long, InGameAlien> alienMap = new ConcurrentHashMap<>();
+        for (Map.Entry<Long, BoardObject> entry : boardObjects.entrySet()) {
+            if (entry.getValue() instanceof InGameAlien) {
+                alienMap.put(entry.getKey(), (InGameAlien) entry.getValue());
+            }
+        }
+        return alienMap;
+    }
+
+    /**
+     * 전체 보드 점유 객체(왹져 + 인젝터)의 총개수를 조회합니다.
+     */
+    public int getBoardObjectCount() {
+        return boardObjects.size();
+    }
+
+    /**
+     * 왹져 삭제 (기존 API 호환성 유지를 위해 유지)
+     * [WARNING] 메소드명이 Alien 전용이지만, 내부적으로 removeBoardObject를 호출하므로 
+     * 실수로 Injector의 ID를 넘기더라도 인젝터 객체까지 삭제 처리가 수행됩니다.
+     * 향후 3-B 이후 단계에서 Deprecated 시키거나 지칭 이름을 갱신할 후보군입니다.
      */
     public synchronized void removeAlien(Long alienId) {
-        InGameAlien alien = aliens.remove(alienId);
-        if (alien != null) {
-            grid[alien.getGridX()][alien.getGridY()] = null; // 그리드에서도 제거
+        removeBoardObject(alienId);
+    }
+
+    /**
+     * 객체 삭제 (공통 보드용)
+     */
+    public synchronized void removeBoardObject(Long id) {
+        BoardObject obj = boardObjects.remove(id);
+        if (obj != null) {
+            grid[obj.getGridX()][obj.getGridY()] = null;
         }
     }
 
     /**
-     * 유닛 이동 (드래그 앤 드롭 또는 위치 변경)
+     * 왹져 이동 (기존 API 호환성 유지를 위해 유지)
+     * [WARNING] 메소드명이 Alien 전용이지만, 내부적으로 moveBoardObject를 호출하므로 
+     * 실수로 Injector의 ID를 넘기더라도 인젝터 객체까지 이동 처리가 정상 수행됩니다.
+     * 향후 3-B 이후 단계에서 Deprecated 시키거나 지칭 이름을 갱신할 후보군입니다.
      */
     public synchronized void moveAlien(Long alienId, int newX, int newY) {
-        InGameAlien alien = aliens.get(alienId);
-        if (alien == null) {
-            throw new IllegalArgumentException("존재하지 않는 유닛입니다.");
+        moveBoardObject(alienId, newX, newY);
+    }
+
+    /**
+     * 객체 이동 (공통 보드용)
+     */
+    public synchronized void moveBoardObject(Long id, int newX, int newY) {
+        BoardObject obj = boardObjects.get(id);
+        if (obj == null) {
+            throw new IllegalArgumentException("존재하지 않는 객체입니다.");
         }
         if (newX < 0 || newX >= 4 || newY < 0 || newY >= 6) {
             throw new IllegalArgumentException("유효하지 않은 좌표입니다.");
         }
         if (grid[newX][newY] != null) {
-            throw new IllegalStateException("이동할 위치에 이미 유닛이 존재합니다.");
+            throw new IllegalStateException("이동할 위치에 이미 유닛/인젝터가 존재합니다.");
         }
 
-        // 기존 위치에서 제거
-        grid[alien.getGridX()][alien.getGridY()] = null;
-
-        // 새로운 위치로 이동
-        alien.setGridX(newX);
-        alien.setGridY(newY);
-        grid[newX][newY] = alien;
+        grid[obj.getGridX()][obj.getGridY()] = null;
+        obj.setGridX(newX);
+        obj.setGridY(newY);
+        grid[newX][newY] = obj;
     }
 
     /**
-     * 필드 꽉 찼는지 확인 (선택 사항)
+     * 필드 전체가 가득 찼는지 확인 (왹져 + 인젝터 보드 점유 기준)
      */
     public boolean isFull(int maxCount) {
-        return aliens.size() >= maxCount;
+        return getBoardObjectCount() >= maxCount;
     }
 
     /**
@@ -155,5 +224,55 @@ public class GameSession {
         if (this.aliveMonsterCount > 0) {
             this.aliveMonsterCount--;
         }
+    }
+
+    /**
+     * 동기화 기반의 원자적 인젝터 사용 처리
+     */
+    public synchronized InGameAlien applyInjector(Long injectorId, Long alienId) {
+        // 1. injectorId와 alienId null 및 동일 ID 검사
+        if (injectorId == null || alienId == null) {
+            throw new IllegalArgumentException("인젝터 ID와 왹져 ID는 필수입니다.");
+        }
+        if (injectorId.equals(alienId)) {
+            throw new IllegalArgumentException("인젝터 ID와 왹져 ID는 동일할 수 없습니다.");
+        }
+
+        // 2. 두 BoardObject 존재 여부 검사
+        BoardObject alienObj = boardObjects.get(alienId);
+        BoardObject injectorObj = boardObjects.get(injectorId);
+
+        if (alienObj == null || injectorObj == null) {
+            throw new IllegalArgumentException("대상 유닛 또는 인젝터를 찾을 수 없습니다.");
+        }
+
+        // 3. injector가 InGameInjector인지 검사
+        if (!(injectorObj instanceof InGameInjector)) {
+            throw new IllegalArgumentException("대상이 올바른 인젝터가 아닙니다.");
+        }
+
+        // 4. 대상이 InGameAlien인지 검사
+        if (!(alienObj instanceof InGameAlien)) {
+            throw new IllegalArgumentException("대상이 올바른 왹져가 아닙니다.");
+        }
+
+        InGameAlien alien = (InGameAlien) alienObj;
+        InGameInjector injector = (InGameInjector) injectorObj;
+
+        // 5. mutationType이 null, NONE, BLANK가 아닌지 검사
+        MutationType mutationType = injector.getMutationType();
+        if (mutationType == null || mutationType == MutationType.NONE || mutationType == MutationType.BLANK) {
+            throw new IllegalArgumentException("사용 불가능한 인젝터입니다.");
+        }
+
+        // 6. 기존 activeMutationType 값 보존 및 7. pendingMutationType 변경
+        // (setPendingMutationType 호출은 기존 activeMutationType 값을 그대로 보존 및 유지합니다.)
+        alien.setPendingMutationType(mutationType);
+
+        // 8. boardObjects와 grid에서 Injector 제거 (공통 removeBoardObject 재사용)
+        removeBoardObject(injectorId);
+
+        // 9. 변경된 Alien 반환
+        return alien;
     }
 }

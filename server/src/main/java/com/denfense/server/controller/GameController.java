@@ -1,9 +1,12 @@
 package com.denfense.server.controller;
 
 import com.denfense.server.dto.request.MergeRequestDto;
+import com.denfense.server.dto.request.UseInjectorRequestDto;
+import com.denfense.server.dto.response.UseInjectorResponseDto;
 import com.denfense.server.dto.response.GameResponseDto;
 import com.denfense.server.dto.response.WaveSpawnDto;
 import com.denfense.server.game.manager.GameSessionManager;
+import com.denfense.server.game.object.BoardObject;
 import com.denfense.server.game.object.InGameAlien;
 import com.denfense.server.game.session.GameSession;
 import com.denfense.server.service.InGameService;
@@ -41,7 +44,7 @@ public class GameController {
     @PostMapping("/summon")
     public GameResponseDto summon(@RequestParam Long userId) {
         try {
-            InGameAlien newAlien = inGameService.summonAlien(userId);
+            BoardObject newAlien = inGameService.summonAlien(userId);
             // 헬퍼 메서드(makeResponse)로 통일
             return makeResponse(userId, "소환 성공! (-50 Gold)", newAlien);
         } catch (Exception e) {
@@ -167,11 +170,21 @@ public class GameController {
         }
     }
 
+    // 9. 인젝터 사용 API
+    @PostMapping("/use-injector")
+    public UseInjectorResponseDto useInjector(@RequestBody UseInjectorRequestDto request) {
+        return inGameService.useInjector(
+                request.getUserId(),
+                request.getInjectorId(),
+                request.getAlienId()
+        );
+    }
+
     // ==================================================================
     // 🛠️ 내부 헬퍼 메서드
     // ==================================================================
 
-    private GameResponseDto makeResponse(Long userId, String msg, InGameAlien alien) {
+    private GameResponseDto makeResponse(Long userId, String msg, BoardObject alien) {
         GameSession session = sessionManager.getSession(userId);
         return new GameResponseDto(
                 msg,

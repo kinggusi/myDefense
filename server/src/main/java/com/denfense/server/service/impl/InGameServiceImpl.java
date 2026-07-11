@@ -3,8 +3,10 @@ package com.denfense.server.service.impl;
 import com.denfense.server.domain.AlienSpec;
 import com.denfense.server.domain.MonsterSpec;
 import com.denfense.server.domain.MutationType;
+import com.denfense.server.dto.response.UseInjectorResponseDto;
 import com.denfense.server.dto.response.WaveSpawnDto;
 import com.denfense.server.game.manager.GameSessionManager;
+import com.denfense.server.game.object.BoardObject;
 import com.denfense.server.game.object.InGameAlien;
 import com.denfense.server.game.session.GameSession;
 import com.denfense.server.domain.User;
@@ -44,13 +46,16 @@ public class InGameServiceImpl implements InGameService {
         checkGameOver(session);
         checkPopulationLimit(session);
 
-        // 2. 유닛 2마리 존재 확인
-        InGameAlien source = session.getAlien(sourceId);
-        InGameAlien target = session.getAlien(targetId);
+        // 2. 유닛 2마리 존재 확인 및 Alien 타입 검증 (인젝터 등 합성 차단)
+        BoardObject sourceObj = session.getBoardObject(sourceId);
+        BoardObject targetObj = session.getBoardObject(targetId);
 
-        if (source == null || target == null) {
-            throw new IllegalArgumentException("유닛이 존재하지 않습니다.");
+        if (!(sourceObj instanceof InGameAlien) || !(targetObj instanceof InGameAlien)) {
+            throw new IllegalArgumentException("합성은 오직 왹져끼리만 가능합니다.");
         }
+
+        InGameAlien source = (InGameAlien) sourceObj;
+        InGameAlien target = (InGameAlien) targetObj;
 
         // 3. 등급 검사
         if (source.getAlienSpec().getGrade() != target.getAlienSpec().getGrade()) {
@@ -112,7 +117,7 @@ public class InGameServiceImpl implements InGameService {
      * summonAlien - 소환
      */
     @Override
-    public InGameAlien summonAlien(Long userId) {
+    public BoardObject summonAlien(Long userId) {
         GameSession session = sessionManager.getSession(userId);
 
         // 죽었거나, 80마리 넘었으면 소환 금지
@@ -120,51 +125,76 @@ public class InGameServiceImpl implements InGameService {
         checkPopulationLimit(session);
 
         // 필드가 꽉 찼는지 확인 (4 * 6 = 24칸)
-        if (session.getAliens().size() >= 24) {
+        if (session.isFull(24)) {
+            throw new IllegalStateException("필드에 빈 공간이 없습니다!");
+        }
+
+        // 1. 빈 자리 먼저 찾기 (화면 기준 왼쪽->오른쪽, 위->아래 순으로 첫 번째 빈칸 탐색)
+        int emptyX = -1;
+        int emptyY = -1;
+        BoardObject[][] grid = session.getGrid();
+        boolean foundEmpty = false;
+
+        for (int i = 3; i >= 0; i--) {
+            for (int j = 0; j < 6; j++) {
+                if (grid[i][j] == null) {
+                    emptyX = i;
+                    emptyY = j;
+                    foundEmpty = true;
+                    break;
+                }
+            }
+            if (foundEmpty) {
+                break;
+            }
+        }
+
+        if (!foundEmpty) {
             throw new IllegalStateException("필드에 빈 공간이 없습니다!");
         }
 
         // 2. 돈 차감
         session.spendGold(50);
 
-        // 3. 확률 뽑기
-        int chance = random.nextInt(100);
-        AlienSpec.Grade grade;
+        // 3. 확률 뽑기 (nextInt(10000) 사용하여 0.5% 확률로 인젝터 스폰)
+        int kidnapChance = random.nextInt(10000);
 
-        if (chance < 70) grade = AlienSpec.Grade.NORMAL;
-        else if (chance < 95) grade = AlienSpec.Grade.EPIC;
-        else grade = AlienSpec.Grade.UNIQUE;
-
-        // 4. 스펙 가져오기
-        AlienSpec spec = alienSpecRepository.findRandomByGrade(grade.name())
-                .orElseThrow(() -> new IllegalStateException("데이터 없음"));
-
-        // 5. 빈 자리 찾기
-        int emptyX = -1;
-        int emptyY = -1;
-        InGameAlien[][] grid = session.getGrid();
-
-        // 랜덤하게 빈 자리 찾기 (비어있는 타일 리스트 생성)
-        List<int[]> emptyTiles = new ArrayList<>();
-        for (int i = 0; i < 4; i++) {
-            for (int j = 0; j < 6; j++) {
-                if (grid[i][j] == null) {
-                    emptyTiles.add(new int[]{i, j});
-                }
-            }
+        if (kidnapChance >= 9950) {
+            // Mutation Injector 0.5% 스폰 (7종 동일 확률로 균등 소환)
+            List<MutationType> pool = MutationType.getInjectableTypes();
+            MutationType injectorType = pool.get(random.nextInt(pool.size()));
+            return session.spawnInjector(injectorType, emptyX, emptyY);
+        } else {
+            // Normal Alien 99.5% 스폰 (NORMAL 등급 고정 - Kidnap Policy 적용)
+            AlienSpec spec = drawNormalAlienSpec();
+            return session.spawnAlien(spec, MutationType.NONE, MutationType.NONE, 0, emptyX, emptyY);
         }
+    }
 
-        if (emptyTiles.isEmpty()) {
-            // 이 블록은 위쪽 size 체크로 인해 사실상 도달하지 않아야 하지만 방어 로직으로 둡니다.
-            throw new IllegalStateException("필드에 빈 공간이 없습니다!");
-        }
+    /**
+     * Kidnap Policy: 소환 대상 Normal 등급의 AlienSpec 명세를 안전하게 추출합니다.
+     */
+    private AlienSpec drawNormalAlienSpec() {
+        return alienSpecRepository.findRandomByGrade(AlienSpec.Grade.NORMAL.name())
+                .orElseThrow(() -> new IllegalStateException("NORMAL 등급 왹져 데이터가 존재하지 않습니다."));
+    }
 
-        int[] selectedTile = emptyTiles.get(random.nextInt(emptyTiles.size()));
-        emptyX = selectedTile[0];
-        emptyY = selectedTile[1];
+    @Override
+    public UseInjectorResponseDto useInjector(Long userId, Long injectorId, Long alienId) {
+        GameSession session = sessionManager.getSession(userId);
+        checkGameOver(session);
 
-        // 6. 소환
-        return session.spawnAlien(spec, MutationType.NONE, MutationType.NONE, 0, emptyX, emptyY);
+        // synchronized 세션 원자 처리 메서드 호출 (activeMutationType 값 보존)
+        InGameAlien alien = session.applyInjector(injectorId, alienId);
+
+        return new UseInjectorResponseDto(
+                alien.getId(),
+                alien.getPendingMutationType(),
+                alien.getActiveMutationType(),
+                injectorId,
+                alien.getGridX(),
+                alien.getGridY()
+        );
     }
 
     /**

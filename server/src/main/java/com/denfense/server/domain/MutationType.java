@@ -2,18 +2,28 @@ package com.denfense.server.domain;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import java.util.List;
 
 @Getter
 @RequiredArgsConstructor
 public enum MutationType {
     NONE(0, "없음"),
-    PROLIFIC(1, "다산의"), // 소환 시 일정 확률로 1마리 더 (증식)
-    GREEDY(2, "탐욕의"),   // 처치 시 골드 획득량 증가
-    SWIFT(3, "광속의"),    // 공격 속도 증가
-    PREDATORY(4, "포식의"), // 보스 몬스터에게 추가 데미지
-    OBESE(5, "비만의"),    // 체력 증가 (탱커 역할)
-    SLIME(99, "꽝");       // 실패작 (슬라임)
+    BERSERK(1, "광폭의"),
+    GREEDY(2, "탐욕의"),
+    SWIFT(3, "신속한"),
+    GIANT(4, "거대한"),
+    OBESE(5, "비만의"),
+    TOXIC(6, "독성의"),
+    FROZEN(7, "빙결의"),
+    BLANK(99, "꽝");
 
     private final int code;
     private final String description;
+
+    /**
+     * 인젝터로 생성 가능한 변이 종류의 리스트를 반환합니다. (NONE, BLANK 제외한 7종)
+     */
+    public static List<MutationType> getInjectableTypes() {
+        return List.of(BERSERK, GREEDY, SWIFT, GIANT, OBESE, TOXIC, FROZEN);
+    }
 }
