@@ -1,4 +1,5 @@
 using System;
+using UnityEngine;
 
 [Serializable]
 public class GameResponseDto {
@@ -83,4 +84,44 @@ public class ApiResult<T>
     public T Data;
     public ApiErrorResponse Error;
     public string NetworkError;
+}
+
+[Serializable]
+public class EmptyRequestBody {}
+
+public enum BoardObjectKind
+{
+    Alien,
+    Injector
+}
+
+public static class BoardObjectHelper
+{
+    public static bool TryGetBoardObject(GameObject obj, out long serverId, out BoardObjectKind kind)
+    {
+        serverId = -1;
+        kind = BoardObjectKind.Alien;
+
+        if (obj == null) return false;
+
+        // 1. Alien 검사 (UnitData의 grade가 INJECTOR가 아닌 정상 Alien 유닛만 필터링)
+        UnitData alienData = obj.GetComponent<UnitData>();
+        if (alienData != null && alienData.grade != "INJECTOR")
+        {
+            serverId = alienData.serverId;
+            kind = BoardObjectKind.Alien;
+            return true;
+        }
+
+        // 2. Injector 검사
+        InjectorData injectorData = obj.GetComponent<InjectorData>();
+        if (injectorData != null)
+        {
+            serverId = injectorData.serverId;
+            kind = BoardObjectKind.Injector;
+            return true;
+        }
+
+        return false;
+    }
 }

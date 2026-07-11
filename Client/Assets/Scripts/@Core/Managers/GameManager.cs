@@ -5,6 +5,7 @@ public class GameManager : MonoBehaviour
 {
     [Header("설정 - 내 필드")]
     public GameObject unitPrefab;
+    public GameObject injectorPrefab; // 신규 추가: 인젝터 프리팹 에셋 슬롯
     public Transform myGridParent; // 기존 gridParent 이름을 변경하거나 그대로 두고 Inspector에서 할당
     
     [Header("설정 - 상대방(Enemy) 필드")]
@@ -82,46 +83,94 @@ public class GameManager : MonoBehaviour
         if (summonBtn != null) 
             summonBtn.interactable = false; // 버튼 비활성화 (HTML disabled=true)
 
-        // 내 소환 요청
-        WWWForm myForm = new WWWForm();
-        myForm.AddField("userId", userId.ToString());
-
-        NetworkManager.Instance.Post(ApiSummon, myForm, (json) =>
+        // 내 소환 요청 (비동기 POST 공통 처리)
+        string requestUri = "/game/summon?userId=" + userId;
+        NetworkManager.Instance.PostJsonAsync<EmptyRequestBody, GameResponseObjectDto>(requestUri, new EmptyRequestBody(), (result) =>
         {
-            // 통신 완료 시 다시 버튼 활성화
-            isSummoning = false;
-            if (summonBtn != null) summonBtn.interactable = true;
-
-            Debug.Log($"[내 소환 시도] 서버 응답: {json}");
-
-            GameResponseDto res = JsonUtility.FromJson<GameResponseDto>(json);
-
-            if (res.message != null && res.message.Contains("진행 중인 게임이 없습니다"))
+            if (result.IsSuccess)
             {
-                Debug.LogWarning("게임이 안 켜져 있어서 다시 시작합니다...");
-                GameStart();
-                return;
+                // 1. result.Data 및 alien null 검증
+                GameResponseObjectDto res = result.Data;
+                if (res != null && res.alien != null)
+                {
+                    // 2. SpawnBoardObject 처리 및 3. 로컬 등록 성공 여부 확인
+                    bool isLocallySpawned = SpawnBoardObject(res.alien, true);
+
+                    // 4. remainingGold 갱신 (서버 성공 시 UI 골드는 무조건 동기화하여 갱신)
+                    UpdateGoldUI(res.remainingGold);
+
+                    if (!isLocallySpawned)
+                    {
+                        // 서버 상태는 이미 변경됐는데(골드차감됨) 로컬 생성이 실패한 불일치 경고 로그
+                        Debug.LogError($"🚨 [로컬 동기화 실패] 서버 소환은 성공(골드차감됨)하였으나 로컬 보드 오브젝트 생성에 실패했습니다. (서버 객체 ID: {res.alien.id}, 타입: {res.alien.objectType}). 추후 보드 상태 전수 동기화 API 호출이 필요합니다. [TODO: SyncBoardState API]");
+                    }
+                }
+                else
+                {
+                    Debug.LogError("🚨 [소환 성공 응답] 서버 성공 응답에 유효한 유닛 데이터가 누락되었습니다.");
+                }
+
+                // 5. 버튼 잠금 해제 (성공 분기)
+                isSummoning = false;
+                if (summonBtn != null) summonBtn.interactable = true;
             }
-
-            // [추가] 서버에서 남은 골드를 알려주면 UI 갱신!
-            UpdateGoldUI(res.remainingGold);
-
-            // 서버 파싱 데이터가 정상적으로 들어왔다면 소환! (내 필드에)
-            if (res.alien != null)
+            else
             {
-                SpawnUnit(res.alien, true); // true: 내 필드
+                // 모든 실패 경로에서 버튼 잠금 해제 및 디바운스 초기화 보장
+                isSummoning = false;
+                if (summonBtn != null) summonBtn.interactable = true;
+
+                // 실패 처리 (에러 코드 분기)
+                if (result.Error != null)
+                {
+                    string errCode = result.Error.code;
+                    if (errCode == "BOARD_FULL")
+                    {
+                        Debug.LogWarning("🚨 [소환 실패] 보드가 가득 찼습니다.");
+                    }
+                    else if (errCode == "INSUFFICIENT_GOLD")
+                    {
+                        Debug.LogWarning("🚨 [소환 실패] 골드가 부족합니다.");
+                    }
+                    else if (errCode == "GAME_SESSION_NOT_FOUND")
+                    {
+                        Debug.LogError("🚨 [소환 실패] 진행 중인 게임을 찾을 수 없습니다.");
+                    }
+                    else if (errCode == "GAME_ALREADY_OVER")
+                    {
+                        Debug.LogError("🚨 [소환 실패] 이미 종료된 게임입니다.");
+                    }
+                    else
+                    {
+                        Debug.LogError($"🚨 [소환 실패] 비즈니스 에러 (코드: {errCode}): {result.Error.message}");
+                    }
+                }
+                else if (!string.IsNullOrEmpty(result.NetworkError))
+                {
+                    // 네트워크 장애 대응
+                    string netErr = result.NetworkError;
+                    if (netErr.Contains("TIMEOUT_ERROR"))
+                    {
+                        Debug.LogError("🚨 [네트워크 오류] 서버 응답 시간이 초과되었습니다.");
+                    }
+                    else if (netErr.Contains("CONNECTION_FAILED"))
+                    {
+                        Debug.LogError("🚨 [네트워크 오류] 서버에 연결할 수 없습니다.");
+                    }
+                    else if (netErr.Contains("JSON_PARSE_ERROR") || netErr.Contains("DATA_PROCESSING_ERROR"))
+                    {
+                        Debug.LogError("🚨 [네트워크 오류] 서버 응답을 처리하지 못했습니다.");
+                    }
+                    else
+                    {
+                        Debug.LogError($"🚨 [네트워크 오류] {netErr}");
+                    }
+                }
             }
-        }, (err) => 
-        {
-            // 에러가 나도 버튼은 다시 살려줘야 함
-            isSummoning = false;
-            if (summonBtn != null) summonBtn.interactable = true;
-            Debug.LogError("통신 에러: " + err);
         });
 
         // ==========================================
-        // 💡 [테스트용] 내가 소환할 때 상대방도 같이 소환되게 하기
-        // (실제 게임에서는 상대방이 알아서 버튼을 누를 때 호출됨)
+        // 💡 [적 소환 시도] 상대방도 같이 소환되게 하기 (기존 레거시 API 및 오버로드 호환성 유지)
         // ==========================================
         WWWForm enemyForm = new WWWForm();
         enemyForm.AddField("userId", enemyId.ToString());
@@ -137,6 +186,123 @@ public class GameManager : MonoBehaviour
         }, (err) => {
             Debug.Log("상대방 소환 에러 (무시가능)");
         });
+    }
+
+    // 💡 신규 BoardObjectDto 다형성 수용 어댑터 메서드
+    private bool SpawnBoardObject(BoardObjectDto data, bool isMine)
+    {
+        if (data == null)
+        {
+            Debug.LogError("🚨 [SpawnBoardObject] 전달된 BoardObjectDto 데이터가 null 입니다.");
+            return false;
+        }
+
+        if (string.IsNullOrEmpty(data.objectType))
+        {
+            Debug.LogError("🚨 [SpawnBoardObject] 데이터의 objectType이 누락되었습니다.");
+            return false;
+        }
+
+        if (data.objectType == BoardObjectDto.TypeAlien)
+        {
+            // BoardObjectDto -> InGameAlien 모델 변환 (기존 SpawnUnit 호환성 보장)
+            InGameAlien alien = new InGameAlien();
+            alien.id = data.id;
+            alien.gridX = data.gridX;
+            alien.gridY = data.gridY;
+            alien.pendingMutationType = data.pendingMutationType;
+            alien.activeMutationType = data.activeMutationType;
+            alien.mutationRerollCount = data.mutationRerollCount;
+            alien.alienSpec = data.alienSpec;
+
+            SpawnUnit(alien, isMine);
+            return true;
+        }
+        else if (data.objectType == BoardObjectDto.TypeInjector)
+        {
+            return SpawnInjector(data, isMine);
+        }
+        else
+        {
+            Debug.LogError($"🚨 [SpawnBoardObject] 지원하지 않는 알 수 없는 objectType 감지: {data.objectType}");
+            return false;
+        }
+    }
+
+    // 💡 신규 SpawnInjector 구현 (프리팹 기반의 실제 인스턴스화 및 데이터 정합성 수립)
+    private bool SpawnInjector(BoardObjectDto data, bool isMine)
+    {
+        if (data == null)
+        {
+            Debug.LogError("🚨 [SpawnInjector] BoardObjectDto 데이터가 null 입니다.");
+            return false;
+        }
+
+        Transform targetGridParent = isMine ? myGridParent : enemyGridParent;
+        if (targetGridParent == null)
+        {
+            Debug.LogError("🚨 [SpawnInjector] targetGridParent가 null 입니다.");
+            return false;
+        }
+
+        // 1. 타일 위치 검색 및 정렬
+        string targetTileName = $"Tile_{data.gridY}_{data.gridX}";
+        Transform targetTile = targetGridParent.Find(targetTileName);
+        if (targetTile == null)
+        {
+            Debug.LogError($"🚨 [SpawnInjector] 대상 타일 '{targetTileName}' 을 찾을 수 없습니다.");
+            return false;
+        }
+
+        // 2. 인젝터 프리팹 검증
+        if (injectorPrefab == null)
+        {
+            Debug.LogError("🚨 [SpawnInjector] GameManager에 injectorPrefab이 연결되지 않았습니다! (리소스 부재)");
+            return false;
+        }
+
+        GameObject injectorObj = null;
+        try
+        {
+            // 3. 인스턴스화 및 타일 위치 정밀 배치
+            Vector3 finalPos = targetTile.position + new Vector3(0, 0.8f, 0);
+            injectorObj = Instantiate(injectorPrefab, finalPos, Quaternion.identity);
+            injectorObj.transform.SetParent(targetGridParent);
+
+            // 4. 이름 및 태그 설정
+            string owner = isMine ? "Me" : "Enemy";
+            injectorObj.name = $"Injector_{owner}_{data.gridX}_{data.gridY}";
+            
+            // 머지/전투 시의 안전 분리를 위해 인젝터 전용 태그 설정 또는 Untagged 유지
+            injectorObj.tag = "Untagged"; // Unit 태그를 주지 않아 전투 타겟 및 머지 합성군에서 배제
+
+            // 5. InjectorData 컴포넌트 정보 바인딩 (프리팹 컴포넌트 필수 검증 정책)
+            InjectorData injectorData = injectorObj.GetComponent<InjectorData>();
+            if (injectorData == null)
+            {
+                Debug.LogError("🚨 [SpawnInjector] 생성된 프리팹에 필수 컴포넌트인 'InjectorData' 가 누락되었습니다!");
+                Destroy(injectorObj); // 실패한 잔해물 정리
+                return false;
+            }
+
+            injectorData.serverId = data.id;
+            injectorData.gridX = data.gridX;
+            injectorData.gridY = data.gridY;
+            injectorData.mutationType = data.mutationType;
+            injectorData.isMine = isMine;
+
+            Debug.Log($"🎉 [SpawnInjector] 인젝터 씬 배치 성공! ID: {data.id}, DNA: {data.mutationType}, 위치: ({data.gridX}, {data.gridY}), 소유: {owner}");
+            return true;
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"🚨 [SpawnInjector] 씬 인스턴스화 과정 중 예외가 발생했습니다: {ex.Message}");
+            if (injectorObj != null)
+            {
+                Destroy(injectorObj); // 실패한 잔해물 정리
+            }
+            return false;
+        }
     }
 
     // 3. 유닛 소환 (클라이언트 랜덤 삭제, 서버 데이터 100% 신뢰)
