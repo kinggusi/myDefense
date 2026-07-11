@@ -71,6 +71,19 @@ public class InjectorDrag : MonoBehaviour
             return;
         }
 
+        // 2. 사용 조건 판단 (Injector -> Alien 사용 시)
+        if (targetObj != null)
+        {
+            if (BoardObjectHelper.TryGetBoardObject(targetObj, out long targetId, out BoardObjectKind targetKind, out _, out _, out _, out UnitData targetUd, out _))
+            {
+                if (targetKind == BoardObjectKind.Alien && sourceId > 0 && targetId > 0)
+                {
+                    RequestUseInjector(targetObj, sourceId, targetId);
+                    return;
+                }
+            }
+        }
+
         // 같은 칸 드롭인 경우 no-op 처리
         if (oldGridX == newX && oldGridY == newY)
         {
@@ -80,6 +93,153 @@ public class InjectorDrag : MonoBehaviour
 
         // 3. Move / Swap 가동
         RequestMove(targetTile, targetObj, sourceId, oldGridX, oldGridY, newX, newY);
+    }
+
+    void RequestUseInjector(GameObject targetAlien, long sourceId, long targetId)
+    {
+        // A. 요청 전 상태 캐싱 및 입력 잠금
+        Vector3 sourceStartPos = startPos;
+        Vector3 targetStartPos = targetAlien.transform.position;
+
+        // gridX/y 데이터 백업
+        int sourceGridX = -1;
+        int sourceGridY = -1;
+        if (BoardObjectHelper.TryGetBoardObject(gameObject, out _, out _, out sourceGridX, out sourceGridY, out _, out _, out _)) {}
+
+        int targetGridX = -1;
+        int targetGridY = -1;
+        UnitData alienUd = targetAlien.GetComponent<UnitData>();
+        if (alienUd != null)
+        {
+            targetGridX = alienUd.gridX;
+            targetGridY = alienUd.gridY;
+        }
+
+        // Alien 이전 변이 상태 백업 (원자성 확보)
+        string oldPending = alienUd != null ? alienUd.pendingMutationType : "NONE";
+        string oldActive = alienUd != null ? alienUd.activeMutationType : "NONE";
+        int oldReroll = alienUd != null ? alienUd.mutationRerollCount : 0;
+
+        InjectorDrag sourceDrag = this;
+        UnitDrag targetDrag = targetAlien.GetComponent<UnitDrag>();
+
+        sourceDrag.enabled = false;
+        if (targetDrag != null) targetDrag.enabled = false;
+
+        // B. API 요청 전송 (UseInjectorResponseDto 가 바디로 직접 반환됨)
+        GameManager gm = FindObjectOfType<GameManager>();
+        long userId = gm != null ? gm.UserId : 1;
+
+        UseInjectorRequestDto req = new UseInjectorRequestDto
+        {
+            userId = userId,
+            injectorId = sourceId,
+            alienId = targetId
+        };
+
+        string requestUri = "/game/use-injector";
+        NetworkManager.Instance.PostJsonAsync<UseInjectorRequestDto, UseInjectorResponseDto>(requestUri, req, (result) =>
+        {
+            System.Action unlockAll = () =>
+            {
+                if (sourceDrag != null) sourceDrag.enabled = true;
+                if (targetDrag != null) targetDrag.enabled = true;
+            };
+
+            if (result.IsSuccess)
+            {
+                UseInjectorResponseDto res = result.Data;
+                if (res != null)
+                {
+                    // 1. 응답 ID 및 데이터 정밀 검증
+                    if (res.alienId == targetId && res.consumedInjectorId == sourceId)
+                    {
+                        // grid 범위 검증
+                        if (res.gridX >= 0 && res.gridX < 4 && res.gridY >= 0 && res.gridY < 6)
+                        {
+                            try
+                            {
+                                // 2. 변이 데이터 적용 (성공 처리 원자성)
+                                if (alienUd != null)
+                                {
+                                    alienUd.pendingMutationType = res.pendingMutationType;
+                                    alienUd.activeMutationType = res.activeMutationType;
+                                    // ※ 참고: UseInjectorResponseDto 에는 mutationRerollCount 가 누락되어 있어 백업값을 유지합니다.
+                                }
+
+                                // 3. 인젝터 비활성화 및 소멸
+                                gameObject.SetActive(false);
+                                Destroy(gameObject);
+
+                                // 4. 대상 Alien 잠금 해제
+                                if (targetDrag != null) targetDrag.enabled = true;
+
+                                Debug.Log($"🎉 [인젝터 사용 성공] Alien ID: {res.alienId} 에 pending: {res.pendingMutationType}, active: {res.activeMutationType} 가 반영되었습니다!");
+                            }
+                            catch (System.Exception ex)
+                            {
+                                // 적용 중 오류 시 복구
+                                if (alienUd != null)
+                                {
+                                    alienUd.pendingMutationType = oldPending;
+                                    alienUd.activeMutationType = oldActive;
+                                    alienUd.mutationRerollCount = oldReroll;
+                                }
+                                transform.position = sourceStartPos;
+                                unlockAll();
+                                Debug.LogError($"🚨 [로컬 적용 실패] 인젝터 사용 성공 후 데이터 갱신 중 오류가 발생했습니다: {ex.Message}");
+                            }
+                        }
+                        else
+                        {
+                            transform.position = sourceStartPos;
+                            unlockAll();
+                            Debug.LogError($"🚨 [정합성 오류] 서버가 반환한 Alien 좌표가 보드 범위를 벗어납니다. (gridX: {res.gridX}, gridY: {res.gridY}). [TODO: SyncBoardState API]");
+                        }
+                    }
+                    else
+                    {
+                        transform.position = sourceStartPos;
+                        unlockAll();
+                        Debug.LogError($"🚨 [정합성 오류] 서버 반환 식별자가 일치하지 않습니다. (요청 alien: {targetId}, 응답 alien: {res.alienId} / 요청 injector: {sourceId}, 응답 injector: {res.consumedInjectorId}). [TODO: SyncBoardState API]");
+                    }
+                }
+                else
+                {
+                    transform.position = sourceStartPos;
+                    unlockAll();
+                    Debug.LogError("🚨 [인젝터 사용 실패] 서버 응답 바디가 누락되었습니다.");
+                }
+            }
+            else
+            {
+                // C. 실패 시 상태 원복 및 잠금 해제
+                transform.position = sourceStartPos;
+                if (targetAlien != null)
+                {
+                    targetAlien.transform.position = targetStartPos;
+                }
+
+                unlockAll();
+
+                if (result.Error != null)
+                {
+                    string errCode = result.Error.code;
+                    if (errCode == "BOARD_STATE_INCONSISTENT")
+                    {
+                        Debug.LogError($"🚨 [보드 상태 불일치] 인젝터 사용 대상 상태가 정합성을 잃었습니다. (ErrorCode: BOARD_STATE_INCONSISTENT). [TODO: SyncBoardState API]");
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"⚠️ [인젝터 사용 실패] 비즈니스 에러 ({errCode}): {result.Error.message}");
+                    }
+                }
+                else
+                {
+                    Debug.LogError("🚨 [인젝터 사용 실패] 네트워크 오류 또는 알 수 없는 실패 발생: " + result.NetworkError);
+                }
+            }
+        });
     }
 
     void RequestMove(Transform targetTile, GameObject targetObj, long sourceId, int oldX, int oldY, int newX, int newY)
