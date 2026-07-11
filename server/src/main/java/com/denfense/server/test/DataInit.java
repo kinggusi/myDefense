@@ -52,7 +52,7 @@ public class DataInit implements CommandLineRunner {
         List<MonsterSpec> mc4 = createMonster(5, MonsterSpec.MonsterType.NORMAL, 3);
 
         // (전설 합성은 선택권 방식이라 고정 타겟 ID는 일단 null로 둠)
-        createAliens(AlienSpec.Grade.EVOLUTION, 20, 10.0, null);
+        createAliens(AlienSpec.Grade.MYTHIC, 4, 10.0, null);
 
         System.out.println("====== [TEST DATA] 생성 완료 ======");
 
@@ -128,7 +128,7 @@ public class DataInit implements CommandLineRunner {
             spec.setRange(3.5);    // 사거리 3.5칸
 
             // 기본 잠금 상태 (노말~전설은 해금 / 진화체는 잠금)
-            if (grade == AlienSpec.Grade.EVOLUTION) {
+            if (grade == AlienSpec.Grade.MYTHIC) {
                 spec.setLocked(true);
             } else {
                 spec.setLocked(false);

@@ -2,7 +2,6 @@ package com.denfense.server.service.impl;
 
 import com.denfense.server.domain.AlienSpec;
 import com.denfense.server.domain.MonsterSpec;
-import com.denfense.server.domain.PrefixType;
 import com.denfense.server.dto.response.WaveSpawnDto;
 import com.denfense.server.game.manager.GameSessionManager;
 import com.denfense.server.game.object.InGameAlien;
@@ -94,21 +93,15 @@ public class InGameServiceImpl implements InGameService {
             resultSpec = pool.get(random.nextInt(pool.size()));
         }
 
-        // [B] 접두사 승계
-        PrefixType resultPrefix = (source.getPrefixType() != PrefixType.NONE) ? source.getPrefixType() : PrefixType.NONE;
-
-        // [C] 리스크 (Slime Risk)
-        if (resultPrefix != PrefixType.NONE && random.nextInt(100) < 10) {
-            resultPrefix = PrefixType.SLIME;
-        }
-
         // [D] 결과 반영
         session.removeAlien(sourceId);
         session.removeAlien(targetId);
 
         return session.spawnAlien(
                 resultSpec,
-                resultPrefix,
+                "NONE",
+                "NONE",
+                0,
                 target.getGridX(),
                 target.getGridY()
         );
@@ -170,7 +163,7 @@ public class InGameServiceImpl implements InGameService {
         emptyY = selectedTile[1];
 
         // 6. 소환
-        return session.spawnAlien(spec, PrefixType.NONE, emptyX, emptyY);
+        return session.spawnAlien(spec, "NONE", "NONE", 0, emptyX, emptyY);
     }
 
     /**

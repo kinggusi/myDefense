@@ -12,7 +12,9 @@ public class GameResponseDto {
 public class InGameAlien {
     public long id;
     public AlienSpec alienSpec;
-    public string prefixType;
+    public string pendingMutationType;
+    public string activeMutationType;
+    public int mutationRerollCount;
     public int gridX;
     public int gridY;
 }

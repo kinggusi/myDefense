@@ -33,13 +33,13 @@ public class AlienSpec {
     // 1. Enum 정의 (설계도)
     // ==========================================
     public enum Grade {
-        NORMAL, EPIC, UNIQUE, LEGEND, MYTHIC, EVOLUTION;
+        NORMAL, EPIC, UNIQUE, LEGEND, MYTHIC;
 
         public Grade getNext() {
-            int nextIndex = this.ordinal() + 1;
-            if (nextIndex >= values().length) {
+            if (this == MYTHIC) {
                 throw new IllegalStateException("이미 최종 등급입니다: " + this.name());
             }
+            int nextIndex = this.ordinal() + 1;
             return values()[nextIndex];
         }
     }

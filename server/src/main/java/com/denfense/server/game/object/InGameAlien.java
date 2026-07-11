@@ -1,7 +1,7 @@
 package com.denfense.server.game.object;
 
 import com.denfense.server.domain.AlienSpec;
-import com.denfense.server.domain.PrefixType;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
@@ -17,7 +17,9 @@ public class InGameAlien {
 
     private Long id; // 메모리 상의 고유 ID (AtomicLong으로 발급)
     private AlienSpec alienSpec; // 유닛 스펙 정보
-    private PrefixType prefixType; // 접두사 (생체변이)
+    private String pendingMutationType; // NORMAL~LEGENDARY 구간 주입 DNA
+    private String activeMutationType;  // MYTHIC 실제 발현 변이
+    private int mutationRerollCount;    // 재변이 리롤 횟수 카운터
     private int gridX;
     private int gridY;
 }
