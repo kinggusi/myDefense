@@ -7,8 +7,11 @@ import com.denfense.server.dto.response.WaveSpawnDto;
 import com.denfense.server.game.manager.GameSessionManager;
 import com.denfense.server.game.object.InGameAlien;
 import com.denfense.server.game.session.GameSession;
+import com.denfense.server.domain.User;
+import com.denfense.server.domain.UserAlien;
 import com.denfense.server.repository.AlienSpecRepository;
 import com.denfense.server.repository.MonsterSpecRepository;
+import com.denfense.server.repository.UserRepository;
 import com.denfense.server.service.InGameService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -24,6 +27,7 @@ public class InGameServiceImpl implements InGameService {
     private final GameSessionManager sessionManager;
     private final AlienSpecRepository alienSpecRepository;
     private final MonsterSpecRepository monsterSpecRepository;
+    private final UserRepository userRepository;
     private final Random random = new Random();
 
     private static final int MAX_MONSTER_LIMIT = 80;
@@ -57,20 +61,37 @@ public class InGameServiceImpl implements InGameService {
         AlienSpec resultSpec = null;
         AlienSpec.Grade currentGrade = source.getAlienSpec().getGrade();
 
-        // 1. 동종 합체
-        if (source.getAlienSpec().getId().equals(target.getAlienSpec().getId())) {
-            Long nextId = source.getAlienSpec().getEvolutionTargetId();
-            if (nextId == null) {
-                throw new IllegalStateException("더 이상 고정 진화할 수 없는 유닛입니다.");
-            }
-            resultSpec = alienSpecRepository.findById(nextId)
-                    .orElseThrow(() -> new IllegalStateException("진화 정보가 없습니다. ID: " + nextId));
+        // 1. 같은 종인지 검사
+        if (!source.getAlienSpec().getId().equals(target.getAlienSpec().getId())) {
+            throw new IllegalArgumentException("같은 종끼리만 합칠 수 있습니다.");
         }
-        // 2. 이종 합체
-        else {
+
+        if (currentGrade == AlienSpec.Grade.LEGEND) {
+            // 전설 -> 신화: 해당 플레이어가 해금한 신화 풀만 사용
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유저입니다."));
+            
+            List<AlienSpec> unlockedMythics = new ArrayList<>();
+            for (UserAlien ua : user.getUserAliens()) {
+                AlienSpec spec = ua.getAlienSpec();
+                if (spec.getGrade() == AlienSpec.Grade.MYTHIC) {
+                    unlockedMythics.add(spec);
+                }
+            }
+
+            if (unlockedMythics.isEmpty()) {
+                throw new IllegalStateException("해금된 신화 등급 왹져가 없습니다.");
+            }
+
+            resultSpec = unlockedMythics.get(random.nextInt(unlockedMythics.size()));
+        } else {
+            // 일반 등급: 다음 등급 전체 풀에서 랜덤
             AlienSpec.Grade nextGrade = currentGrade.getNext();
-            resultSpec = alienSpecRepository.findRandomByGrade(nextGrade.name())
-                    .orElseThrow(() -> new IllegalStateException(nextGrade.name() + " 등급 없음"));
+            List<AlienSpec> pool = alienSpecRepository.findAllByGrade(nextGrade);
+            if (pool.isEmpty()) {
+                throw new IllegalStateException(nextGrade.name() + " 등급의 왹져 데이터가 존재하지 않습니다.");
+            }
+            resultSpec = pool.get(random.nextInt(pool.size()));
         }
 
         // [B] 접두사 승계

@@ -4,6 +4,7 @@ public class UnitData : MonoBehaviour
 {
     [Header("서버 데이터")]
     public long serverId;
+    public long specId;
     public string grade;
     public string unitName;
 
@@ -11,6 +12,7 @@ public class UnitData : MonoBehaviour
     public void SetInfo(InGameAlien data)
     {
         this.serverId = data.id;
+        this.specId = data.alienSpec.id;
         this.grade = data.alienSpec.grade;
         this.unitName = data.alienSpec.name;
 
