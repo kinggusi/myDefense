@@ -20,6 +20,7 @@ public class GameManager : MonoBehaviour
     [Header("테스트 정보")]
     private long userId = 1;       // 내 ID
     private long enemyId = 2;      // 가상의 상대방 ID
+    public long UserId => userId;  // 읽기전용 프로퍼티 제공
     private float tileSize = 1.1f;
     private int cols = 6;
     private int rows = 4;
