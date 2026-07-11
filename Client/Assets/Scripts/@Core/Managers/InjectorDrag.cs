@@ -1,6 +1,7 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
 
-public class InjectorDrag : MonoBehaviour
+public class InjectorDrag : MonoBehaviour, IPointerDownHandler, IDragHandler, IPointerUpHandler
 {
     private Vector3 offset;
     private Camera cam;
@@ -9,26 +10,41 @@ public class InjectorDrag : MonoBehaviour
 
     void Start() { cam = Camera.main; }
 
-    void OnMouseDown()
+    public void OnPointerDown(PointerEventData eventData)
+    {
+        BeginDrag(eventData.position);
+    }
+
+    public void OnDrag(PointerEventData eventData)
+    {
+        ContinueDrag(eventData.position);
+    }
+
+    public void OnPointerUp(PointerEventData eventData)
+    {
+        EndDrag(eventData.position);
+    }
+
+    void BeginDrag(Vector2 screenPos)
     {
         startPos = transform.position;
-        offset = transform.position - GetMouseWorldPos();
+        offset = transform.position - GetMouseWorldPos(screenPos);
         isDragging = true;
     }
 
-    void OnMouseDrag()
+    void ContinueDrag(Vector2 screenPos)
     {
         if (!isDragging) return;
-        Vector3 newPos = GetMouseWorldPos() + offset;
+        Vector3 newPos = GetMouseWorldPos(screenPos) + offset;
         transform.position = new Vector3(newPos.x, 0.5f, newPos.z);
     }
 
-    void OnMouseUp()
+    void EndDrag(Vector2 screenPos)
     {
         isDragging = false;
         
         // 1. RaycastAll 로 마우스 아래의 타일 및 위에 얹힌 객체들 동시 검출 (빈칸 판정 오인 방지)
-        Ray ray = cam.ScreenPointToRay(Input.mousePosition);
+        Ray ray = cam.ScreenPointToRay(screenPos);
         RaycastHit[] hits = Physics.RaycastAll(ray);
         
         Transform targetTile = null;
@@ -373,10 +389,17 @@ public class InjectorDrag : MonoBehaviour
         });
     }
 
-    Vector3 GetMouseWorldPos()
+    Vector3 GetMouseWorldPos(Vector2 screenPos)
     {
-        Vector3 mousePoint = Input.mousePosition;
-        mousePoint.z = cam.WorldToScreenPoint(transform.position).z;
-        return cam.ScreenToWorldPoint(mousePoint);
+        if (cam == null)
+            return transform.position;
+
+        Ray ray = cam.ScreenPointToRay(screenPos);
+
+        Plane dragPlane = new Plane(Vector3.up, new Vector3(0f, transform.position.y, 0f));
+
+        return dragPlane.Raycast(ray, out float distance)
+            ? ray.GetPoint(distance)
+            : transform.position;
     }
 }

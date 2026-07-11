@@ -171,22 +171,8 @@ public class GameManager : MonoBehaviour
         });
 
         // ==========================================
-        // 💡 [적 소환 시도] 상대방도 같이 소환되게 하기 (기존 레거시 API 및 오버로드 호환성 유지)
+        // 💡 [적 소환 시도] 통합 테스트 씬에서는 상대방 소환을 진행하지 않고 비워 둡니다.
         // ==========================================
-        WWWForm enemyForm = new WWWForm();
-        enemyForm.AddField("userId", enemyId.ToString());
-
-        NetworkManager.Instance.Post(ApiSummon, enemyForm, (json) =>
-        {
-            Debug.Log($"[적 소환 시도] 서버 응답: {json}");
-            GameResponseDto res = JsonUtility.FromJson<GameResponseDto>(json);
-            if (res.alien != null)
-            {
-                SpawnUnit(res.alien, false); // false: 적 필드
-            }
-        }, (err) => {
-            Debug.Log("상대방 소환 에러 (무시가능)");
-        });
     }
 
     // 💡 신규 BoardObjectDto 다형성 수용 어댑터 메서드
@@ -292,6 +278,19 @@ public class GameManager : MonoBehaviour
             injectorData.mutationType = data.mutationType;
             injectorData.isMine = isMine;
 
+            if (isMine)
+            {
+                InjectorDrag drag = injectorObj.GetComponent<InjectorDrag>();
+                if (drag == null)
+                {
+                    drag = injectorObj.AddComponent<InjectorDrag>();
+                }
+                drag.enabled = true;
+
+                Collider col = injectorObj.GetComponent<Collider>();
+                if (col != null) col.enabled = true;
+            }
+
             Debug.Log($"🎉 [SpawnInjector] 인젝터 씬 배치 성공! ID: {data.id}, DNA: {data.mutationType}, 위치: ({data.gridX}, {data.gridY}), 소유: {owner}");
             return true;
         }
@@ -365,6 +364,20 @@ public class GameManager : MonoBehaviour
         // 데이터 바인딩
         UnitData unitData = unit.GetComponent<UnitData>();
         if (unitData != null) unitData.SetInfo(data);
+
+        // 내 유닛인 경우 입력 및 드래그 활성화
+        if (isMine)
+        {
+            UnitDrag drag = unit.GetComponent<UnitDrag>();
+            if (drag == null)
+            {
+                drag = unit.AddComponent<UnitDrag>();
+            }
+            drag.enabled = true;
+
+            Collider col = unit.GetComponent<Collider>();
+            if (col != null) col.enabled = true;
+        }
         
         Debug.Log($"👽 [{owner} 소환 완료] 왹져가 DB 좌표 ({data.gridX}, {data.gridY}) -> 클라 좌표 ({data.gridY}, {data.gridX}) 에 배치되었습니다!");
     }
