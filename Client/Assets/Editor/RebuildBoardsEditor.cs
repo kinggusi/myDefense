@@ -33,7 +33,6 @@ public class RebuildBoardsEditor
         p1Manager.cols = 6;
         p1Manager.tileSize = 1.1f;
 
-        // P1 기존 타일들 파괴
         for (int i = p1Obj.transform.childCount - 1; i >= 0; i--)
         {
             Object.DestroyImmediate(p1Obj.transform.GetChild(i).gameObject);
@@ -50,7 +49,6 @@ public class RebuildBoardsEditor
             return;
         }
 
-        // EnemyGridParent에도 GridManager가 붙어있다면 설정값 동기화
         GridManager p2Manager = p2Obj.GetComponent<GridManager>();
         if (p2Manager != null)
         {
@@ -94,9 +92,75 @@ public class RebuildBoardsEditor
         }
         Debug.Log("P2 보드 4x6 재생성 완료!");
 
+        EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+        EditorSceneManager.SaveOpenScenes();
+    }
+
+    [MenuItem("Tools/배틀 경로 및 자동시작 설정하기")]
+    public static void ConfigureBattlePathAndAutoStart()
+    {
+        string currentScene = EditorSceneManager.GetActiveScene().path;
+        if (!currentScene.Contains("fields.unity"))
+        {
+            EditorSceneManager.OpenScene("Assets/Pages/fields.unity");
+        }
+
+        // 1. P1 사각형 순환 경로 가로축 보정 (X = -3.60 ~ 3.60)
+        GameObject p1Lane = GameObject.Find("Player1Lane_WaypointGroup");
+        if (p1Lane != null)
+        {
+            float minX = -3.60f;
+            float maxX = 3.60f;
+            for (int i = 0; i < p1Lane.transform.childCount; i++)
+            {
+                var wp = p1Lane.transform.GetChild(i);
+                Vector3 pos = wp.position;
+                string nameUpper = wp.name.ToUpper();
+                if (nameUpper == "WP0" || nameUpper == "WP1") pos.x = minX;
+                else if (nameUpper == "WP2" || nameUpper == "WP3") pos.x = maxX;
+                wp.position = pos;
+                EditorUtility.SetDirty(wp.gameObject);
+            }
+            Debug.Log("Player1Lane_WaypointGroup 가로폭 [-3.60, 3.60] 보정 완료!");
+        }
+
+        // 2. P2 사각형 순환 경로 가로축 보정 (X = -3.60 ~ 3.60)
+        GameObject p2Lane = GameObject.Find("Player2Lane_WaypointGroup");
+        if (p2Lane != null)
+        {
+            float minX = -3.60f;
+            float maxX = 3.60f;
+            for (int i = 0; i < p2Lane.transform.childCount; i++)
+            {
+                var wp = p2Lane.transform.GetChild(i);
+                Vector3 pos = wp.position;
+                string nameUpper = wp.name.ToUpper();
+                if (nameUpper == "WP0" || nameUpper == "WP1") pos.x = minX;
+                else if (nameUpper == "WP2" || nameUpper == "WP3") pos.x = maxX;
+                wp.position = pos;
+                EditorUtility.SetDirty(wp.gameObject);
+            }
+            Debug.Log("Player2Lane_WaypointGroup 가로폭 [-3.60, 3.60] 보정 완료!");
+        }
+
+        // 3. BattleWaveExecutor 를 찾아서 _autoStartOnPlay 를 true 로 세팅
+        GameObject waveExecutorObj = GameObject.Find("BattleWaveExecutor");
+        if (waveExecutorObj != null)
+        {
+            var waveExecutor = waveExecutorObj.GetComponent<MyDefense.Battle.BattleWaveExecutor>();
+            if (waveExecutor != null)
+            {
+                SerializedObject so = new SerializedObject(waveExecutor);
+                so.FindProperty("_autoStartOnPlay").boolValue = true;
+                so.ApplyModifiedProperties();
+                EditorUtility.SetDirty(waveExecutorObj);
+                Debug.Log("BattleWaveExecutor._autoStartOnPlay 활성화 완료!");
+            }
+        }
+
         // 4. 변경된 씬 저장
         EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
         EditorSceneManager.SaveOpenScenes();
-        Debug.Log("fields.unity 씬 저장 완료!");
+        Debug.Log("배틀 설정 완료 및 fields.unity 씬 저장 완료!");
     }
 }
