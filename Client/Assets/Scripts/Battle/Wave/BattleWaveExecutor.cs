@@ -22,6 +22,7 @@ namespace MyDefense.Battle
         [SerializeField] private int _currentRound = 0;
         [SerializeField] private bool _isWaveRunning = false;
         [SerializeField] private bool _isBossActive = false;
+        [SerializeField] private bool _autoStartOnPlay = false; // 플레이 모드 진입 시 테스트용 자동 실행 여부
 
         private GameObject _currentBossInstance = null;
         private Coroutine _bossTimerCoroutine = null;
@@ -44,6 +45,14 @@ namespace MyDefense.Battle
             else
             {
                 Destroy(gameObject);
+            }
+        }
+
+        private void Start()
+        {
+            if (_autoStartOnPlay)
+            {
+                StartNextWave();
             }
         }
 
