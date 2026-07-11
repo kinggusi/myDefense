@@ -289,4 +289,15 @@ public class InGameServiceImpl implements InGameService {
             throw new IllegalStateException("인구수 초과! 몬스터를 먼저 처치하세요!");
         }
     }
+
+    @Override
+    public BoardObject moveBoardObject(Long userId, Long objectId, int newX, int newY) {
+        GameSession session = sessionManager.getSession(userId);
+        
+        // 게임 상태 검증
+        checkGameOver(session);
+
+        // 세션의 moveBoardObject 호출
+        return session.moveBoardObject(objectId, newX, newY);
+    }
 }

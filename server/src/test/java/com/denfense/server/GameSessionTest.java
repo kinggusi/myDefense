@@ -304,4 +304,231 @@ class GameSessionTest {
         assertEquals(2, session.getKidnapSuccessCount());
         assertEquals(70, session.getCurrentKidnapCost());
     }
+
+    @Test
+    @DisplayName("Alien을 빈칸으로 이동시키면 정상 성공하고 이전 칸은 null이 되며 좌표가 갱신된다")
+    void moveBoardObject_alienToEmpty_success() {
+        InGameAlien alien = session.spawnAlien(dummySpec, MutationType.NONE, MutationType.NONE, 0, 1, 1);
+
+        BoardObject result = session.moveBoardObject(alien.getId(), 2, 2);
+
+        assertNotNull(result);
+        assertEquals(alien.getId(), result.getId());
+        assertEquals(2, result.getGridX());
+        assertEquals(2, result.getGridY());
+        assertNull(session.getGrid()[1][1]);
+        assertEquals(alien, session.getGrid()[2][2]);
+    }
+
+    @Test
+    @DisplayName("Injector를 빈칸으로 이동시키면 정상 성공하고 이전 칸은 null이 되며 좌표가 갱신된다")
+    void moveBoardObject_injectorToEmpty_success() {
+        InGameInjector injector = session.spawnInjector(MutationType.BERSERK, 1, 1);
+
+        BoardObject result = session.moveBoardObject(injector.getId(), 2, 2);
+
+        assertNotNull(result);
+        assertEquals(injector.getId(), result.getId());
+        assertEquals(2, result.getGridX());
+        assertEquals(2, result.getGridY());
+        assertNull(session.getGrid()[1][1]);
+        assertEquals(injector, session.getGrid()[2][2]);
+    }
+
+    @Test
+    @DisplayName("Alien과 Alien을 Swap하면 서로 위치가 교환되고 내부 좌표가 변경된다")
+    void moveBoardObject_alienToAlien_swapSuccess() {
+        InGameAlien source = session.spawnAlien(dummySpec, MutationType.NONE, MutationType.NONE, 0, 1, 1);
+        InGameAlien target = session.spawnAlien(dummySpec, MutationType.NONE, MutationType.NONE, 0, 2, 2);
+
+        session.moveBoardObject(source.getId(), 2, 2);
+
+        // source 좌표 갱신 확인
+        assertEquals(2, source.getGridX());
+        assertEquals(2, source.getGridY());
+        // target 좌표 갱신 확인
+        assertEquals(1, target.getGridX());
+        assertEquals(1, target.getGridY());
+
+        // grid 참조 확인
+        assertEquals(target, session.getGrid()[1][1]);
+        assertEquals(source, session.getGrid()[2][2]);
+
+        // 객체 참조 유지 검증
+        assertSame(source, session.getBoardObject(source.getId()));
+        assertSame(target, session.getBoardObject(target.getId()));
+    }
+
+    @Test
+    @DisplayName("Alien과 Injector를 Swap하면 서로 위치가 교환되고 내부 좌표가 변경된다")
+    void moveBoardObject_alienToInjector_swapSuccess() {
+        InGameAlien source = session.spawnAlien(dummySpec, MutationType.NONE, MutationType.NONE, 0, 1, 1);
+        InGameInjector target = session.spawnInjector(MutationType.BERSERK, 2, 2);
+
+        session.moveBoardObject(source.getId(), 2, 2);
+
+        assertEquals(2, source.getGridX());
+        assertEquals(2, source.getGridY());
+        assertEquals(1, target.getGridX());
+        assertEquals(1, target.getGridY());
+
+        assertEquals(target, session.getGrid()[1][1]);
+        assertEquals(source, session.getGrid()[2][2]);
+
+        // 객체 참조 유지 검증
+        assertSame(source, session.getBoardObject(source.getId()));
+        assertSame(target, session.getBoardObject(target.getId()));
+    }
+
+    @Test
+    @DisplayName("Injector와 Injector를 Swap하면 서로 위치가 교환되고 내부 좌표가 변경된다")
+    void moveBoardObject_injectorToInjector_swapSuccess() {
+        InGameInjector source = session.spawnInjector(MutationType.BERSERK, 1, 1);
+        InGameInjector target = session.spawnInjector(MutationType.GREEDY, 2, 2);
+
+        session.moveBoardObject(source.getId(), 2, 2);
+
+        assertEquals(2, source.getGridX());
+        assertEquals(2, source.getGridY());
+        assertEquals(1, target.getGridX());
+        assertEquals(1, target.getGridY());
+
+        assertEquals(target, session.getGrid()[1][1]);
+        assertEquals(source, session.getGrid()[2][2]);
+
+        // 객체 참조 유지 검증
+        assertSame(source, session.getBoardObject(source.getId()));
+        assertSame(target, session.getBoardObject(target.getId()));
+    }
+
+    @Test
+    @DisplayName("동일 제자리 위치로의 이동은 no-op 성공한다")
+    void moveBoardObject_samePosition_noopSuccess() {
+        InGameAlien source = session.spawnAlien(dummySpec, MutationType.NONE, MutationType.NONE, 0, 1, 1);
+
+        BoardObject result = session.moveBoardObject(source.getId(), 1, 1);
+
+        assertEquals(source, result);
+        assertEquals(1, source.getGridX());
+        assertEquals(1, source.getGridY());
+        assertEquals(source, session.getGrid()[1][1]);
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 objectId로 이동 시도 시 IllegalArgumentException이 발생하고 상태가 유지된다")
+    void moveBoardObject_rejectInvalidObjectId() {
+        InGameAlien source = session.spawnAlien(dummySpec, MutationType.NONE, MutationType.NONE, 0, 1, 1);
+        int initialGold = session.getInGameGold();
+
+        assertThrows(IllegalArgumentException.class, () -> session.moveBoardObject(9999L, 2, 2));
+
+        // 상태 유지 확인
+        assertEquals(1, source.getGridX());
+        assertEquals(1, source.getGridY());
+        assertEquals(source, session.getGrid()[1][1]);
+        assertSame(source, session.getBoardObject(source.getId()));
+        assertEquals(1, session.getBoardObjectCount());
+        assertEquals(initialGold, session.getInGameGold());
+        assertEquals(50, session.getCurrentKidnapCost());
+    }
+
+    @Test
+    @DisplayName("범위 밖 좌표로 이동 시도 시 IllegalArgumentException이 발생하고 상태가 유지된다")
+    void moveBoardObject_rejectOutOfBoundCoordinates() {
+        InGameAlien source = session.spawnAlien(dummySpec, MutationType.NONE, MutationType.NONE, 0, 1, 1);
+        int initialGold = session.getInGameGold();
+
+        // x 범위 음수
+        assertThrows(IllegalArgumentException.class, () -> session.moveBoardObject(source.getId(), -1, 2));
+        // x 범위 4 이상
+        assertThrows(IllegalArgumentException.class, () -> session.moveBoardObject(source.getId(), 4, 2));
+        // y 범위 음수
+        assertThrows(IllegalArgumentException.class, () -> session.moveBoardObject(source.getId(), 2, -1));
+        // y 범위 6 이상
+        assertThrows(IllegalArgumentException.class, () -> session.moveBoardObject(source.getId(), 2, 6));
+
+        // 상태 유지 확인
+        assertEquals(1, source.getGridX());
+        assertEquals(1, source.getGridY());
+        assertEquals(source, session.getGrid()[1][1]);
+        assertSame(source, session.getBoardObject(source.getId()));
+        assertEquals(1, session.getBoardObjectCount());
+        assertEquals(initialGold, session.getInGameGold());
+        assertEquals(50, session.getCurrentKidnapCost());
+    }
+
+    @Test
+    @DisplayName("그리드와 맵의 정합성이 불일치할 때 IllegalStateException이 발생하고 상태가 유지된다")
+    void moveBoardObject_rejectInconsistentState() {
+        InGameAlien source = session.spawnAlien(dummySpec, MutationType.NONE, MutationType.NONE, 0, 1, 1);
+        int initialGold = session.getInGameGold();
+
+        // 1. grid와 source 불일치 유발 (강제로 grid 위치 null 처리)
+        session.getGrid()[1][1] = null;
+        assertThrows(IllegalStateException.class, () -> session.moveBoardObject(source.getId(), 2, 2));
+        session.getGrid()[1][1] = source; // 복구
+
+        // 2. target 내부 좌표 불일치 유발
+        InGameAlien target = session.spawnAlien(dummySpec, MutationType.NONE, MutationType.NONE, 0, 2, 2);
+        target.setGridX(0); // 강제로 불일치 유발
+        assertThrows(IllegalStateException.class, () -> session.moveBoardObject(source.getId(), 2, 2));
+        target.setGridX(2); // 복구
+
+        // 3. target이 boardObjects에 없는 상태 (강제로 target을 boardObjects 맵에서만 삭제하여 불일치 유발)
+        session.getBoardObjects().remove(target.getId());
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> session.moveBoardObject(source.getId(), 2, 2));
+        assertEquals("보드 상태 불일치: 대상 객체가 boardObjects와 일치하지 않습니다.", ex.getMessage());
+        session.getBoardObjects().put(target.getId(), target); // 복구
+
+        // 최종 상태 유지 검증
+        assertEquals(1, source.getGridX());
+        assertEquals(1, source.getGridY());
+        assertEquals(source, session.getGrid()[1][1]);
+        assertSame(source, session.getBoardObject(source.getId()));
+        assertSame(target, session.getBoardObject(target.getId()));
+        assertEquals(2, session.getBoardObjectCount());
+        assertEquals(initialGold, session.getInGameGold());
+        assertEquals(50, session.getCurrentKidnapCost());
+    }
+
+    @Test
+    @DisplayName("동일 세션에 대한 동시 이동 및 Swap 요청 시 정합성이 온전히 보호된다")
+    void moveBoardObject_concurrentRequests_keepsConsistency() throws InterruptedException {
+        // Given
+        InGameAlien alien1 = session.spawnAlien(dummySpec, MutationType.NONE, MutationType.NONE, 0, 1, 1);
+        InGameAlien alien2 = session.spawnAlien(dummySpec, MutationType.NONE, MutationType.NONE, 0, 2, 2);
+
+        java.util.concurrent.ExecutorService executor = java.util.concurrent.Executors.newFixedThreadPool(2);
+        java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
+
+        executor.submit(() -> {
+            try {
+                latch.await();
+                session.moveBoardObject(alien1.getId(), 2, 2); // Swap 시도
+            } catch (Exception ignored) {}
+        });
+
+        executor.submit(() -> {
+            try {
+                latch.await();
+                session.moveBoardObject(alien2.getId(), 1, 1); // Swap 시도
+            } catch (Exception ignored) {}
+        });
+
+        // When
+        latch.countDown();
+        executor.shutdown();
+        executor.awaitTermination(5, java.util.concurrent.TimeUnit.SECONDS);
+
+        // Then (경쟁 상태 속에서도 grid와 객체 좌표가 어긋나지 않고 동기화 락에 의해 최종 1회 혹은 Swap 결과가 정합되게 배치되어 있어야 함)
+        BoardObject o1 = session.getGrid()[1][1];
+        BoardObject o2 = session.getGrid()[2][2];
+
+        assertNotNull(o1);
+        assertNotNull(o2);
+        assertEquals(o1.getGridX(), 1);
+        assertEquals(o1.getGridY(), 1);
+        assertEquals(o2.getGridX(), 2);
+        assertEquals(o2.getGridY(), 2);
+    }
 }
