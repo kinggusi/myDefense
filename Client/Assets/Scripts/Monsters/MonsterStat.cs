@@ -22,7 +22,6 @@ public class MonsterStat : MonoBehaviour
     {
         isDead = true;
 
-        // ★ GameManager에게 "나(1번 몬스터) 죽었어!" 하고 신고
         FindObjectOfType<GameManager>().OnKillMonster(monsterSpecId);
 
         StartCoroutine(FadeOutAndDestroy());

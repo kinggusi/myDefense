@@ -12,6 +12,7 @@ public class GameResponseDto {
 public class InGameAlien {
     public long id;
     public AlienSpec alienSpec;
+    public string prefixType;
     public int gridX;
     public int gridY;
 }
@@ -20,7 +21,14 @@ public class InGameAlien {
 public class AlienSpec {
     public long id;
     public string name;
+    public string description;
+    public int baseAtk;
+    public int baseMp;
+    public float atkSpeed;
+    public float range;
+    public long evolutionTargetId;
     public string grade; // NORMAL, EPIC, UNIQUE
+    public bool locked;
 }
 
 [Serializable]

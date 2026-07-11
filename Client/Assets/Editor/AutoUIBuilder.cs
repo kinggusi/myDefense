@@ -138,4 +138,174 @@ public class AutoUIBuilder
 
         Debug.Log("🎉 레이아웃 완벽 수정! 상점 화면 껍데기가 완성되었습니다!");
     }
+
+    [MenuItem("AI Tools/5. [전투] 2인 협동 HUD 생성 (이미지 분위기 반영) ⚔️")]
+    public static void CreateCoopBattleHUD()
+    {
+        GameObject canvas = GameObject.Find("Canvas");
+        if (canvas == null) { Debug.LogError("⚠️ 씬에 Canvas가 필요합니다!"); return; }
+
+        // 1. HUD 루트 (전체 화면, 터치 투과)
+        GameObject hudRoot = new GameObject("UI_Coop_HUD");
+        hudRoot.transform.SetParent(canvas.transform, false);
+        RectTransform rootRect = hudRoot.AddComponent<RectTransform>();
+        rootRect.anchorMin = Vector2.zero; rootRect.anchorMax = Vector2.one;
+        rootRect.sizeDelta = Vector2.zero;
+        // 터치 이벤트가 실제 3D 필드로 전달되도록 GraphicsRaycaster는 넣지 않습니다.
+
+        // 2. 상단 상태바 (좌 레드 / 우 그린)
+        GameObject topPanel = new GameObject("Top_Status_Bar");
+        topPanel.transform.SetParent(hudRoot.transform, false);
+        RectTransform topRect = topPanel.AddComponent<RectTransform>();
+        topRect.anchorMin = new Vector2(0, 1); topRect.anchorMax = new Vector2(1, 1);
+        topRect.pivot = new Vector2(0.5f, 1);
+        topRect.sizeDelta = new Vector2(0, 150); // 높이 약간 늘림
+
+        // 2-a. 플레이어 1 (왼쪽 - RED)
+        CreatePlayerStatus(topPanel.transform, "P1_Red", new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Color(0.8f, 0.2f, 0.2f, 0.8f), "왹져 납치범 A");
+
+        // 2-b. 플레이어 2 (오른쪽 - GREEN)
+        CreatePlayerStatus(topPanel.transform, "P2_Green", new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Color(0.2f, 0.8f, 0.2f, 0.8f), "왹져 납치범 B");
+
+        // 2-c. 중앙 웨이브/보스 정보
+        GameObject waveObj = new GameObject("Wave_Info");
+        waveObj.transform.SetParent(topPanel.transform, false);
+        UnityEngine.UI.Text waveText = waveObj.AddComponent<UnityEngine.UI.Text>();
+        waveText.text = "WAVE 1\n(보스 등장까지 3트)" ;
+        waveText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        waveText.fontSize = 35; waveText.color = Color.white; waveText.alignment = TextAnchor.MiddleCenter;
+        RectTransform waveRect = waveObj.GetComponent<RectTransform>();
+        waveRect.anchorMin = new Vector2(0.5f, 0.5f); waveRect.anchorMax = new Vector2(0.5f, 0.5f);
+        waveRect.sizeDelta = new Vector2(300, 100);
+
+        // 3. 하단 컨트롤 패널 (재화 표시 및 소환 버튼)
+        GameObject bottomPanel = new GameObject("Bottom_Control_Panel");
+        bottomPanel.transform.SetParent(hudRoot.transform, false);
+        RectTransform bottomRect = bottomPanel.AddComponent<RectTransform>();
+        bottomRect.anchorMin = new Vector2(0, 0); bottomRect.anchorMax = new Vector2(1, 0);
+        bottomRect.pivot = new Vector2(0.5f, 0);
+        bottomRect.sizeDelta = new Vector2(0, 250);
+        bottomPanel.AddComponent<UnityEngine.UI.Image>().color = new Color(0f, 0f, 0f, 0.7f); // 반투명 검정
+
+        // 3-a. 인게임 골드 표시 (GameManager 관리)
+        GameObject goldObj = new GameObject("Text_InGame_Gold");
+        goldObj.transform.SetParent(bottomPanel.transform, false);
+        UnityEngine.UI.Text goldText = goldObj.AddComponent<UnityEngine.UI.Text>();
+        goldText.text = "💰 1,200";
+        goldText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        goldText.fontSize = 50; goldText.color = new Color(1f, 0.9f, 0.3f);
+        goldText.alignment = TextAnchor.MiddleLeft;
+        RectTransform goldRect = goldObj.GetComponent<RectTransform>();
+        goldRect.anchorMin = new Vector2(0, 0.5f); goldRect.anchorMax = new Vector2(0, 0.5f);
+        goldRect.anchoredPosition = new Vector2(50, 0); goldRect.sizeDelta = new Vector2(300, 100);
+
+        // 3-b. 소환 버튼 (중앙)
+        GameObject summonBtnObj = new GameObject("Btn_Summon");
+        summonBtnObj.transform.SetParent(bottomPanel.transform, false);
+        UnityEngine.UI.Image btnImg = summonBtnObj.AddComponent<UnityEngine.UI.Image>();
+        btnImg.color = new Color(0.2f, 0.7f, 0.3f); // 녹색 버튼
+        UnityEngine.UI.Button btn = summonBtnObj.AddComponent<UnityEngine.UI.Button>();
+        RectTransform btnRect = summonBtnObj.GetComponent<RectTransform>();
+        btnRect.anchorMin = new Vector2(0.5f, 0.5f); btnRect.anchorMax = new Vector2(0.5f, 0.5f);
+        btnRect.sizeDelta = new Vector2(400, 150);
+        
+        GameObject btnTextObj = new GameObject("Text");
+        btnTextObj.transform.SetParent(summonBtnObj.transform, false);
+        UnityEngine.UI.Text btnText = btnTextObj.AddComponent<UnityEngine.UI.Text>();
+        btnText.text = "👽 왹져 소환 (100 G)";
+        btnText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        btnText.fontSize = 40; btnText.color = Color.white; btnText.alignment = TextAnchor.MiddleCenter;
+        RectTransform btnTextRect = btnTextObj.GetComponent<RectTransform>();
+        btnTextRect.anchorMin = Vector2.zero; btnTextRect.anchorMax = Vector2.one; btnTextRect.sizeDelta = Vector2.zero;
+
+        Debug.Log("⚔️ [왹져 디펜스] 사진 분위기를 반영한 협동 HUD가 생성되었습니다. 메뉴 1번으로 프리팹화 하세요!");
+    }
+
+    // 플레이어 상태창 생성을 위한 헬퍼 함수
+    private static void CreatePlayerStatus(Transform parent, string name, Vector2 anchor, Vector2 pivot, Color bgColor, string playerName)
+    {
+        GameObject pObj = new GameObject(name);
+        pObj.transform.SetParent(parent, false);
+        RectTransform rect = pObj.AddComponent<RectTransform>();
+        rect.anchorMin = anchor; rect.anchorMax = anchor; rect.pivot = pivot;
+        rect.sizeDelta = new Vector2(400, 120);
+        rect.anchoredPosition = new Vector2(anchor.x == 0 ? 20 : -20, 0); // 좌우 여백
+        pObj.AddComponent<UnityEngine.UI.Image>().color = bgColor;
+
+        GameObject textObj = new GameObject("Text_Info");
+        textObj.transform.SetParent(pObj.transform, false);
+        UnityEngine.UI.Text text = textObj.AddComponent<UnityEngine.UI.Text>();
+        text.text = $"{playerName}\nLIFE: 10"; // 웹의 Template Literal처럼 사용
+        text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        text.fontSize = 30; text.color = Color.white; text.alignment = anchor.x == 0 ? TextAnchor.MiddleLeft : TextAnchor.MiddleRight;
+        
+        RectTransform textRect = textObj.GetComponent<RectTransform>();
+        textRect.anchorMin = Vector2.zero; textRect.anchorMax = Vector2.one;
+        textRect.sizeDelta = new Vector2(-20, -10); // 안쪽 여백
+    }
+
+    [MenuItem("AI Tools/5. [전투] 상하 대칭 세로형 HUD 생성 (도면 반영) 📱")]
+    public static void CreateVerticalBattleHUD()
+    {
+        GameObject canvas = GameObject.Find("Canvas");
+        if (canvas == null) { Debug.LogError("⚠️ 씬에 Canvas가 필요합니다!"); return; }
+
+        // 1. 전체 화면을 덮는 투명 루트
+        GameObject hudRoot = new GameObject("UI_Vertical_HUD");
+        hudRoot.transform.SetParent(canvas.transform, false);
+        RectTransform rootRect = hudRoot.AddComponent<RectTransform>();
+        rootRect.anchorMin = Vector2.zero; rootRect.anchorMax = Vector2.one;
+        rootRect.sizeDelta = Vector2.zero;
+
+        // 2. 상단 패널 (다른 사용자 정보)
+        GameObject topPanel = new GameObject("Top_Opponent_Panel");
+        topPanel.transform.SetParent(hudRoot.transform, false);
+        RectTransform topRect = topPanel.AddComponent<RectTransform>();
+        topRect.anchorMin = new Vector2(0, 1); topRect.anchorMax = new Vector2(1, 1);
+        topRect.pivot = new Vector2(0.5f, 1);
+        topRect.sizeDelta = new Vector2(0, 120);
+        topPanel.AddComponent<UnityEngine.UI.Image>().color = new Color(0.8f, 0.2f, 0.2f, 0.8f); // 적군 느낌의 붉은색
+
+        GameObject oppTextObj = new GameObject("Text_Opponent");
+        oppTextObj.transform.SetParent(topPanel.transform, false);
+        UnityEngine.UI.Text oppText = oppTextObj.AddComponent<UnityEngine.UI.Text>();
+        oppText.text = "👾 파트너 (Other User)";
+        oppText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        oppText.fontSize = 40; oppText.color = Color.white; oppText.alignment = TextAnchor.MiddleCenter;
+        RectTransform oppTextRect = oppTextObj.GetComponent<RectTransform>();
+        oppTextRect.anchorMin = Vector2.zero; oppTextRect.anchorMax = Vector2.one;
+        oppTextRect.sizeDelta = Vector2.zero;
+
+        // 3. 하단 패널 (내 영역 및 유닛 소환 버튼)
+        GameObject bottomPanel = new GameObject("Bottom_My_Panel");
+        bottomPanel.transform.SetParent(hudRoot.transform, false);
+        RectTransform bottomRect = bottomPanel.AddComponent<RectTransform>();
+        bottomRect.anchorMin = new Vector2(0, 0); bottomRect.anchorMax = new Vector2(1, 0);
+        bottomRect.pivot = new Vector2(0.5f, 0);
+        bottomRect.sizeDelta = new Vector2(0, 200);
+        bottomPanel.AddComponent<UnityEngine.UI.Image>().color = new Color(0.1f, 0.1f, 0.1f, 0.9f); // 내 영역 어두운 회색
+
+        // 3-a. 유닛 소환 버튼 (도면의 '유닛 소환')
+        GameObject summonBtnObj = new GameObject("Btn_Summon_Unit");
+        summonBtnObj.transform.SetParent(bottomPanel.transform, false);
+        UnityEngine.UI.Image btnImg = summonBtnObj.AddComponent<UnityEngine.UI.Image>();
+        btnImg.color = new Color(0.9f, 0.9f, 0.9f); // 도면처럼 밝은 버튼
+        UnityEngine.UI.Button btn = summonBtnObj.AddComponent<UnityEngine.UI.Button>();
+        
+        RectTransform btnRect = summonBtnObj.GetComponent<RectTransform>();
+        btnRect.anchorMin = new Vector2(0.5f, 0.5f); btnRect.anchorMax = new Vector2(0.5f, 0.5f);
+        btnRect.sizeDelta = new Vector2(500, 120); // 크고 누르기 쉽게
+
+        GameObject btnTextObj = new GameObject("Text_Summon");
+        btnTextObj.transform.SetParent(summonBtnObj.transform, false);
+        UnityEngine.UI.Text btnText = btnTextObj.AddComponent<UnityEngine.UI.Text>();
+        btnText.text = "유닛 소환"; // 도면 텍스트와 동일
+        btnText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        btnText.fontSize = 50; btnText.color = Color.black; btnText.alignment = TextAnchor.MiddleCenter;
+        RectTransform btnTextRect = btnTextObj.GetComponent<RectTransform>();
+        btnTextRect.anchorMin = Vector2.zero; btnTextRect.anchorMax = Vector2.one;
+        btnTextRect.sizeDelta = Vector2.zero;
+
+        Debug.Log("📱 [왹져 디펜스] 상하 대칭형 전투 화면 UI가 생성되었습니다.");
+    }
 }

@@ -104,6 +104,11 @@ public class InGameServiceImpl implements InGameService {
         checkGameOver(session);
         checkPopulationLimit(session);
 
+        // 필드가 꽉 찼는지 확인 (4 * 7 = 28칸)
+        if (session.getAliens().size() >= 28) {
+            throw new IllegalStateException("필드에 빈 공간이 없습니다!");
+        }
+
         // 2. 돈 차감
         session.spendGold(50);
 
@@ -119,8 +124,32 @@ public class InGameServiceImpl implements InGameService {
         AlienSpec spec = alienSpecRepository.findRandomByGrade(grade.name())
                 .orElseThrow(() -> new IllegalStateException("데이터 없음"));
 
-        // 5. 소환
-        return session.spawnAlien(spec, PrefixType.NONE, 0, 0);
+        // 5. 빈 자리 찾기
+        int emptyX = -1;
+        int emptyY = -1;
+        InGameAlien[][] grid = session.getGrid();
+
+        // 랜덤하게 빈 자리 찾기 (비어있는 타일 리스트 생성)
+        List<int[]> emptyTiles = new ArrayList<>();
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 7; j++) {
+                if (grid[i][j] == null) {
+                    emptyTiles.add(new int[]{i, j});
+                }
+            }
+        }
+
+        if (emptyTiles.isEmpty()) {
+            // 이 블록은 위쪽 size 체크로 인해 사실상 도달하지 않아야 하지만 방어 로직으로 둡니다.
+            throw new IllegalStateException("필드에 빈 공간이 없습니다!");
+        }
+
+        int[] selectedTile = emptyTiles.get(random.nextInt(emptyTiles.size()));
+        emptyX = selectedTile[0];
+        emptyY = selectedTile[1];
+
+        // 6. 소환
+        return session.spawnAlien(spec, PrefixType.NONE, emptyX, emptyY);
     }
 
     /**
