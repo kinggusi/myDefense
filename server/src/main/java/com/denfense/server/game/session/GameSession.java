@@ -26,8 +26,8 @@ public class GameSession {
     private final AtomicLong idCounter = new AtomicLong(0);
     private int inGameGold = 500;
 
-    // 4x7 그리드를 관리할 인메모리 배열 (DB 접근 X)
-    private final InGameAlien[][] grid = new InGameAlien[4][7];
+    // 4x6 그리드를 관리할 인메모리 배열 (DB 접근 X)
+    private final InGameAlien[][] grid = new InGameAlien[4][6];
 
     public GameSession(Long userId) {
         this.userId = userId;
@@ -39,7 +39,7 @@ public class GameSession {
      * - 배열 접근 시 동시성 보장을 위해 synchronized 추가
      */
     public synchronized InGameAlien spawnAlien(AlienSpec spec, PrefixType prefix, int x, int y) {
-        if (x < 0 || x >= 4 || y < 0 || y >= 7) {
+        if (x < 0 || x >= 4 || y < 0 || y >= 6) {
             throw new IllegalArgumentException("유효하지 않은 좌표입니다. (x: " + x + ", y: " + y + ")");
         }
         if (grid[x][y] != null) {
@@ -92,7 +92,7 @@ public class GameSession {
         if (alien == null) {
             throw new IllegalArgumentException("존재하지 않는 유닛입니다.");
         }
-        if (newX < 0 || newX >= 4 || newY < 0 || newY >= 7) {
+        if (newX < 0 || newX >= 4 || newY < 0 || newY >= 6) {
             throw new IllegalArgumentException("유효하지 않은 좌표입니다.");
         }
         if (grid[newX][newY] != null) {

@@ -20,7 +20,7 @@ public class GameManager : MonoBehaviour
     private long userId = 1;       // 내 ID
     private long enemyId = 2;      // 가상의 상대방 ID
     private float tileSize = 1.1f;
-    private int cols = 7;
+    private int cols = 6;
     private int rows = 4;
 
     // ★ 상태 관리 (웹의 const [isLoading, setIsLoading] = useState(false) 와 동일)
