@@ -1,7 +1,7 @@
 package com.denfense.server.dto.response;
 
 
-import com.denfense.server.game.object.InGameAlien;
+import com.denfense.server.game.object.BoardObject;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -9,7 +9,7 @@ import lombok.Getter;
 @AllArgsConstructor
 public class GameResponseDto {
     private String message;
-    private InGameAlien alien;
+    private BoardObject alien;
     private int remainingGold;
     private boolean isGameOver;
 }
