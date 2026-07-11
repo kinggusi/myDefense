@@ -9,7 +9,7 @@ public class NetworkManager : MonoBehaviour
     public static NetworkManager Instance;
     
     // 🔥 자신의 서버 주소로 수정 (localhost는 유니티 에디터 기준)
-    private const string BaseUrl = "http://localhost:8080/api/game";
+    public string BaseUrl = "http://localhost:8080/api";
 
     void Awake() { Instance = this; DontDestroyOnLoad(gameObject); }
 
@@ -37,14 +37,41 @@ public class NetworkManager : MonoBehaviour
 
     IEnumerator PostJsonRequest(string url, string json, Action<string> onSuccess, Action<string> onError)
     {
-        var www = new UnityWebRequest(url, "POST");
+        using (var www = new UnityWebRequest(url, "POST")) 
+    {
         byte[] bodyRaw = Encoding.UTF8.GetBytes(json);
         www.uploadHandler = new UploadHandlerRaw(bodyRaw);
         www.downloadHandler = new DownloadHandlerBuffer();
         www.SetRequestHeader("Content-Type", "application/json");
 
         yield return www.SendWebRequest();
+
         if (www.result != UnityWebRequest.Result.Success) onError?.Invoke(www.error);
         else onSuccess?.Invoke(www.downloadHandler.text);
+    }
+    }
+
+    // ✅ 로비 데이터 조회용 GET (Action<string>으로 결과를 돌려줌)
+    public void Get(string uri, Action<string> onSuccess, Action<string> onError)
+    {
+        StartCoroutine(GetRequest(BaseUrl + uri, onSuccess, onError));
+    }
+
+    private IEnumerator GetRequest(string url, Action<string> onSuccess, Action<string> onError)
+    {
+        using (UnityWebRequest www = UnityWebRequest.Get(url))
+        {
+            yield return www.SendWebRequest();
+
+            if (www.result != UnityWebRequest.Result.Success)
+            {
+                Debug.LogError($"[GET ERROR] {url} : {www.error}");
+                onError?.Invoke(www.error);
+            }
+            else
+            {
+                onSuccess?.Invoke(www.downloadHandler.text);
+            }
+        }
     }
 }
