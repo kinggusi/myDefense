@@ -27,24 +27,26 @@ public class InGameAlien {
     public InGameAlien(Long id, AlienSpec alienSpec, MutationType pendingMutationType, MutationType activeMutationType, int mutationRerollCount, int gridX, int gridY) {
         this.id = id;
         this.alienSpec = alienSpec;
-        this.pendingMutationType = pendingMutationType;
+        this.pendingMutationType = pendingMutationType != null ? pendingMutationType : MutationType.NONE;
         this.mutationRerollCount = mutationRerollCount;
         this.gridX = gridX;
         this.gridY = gridY;
 
+        MutationType targetActive = activeMutationType != null ? activeMutationType : MutationType.NONE;
         // MYTHIC이 아닌 등급에서는 activeMutationType이 NONE이 되도록 방어
         if (alienSpec.getGrade() != AlienSpec.Grade.MYTHIC) {
             this.activeMutationType = MutationType.NONE;
         } else {
-            this.activeMutationType = activeMutationType;
+            this.activeMutationType = targetActive;
         }
     }
 
     public void setActiveMutationType(MutationType activeMutationType) {
+        MutationType targetActive = activeMutationType != null ? activeMutationType : MutationType.NONE;
         if (this.alienSpec.getGrade() != AlienSpec.Grade.MYTHIC) {
             this.activeMutationType = MutationType.NONE;
         } else {
-            this.activeMutationType = activeMutationType;
+            this.activeMutationType = targetActive;
         }
     }
 }
