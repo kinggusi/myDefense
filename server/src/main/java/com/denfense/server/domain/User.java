@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,6 +24,8 @@ public class User {
     private String password;
     private int gold;
     private int diamond;
+    private int heart;
+    private LocalDateTime lastHeartUpdateTime;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<UserAlien> userAliens = new ArrayList<>();
@@ -35,11 +38,48 @@ public class User {
 
 
     public void decreaseDiamond(int amount){
-        int diamond = this.gold - amount;
+        int diamond = this.diamond - amount;
         if (diamond < 0) {
             throw new IllegalStateException("다이아가 부족합니다.");
         }
-        this.gold = diamond;
+        this.diamond = diamond;
     }
 
+    // 하트 계산 로직 (도메인 메서드)
+    public void calculateOfflineHearts() {
+        int maxNaturalHeart = 100;    // 소프트 캡
+        int rechargeMinutes = 15;     // 15분
+        int heartsPerInterval = 10;   // 10개씩
+
+        if (this.lastHeartUpdateTime == null) {
+            this.lastHeartUpdateTime = LocalDateTime.now();
+            this.heart = maxNaturalHeart; // 미안하니까(?) 하트를 꽉 채워줍니다.
+            return;
+        }
+
+        // 1. 이미 100개 이상이면 시간만 갱신하고 종료
+        if (this.heart >= maxNaturalHeart) {
+            this.lastHeartUpdateTime = LocalDateTime.now();
+            return;
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        long minutesPassed = java.time.Duration.between(this.lastHeartUpdateTime, now).toMinutes();
+
+        // 2. 15분이 지났을 때만 계산
+        if (minutesPassed >= rechargeMinutes) {
+            int intervals = (int) (minutesPassed / rechargeMinutes);
+            int earnedHearts = intervals * heartsPerInterval;
+            int newHeart = this.heart + earnedHearts;
+
+            if (newHeart >= maxNaturalHeart) {
+                this.heart = maxNaturalHeart;
+                this.lastHeartUpdateTime = now;
+            } else {
+                this.heart = newHeart;
+                // 사용한 시간만큼만 갱신 (자투리 시간 보존)
+                this.lastHeartUpdateTime = this.lastHeartUpdateTime.plusMinutes((long) intervals * rechargeMinutes);
+            }
+        }
+    }
 }

@@ -33,7 +33,7 @@ public class AlienSpec {
     // 1. Enum 정의 (설계도)
     // ==========================================
     public enum Grade {
-        NORMAL, EPIC, UNIQUE, LEGEND, EVOLUTION;
+        NORMAL, EPIC, UNIQUE, LEGEND, MYTHIC, EVOLUTION;
 
         public Grade getNext() {
             int nextIndex = this.ordinal() + 1;
