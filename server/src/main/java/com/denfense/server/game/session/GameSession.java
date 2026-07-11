@@ -1,7 +1,6 @@
 package com.denfense.server.game.session;
 
 import com.denfense.server.domain.AlienSpec;
-import com.denfense.server.domain.PrefixType;
 import com.denfense.server.game.object.InGameAlien;
 import lombok.Getter;
 
@@ -38,7 +37,7 @@ public class GameSession {
      * - 고유 ID를 발급하고 Map과 Grid에 저장합니다.
      * - 배열 접근 시 동시성 보장을 위해 synchronized 추가
      */
-    public synchronized InGameAlien spawnAlien(AlienSpec spec, PrefixType prefix, int x, int y) {
+    public synchronized InGameAlien spawnAlien(AlienSpec spec, String pendingMutation, String activeMutation, int rerollCount, int x, int y) {
         if (x < 0 || x >= 4 || y < 0 || y >= 6) {
             throw new IllegalArgumentException("유효하지 않은 좌표입니다. (x: " + x + ", y: " + y + ")");
         }
@@ -47,7 +46,7 @@ public class GameSession {
         }
 
         Long newId = idCounter.incrementAndGet(); // 1, 2, 3... 증가
-        InGameAlien newAlien = new InGameAlien(newId, spec, prefix, x, y);
+        InGameAlien newAlien = new InGameAlien(newId, spec, pendingMutation, activeMutation, rerollCount, x, y);
 
         aliens.put(newId, newAlien);
         grid[x][y] = newAlien; // 그리드에 배치
