@@ -26,19 +26,31 @@ public class GameSession {
     private final AtomicLong idCounter = new AtomicLong(0);
     private int inGameGold = 500;
 
+    // 4x7 그리드를 관리할 인메모리 배열 (DB 접근 X)
+    private final InGameAlien[][] grid = new InGameAlien[4][7];
+
     public GameSession(Long userId) {
         this.userId = userId;
     }
 
     /**
      * 유닛 소환 (Spawn)
-     * - 고유 ID를 발급하고 Map에 저장합니다.
+     * - 고유 ID를 발급하고 Map과 Grid에 저장합니다.
+     * - 배열 접근 시 동시성 보장을 위해 synchronized 추가
      */
-    public InGameAlien spawnAlien(AlienSpec spec, PrefixType prefix, int x, int y) {
+    public synchronized InGameAlien spawnAlien(AlienSpec spec, PrefixType prefix, int x, int y) {
+        if (x < 0 || x >= 4 || y < 0 || y >= 7) {
+            throw new IllegalArgumentException("유효하지 않은 좌표입니다. (x: " + x + ", y: " + y + ")");
+        }
+        if (grid[x][y] != null) {
+            throw new IllegalStateException("해당 위치에 이미 유닛이 존재합니다.");
+        }
+
         Long newId = idCounter.incrementAndGet(); // 1, 2, 3... 증가
         InGameAlien newAlien = new InGameAlien(newId, spec, prefix, x, y);
 
         aliens.put(newId, newAlien);
+        grid[x][y] = newAlien; // 그리드에 배치
         return newAlien;
     }
 
@@ -65,8 +77,35 @@ public class GameSession {
     /**
      * 유닛 삭제 (머지 재료로 쓰였을 때 등)
      */
-    public void removeAlien(Long alienId) {
-        aliens.remove(alienId);
+    public synchronized void removeAlien(Long alienId) {
+        InGameAlien alien = aliens.remove(alienId);
+        if (alien != null) {
+            grid[alien.getGridX()][alien.getGridY()] = null; // 그리드에서도 제거
+        }
+    }
+
+    /**
+     * 유닛 이동 (드래그 앤 드롭 또는 위치 변경)
+     */
+    public synchronized void moveAlien(Long alienId, int newX, int newY) {
+        InGameAlien alien = aliens.get(alienId);
+        if (alien == null) {
+            throw new IllegalArgumentException("존재하지 않는 유닛입니다.");
+        }
+        if (newX < 0 || newX >= 4 || newY < 0 || newY >= 7) {
+            throw new IllegalArgumentException("유효하지 않은 좌표입니다.");
+        }
+        if (grid[newX][newY] != null) {
+            throw new IllegalStateException("이동할 위치에 이미 유닛이 존재합니다.");
+        }
+
+        // 기존 위치에서 제거
+        grid[alien.getGridX()][alien.getGridY()] = null;
+
+        // 새로운 위치로 이동
+        alien.setGridX(newX);
+        alien.setGridY(newY);
+        grid[newX][newY] = alien;
     }
 
     /**
@@ -117,6 +156,4 @@ public class GameSession {
             this.aliveMonsterCount--;
         }
     }
-
-
 }

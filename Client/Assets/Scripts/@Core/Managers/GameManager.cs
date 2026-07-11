@@ -1,186 +1,259 @@
-// using UnityEngine;
-
-// public class GameManager : MonoBehaviour
-// {
-//     public GameObject unitPrefab; // 여기에 에셋이나 큐브 프리팹을 할당하세요.
-//     private long userId = 100;    // 테스트용 유저 ID
-
-//     // 버튼에 연결할 함수
-//     public void OnClickSummon()
-//     {
-//         WWWForm form = new WWWForm();
-//         form.AddField("userId", userId.ToString());
-
-//         NetworkManager.Instance.Post("/summon", form, (json) => {
-//             GameResponseDto res = JsonUtility.FromJson<GameResponseDto>(json);
-            
-//             if (res.alien != null) {
-//                 SpawnUnit(res.alien);
-//                 Debug.Log($"소환 성공! 남은 골드: {res.remainingGold}");
-//             }
-//         }, (err) => Debug.LogError("소환 실패: " + err));
-//     }
-
-//     public void SpawnUnit(InGameAlien data)
-//     {
-//         // 3D 공간의 랜덤 좌표 (y값은 바닥 높이인 0.5f 정도)
-//         Vector3 spawnPos = new Vector3(Random.Range(-4, 4), 0.5f, Random.Range(-4, 4));
-//         GameObject unit = Instantiate(unitPrefab, spawnPos, Quaternion.identity);
-
-//         // 데이터 명찰 달아주기
-//         UnitData unitData = unit.GetComponent<UnitData>();
-//         if (unitData != null) {
-//             unitData.SetInfo(data);
-//         }
-//     }
-// }
-
 using UnityEngine;
+using UnityEngine.UI; // UI 제어를 위해 추가
 
 public class GameManager : MonoBehaviour
 {
-    [Header("설정")]
+    [Header("설정 - 내 필드")]
     public GameObject unitPrefab;
-    public Transform gridParent;
+    public Transform myGridParent; // 기존 gridParent 이름을 변경하거나 그대로 두고 Inspector에서 할당
+    
+    [Header("설정 - 상대방(Enemy) 필드")]
+    public Transform enemyGridParent; // 적 필드의 부모 오브젝트
+
+    [Header("UI 연결 (Inspector에서 꼭 끌어다 넣으세요!)")]
+    public Button summonBtn; // 광클 방지(Disabled) 처리를 위한 소환 버튼
+    public Text goldText;    // 하단 중앙에 있는 1200 적힌 골드 텍스트를 연결해주세요!
+    public Text waveText;    // 상단 웨이브/몬스터 정보 텍스트를 연결해주세요!
+    public Text oppText;     // 상단 파트너 정보 텍스트를 연결해주세요!
 
     [Header("테스트 정보")]
-    private long userId = 1;
+    private long userId = 1;       // 내 ID
+    private long enemyId = 2;      // 가상의 상대방 ID
     private float tileSize = 1.1f;
     private int cols = 7;
     private int rows = 4;
 
-    // ★ 게임 켜지자마자 실행되는 함수
+    // ★ 상태 관리 (웹의 const [isLoading, setIsLoading] = useState(false) 와 동일)
+    private bool isSummoning = false; 
+
+    // 적 숫자 관리
+    private int totalMonsters = 100;
+    private int currentMonsters = 0;
+
     void Start()
     {
         GameStart();
     }
 
-    // 1. 게임 시작 신고 (이걸 해야 소환이 됨)
+    // 1. 게임 시작 신고 (나와 상대방 모두)
     void GameStart()
     {
-        WWWForm form = new WWWForm();
-        form.AddField("userId", userId.ToString());
+        // 내 세션 생성
+        WWWForm myForm = new WWWForm();
+        myForm.AddField("userId", userId.ToString());
 
-        // "/start" 엔드포인트로 요청
-        NetworkManager.Instance.Post("/start", form, (json) =>
+        NetworkManager.Instance.Post("/start", myForm, (json) =>
         {
-            Debug.Log($"[게임 시작 성공] 서버 응답: {json}");
+            Debug.Log($"[내 게임 시작 성공] 서버 응답: {json}");
+            // 서버에서 응답 올 때 아직 골드 정보는 없지만 기본 500으로 맞춰줍니다.
+            UpdateGoldUI(500);
+            UpdateMonsterUI();
         },
-        (err) => Debug.LogError($"[게임 시작 실패] 서버 켜져 있나요? 에러: {err}"));
+        (err) => Debug.LogError($"[내 게임 시작 실패] 서버 켜져 있나요? 에러: {err}"));
+
+        // 가상 상대방 세션 생성
+        WWWForm enemyForm = new WWWForm();
+        enemyForm.AddField("userId", enemyId.ToString());
+
+        NetworkManager.Instance.Post("/start", enemyForm, (json) =>
+        {
+            Debug.Log($"[적 게임 시작 성공] 서버 응답: {json}");
+        },
+        (err) => Debug.LogError($"[적 게임 시작 실패] 에러: {err}"));
     }
 
     // 2. 소환 버튼 누르면 실행
     public void OnClickSummon()
     {
-        WWWForm form = new WWWForm();
-        form.AddField("userId", userId.ToString());
+        // 🚨 디바운스(Debounce) & 광클 방지 처리
+        if (isSummoning) return; 
+        isSummoning = true;
+        
+        if (summonBtn != null) 
+            summonBtn.interactable = false; // 버튼 비활성화 (HTML disabled=true)
 
-        NetworkManager.Instance.Post("/summon", form, (json) =>
+        // 내 소환 요청
+        WWWForm myForm = new WWWForm();
+        myForm.AddField("userId", userId.ToString());
+
+        NetworkManager.Instance.Post("/summon", myForm, (json) =>
         {
-            Debug.Log($"[소환 시도] 서버 응답: {json}");
+            // 통신 완료 시 다시 버튼 활성화
+            isSummoning = false;
+            if (summonBtn != null) summonBtn.interactable = true;
+
+            Debug.Log($"[내 소환 시도] 서버 응답: {json}");
 
             GameResponseDto res = JsonUtility.FromJson<GameResponseDto>(json);
 
-            // "진행 중인 게임이 없습니다" 에러가 또 뜨면 재시작 시도
-            if (res.message.Contains("진행 중인 게임이 없습니다"))
+            if (res.message != null && res.message.Contains("진행 중인 게임이 없습니다"))
             {
                 Debug.LogWarning("게임이 안 켜져 있어서 다시 시작합니다...");
                 GameStart();
                 return;
             }
 
+            // [추가] 서버에서 남은 골드를 알려주면 UI 갱신!
+            UpdateGoldUI(res.remainingGold);
+
+            // 서버 파싱 데이터가 정상적으로 들어왔다면 소환! (내 필드에)
             if (res.alien != null)
             {
-                SpawnUnit(res.alien);
+                SpawnUnit(res.alien, true); // true: 내 필드
             }
-        }, (err) => Debug.LogError("통신 에러: " + err));
+        }, (err) => 
+        {
+            // 에러가 나도 버튼은 다시 살려줘야 함
+            isSummoning = false;
+            if (summonBtn != null) summonBtn.interactable = true;
+            Debug.LogError("통신 에러: " + err);
+        });
+
+        // ==========================================
+        // 💡 [테스트용] 내가 소환할 때 상대방도 같이 소환되게 하기
+        // (실제 게임에서는 상대방이 알아서 버튼을 누를 때 호출됨)
+        // ==========================================
+        WWWForm enemyForm = new WWWForm();
+        enemyForm.AddField("userId", enemyId.ToString());
+
+        NetworkManager.Instance.Post("/summon", enemyForm, (json) =>
+        {
+            Debug.Log($"[적 소환 시도] 서버 응답: {json}");
+            GameResponseDto res = JsonUtility.FromJson<GameResponseDto>(json);
+            if (res.alien != null)
+            {
+                SpawnUnit(res.alien, false); // false: 적 필드
+            }
+        }, (err) => Debug.Log("상대방 소환 에러 (무시가능)"));
     }
 
-    public void SpawnUnit(InGameAlien data)
+    // 3. 유닛 소환 (클라이언트 랜덤 삭제, 서버 데이터 100% 신뢰)
+    // isMine 파라미터를 추가하여 내 필드인지 상대 필드인지 구분합니다.
+    public void SpawnUnit(InGameAlien data, bool isMine)
     {
         float interval = 1.1f;
+        // CSS의 margin: 0 auto 처럼 중앙 정렬을 위한 오프셋
         float offsetX = (cols - 1) * interval * 0.5f;
         float offsetZ = (rows - 1) * interval * 0.5f;
 
-        // 1. 비어있는 타일들 중에서 "진짜 랜덤"하게 하나를 가져옴
-        Vector2Int finalGridPos = GetRandomEmptyTile();
+        // 🚨 핵심 수정: x와 y를 바꾸어서 매핑합니다!
+        // 서버의 grid[4][7] 구조: 첫번째 인덱스(0~3)가 세로(row, y축), 두번째 인덱스(0~6)가 가로(col, x축)입니다.
+        int x = data.gridY; // 서버의 0~6 값이 가로 축 (x)
+        int y = data.gridX; // 서버의 0~3 값이 세로 축 (z/y)
 
-        // 2. 만약 빈칸이 하나도 없다면 소환 취소
-        if (finalGridPos.x == -1)
+        // 최종 3D 월드 좌표 계산 (x가 가로, y가 세로(z)로 매핑)
+        float localX = (x * interval) - offsetX;
+        float localZ = (y * interval) - offsetZ;
+
+        // 내 필드인지 상대 필드인지에 따라 부모 Transform 결정
+        Transform targetGridParent = isMine ? myGridParent : enemyGridParent;
+
+        // 타겟 그리드 부모가 할당되지 않은 경우 (Null 에러 방지)
+        if (targetGridParent == null)
         {
-            Debug.LogWarning("⚠️ 그리드에 빈자리가 없습니다!");
+            if (isMine)
+            {
+                Debug.LogError("🚨 My Grid Parent 가 할당되지 않았습니다! Inspector에서 내 필드를 넣어주세요.");
+            }
+            else
+            {
+                Debug.LogWarning("상대방 필드(Enemy Grid Parent)가 할당되지 않았습니다. Inspector를 확인하세요.");
+            }
             return;
         }
 
-        // 3. 최종 좌표 계산
-        float localX = (finalGridPos.x * interval) - offsetX;
-        float localZ = (finalGridPos.y * interval) - offsetZ;
-        Vector3 finalPos = gridParent.position + new Vector3(localX, 0.8f, localZ);
+        Vector3 finalPos = targetGridParent.position + new Vector3(localX, 0.8f, localZ);
 
-        // 4. 소환
+        // 소환 (DOM 렌더링)
         GameObject unit = Instantiate(unitPrefab, finalPos, Quaternion.identity);
-        unit.transform.SetParent(gridParent);
+        unit.transform.SetParent(targetGridParent);
         
-        // 중요: 유닛 이름을 좌표로 설정해야 다음 소환 때 IsTileOccupied가 인식함
-        unit.name = $"Unit_{finalGridPos.x}_{finalGridPos.y}";
+        // 중요: 유닛 이름(DOM ID)을 서버 좌표와 동일하게 설정 (누구 것인지도 표기)
+        string owner = isMine ? "Me" : "Enemy";
+        unit.name = $"Unit_{owner}_{data.gridX}_{data.gridY}";
 
+        // 데이터 바인딩
         UnitData unitData = unit.GetComponent<UnitData>();
         if (unitData != null) unitData.SetInfo(data);
         
-        Debug.Log($"🎲 랜덤 소환 완료: {finalGridPos.x}, {finalGridPos.y}");
+        Debug.Log($"👽 [{owner} 소환 완료] 왹져가 DB 좌표 ({data.gridX}, {data.gridY}) -> 클라 좌표 ({x}, {y}) 에 배치되었습니다!");
     }
 
-    // 비어있는 모든 타일을 찾아서 그중 하나를 랜덤하게 뽑는 함수
-    Vector2Int GetRandomEmptyTile()
-    {
-        // 1. 비어있는 좌표들을 담을 리스트 생성
-        System.Collections.Generic.List<Vector2Int> emptyTiles = new System.Collections.Generic.List<Vector2Int>();
-
-        // 2. 전체 그리드를 돌면서 빈칸을 리스트에 다 넣음
-        for (int y = 0; y < rows; y++)
-        {
-            for (int x = 0; x < cols; x++)
-            {
-                if (!IsTileOccupied(x, y))
-                {
-                    emptyTiles.Add(new Vector2Int(x, y));
-                }
-            }
-        }
-
-        // 3. 빈칸이 있으면 랜덤하게 하나 선택, 없으면 -1 리턴
-        if (emptyTiles.Count > 0)
-        {
-            int randomIndex = Random.Range(0, emptyTiles.Count);
-            return emptyTiles[randomIndex];
-        }
-
-        return new Vector2Int(-1, -1);
-    }
-
-    // 해당 칸에 유닛이 있는지 확인하는 함수
-    bool IsTileOccupied(int x, int y)
-    {
-        // 이름으로 찾거나 거리를 체크하는 방식
-        return GameObject.Find($"Unit_{x}_{y}") != null;
-    }
-    
-    // 몬스터 죽였을때 이벤트
+    // 4. 몬스터 처치 신고
     public void OnKillMonster(long monsterSpecId)
     {
         WWWForm form = new WWWForm();
         form.AddField("userId", userId.ToString());
-        form.AddField("monsterSpecId", monsterSpecId.ToString()); // 잡은 몬스터의 ID
+        form.AddField("monsterSpecId", monsterSpecId.ToString()); 
 
-        // ★ 서버로 처치 신고 전송 (/enemy/kill)
         NetworkManager.Instance.Post("/enemy/kill", form, (json) =>
         {
             Debug.Log($"💰 [처치 신고 성공] 서버 응답: {json}");
 
-            // (선택사항) 서버가 보내준 남은 골드 정보로 UI 업데이트 가능
             GameResponseDto res = JsonUtility.FromJson<GameResponseDto>(json);
-            Debug.Log($"현재 보유 골드: {res.remainingGold}");
+
+            // [추가] 몬스터 잡고 돈 벌었을 때 UI 갱신
+            UpdateGoldUI(res.remainingGold);
 
         }, (err) => Debug.LogError("처치 신고 실패: " + err));
+    }
+
+    // [추가] 골드 UI 텍스트 변경 함수
+    private void UpdateGoldUI(int currentGold)
+    {
+        if (goldText != null)
+        {
+            goldText.text = $"💰 {currentGold:N0}"; // N0 포맷으로 1,000 단위 콤마 찍기
+        }
+    }
+
+    // [추가] 몬스터 추가 시 호출 (테스트용)
+    [ContextMenu("테스트: 몬스터 1마리 추가")]
+    public void TestAddMonster()
+    {
+        if (currentMonsters < totalMonsters)
+        {
+            currentMonsters++;
+            UpdateMonsterUI();
+
+            if (currentMonsters >= totalMonsters)
+            {
+                TriggerGameOver();
+            }
+        }
+    }
+
+    // [추가] 몬스터 UI 업데이트
+    private void UpdateMonsterUI()
+    {
+        if (waveText != null)
+        {
+            waveText.text = $"WAVE 1\n몬스터: {currentMonsters} / {totalMonsters}";
+        }
+    }
+
+    // [추가] 게임 오버 처리
+    private void TriggerGameOver()
+    {
+        Debug.Log("💀 [게임 오버] 몬스터가 100마리를 초과했습니다!");
+        if (waveText != null)
+        {
+            waveText.text = $"💀 GAME OVER 💀\n(패배)";
+            waveText.color = Color.red;
+        }
+
+        // 서버에도 게임 오버 알리기
+        WWWForm form = new WWWForm();
+        form.AddField("userId", userId.ToString());
+        NetworkManager.Instance.Post("/gameover", form, (json) =>
+        {
+            Debug.Log("서버에 게임 오버 등록 완료");
+        }, (err) => Debug.LogError("게임 오버 등록 실패"));
+
+        // 소환 버튼 비활성화
+        if (summonBtn != null)
+        {
+            summonBtn.interactable = false;
+        }
     }
 }

@@ -7,7 +7,9 @@ public class SummonManager : MonoBehaviour
     public GameObject unitPrefab;   // 소환할 유닛 프리팹 (AlienUnit)
     public Transform gridParent;    // 타일들이 모여있는 부모 객체 (GridManager)
 
-    // 버튼 클릭 시 실행될 함수
+    // 이 메서드는 이제 사용하지 않습니다 (GameManager 쪽으로 로직 이동)
+    // GameManager에서 서버 응답을 받고 직접 SpawnUnit을 호출하는 방식으로 변경되었습니다.
+    /*
     public void SummonUnit()
     {
         // 1. 현재 비어있는 타일들을 다 찾는다.
@@ -37,7 +39,9 @@ public class SummonManager : MonoBehaviour
         // 4. 유닛 소환!
         SpawnUnit(targetTile);
     }
+    */
 
+    /*
     void SpawnUnit(Transform tileTransform)
     {
         // 타일 위치 + 약간 위(0.5)에 생성
@@ -47,4 +51,5 @@ public class SummonManager : MonoBehaviour
         // [중요] 유닛을 타일의 자식으로 넣어야 나중에 "빈 타일" 체크가 됨
         newUnit.transform.SetParent(tileTransform);
     }
+    */
 }

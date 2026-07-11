@@ -71,42 +71,35 @@ public class DataInit implements CommandLineRunner {
     private List<MonsterSpec> createMonster(int grade, MonsterSpec.MonsterType type, int count) {
         List<MonsterSpec> createdSpecs = new ArrayList<>();
         for (int i = 0; i < count; i++) {
-            /*private Long id;
-            private int grade;
-            private String name;
-            private int hp;
-            private double moveSpeed;
-            private int dropGold;
-            // 몬스터 등급 구분
-            @Enumerated(EnumType.STRING)
-            private MonsterType type;*/
-
             MonsterSpec ms = new MonsterSpec();
-            int monhp1 = 30;
-            int monhp2 = 50;
-            int monhp3 = 150;
+            // 수정: HP를 현실적으로 조정 (예: 유닛 공격력이 10~50 수준이므로, 등급에 따라 100부터 시작하도록)
+            int monhp1 = 100;
+            int monhp2 = 200;
+            int monhp3 = 500;
 
-            if(grade>3){
-                if(count == 0){
-                    ms.setHp(monhp1*grade);
+            if (grade > 3) {
+                if (count == 0) {
+                    ms.setHp(monhp1 * grade);
                 } else if (count == 1) {
-                    ms.setHp(monhp2*grade);
-                }else if (count == 2) {
-                    ms.setHp(monhp3*grade);
+                    ms.setHp(monhp2 * grade);
+                } else if (count == 2) {
+                    ms.setHp(monhp3 * grade);
+                }
+            } else {
+                if (count == 0) {
+                    ms.setHp(monhp1);
+                } else if (count == 1) {
+                    ms.setHp(monhp2);
+                } else if (count == 2) {
+                    ms.setHp(monhp3);
                 }
             }
 
             ms.setGrade(grade);
-            ms.setName("몬스터"+i);
+            ms.setType(type); // 타입 저장 추가
+            ms.setName("몬스터" + grade + "-" + i); // 이름 구분을 명확히
             ms.setMoveSpeed(1.2);
             ms.setDropGold(20);
-            if(count == 0){
-                ms.setHp(monhp1);
-            } else if (count == 1) {
-                ms.setHp(monhp2);
-            }else if (count == 2) {
-                ms.setHp(monhp3);
-            }
 
             monsterSpecRepository.save(ms);
             createdSpecs.add(ms);

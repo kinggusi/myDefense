@@ -70,7 +70,8 @@ public class UnitDrag : MonoBehaviour
             Destroy(targetUnit);
 
             // 서버가 준 새로운 유닛 소환 (GameManager의 함수 호출)
-            FindObjectOfType<GameManager>().SpawnUnit(res.alien);
+            // 🚨 수정: isMine을 true로 줘서 "내 필드"에 스폰되도록 수정!
+            FindObjectOfType<GameManager>().SpawnUnit(res.alien, true);
             Debug.Log("머지 성공! " + res.message);
         }, (err) => {
             Debug.LogError("머지 실패: " + err);

@@ -5,7 +5,7 @@ public class GridManager : MonoBehaviour
     [Header("설정")]
     public GameObject tilePrefab; // 타일 도장
     public int rows = 4;          // 세로 줄 수 (4)
-    public int cols = 6;          // 가로 칸 수 (6)
+    public int cols = 7;          // 가로 칸 수 (6)
     public float tileSize = 1.1f; // 타일 간격 (Gap 포함 크기)
 
     [ContextMenu("그리드 생성하기")] // 컴포넌트 메뉴에서 클릭 한 번으로 실행!
