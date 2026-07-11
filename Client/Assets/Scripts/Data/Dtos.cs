@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 [Serializable]
 public class GameResponseDto {
@@ -38,4 +39,4 @@ public class MergeRequestDto {
     public long userId;
     public long sourceId;
     public long targetId;
-}
+}

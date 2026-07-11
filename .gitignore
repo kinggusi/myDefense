@@ -62,3 +62,10 @@ hs_err_pid*
 .DS_Store
 Thumbs.db
 
+# --- Local AI tooling / generated diagnostics ---
+Client/.agent/
+Client/Assets/Plugins/NuGet/
+Client/Assets/Plugins.meta
+api_log.txt
+scene_info.txt
+
