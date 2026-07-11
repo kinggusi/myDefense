@@ -1,5 +1,6 @@
 package com.denfense.server;
 
+import com.denfense.server.exception.BusinessException;
 import com.denfense.server.domain.AlienSpec;
 import com.denfense.server.domain.MutationType;
 import com.denfense.server.game.object.BoardObject;
@@ -86,7 +87,7 @@ class GameSessionTest {
         InGameInjector injector = session.spawnInjector(MutationType.BLANK, 2, 2);
 
         // When & Then
-        assertThrows(IllegalArgumentException.class, () -> {
+        assertThrows(BusinessException.class, () -> {
             session.applyInjector(injector.getId(), alien.getId());
         });
     }
@@ -99,7 +100,7 @@ class GameSessionTest {
         session.spawnInjector(MutationType.BERSERK, 2, 2);
 
         // When & Then
-        assertThrows(IllegalArgumentException.class, () -> {
+        assertThrows(BusinessException.class, () -> {
             session.applyInjector(9999L, 8888L);
         });
     }
@@ -113,7 +114,7 @@ class GameSessionTest {
 
         // When & Then
         // 왹져 자리에 인젝터 ID를 넣고 인젝터 자리에 왹져 ID를 넣은 경우
-        assertThrows(IllegalArgumentException.class, () -> {
+        assertThrows(BusinessException.class, () -> {
             session.applyInjector(alien.getId(), injector.getId());
         });
     }
@@ -126,7 +127,7 @@ class GameSessionTest {
         InGameInjector injector = session.spawnInjector(MutationType.BLANK, 2, 2); // BLANK는 예외 발생함
 
         // When
-        assertThrows(IllegalArgumentException.class, () -> {
+        assertThrows(BusinessException.class, () -> {
             session.applyInjector(injector.getId(), alien.getId());
         });
 
@@ -150,7 +151,7 @@ class GameSessionTest {
         session.applyInjector(injectorId, alien1.getId());
 
         // When & Then (2차 사용 시도 - 소멸되었으므로 실패)
-        assertThrows(IllegalArgumentException.class, () -> {
+        assertThrows(BusinessException.class, () -> {
             session.applyInjector(injectorId, alien2.getId());
         });
     }
@@ -207,7 +208,7 @@ class GameSessionTest {
         int cost = session.getCurrentKidnapCost(); // 50
 
         // When & Then (골드 부족 실패 확인)
-        assertThrows(IllegalStateException.class, () -> {
+        assertThrows(BusinessException.class, () -> {
             session.kidnapAlien(dummySpec);
         });
 
@@ -229,7 +230,7 @@ class GameSessionTest {
         int initialGold = session.getInGameGold();
 
         // When & Then (가득 차서 실패)
-        assertThrows(IllegalStateException.class, () -> {
+        assertThrows(BusinessException.class, () -> {
             session.kidnapAlien(dummySpec);
         });
 
@@ -420,7 +421,7 @@ class GameSessionTest {
         InGameAlien source = session.spawnAlien(dummySpec, MutationType.NONE, MutationType.NONE, 0, 1, 1);
         int initialGold = session.getInGameGold();
 
-        assertThrows(IllegalArgumentException.class, () -> session.moveBoardObject(9999L, 2, 2));
+        assertThrows(BusinessException.class, () -> session.moveBoardObject(9999L, 2, 2));
 
         // 상태 유지 확인
         assertEquals(1, source.getGridX());
@@ -439,13 +440,13 @@ class GameSessionTest {
         int initialGold = session.getInGameGold();
 
         // x 범위 음수
-        assertThrows(IllegalArgumentException.class, () -> session.moveBoardObject(source.getId(), -1, 2));
+        assertThrows(BusinessException.class, () -> session.moveBoardObject(source.getId(), -1, 2));
         // x 범위 4 이상
-        assertThrows(IllegalArgumentException.class, () -> session.moveBoardObject(source.getId(), 4, 2));
+        assertThrows(BusinessException.class, () -> session.moveBoardObject(source.getId(), 4, 2));
         // y 범위 음수
-        assertThrows(IllegalArgumentException.class, () -> session.moveBoardObject(source.getId(), 2, -1));
+        assertThrows(BusinessException.class, () -> session.moveBoardObject(source.getId(), 2, -1));
         // y 범위 6 이상
-        assertThrows(IllegalArgumentException.class, () -> session.moveBoardObject(source.getId(), 2, 6));
+        assertThrows(BusinessException.class, () -> session.moveBoardObject(source.getId(), 2, 6));
 
         // 상태 유지 확인
         assertEquals(1, source.getGridX());
@@ -465,18 +466,18 @@ class GameSessionTest {
 
         // 1. grid와 source 불일치 유발 (강제로 grid 위치 null 처리)
         session.getGrid()[1][1] = null;
-        assertThrows(IllegalStateException.class, () -> session.moveBoardObject(source.getId(), 2, 2));
+        assertThrows(BusinessException.class, () -> session.moveBoardObject(source.getId(), 2, 2));
         session.getGrid()[1][1] = source; // 복구
 
         // 2. target 내부 좌표 불일치 유발
         InGameAlien target = session.spawnAlien(dummySpec, MutationType.NONE, MutationType.NONE, 0, 2, 2);
         target.setGridX(0); // 강제로 불일치 유발
-        assertThrows(IllegalStateException.class, () -> session.moveBoardObject(source.getId(), 2, 2));
+        assertThrows(BusinessException.class, () -> session.moveBoardObject(source.getId(), 2, 2));
         target.setGridX(2); // 복구
 
         // 3. target이 boardObjects에 없는 상태 (강제로 target을 boardObjects 맵에서만 삭제하여 불일치 유발)
         session.getBoardObjects().remove(target.getId());
-        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> session.moveBoardObject(source.getId(), 2, 2));
+        BusinessException ex = assertThrows(BusinessException.class, () -> session.moveBoardObject(source.getId(), 2, 2));
         assertEquals("보드 상태 불일치: 대상 객체가 boardObjects와 일치하지 않습니다.", ex.getMessage());
         session.getBoardObjects().put(target.getId(), target); // 복구
 
