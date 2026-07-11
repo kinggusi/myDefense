@@ -5,7 +5,7 @@ import lombok.RequiredArgsConstructor;
 
 @Getter
 @RequiredArgsConstructor
-public enum PrefixType {
+public enum MutationType {
     NONE(0, "없음"),
     PROLIFIC(1, "다산의"), // 소환 시 일정 확률로 1마리 더 (증식)
     GREEDY(2, "탐욕의"),   // 처치 시 골드 획득량 증가
