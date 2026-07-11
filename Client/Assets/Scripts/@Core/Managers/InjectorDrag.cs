@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class UnitDrag : MonoBehaviour
+public class InjectorDrag : MonoBehaviour
 {
     private Vector3 offset;
     private Camera cam;
@@ -9,7 +9,6 @@ public class UnitDrag : MonoBehaviour
 
     void Start() { cam = Camera.main; }
 
-    // 1. 마우스 클릭 시
     void OnMouseDown()
     {
         startPos = transform.position;
@@ -17,16 +16,13 @@ public class UnitDrag : MonoBehaviour
         isDragging = true;
     }
 
-    // 2. 마우스 드래그 시
     void OnMouseDrag()
     {
         if (!isDragging) return;
         Vector3 newPos = GetMouseWorldPos() + offset;
-        // 3D 바닥(Plane) 위에서 움직이도록 y값은 고정 (0.5f)
         transform.position = new Vector3(newPos.x, 0.5f, newPos.z);
     }
 
-    // 3. 마우스 뗐을 때 (머지 판정)
     void OnMouseUp()
     {
         isDragging = false;
@@ -40,12 +36,10 @@ public class UnitDrag : MonoBehaviour
 
         foreach (var hit in hits)
         {
-            // 타일 검출
             if (hit.collider.name.StartsWith("Tile_"))
             {
                 targetTile = hit.collider.transform;
             }
-            // 타겟 보드 오브젝트 검출 (자기 자신 제외)
             else if (hit.collider.gameObject != gameObject)
             {
                 if (BoardObjectHelper.TryGetBoardObject(hit.collider.gameObject, out _, out _))
@@ -55,7 +49,6 @@ public class UnitDrag : MonoBehaviour
             }
         }
 
-        // 타일이 감지되지 않았으면 원래 포지션 복귀
         if (targetTile == null)
         {
             transform.position = startPos;
@@ -66,36 +59,19 @@ public class UnitDrag : MonoBehaviour
         string[] parts = targetTile.name.Split('_');
         if (parts.Length < 3 || !int.TryParse(parts[1], out int newY) || !int.TryParse(parts[2], out int newX))
         {
-            Debug.LogError("🚨 [UnitDrag] 타일 좌표 파싱 실패: " + targetTile.name);
+            Debug.LogError("🚨 [InjectorDrag] 타일 좌표 파싱 실패: " + targetTile.name);
             transform.position = startPos;
             return;
         }
 
         // source 정보 획득
-        if (!BoardObjectHelper.TryGetBoardObject(gameObject, out long sourceId, out BoardObjectKind sourceKind, out int oldGridX, out int oldGridY, out bool isMine, out UnitData myData, out _))
+        if (!BoardObjectHelper.TryGetBoardObject(gameObject, out long sourceId, out BoardObjectKind sourceKind, out int oldGridX, out int oldGridY, out bool isMine, out _, out InjectorData myIdData))
         {
             transform.position = startPos;
             return;
         }
 
-        // 2. Merge 조건 체크 (같은 종/등급 Alien 위 드롭)
-        if (targetObj != null)
-        {
-            if (BoardObjectHelper.TryGetBoardObject(targetObj, out long targetId, out BoardObjectKind targetKind, out int targetGridX, out int targetGridY, out _, out UnitData targetData, out _))
-            {
-                if (sourceKind == BoardObjectKind.Alien && targetKind == BoardObjectKind.Alien)
-                {
-                    if (myData != null && targetData != null && myData.grade == targetData.grade && myData.specId == targetData.specId)
-                    {
-                        // 기존 Merge 로직으로 위임하고 Move 통신은 전면 스킵
-                        RequestMerge(targetObj);
-                        return;
-                    }
-                }
-            }
-        }
-
-        // 같은 칸 드롭인 경우 no-op 처리 (서버 호출 없이 로컬 확정)
+        // 같은 칸 드롭인 경우 no-op 처리
         if (oldGridX == newX && oldGridY == newY)
         {
             transform.position = startPos;
@@ -115,7 +91,7 @@ public class UnitDrag : MonoBehaviour
         bool hasTarget = targetObj != null;
 
         // 드래그 컴포넌트들 캐시 (입력 잠금 목적)
-        UnitDrag sourceDrag = this;
+        InjectorDrag sourceDrag = this;
         UnitDrag targetDragAlien = null;
         InjectorDrag targetDragInjector = null;
 
@@ -145,13 +121,12 @@ public class UnitDrag : MonoBehaviour
 
         if (hasTarget)
         {
-            // Swap 상대는 source의 시작 위치로 이동
             targetObj.transform.position = sourceStartPos;
         }
 
         // C. API 요청 전송 (PostJsonAsync 사용)
         GameManager gm = FindObjectOfType<GameManager>();
-        long userId = gm != null ? gm.UserId : 1; // GameManager에서 동적으로 userId 획득
+        long userId = gm != null ? gm.UserId : 1;
 
         MoveObjectRequestDto req = new MoveObjectRequestDto
         {
@@ -164,7 +139,6 @@ public class UnitDrag : MonoBehaviour
         string requestUri = "/game/move";
         NetworkManager.Instance.PostJsonAsync<MoveObjectRequestDto, GameResponseObjectDto>(requestUri, req, (result) =>
         {
-            // 잠금 해제 헬퍼
             System.Action unlockAll = () =>
             {
                 if (sourceDrag != null) sourceDrag.enabled = true;
@@ -175,7 +149,6 @@ public class UnitDrag : MonoBehaviour
             if (result.IsSuccess)
             {
                 // D. 성공 시 데이터 확정 및 gridX/Y 갱신
-                // 1. source 갱신
                 if (BoardObjectHelper.TryGetBoardObject(gameObject, out _, out _, out _, out _, out _, out UnitData myUd, out InjectorData myIdData))
                 {
                     if (myUd != null) { myUd.gridX = newX; myUd.gridY = newY; }
@@ -184,7 +157,6 @@ public class UnitDrag : MonoBehaviour
                 string owner = name.Contains("Me") ? "Me" : "Enemy";
                 name = name.StartsWith("Unit_") ? $"Unit_{owner}_{newX}_{newY}" : $"Injector_{owner}_{newX}_{newY}";
 
-                // 2. target 갱신
                 if (hasTarget && targetObj != null)
                 {
                     if (BoardObjectHelper.TryGetBoardObject(targetObj, out _, out _, out _, out _, out _, out UnitData tgtUd, out InjectorData tgtIdData))
@@ -196,7 +168,7 @@ public class UnitDrag : MonoBehaviour
                 }
 
                 unlockAll();
-                Debug.Log($"🎉 [이동 성공] Object {sourceId}가 ({oldX}, {oldY}) -> ({newX}, {newY})로 안착 완료!");
+                Debug.Log($"🎉 [인젝터 이동 성공] Object {sourceId}가 ({oldX}, {oldY}) -> ({newX}, {newY})로 안착 완료!");
             }
             else
             {
@@ -218,48 +190,14 @@ public class UnitDrag : MonoBehaviour
                     }
                     else
                     {
-                        Debug.LogWarning($"⚠️ [이동 실패] 비즈니스 에러 ({errCode}): {result.Error.message}");
+                        Debug.LogWarning($"⚠️ [인젝터 이동 실패] 비즈니스 에러 ({errCode}): {result.Error.message}");
                     }
                 }
                 else
                 {
-                    Debug.LogError("🚨 [이동 실패] 네트워크 오류 또는 알 수 없는 실패 발생: " + result.NetworkError);
+                    Debug.LogError("🚨 [인젝터 이동 실패] 네트워크 오류 또는 알 수 없는 실패 발생: " + result.NetworkError);
                 }
             }
-        });
-    }
-
-    void RequestMerge(GameObject targetUnit)
-    {
-        long sourceId = GetComponent<UnitData>().serverId;
-        long targetId = targetUnit.GetComponent<UnitData>().serverId;
-
-        GameManager gm = FindObjectOfType<GameManager>();
-        long userId = gm != null ? gm.UserId : 1;
-
-        // 서버에 보낼 데이터 구성 (MergeRequestDto)
-        MergeRequestDto request = new MergeRequestDto {
-            userId = userId,
-            sourceId = sourceId,
-            targetId = targetId
-        };
-
-        string json = JsonUtility.ToJson(request);
-
-        // 서버에 머지 요청 전송
-        NetworkManager.Instance.PostJson("/merge", json, (resJson) => {
-            GameResponseDto res = JsonUtility.FromJson<GameResponseDto>(resJson);
-            
-            // 성공하면 기존 두 마리 지우기
-            Destroy(gameObject);
-            Destroy(targetUnit);
-
-            // 서버가 준 새로운 유닛 소환
-            FindObjectOfType<GameManager>().SpawnUnit(res.alien, true);
-            Debug.Log("머지 성공! " + res.message);
-        }, (err) => {
-            Debug.LogError("머지 실패: " + err);
-            transform.position = startPos; // 에러나면 복귀
         });
     }
 

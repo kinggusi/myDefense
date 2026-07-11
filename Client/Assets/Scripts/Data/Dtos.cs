@@ -95,30 +95,68 @@ public enum BoardObjectKind
     Injector
 }
 
+[Serializable]
+public class MoveObjectRequestDto
+{
+    public long userId;
+    public long objectId;
+    public int newX;
+    public int newY;
+}
+
 public static class BoardObjectHelper
 {
+    // 기존 호환성 오버로드 유지
     public static bool TryGetBoardObject(GameObject obj, out long serverId, out BoardObjectKind kind)
+    {
+        return TryGetBoardObject(obj, out serverId, out kind, out _, out _, out _, out _, out _);
+    }
+
+    // 상세 조회 아웃인자 고도화 버전
+    public static bool TryGetBoardObject(
+        GameObject obj, 
+        out long serverId, 
+        out BoardObjectKind kind, 
+        out int gridX, 
+        out int gridY, 
+        out bool isMine,
+        out UnitData alienData,
+        out InjectorData injectorData)
     {
         serverId = -1;
         kind = BoardObjectKind.Alien;
+        gridX = -1;
+        gridY = -1;
+        isMine = true;
+        alienData = null;
+        injectorData = null;
 
         if (obj == null) return false;
 
         // 1. Alien 검사 (UnitData의 grade가 INJECTOR가 아닌 정상 Alien 유닛만 필터링)
-        UnitData alienData = obj.GetComponent<UnitData>();
-        if (alienData != null && alienData.grade != "INJECTOR")
+        UnitData ud = obj.GetComponent<UnitData>();
+        if (ud != null && ud.grade != "INJECTOR")
         {
-            serverId = alienData.serverId;
+            serverId = ud.serverId;
             kind = BoardObjectKind.Alien;
+            gridX = ud.gridX;
+            gridY = ud.gridY;
+            // 게임오브젝트 명칭으로 내 왹져인지 상대방 것인지 판단
+            isMine = obj.name.Contains("Me");
+            alienData = ud;
             return true;
         }
 
         // 2. Injector 검사
-        InjectorData injectorData = obj.GetComponent<InjectorData>();
-        if (injectorData != null)
+        InjectorData idData = obj.GetComponent<InjectorData>();
+        if (idData != null)
         {
-            serverId = injectorData.serverId;
+            serverId = idData.serverId;
             kind = BoardObjectKind.Injector;
+            gridX = idData.gridX;
+            gridY = idData.gridY;
+            isMine = idData.isMine;
+            injectorData = idData;
             return true;
         }
 

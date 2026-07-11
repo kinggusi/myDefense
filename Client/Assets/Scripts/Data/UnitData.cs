@@ -10,6 +10,8 @@ public class UnitData : MonoBehaviour
     public string pendingMutationType;
     public string activeMutationType;
     public int mutationRerollCount;
+    public int gridX; // 신규 추가: 보드 상의 grid X 좌표
+    public int gridY; // 신규 추가: 보드 상의 grid Y 좌표
 
     // 서버 데이터를 이 유닛에 주입하는 함수
     public void SetInfo(InGameAlien data)
@@ -21,6 +23,8 @@ public class UnitData : MonoBehaviour
         this.pendingMutationType = data.pendingMutationType;
         this.activeMutationType = data.activeMutationType;
         this.mutationRerollCount = data.mutationRerollCount;
+        this.gridX = data.gridX;
+        this.gridY = data.gridY;
 
         Debug.Log($"[UnitData] ID:{serverId}, 이름:{unitName}, 등급:{grade}");
 
