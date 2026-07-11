@@ -99,18 +99,44 @@ public class InGameServiceImpl implements InGameService {
             resultSpec = pool.get(random.nextInt(pool.size()));
         }
 
-        // [D] 결과 반영
+        // [B] DNA 계승 연산 (원자성 보장: 재료 유닛 제거 전에 연산 완결)
+        MutationType inheritedPending = inheritPendingMutation(source.getPendingMutationType(), target.getPendingMutationType());
+
+        // [D] 결과 반영 (모든 검증과 계산 완료 후 재료 제거)
         session.removeAlien(sourceId);
         session.removeAlien(targetId);
 
         return session.spawnAlien(
                 resultSpec,
-                MutationType.NONE,
+                inheritedPending,
                 MutationType.NONE,
                 0,
                 target.getGridX(),
                 target.getGridY()
         );
+    }
+
+    /**
+     * DNA 계승 정책 연산
+     */
+    private MutationType inheritPendingMutation(MutationType sourcePending, MutationType targetPending) {
+        MutationType s = (sourcePending == null) ? MutationType.NONE : sourcePending;
+        MutationType t = (targetPending == null) ? MutationType.NONE : targetPending;
+
+        if (s == MutationType.NONE && t == MutationType.NONE) {
+            return MutationType.NONE;
+        }
+        if (s != MutationType.NONE && t == MutationType.NONE) {
+            return s;
+        }
+        if (s == MutationType.NONE && t != MutationType.NONE) {
+            return t;
+        }
+        if (s == t) {
+            return s;
+        }
+        // 서로 다른 유효 DNA인 경우 50% 확률로 랜덤 채택 (BLANK도 유효 DNA로 취급)
+        return random.nextBoolean() ? s : t;
     }
 
     /**
