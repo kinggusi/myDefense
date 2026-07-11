@@ -15,6 +15,8 @@ public interface InGameService {
 
     UseInjectorResponseDto useInjector(Long userId, Long injectorId, Long alienId);
 
+    BoardObject moveBoardObject(Long userId, Long objectId, int newX, int newY);
+
     List<WaveSpawnDto> startNextWave(Long userId);
     int killMonster(Long userId, Long monsterSpecId);
     WaveSpawnDto spawnMissionBoss(Long userId);

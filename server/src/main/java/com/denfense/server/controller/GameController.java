@@ -2,6 +2,7 @@ package com.denfense.server.controller;
 
 import com.denfense.server.dto.request.MergeRequestDto;
 import com.denfense.server.dto.request.UseInjectorRequestDto;
+import com.denfense.server.dto.request.MoveObjectRequestDto;
 import com.denfense.server.dto.response.UseInjectorResponseDto;
 import com.denfense.server.dto.response.GameResponseDto;
 import com.denfense.server.dto.response.WaveSpawnDto;
@@ -46,7 +47,22 @@ public class GameController {
         try {
             BoardObject newAlien = inGameService.summonAlien(userId);
             // 헬퍼 메서드(makeResponse)로 통일
-            return makeResponse(userId, "소환 성공! (-50 Gold)", newAlien);
+            return makeResponse(userId, "납치 성공!", newAlien);
+        } catch (Exception e) {
+            return errorResponse(e);
+        }
+    }
+
+    @PostMapping("/move")
+    public GameResponseDto move(@RequestBody MoveObjectRequestDto request) {
+        try {
+            BoardObject movedObject = inGameService.moveBoardObject(
+                    request.getUserId(),
+                    request.getObjectId(),
+                    request.getNewX(),
+                    request.getNewY()
+            );
+            return makeResponse(request.getUserId(), "이동 성공!", movedObject);
         } catch (Exception e) {
             return errorResponse(e);
         }

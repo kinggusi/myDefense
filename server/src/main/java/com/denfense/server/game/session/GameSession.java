@@ -26,6 +26,7 @@ public class GameSession {
     // 유닛 ID 발급기 (1부터 시작, 중복 방지)
     private final AtomicLong idCounter = new AtomicLong(0);
     private int inGameGold = 500;
+    private int kidnapSuccessCount = 0;
 
     // 4x6 그리드를 관리할 인메모리 배열
     private final BoardObject[][] grid = new BoardObject[4][6];
@@ -69,6 +70,121 @@ public class GameSession {
 
         boardObjects.put(newId, newInjector);
         grid[x][y] = newInjector;
+        return newInjector;
+    }
+
+    /**
+     * 납치 횟수에 따른 선형 증가 비용 계산
+     */
+    public synchronized int getCurrentKidnapCost() {
+        return 50 + kidnapSuccessCount * 10;
+    }
+
+    /**
+     * synchronized 왹져 납치 소환 원자 처리
+     */
+    public synchronized BoardObject kidnapAlien(AlienSpec spec) {
+        // AlienSpec null 검증
+        if (spec == null) {
+            throw new IllegalArgumentException("AlienSpec은 null일 수 없습니다.");
+        }
+
+        // 1. 첫 빈칸 검색 (화면 기준 왼쪽->오른쪽, 위->아래 순서)
+        int emptyX = -1;
+        int emptyY = -1;
+        boolean foundEmpty = false;
+        for (int i = 3; i >= 0; i--) {
+            for (int j = 0; j < 6; j++) {
+                if (grid[i][j] == null) {
+                    emptyX = i;
+                    emptyY = j;
+                    foundEmpty = true;
+                    break;
+                }
+            }
+            if (foundEmpty) break;
+        }
+        if (!foundEmpty) {
+            throw new IllegalStateException("필드에 빈 공간이 없습니다!");
+        }
+
+        // 2. 현재 비용 계산
+        int cost = getCurrentKidnapCost();
+
+        // 3. 골드 부족 여부 확인
+        if (inGameGold < cost) {
+            throw new IllegalStateException("골드가 부족합니다! (보유: " + this.inGameGold + ", 필요: " + cost + ")");
+        }
+
+        // 4. 객체 ID 발급 및 객체 생성
+        Long newId = idCounter.incrementAndGet();
+        InGameAlien newAlien = new InGameAlien(newId, spec, MutationType.NONE, MutationType.NONE, 0, emptyX, emptyY);
+
+        // 5. boardObjects와 grid에 등록
+        boardObjects.put(newId, newAlien);
+        grid[emptyX][emptyY] = newAlien;
+
+        // 6. inGameGold 차감
+        inGameGold -= cost;
+
+        // 7. kidnapSuccessCount 증가
+        kidnapSuccessCount++;
+
+        // 8. 생성 객체 반환
+        return newAlien;
+    }
+
+    /**
+     * synchronized 인젝터 납치 소환 원자 처리
+     */
+    public synchronized BoardObject kidnapInjector(MutationType mutationType) {
+        // MutationType 유효성 검증 (null, NONE, BLANK 차단)
+        if (mutationType == null || mutationType == MutationType.NONE || mutationType == MutationType.BLANK) {
+            throw new IllegalArgumentException("사용 불가능한 MutationType입니다.");
+        }
+
+        // 1. 첫 빈칸 검색 (화면 기준 왼쪽->오른쪽, 위->아래 순서)
+        int emptyX = -1;
+        int emptyY = -1;
+        boolean foundEmpty = false;
+        for (int i = 3; i >= 0; i--) {
+            for (int j = 0; j < 6; j++) {
+                if (grid[i][j] == null) {
+                    emptyX = i;
+                    emptyY = j;
+                    foundEmpty = true;
+                    break;
+                }
+            }
+            if (foundEmpty) break;
+        }
+        if (!foundEmpty) {
+            throw new IllegalStateException("필드에 빈 공간이 없습니다!");
+        }
+
+        // 2. 현재 비용 계산
+        int cost = getCurrentKidnapCost();
+
+        // 3. 골드 부족 여부 확인
+        if (inGameGold < cost) {
+            throw new IllegalStateException("골드가 부족합니다! (보유: " + this.inGameGold + ", 필요: " + cost + ")");
+        }
+
+        // 4. 객체 ID 발급 및 객체 생성
+        Long newId = idCounter.incrementAndGet();
+        InGameInjector newInjector = new InGameInjector(newId, mutationType, emptyX, emptyY);
+
+        // 5. boardObjects와 grid에 등록
+        boardObjects.put(newId, newInjector);
+        grid[emptyX][emptyY] = newInjector;
+
+        // 6. inGameGold 차감
+        inGameGold -= cost;
+
+        // 7. kidnapSuccessCount 증가
+        kidnapSuccessCount++;
+
+        // 8. 생성 객체 반환
         return newInjector;
     }
 
@@ -152,29 +268,92 @@ public class GameSession {
      * 실수로 Injector의 ID를 넘기더라도 인젝터 객체까지 이동 처리가 정상 수행됩니다.
      * 향후 3-B 이후 단계에서 Deprecated 시키거나 지칭 이름을 갱신할 후보군입니다.
      */
-    public synchronized void moveAlien(Long alienId, int newX, int newY) {
-        moveBoardObject(alienId, newX, newY);
+    public synchronized BoardObject moveAlien(Long alienId, int newX, int newY) {
+        return moveBoardObject(alienId, newX, newY);
     }
 
     /**
-     * 객체 이동 (공통 보드용)
+     * 객체 이동 및 Swap (공통 보드용)
      */
-    public synchronized void moveBoardObject(Long id, int newX, int newY) {
-        BoardObject obj = boardObjects.get(id);
-        if (obj == null) {
-            throw new IllegalArgumentException("존재하지 않는 객체입니다.");
-        }
-        if (newX < 0 || newX >= 4 || newY < 0 || newY >= 6) {
-            throw new IllegalArgumentException("유효하지 않은 좌표입니다.");
-        }
-        if (grid[newX][newY] != null) {
-            throw new IllegalStateException("이동할 위치에 이미 유닛/인젝터가 존재합니다.");
+    public synchronized BoardObject moveBoardObject(Long id, int newX, int newY) {
+        // 1. source 객체 조회
+        BoardObject source = boardObjects.get(id);
+
+        // 2. source가 없으면 IllegalArgumentException
+        if (source == null) {
+            throw new IllegalArgumentException("존재하지 않는 객체입니다. (ID: " + id + ")");
         }
 
-        grid[obj.getGridX()][obj.getGridY()] = null;
-        obj.setGridX(newX);
-        obj.setGridY(newY);
-        grid[newX][newY] = obj;
+        // 3. newX/newY 범위 검증
+        if (newX < 0 || newX >= 4 || newY < 0 || newY >= 6) {
+            throw new IllegalArgumentException("유효하지 않은 목적지 좌표입니다. (x: " + newX + ", y: " + newY + ")");
+        }
+
+        // 4. source의 oldX/oldY 확보
+        int oldX = source.getGridX();
+        int oldY = source.getGridY();
+
+        // 5. source 현재 좌표 범위 검증
+        if (oldX < 0 || oldX >= 4 || oldY < 0 || oldY >= 6) {
+            throw new IllegalStateException("객체의 현재 좌표가 보드 범위를 벗어났습니다. (x: " + oldX + ", y: " + oldY + ")");
+        }
+
+        // 6. grid[oldX][oldY]가 실제 source인지 정합성 검증
+        if (grid[oldX][oldY] != source) {
+            throw new IllegalStateException("보드 상태 불일치: grid[" + oldX + "][" + oldY + "]가 실제 객체와 다릅니다.");
+        }
+
+        // 7. oldX == newX && oldY == newY이면 no-op 성공 반환
+        if (oldX == newX && oldY == newY) {
+            return source;
+        }
+
+        // 8. target = grid[newX][newY] 조회
+        BoardObject target = grid[newX][newY];
+
+        if (target == null) {
+            // [빈칸 이동]
+            grid[oldX][oldY] = null;
+            source.setGridX(newX);
+            source.setGridY(newY);
+            grid[newX][newY] = source;
+            return source;
+        } else {
+            // [점유 칸 Swap]
+            // 1. target이 source와 동일 객체가 아닌지 확인 (no-op 조건 검증 후이므로 이론상 다르겠지만 안전 가드)
+            if (target.getId().equals(source.getId())) {
+                throw new IllegalStateException("동일한 객체 간 Swap은 불가능합니다.");
+            }
+
+            // 2. target 내부 좌표가 newX/newY와 일치하는지 검증
+            if (target.getGridX() != newX || target.getGridY() != newY) {
+                throw new IllegalStateException("보드 상태 불일치: 대상 타겟의 내부 좌표가 실제 타일과 다릅니다.");
+            }
+
+            // 3. target이 boardObjects에 동일 인스턴스로 등록되어 있는지 검증
+            BoardObject mappedTarget = boardObjects.get(target.getId());
+            if (mappedTarget != target) {
+                throw new IllegalStateException(
+                    "보드 상태 불일치: 대상 객체가 boardObjects와 일치하지 않습니다."
+                );
+            }
+
+            // 4. source 내부 좌표를 newX/newY로 변경
+            source.setGridX(newX);
+            source.setGridY(newY);
+
+            // 4. target 내부 좌표를 oldX/oldY로 변경
+            target.setGridX(oldX);
+            target.setGridY(oldY);
+
+            // 5. grid[oldX][oldY] = target
+            grid[oldX][oldY] = target;
+
+            // 6. grid[newX][newY] = source
+            grid[newX][newY] = source;
+
+            return source;
+        }
     }
 
     /**
