@@ -302,4 +302,16 @@ public class InGameServiceImpl implements InGameService {
         // 세션의 moveBoardObject 호출
         return session.moveBoardObject(objectId, newX, newY);
     }
+
+    @Override
+    public com.denfense.server.dto.response.GameSessionStateDto getGameState(Long userId) {
+        GameSession session = sessionManager.getSession(userId);
+        // session.createBoardStateSnapshot() 은 synchronized 스냅샷 복사본을 반환하므로 동시성 안전 보장
+        return new com.denfense.server.dto.response.GameSessionStateDto(
+                session.getUserId(),
+                session.getInGameGold(),
+                session.isGameOver(),
+                session.createBoardStateSnapshot()
+        );
+    }
 }

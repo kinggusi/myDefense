@@ -182,3 +182,18 @@ public class UseInjectorResponseDto
     public int gridX;
     public int gridY;
 }
+
+[Serializable]
+public class GameStateRequestDto
+{
+    public long userId;
+}
+
+[Serializable]
+public class GameSessionStateDto
+{
+    public long userId;
+    public int remainingGold;
+    public bool isGameOver;
+    public System.Collections.Generic.List<BoardObjectDto> boardObjects;
+}

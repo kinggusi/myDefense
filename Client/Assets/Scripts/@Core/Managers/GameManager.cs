@@ -53,8 +53,8 @@ public class GameManager : MonoBehaviour
         NetworkManager.Instance.Post(ApiStart, myForm, (json) =>
         {
             Debug.Log($"[내 게임 시작 성공] 서버 응답: {json}");
-            // 서버에서 응답 올 때 아직 골드 정보는 없지만 기본 500으로 맞춰줍니다.
-            UpdateGoldUI(500);
+            // 최초 게임 진입 시 서버 보드 상태 동기화 기동
+            RequestSyncBoardState();
             UpdateMonsterUI();
         },
         (err) => {
@@ -77,8 +77,8 @@ public class GameManager : MonoBehaviour
     // 2. 소환 버튼 누르면 실행
     public void OnClickSummon()
     {
-        // 🚨 디바운스(Debounce) & 광클 방지 처리
-        if (isSummoning) return; 
+        // 🚨 디바운스(Debounce) & 동기화 중 & 게임 오버 상태 가드
+        if (isSummoning || isSyncingBoard || isGameOver) return;
         isSummoning = true;
         
         if (summonBtn != null) 
@@ -447,6 +447,13 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    // 💡 동기화 상태 관리 가드 변수들
+    private bool isSyncingBoard = false;
+    private bool isGameOver = false;
+
+    public bool IsSyncingBoard => isSyncingBoard;
+    public bool IsGameOver => isGameOver;
+
     // 💡 신규 Merge 결과 Alien 전용 안전 생성 메서드
     public bool TrySpawnMergedAlien(BoardObjectDto data, bool isMine)
     {
@@ -481,6 +488,398 @@ public class GameManager : MonoBehaviour
         {
             Debug.LogError($"🚨 [TrySpawnMergedAlien] 결과 Alien 생성 중 예외 발생: {ex.Message}");
             return false;
+        }
+    }
+
+    // 💡 신규 격리 생성 API (Staging 용)
+    public bool TryCreateBoardObject(BoardObjectDto data, bool activateImmediately, out GameObject created)
+    {
+        created = null;
+        if (data == null) return false;
+
+        try
+        {
+            GameObject prefab = (data.objectType == BoardObjectDto.TypeAlien) ? unitPrefab : injectorPrefab;
+            if (prefab == null)
+            {
+                Debug.LogError($"🚨 [TryCreateBoardObject] 프리팹을 찾을 수 없습니다. (Type: {data.objectType})");
+                return false;
+            }
+
+            // myGridParent 아래에 임시 부모 격리 생성 진행
+            created = Instantiate(prefab, myGridParent);
+            if (created == null) return false;
+
+            // Awake는 돌지만 즉시 비활성화 처리하여 씬 전체 충돌/조회 배제
+            created.SetActive(false);
+
+            // 컴포넌트 정보 탑재
+            if (data.objectType == BoardObjectDto.TypeAlien)
+            {
+                UnitData ud = created.GetComponent<UnitData>();
+                if (ud != null)
+                {
+                    InGameAlien alien = new InGameAlien
+                    {
+                        id = data.id,
+                        alienSpec = data.alienSpec,
+                        gridX = data.gridX,
+                        gridY = data.gridY,
+                        pendingMutationType = data.pendingMutationType,
+                        activeMutationType = data.activeMutationType,
+                        mutationRerollCount = data.mutationRerollCount
+                    };
+                    ud.SetInfo(alien);
+                }
+
+                UnitDrag udDrag = created.GetComponent<UnitDrag>();
+                if (udDrag != null) udDrag.enabled = false;
+            }
+            else
+            {
+                InjectorData idData = created.GetComponent<InjectorData>();
+                if (idData != null)
+                {
+                    idData.serverId = data.id;
+                    idData.gridX = data.gridX;
+                    idData.gridY = data.gridY;
+                    idData.mutationType = data.mutationType;
+                    idData.isMine = true;
+                }
+
+                InjectorDrag idDrag = created.GetComponent<InjectorDrag>();
+                if (idDrag != null) idDrag.enabled = false;
+            }
+
+            // 콜라이더 비활성화
+            Collider col = created.GetComponent<Collider>();
+            if (col != null) col.enabled = false;
+
+            // 보조 격리 수단: 보드판 지하로 멀리 강제 이동
+            created.transform.position = Vector3.down * 100f;
+
+            if (activateImmediately)
+            {
+                created.SetActive(true);
+                if (col != null) col.enabled = true;
+                if (data.objectType == BoardObjectDto.TypeAlien)
+                {
+                    UnitDrag udDrag = created.GetComponent<UnitDrag>();
+                    if (udDrag != null) udDrag.enabled = true;
+                }
+                else
+                {
+                    InjectorDrag idDrag = created.GetComponent<InjectorDrag>();
+                    if (idDrag != null) idDrag.enabled = true;
+                }
+            }
+
+            return true;
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"🚨 [TryCreateBoardObject] 객체 생성 중 예외 발생: {ex.Message}");
+            if (created != null) Destroy(created);
+            created = null;
+            return false;
+        }
+    }
+
+    // 💡 보드 전체 동기화 및 재접속 복구 공개 진입점
+    public void RequestSyncBoardState()
+    {
+        if (isSyncingBoard) return;
+        isSyncingBoard = true;
+
+        // 1. 기존 왹져/인젝터 객체 수집 및 원래 상태 백업
+        UnitData[] existingAliens = myGridParent.GetComponentsInChildren<UnitData>(true);
+        InjectorData[] existingInjectors = myGridParent.GetComponentsInChildren<InjectorData>(true);
+
+        System.Collections.Generic.List<ExistingObjectCache> cachedObjects = new System.Collections.Generic.List<ExistingObjectCache>();
+
+        foreach (var alien in existingAliens)
+        {
+            if (alien.gameObject.name.Contains("Me"))
+            {
+                cachedObjects.Add(new ExistingObjectCache(alien.gameObject));
+            }
+        }
+        foreach (var injector in existingInjectors)
+        {
+            if (injector.isMine)
+            {
+                cachedObjects.Add(new ExistingObjectCache(injector.gameObject));
+            }
+        }
+
+        // 수집된 기존 객체들 물리/드래그 잠금
+        foreach (var cache in cachedObjects)
+        {
+            cache.ApplyLock();
+        }
+
+        if (summonBtn != null) summonBtn.interactable = false;
+
+        // 2. 서버 POST /api/game/state 호출
+        GameStateRequestDto req = new GameStateRequestDto { userId = UserId };
+        NetworkManager.Instance.PostJsonAsync<GameStateRequestDto, GameSessionStateDto>("/game/state", req, (result) =>
+        {
+            System.Action rollbackEverything = () =>
+            {
+                // 실패 시 원래 백업값으로 씬 복구
+                foreach (var cache in cachedObjects)
+                {
+                    cache.Restore();
+                }
+                if (summonBtn != null && !isGameOver) summonBtn.interactable = true;
+                isSyncingBoard = false;
+            };
+
+            if (!result.IsSuccess)
+            {
+                Debug.LogError("🚨 [보드 동기화 실패] 서버 통신 중 오류: " + result.NetworkError);
+                rollbackEverything();
+                return;
+            }
+
+            GameSessionStateDto res = result.Data;
+            if (res == null || res.boardObjects == null)
+            {
+                Debug.LogError("🚨 [보드 동기화 실패] 서버 응답 바디가 null 이거나 boardObjects 가 누락되었습니다.");
+                rollbackEverything();
+                return;
+            }
+
+            // 3. 데이터 검증 (중복 ID, 범위 좌표, 동일 타일 검사)
+            if (res.boardObjects.Count > 24)
+            {
+                Debug.LogError($"🚨 [보드 동기화 실패] 서버 보드 유닛 수 한도 초과: {res.boardObjects.Count}");
+                rollbackEverything();
+                return;
+            }
+
+            System.Collections.Generic.HashSet<long> uniqueIds = new System.Collections.Generic.HashSet<long>();
+            System.Collections.Generic.HashSet<string> uniqueCoords = new System.Collections.Generic.HashSet<string>();
+
+            foreach (var obj in res.boardObjects)
+            {
+                if (obj.id <= 0)
+                {
+                    Debug.LogError("🚨 [보드 동기화 실패] 유효하지 않은 ID 감지: " + obj.id);
+                    rollbackEverything();
+                    return;
+                }
+                if (uniqueIds.Contains(obj.id))
+                {
+                    Debug.LogError("🚨 [보드 동기화 실패] 중복된 ID 감지: " + obj.id);
+                    rollbackEverything();
+                    return;
+                }
+                uniqueIds.Add(obj.id);
+
+                if (obj.gridX < 0 || obj.gridX >= 4 || obj.gridY < 0 || obj.gridY >= 6)
+                {
+                    Debug.LogError($"🚨 [보드 동기화 실패] 좌표 허용한도 초과: ({obj.gridX}, {obj.gridY})");
+                    rollbackEverything();
+                    return;
+                }
+
+                string coordKey = $"{obj.gridX}_{obj.gridY}";
+                if (uniqueCoords.Contains(coordKey))
+                {
+                    Debug.LogError($"🚨 [보드 동기화 실패] 동일 좌표에 중복 유닛 배치 감지: ({obj.gridX}, {obj.gridY})");
+                    rollbackEverything();
+                    return;
+                }
+                uniqueCoords.Add(coordKey);
+
+                if (obj.objectType != BoardObjectDto.TypeAlien && obj.objectType != BoardObjectDto.TypeInjector)
+                {
+                    Debug.LogError("🚨 [보드 동기화 실패] 알 수 없는 objectType 수신: " + obj.objectType);
+                    rollbackEverything();
+                    return;
+                }
+
+                if (obj.objectType == BoardObjectDto.TypeAlien && obj.alienSpec == null)
+                {
+                    Debug.LogError("🚨 [보드 동기화 실패] Alien 유닛 정보 누락!");
+                    rollbackEverything();
+                    return;
+                }
+            }
+
+            // 4. Staging 부모 생성 및 격리 생성
+            GameObject stagingRoot = new GameObject("__BoardSyncStaging");
+            stagingRoot.SetActive(false); // stagingRoot 자체를 비활성화하여 activeInHierarchy=false 유지
+
+            System.Collections.Generic.List<GameObject> tempCreatedList = new System.Collections.Generic.List<GameObject>();
+            bool spawnChainSuccess = true;
+
+            foreach (var obj in res.boardObjects)
+            {
+                GameObject tempObj;
+                // activateImmediately = false 로 격리 생성
+                if (TryCreateBoardObject(obj, false, out tempObj))
+                {
+                    if (tempObj != null)
+                    {
+                        tempObj.transform.SetParent(stagingRoot.transform, false);
+                        tempCreatedList.Add(tempObj);
+                    }
+                }
+                else
+                {
+                    spawnChainSuccess = false;
+                    break;
+                }
+            }
+
+            if (!spawnChainSuccess)
+            {
+                foreach (var temp in tempCreatedList)
+                {
+                    if (temp != null) Destroy(temp);
+                }
+                Destroy(stagingRoot);
+
+                Debug.LogError("🚨 [로컬 동기화 실패] 신규 유닛 로컬 임시 생성 도중 예외가 발생했습니다.");
+                rollbackEverything();
+                return;
+            }
+
+            // 5. 교체 성공 단행 (기존 객체 비활성화)
+            foreach (var cache in cachedObjects)
+            {
+                if (cache.obj != null)
+                {
+                    cache.obj.SetActive(false); // 중복 Collider 입력 즉시 차단
+                }
+            }
+
+            // 신규 유닛들을 정식 그리드 부모 아래로 정렬 이동 및 활성화
+            foreach (var temp in tempCreatedList)
+            {
+                if (temp == null) continue;
+
+                temp.transform.SetParent(myGridParent, false);
+
+                int gx = 0; int gy = 0;
+                UnitData ud = temp.GetComponent<UnitData>();
+                InjectorData id = temp.GetComponent<InjectorData>();
+
+                if (ud != null) { gx = ud.gridX; gy = ud.gridY; temp.name = $"Unit_Me_{gx}_{gy}"; }
+                else if (id != null) { gx = id.gridX; gy = id.gridY; temp.name = $"Injector_Me_{gx}_{gy}"; }
+
+                // 정식 로컬 씬 좌표 지정
+                temp.transform.localPosition = new Vector3(gx * tileSize, 0.8f, gy * tileSize);
+
+                // 컴포넌트/Collider 복구 및 활성화
+                temp.SetActive(true);
+                Collider col = temp.GetComponent<Collider>();
+                if (col != null) col.enabled = true;
+
+                if (ud != null)
+                {
+                    UnitDrag drag = temp.GetComponent<UnitDrag>();
+                    if (drag != null) drag.enabled = true;
+                }
+                else if (id != null)
+                {
+                    InjectorDrag drag = temp.GetComponent<InjectorDrag>();
+                    if (drag != null) drag.enabled = true;
+                }
+            }
+
+            // 기존 객체 Destroy 소멸 (GC가 아님 - 프레임 종료 시 제거)
+            foreach (var cache in cachedObjects)
+            {
+                if (cache.obj != null)
+                {
+                    Destroy(cache.obj);
+                }
+            }
+
+            Destroy(stagingRoot);
+
+            // 6. Gold 와 게임종료(isGameOver) 상태 동기화 반영
+            UpdateGoldUI(res.remainingGold);
+            isGameOver = res.isGameOver;
+
+            if (isGameOver)
+            {
+                TriggerGameOver();
+            }
+            else
+            {
+                ResetGameOverState();
+            }
+
+            isSyncingBoard = false;
+            Debug.Log("🎉 [보드 동기화 성공] 보드가 서버 정합 정보로 재구성되었습니다.");
+        });
+    }
+
+    private void ResetGameOverState()
+    {
+        if (waveText != null)
+        {
+            waveText.color = Color.white; // 원래 하얀색 폰트 색 복구
+            UpdateMonsterUI(); // 몬스터 UI 텍스트 정상 복구
+        }
+        if (summonBtn != null)
+        {
+            summonBtn.interactable = true; // 소환 버튼 interactable 복구
+        }
+    }
+
+    // 기존 객체의 원래 enabled/active 상태를 보존하기 위한 백업 구조체
+    private struct ExistingObjectCache
+    {
+        public GameObject obj;
+        public bool activeSelf;
+        public bool dragEnabled;
+        public bool colliderEnabled;
+
+        public ExistingObjectCache(GameObject target)
+        {
+            obj = target;
+            activeSelf = target.activeSelf;
+
+            dragEnabled = false;
+            UnitDrag ud = target.GetComponent<UnitDrag>();
+            InjectorDrag id = target.GetComponent<InjectorDrag>();
+            if (ud != null) dragEnabled = ud.enabled;
+            else if (id != null) dragEnabled = id.enabled;
+
+            colliderEnabled = false;
+            Collider col = target.GetComponent<Collider>();
+            if (col != null) colliderEnabled = col.enabled;
+        }
+
+        public void ApplyLock()
+        {
+            if (obj == null) return;
+            UnitDrag ud = obj.GetComponent<UnitDrag>();
+            InjectorDrag id = obj.GetComponent<InjectorDrag>();
+            if (ud != null) ud.enabled = false;
+            if (id != null) id.enabled = false;
+
+            Collider col = obj.GetComponent<Collider>();
+            if (col != null) col.enabled = false;
+        }
+
+        public void Restore()
+        {
+            if (obj == null) return;
+            obj.SetActive(activeSelf);
+
+            UnitDrag ud = obj.GetComponent<UnitDrag>();
+            InjectorDrag id = obj.GetComponent<InjectorDrag>();
+            if (ud != null) ud.enabled = dragEnabled;
+            if (id != null) id.enabled = dragEnabled;
+
+            Collider col = obj.GetComponent<Collider>();
+            if (col != null) col.enabled = colliderEnabled;
         }
     }
 }

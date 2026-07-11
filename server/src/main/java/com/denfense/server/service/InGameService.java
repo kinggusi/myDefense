@@ -21,8 +21,5 @@ public interface InGameService {
     int killMonster(Long userId, Long monsterSpecId);
     WaveSpawnDto spawnMissionBoss(Long userId);
 
-
-
-
-
+    com.denfense.server.dto.response.GameSessionStateDto getGameState(Long userId);
 }

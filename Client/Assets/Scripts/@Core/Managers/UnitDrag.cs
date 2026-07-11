@@ -113,6 +113,11 @@ public class UnitDrag : MonoBehaviour
 
     void RequestMove(Transform targetTile, GameObject targetObj, long sourceId, int oldX, int oldY, int newX, int newY)
     {
+        if (gameManager != null && (gameManager.IsSyncingBoard || gameManager.IsGameOver))
+        {
+            transform.position = startPos;
+            return;
+        }
         // A. 요청 전 상태 캐싱
         Vector3 sourceStartPos = startPos;
         Vector3 targetStartPos = Vector3.zero;
@@ -236,6 +241,11 @@ public class UnitDrag : MonoBehaviour
 
     void RequestMerge(GameObject targetUnit)
     {
+        if (gameManager != null && (gameManager.IsSyncingBoard || gameManager.IsGameOver))
+        {
+            transform.position = startPos;
+            return;
+        }
         // A. 머지 요청 전 상태 캐싱 및 입력 잠금
         Vector3 sourceStartPos = startPos;
         Vector3 targetStartPos = targetUnit.transform.position;

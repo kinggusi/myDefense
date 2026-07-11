@@ -97,6 +97,12 @@ public class InjectorDrag : MonoBehaviour
 
     void RequestUseInjector(GameObject targetAlien, long sourceId, long targetId)
     {
+        GameManager gm = FindObjectOfType<GameManager>();
+        if (gm != null && (gm.IsSyncingBoard || gm.IsGameOver))
+        {
+            transform.position = startPos;
+            return;
+        }
         // A. 요청 전 상태 캐싱 및 입력 잠금
         Vector3 sourceStartPos = startPos;
         Vector3 targetStartPos = targetAlien.transform.position;
@@ -127,7 +133,7 @@ public class InjectorDrag : MonoBehaviour
         if (targetDrag != null) targetDrag.enabled = false;
 
         // B. API 요청 전송 (UseInjectorResponseDto 가 바디로 직접 반환됨)
-        GameManager gm = FindObjectOfType<GameManager>();
+        gm = FindObjectOfType<GameManager>();
         long userId = gm != null ? gm.UserId : 1;
 
         UseInjectorRequestDto req = new UseInjectorRequestDto
@@ -244,6 +250,12 @@ public class InjectorDrag : MonoBehaviour
 
     void RequestMove(Transform targetTile, GameObject targetObj, long sourceId, int oldX, int oldY, int newX, int newY)
     {
+        GameManager gm = FindObjectOfType<GameManager>();
+        if (gm != null && (gm.IsSyncingBoard || gm.IsGameOver))
+        {
+            transform.position = startPos;
+            return;
+        }
         // A. 요청 전 상태 캐싱
         Vector3 sourceStartPos = startPos;
         Vector3 targetStartPos = Vector3.zero;
@@ -285,7 +297,7 @@ public class InjectorDrag : MonoBehaviour
         }
 
         // C. API 요청 전송 (PostJsonAsync 사용)
-        GameManager gm = FindObjectOfType<GameManager>();
+        gm = FindObjectOfType<GameManager>();
         long userId = gm != null ? gm.UserId : 1;
 
         MoveObjectRequestDto req = new MoveObjectRequestDto
