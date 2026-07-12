@@ -41,3 +41,60 @@ dependencies {
 tasks.named('test') {
 	useJUnitPlatform()
 }
+
+sourceSets {
+    balanceTool {
+        java {
+            srcDirs = ['src/balanceTool/java']
+            compileClasspath += sourceSets.main.output
+            runtimeClasspath += sourceSets.main.output
+        }
+    }
+    balanceToolTest {
+        java {
+            srcDirs = ['src/balanceToolTest/java']
+            compileClasspath += sourceSets.main.output + sourceSets.balanceTool.output
+            runtimeClasspath += sourceSets.main.output + sourceSets.balanceTool.output
+        }
+        resources {
+            srcDirs = ['src/balanceToolTest/resources']
+        }
+    }
+}
+
+configurations {
+    balanceToolImplementation.extendsFrom implementation
+    balanceToolTestImplementation.extendsFrom balanceToolImplementation, testImplementation
+}
+
+dependencies {
+    balanceToolImplementation 'org.apache.poi:poi-ooxml:5.2.3'
+    balanceToolTestImplementation 'org.springframework.boot:spring-boot-starter-test'
+    balanceToolTestRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+task convertBalance(type: JavaExec) {
+    group = 'balance'
+    description = 'Converts balance Excel data to JSON'
+    classpath = sourceSets.balanceTool.runtimeClasspath
+    mainClass = 'com.denfense.server.balance.tool.BalanceExcelConverter'
+
+    def excelPath = project.hasProperty('excelPath') ? project.property('excelPath') : "${project.projectDir}/../balance/source/balance-data.xlsx"
+    def rewardPath = project.hasProperty('rewardPath') ? project.property('rewardPath') : "${project.projectDir}/src/main/resources/balance/generated/game-reward.json"
+    def upgradePath = project.hasProperty('upgradePath') ? project.property('upgradePath') : "${project.projectDir}/src/main/resources/balance/generated/alien-upgrade.json"
+
+    args = [excelPath, rewardPath, upgradePath]
+}
+
+task balanceToolTest(type: Test) {
+    group = 'verification'
+    description = 'Runs balance tool tests.'
+    testClassesDirs = sourceSets.balanceToolTest.output.classesDirs
+    classpath = sourceSets.balanceToolTest.runtimeClasspath
+    useJUnitPlatform()
+}
+
+task createExcelTemplate(type: JavaExec) {
+    classpath = sourceSets.balanceToolTest.runtimeClasspath
+    mainClass = 'com.denfense.server.CreateExcelTemplate'
+}

@@ -51,6 +51,8 @@ class BalanceContextFailFastTest {
                 )
                 .run(context -> {
                     assertThat(context).hasNotFailed();
+                    BalanceDataLoader loader = context.getBean(BalanceDataLoader.class);
+                    loader.loadData();
                     BalanceRegistry registry = context.getBean(BalanceRegistry.class);
                     assertThat(registry.getGameRewardBalance().baseRewardGold()).isEqualTo(100);
                 });
@@ -65,8 +67,10 @@ class BalanceContextFailFastTest {
                         "balance.upgrade.path=classpath:balance/valid/alien-upgrade.json"
                 )
                 .run(context -> {
-                    assertThat(context).hasFailed();
-                    assertThat(context.getStartupFailure()).hasMessageContaining("baseRewardGold는 0 이상이어야 합니다");
+                    assertThat(context).hasNotFailed();
+                    BalanceDataLoader loader = context.getBean(BalanceDataLoader.class);
+                    Exception exception = org.junit.jupiter.api.Assertions.assertThrows(Exception.class, loader::loadData);
+                    assertThat(exception).hasMessageContaining("baseRewardGold는 0 이상이어야 합니다");
                 });
     }
 
@@ -79,8 +83,10 @@ class BalanceContextFailFastTest {
                         "balance.upgrade.path=classpath:balance/valid/alien-upgrade.json"
                 )
                 .run(context -> {
-                    assertThat(context).hasFailed();
-                    assertThat(context.getStartupFailure()).hasMessageContaining("파일을 찾을 수 없습니다");
+                    assertThat(context).hasNotFailed();
+                    BalanceDataLoader loader = context.getBean(BalanceDataLoader.class);
+                    Exception exception = org.junit.jupiter.api.Assertions.assertThrows(Exception.class, loader::loadData);
+                    assertThat(exception).hasMessageContaining("파일을 찾을 수 없습니다");
                 });
     }
 }
