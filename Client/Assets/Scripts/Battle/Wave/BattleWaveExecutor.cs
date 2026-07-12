@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 
 namespace MyDefense.Battle
 {
@@ -18,6 +19,10 @@ namespace MyDefense.Battle
         [SerializeField] private float _bossTimeLimit = 30f; // 테스트용 기본값 30초
         [SerializeField] private float _bossSpeed = 2f;
 
+        [Header("Monster Count UI 설정")]
+        [SerializeField] private TMP_Text _monsterCountText;
+        [SerializeField] private int _totalMonsterGoal = 100;
+
         [Header("런타임 정보")]
         [SerializeField] private int _currentRound = 0;
         [SerializeField] private bool _isWaveRunning = false;
@@ -26,6 +31,10 @@ namespace MyDefense.Battle
 
         private GameObject _currentBossInstance = null;
         private Coroutine _bossTimerCoroutine = null;
+        private int _spawnedMonsterCount;
+
+        public int SpawnedMonsterCount => _spawnedMonsterCount;
+        public int TotalMonsterGoal => _totalMonsterGoal;
 
         // --- 외부 도메인 구독용 이벤트 목록 ---
         public event System.Action OnBossTimeout;               // 보스 타임아웃 만료 알림
@@ -48,8 +57,23 @@ namespace MyDefense.Battle
             }
         }
 
+        private void UpdateMonsterCountUI()
+        {
+            if (_monsterCountText != null)
+            {
+                _monsterCountText.text = $"{_spawnedMonsterCount} / {_totalMonsterGoal}";
+            }
+        }
+
+        private void RegisterMonsterSpawned()
+        {
+            _spawnedMonsterCount++;
+            UpdateMonsterCountUI();
+        }
+
         private void Start()
         {
+            UpdateMonsterCountUI();
             if (_autoStartOnPlay)
             {
                 StartNextWave();
@@ -123,6 +147,10 @@ namespace MyDefense.Battle
             // 보스 몬스터 생성
             Vector3 finalSpawnPos = _spawnPoint != null ? _spawnPoint.position : Vector3.zero;
             _currentBossInstance = Instantiate(_monsterPrefab, finalSpawnPos, Quaternion.identity);
+            if (_currentBossInstance != null)
+            {
+                RegisterMonsterSpawned();
+            }
 
             // 구형 이동 스크립트 강제 비활성화
             MonsterMovement oldMove = _currentBossInstance.GetComponent<MonsterMovement>();
@@ -188,6 +216,10 @@ namespace MyDefense.Battle
 
             Vector3 finalSpawnPos = _spawnPoint != null ? _spawnPoint.position : Vector3.zero;
             GameObject go = Instantiate(_monsterPrefab, finalSpawnPos, Quaternion.identity);
+            if (go != null)
+            {
+                RegisterMonsterSpawned();
+            }
 
             MonsterMovement oldMove = go.GetComponent<MonsterMovement>();
             if (oldMove != null) oldMove.enabled = false;
