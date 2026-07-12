@@ -23,6 +23,7 @@ public class LobbyController {
 
     private final UserRepository userRepository;
     private final AlienSpecRepository alienSpecRepository;
+    private final com.denfense.server.service.HeartPolicy heartPolicy;
 
     @GetMapping("/info/{username}")
     public ResponseEntity<?> getLobbyInfo(@PathVariable String username) {
@@ -30,8 +31,8 @@ public class LobbyController {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("유저 없음"));
 
-        // 2. 하트 실시간 계산 (DB 값 변경됨)
-        user.calculateOfflineHearts();
+        // 2. 하트 실시간 계산 (DB 값 변경 안함)
+        com.denfense.server.service.HeartSnapshot heartSnapshot = heartPolicy.calculate(user.getHeart(), user.getLastHeartUpdateTime());
 
         // 3. 전체 왹져 사전(Spec) 가져오기
         List<AlienSpec> allSpecs = alienSpecRepository.findAll();
@@ -44,7 +45,7 @@ public class LobbyController {
         userDto.setUsername(user.getUsername());
         userDto.setGold(user.getGold());
         userDto.setDiamond(user.getDiamond());
-        userDto.setHeart(user.getHeart());
+        userDto.setHeart(heartSnapshot.calculatedHeart());
         response.setUser(userDto);
 
         // 유닛 목록 매핑 (Spec + UserAlien 조합)
