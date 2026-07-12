@@ -14,6 +14,13 @@ public enum ErrorCode {
     INVALID_MERGE(HttpStatus.BAD_REQUEST, "잘못된 합성 시도입니다."),
     INVALID_INJECTOR(HttpStatus.BAD_REQUEST, "잘못된 인젝터 주입 시도입니다."),
     INVALID_REQUEST(HttpStatus.BAD_REQUEST, "잘못된 요청 형식입니다."),
+    USER_NOT_FOUND(HttpStatus.NOT_FOUND, "사용자 정보를 찾을 수 없습니다."),
+    USER_ALIEN_NOT_FOUND(HttpStatus.NOT_FOUND, "보유하지 않은 왹져입니다."),
+    MAX_ALIEN_LEVEL_REACHED(HttpStatus.CONFLICT, "왹져가 최대 레벨에 도달했습니다."),
+    INSUFFICIENT_ALIEN_PIECES(HttpStatus.CONFLICT, "왹져 전용 조각 및 대체 코인이 부족합니다."),
+    INSUFFICIENT_ACCOUNT_GOLD(HttpStatus.CONFLICT, "계정 골드가 부족합니다."),
+    INSUFFICIENT_GROWTH_CELL(HttpStatus.CONFLICT, "성장 세포가 부족합니다."),
+    INVALID_UPGRADE_REQUEST(HttpStatus.BAD_REQUEST, "잘못된 강화 요청입니다."),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "예상치 못한 서버 에러가 발생했습니다.");
 
     private final HttpStatus status;

@@ -9,7 +9,9 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-@Table(name = "user_aliens") // 테이블 이름: user_aliens
+@Table(name = "user_aliens", uniqueConstraints = {
+    @UniqueConstraint(name = "uk_user_alien_user_spec", columnNames = {"user_id", "alien_id"})
+})
 public class UserAlien {
 
     @Id
@@ -40,11 +42,11 @@ public class UserAlien {
     }
 
     // 강화 시 조각 소모 및 레벨업
-    public void aleinUpgrade(int cost) {
-        if (this.pieces < cost) {
-            throw new IllegalStateException("조각이 부족합니다!");
+    public void upgradeAlien(int usedPieces) {
+        if (this.pieces < usedPieces) {
+            throw new com.denfense.server.exception.BusinessException(com.denfense.server.exception.ErrorCode.INSUFFICIENT_ALIEN_PIECES, "조각이 부족합니다!");
         }
-        this.pieces -= cost;
+        this.pieces -= usedPieces;
         this.level++;
     }
 }

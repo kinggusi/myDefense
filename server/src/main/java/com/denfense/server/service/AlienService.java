@@ -2,7 +2,9 @@ package com.denfense.server.service;
 
 import com.denfense.server.domain.UserAlien;
 
+import com.denfense.server.dto.response.AlienUpgradeResponseDto;
+
 public interface AlienService {
 
-    UserAlien aleinUpgrade(String username, int alienId);
+    AlienUpgradeResponseDto upgradeAlien(String username, int alienId);
 }

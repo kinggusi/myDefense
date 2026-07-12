@@ -25,6 +25,8 @@ public class User {
     private int gold;
     private int diamond;
     private int heart;
+    private int universalPiece;
+    private int growthCell;
     private LocalDateTime lastHeartUpdateTime;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
@@ -34,6 +36,8 @@ public class User {
         this.username = username;
         this.password = password;
         this.gold = 0; // 초기 골드는 0으로 시작 (나중에 setGold로 수정 가능)
+        this.universalPiece = 0;
+        this.growthCell = 0;
     }
 
 
@@ -43,6 +47,36 @@ public class User {
             throw new IllegalStateException("다이아가 부족합니다.");
         }
         this.diamond = diamond;
+    }
+
+    public void spendGold(int amount) {
+        if (amount < 0) {
+            throw new com.denfense.server.exception.BusinessException(com.denfense.server.exception.ErrorCode.INVALID_REQUEST, "차감 금액은 0 이상이어야 합니다.");
+        }
+        if (this.gold < amount) {
+            throw new com.denfense.server.exception.BusinessException(com.denfense.server.exception.ErrorCode.INSUFFICIENT_ACCOUNT_GOLD, "골드가 부족합니다.");
+        }
+        this.gold -= amount;
+    }
+
+    public void spendUniversalPiece(int amount) {
+        if (amount < 0) {
+            throw new com.denfense.server.exception.BusinessException(com.denfense.server.exception.ErrorCode.INVALID_REQUEST, "차감 개수는 0 이상이어야 합니다.");
+        }
+        if (this.universalPiece < amount) {
+            throw new com.denfense.server.exception.BusinessException(com.denfense.server.exception.ErrorCode.INSUFFICIENT_ALIEN_PIECES, "대체 코인이 부족합니다.");
+        }
+        this.universalPiece -= amount;
+    }
+
+    public void spendGrowthCell(int amount) {
+        if (amount < 0) {
+            throw new com.denfense.server.exception.BusinessException(com.denfense.server.exception.ErrorCode.INVALID_REQUEST, "차감 개수는 0 이상이어야 합니다.");
+        }
+        if (this.growthCell < amount) {
+            throw new com.denfense.server.exception.BusinessException(com.denfense.server.exception.ErrorCode.INSUFFICIENT_GROWTH_CELL, "성장 세포가 부족합니다.");
+        }
+        this.growthCell -= amount;
     }
 
     // 하트 계산 로직 (도메인 메서드)
