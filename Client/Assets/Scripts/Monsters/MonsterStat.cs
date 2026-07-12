@@ -31,6 +31,11 @@ public class MonsterStat : MonoBehaviour, IDamageable
     {
         isDead = true;
 
+        if (MyDefense.Battle.BattleWaveExecutor.Instance != null)
+        {
+            MyDefense.Battle.BattleWaveExecutor.Instance.RegisterMonsterKilled();
+        }
+
         FindObjectOfType<GameManager>().OnKillMonster(monsterSpecId);
 
         StartCoroutine(FadeOutAndDestroy());

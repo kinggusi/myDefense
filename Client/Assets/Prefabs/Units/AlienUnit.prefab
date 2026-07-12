@@ -14,6 +14,8 @@ GameObject:
   - component: {fileID: 3467095788118561703}
   - component: {fileID: 4411503748572733528}
   - component: {fileID: 6451764430408471664}
+  - component: {fileID: -2856501998637323475}
+  - component: {fileID: 1273613268042756130}
   m_Layer: 0
   m_Name: AlienUnit
   m_TagString: Untagged
@@ -129,8 +131,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UnitData
   serverId: 0
+  specId: 0
   grade: 
   unitName: 
+  pendingMutationType: 
+  activeMutationType: 
+  mutationRerollCount: 0
+  gridX: 0
+  gridY: 0
 --- !u!114 &6451764430408471664
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -146,3 +154,28 @@ MonoBehaviour:
   range: 15
   fireRate: 1
   bulletPrefab: {fileID: 5612086406479332010, guid: bb1a44126e043b74db6bb1901f50b709, type: 3}
+  targetSearchInterval: 0.2
+--- !u!114 &-2856501998637323475
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7653261081890833016}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 15fdc9f5234133341b38e0833a835677, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MyDefense.Battle.AlienMergeHintView
+--- !u!114 &1273613268042756130
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7653261081890833016}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7316e254955f2b94f9c29d585f940fe2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MyDefense.Battle.AlienGradeView

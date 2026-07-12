@@ -9,37 +9,53 @@ namespace MyDefense.Battle
     {
         public static BattleWaveExecutor Instance { get; private set; }
 
-        [Header("웨이브 설정")]
+        private enum BossStatusState
+        {
+            None,
+            Active,
+            Defeated,
+            TimedOut
+        }
+
+        [Header("Wave Configuration")]
         [SerializeField] private GameObject _monsterPrefab;
         [SerializeField] private Transform _spawnPoint;
         [SerializeField] private float _spawnInterval = 1.0f;
         [SerializeField] private int _monstersPerWave = 10;
-        
-        [Header("보스전 설정")]
-        [SerializeField] private float _bossTimeLimit = 30f; // 테스트용 기본값 30초
+
+        [Header("Boss Configuration")]
+        [SerializeField] private float _bossTimeLimit = 30f;
         [SerializeField] private float _bossSpeed = 2f;
 
-        [Header("Monster Count UI 설정")]
+        [Header("Monster Count UI Configuration")]
         [SerializeField] private TMP_Text _monsterCountText;
         [SerializeField] private int _totalMonsterGoal = 100;
 
-        [Header("런타임 정보")]
+        [Header("Runtime Info")]
         [SerializeField] private int _currentRound = 0;
         [SerializeField] private bool _isWaveRunning = false;
         [SerializeField] private bool _isBossActive = false;
-        [SerializeField] private bool _autoStartOnPlay = false; // 플레이 모드 진입 시 테스트용 자동 실행 여부
+        [SerializeField] private bool _autoStartOnPlay = false;
+
+        [Header("Continuous Wave Settings")]
+        [SerializeField] private bool _continuousWaves = true;
+        [SerializeField] private float _interWaveDelay = 3f;
 
         private GameObject _currentBossInstance = null;
         private Coroutine _bossTimerCoroutine = null;
+        private Coroutine _waveLoopCoroutine = null;
         private int _spawnedMonsterCount;
+        private bool _isFaulted = false;
+        private BossStatusState _bossState = BossStatusState.None;
+        private GameManager _gameManagerCached = null;
+        private bool _isGameOverLogged = false;
 
         public int SpawnedMonsterCount => _spawnedMonsterCount;
         public int TotalMonsterGoal => _totalMonsterGoal;
 
-        // --- 외부 도메인 구독용 이벤트 목록 ---
-        public event System.Action OnBossTimeout;               // 보스 타임아웃 만료 알림
-        public event System.Action<float> OnBossTimerTick;      // 남은 시간 갱신 알림 (UI 바인딩용)
-        public event System.Action OnBossDefeated;              // 보스 처치 성공 알림
+        public event System.Action OnBossTimeout;
+        public event System.Action<float> OnBossTimerTick;
+        public event System.Action OnBossDefeated;
 
         public int CurrentRound => _currentRound;
         public bool IsBossActive => _isBossActive;
@@ -54,6 +70,29 @@ namespace MyDefense.Battle
             else
             {
                 Destroy(gameObject);
+            }
+            _gameManagerCached = Object.FindFirstObjectByType<GameManager>();
+        }
+
+        private void OnDisable()
+        {
+            if (_waveLoopCoroutine != null)
+            {
+                StopCoroutine(_waveLoopCoroutine);
+                _waveLoopCoroutine = null;
+            }
+            if (_bossTimerCoroutine != null)
+            {
+                StopCoroutine(_bossTimerCoroutine);
+                _bossTimerCoroutine = null;
+            }
+        }
+
+        private void OnDestroy()
+        {
+            if (Instance == this)
+            {
+                Instance = null;
             }
         }
 
@@ -71,47 +110,116 @@ namespace MyDefense.Battle
             UpdateMonsterCountUI();
         }
 
+        public void RegisterMonsterKilled()
+        {
+            if (_spawnedMonsterCount > 0)
+            {
+                _spawnedMonsterCount--;
+                UpdateMonsterCountUI();
+            }
+        }
+
         private void Start()
         {
             UpdateMonsterCountUI();
+
             if (_autoStartOnPlay)
             {
-                StartNextWave();
+                if (_continuousWaves)
+                {
+                    if (_waveLoopCoroutine != null) StopCoroutine(_waveLoopCoroutine);
+                    _waveLoopCoroutine = StartCoroutine(ContinuousWaveLoopRoutine());
+                }
+                else
+                {
+                    StartNextWave();
+                }
             }
         }
 
         private void Update()
         {
-            // 보스 전투 중일 때 보스 사망(오브젝트 파괴) 실시간 체크
             if (_isBossActive && _currentBossInstance == null)
             {
-                HandleBossDefeated();
+                if (_bossState == BossStatusState.Active)
+                {
+                    HandleBossDefeated();
+                }
             }
         }
 
-        [ContextMenu("다음 웨이브 시작 (StartNextWave)")]
+        private bool CheckGameOverState()
+        {
+            if (_gameManagerCached != null && _gameManagerCached.IsGameOver)
+            {
+                if (!_isGameOverLogged)
+                {
+                    Debug.Log("[BattleWaveExecutor] GameManager.IsGameOver detected. Halting operations.");
+                    _isGameOverLogged = true;
+                }
+                _isWaveRunning = false;
+                return true;
+            }
+            return false;
+        }
+
+        private IEnumerator ContinuousWaveLoopRoutine()
+        {
+            while (true)
+            {
+                if (CheckGameOverState()) yield break;
+                if (_isFaulted) yield break;
+                if (_bossState == BossStatusState.TimedOut) yield break;
+
+                while (_isWaveRunning || _isBossActive)
+                {
+                    yield return new WaitForSeconds(0.5f);
+                }
+
+                if (CheckGameOverState()) yield break;
+                if (_isFaulted) yield break;
+                if (_bossState == BossStatusState.TimedOut) yield break;
+
+                StartNextWave();
+
+                yield return new WaitForSeconds(0.5f);
+
+                while (_isWaveRunning || _isBossActive)
+                {
+                    if (_bossState == BossStatusState.TimedOut) yield break;
+                    yield return new WaitForSeconds(0.5f);
+                }
+
+                if (CheckGameOverState()) yield break;
+                if (_isFaulted) yield break;
+                if (_bossState == BossStatusState.TimedOut) yield break;
+
+                yield return new WaitForSeconds(_interWaveDelay);
+            }
+        }
+
+        [ContextMenu("Start Next Wave")]
         public void StartNextWave()
         {
-            // 1. 보스가 활동 중이면 차단
+            if (CheckGameOverState()) return;
+
             if (_isBossActive)
             {
-                Debug.LogWarning("[BattleWaveExecutor] 🚨 보스가 아직 필드에 존재하여 다음 웨이브를 시작할 수 없습니다!");
+                Debug.LogWarning("[BattleWaveExecutor] Cannot start next wave: Boss is active!");
                 return;
             }
 
-            // 2. 이미 웨이브가 돌아가고 있으면 차단
             if (_isWaveRunning)
             {
-                Debug.LogWarning("[BattleWaveExecutor] 🚨 이미 웨이브가 진행 중입니다.");
+                Debug.LogWarning("[BattleWaveExecutor] Cannot start next wave: Wave is already running.");
                 return;
             }
 
             _currentRound++;
             _isWaveRunning = true;
 
-            Debug.Log($"[BattleWaveExecutor] ▶ 라운드 {_currentRound} 시작!");
+            Debug.Log($"[BattleWaveExecutor] Round {_currentRound} started!");
 
-            // 10의 배수 라운드 체크 -> 보스 스폰 분기
             if (_currentRound % 10 == 0)
             {
                 StartCoroutine(SpawnBossRoutine());
@@ -122,57 +230,81 @@ namespace MyDefense.Battle
             }
         }
 
-        // 일반 웨이브 코루틴
         private IEnumerator SpawnRegularWaveRoutine()
         {
             bool testToggle = false;
 
             for (int i = 0; i < _monstersPerWave; i++)
             {
+                if (CheckGameOverState())
+                {
+                    _isWaveRunning = false;
+                    yield break;
+                }
+
+                if (_monsterPrefab == null || _spawnPoint == null)
+                {
+                    Debug.LogError("[BattleWaveExecutor] Aborting wave: prefab or spawnPoint is null!");
+                    _isFaulted = true;
+                    _isWaveRunning = false;
+                    yield break;
+                }
+
                 SpawnMonster(testToggle ? LaneType.Player1Lane : LaneType.Player2Lane, 5f, 1f);
                 testToggle = !testToggle;
                 yield return new WaitForSeconds(_spawnInterval);
             }
 
             _isWaveRunning = false;
-            Debug.Log($"[BattleWaveExecutor] ■ 라운드 {_currentRound} 일반 웨이브 스폰 종료.");
+            Debug.Log($"[BattleWaveExecutor] Round {_currentRound} regular wave spawn completed.");
         }
 
-        // 보스 스폰 코루틴
         private IEnumerator SpawnBossRoutine()
         {
             _isBossActive = true;
-            Debug.Log($"[BattleWaveExecutor] 👹 10의 배수 라운드 진입! 보스 출현!");
+            _bossState = BossStatusState.Active;
+            Debug.Log($"[BattleWaveExecutor] Boss round {_currentRound} entered! Boss spawned!");
 
-            // 보스 몬스터 생성
-            Vector3 finalSpawnPos = _spawnPoint != null ? _spawnPoint.position : Vector3.zero;
-            _currentBossInstance = Instantiate(_monsterPrefab, finalSpawnPos, Quaternion.identity);
-            if (_currentBossInstance != null)
+            if (_monsterPrefab == null || _spawnPoint == null)
             {
-                RegisterMonsterSpawned();
+                Debug.LogError("[BattleWaveExecutor] Aborting boss spawn: prefab or spawnPoint is null!");
+                _isFaulted = true;
+                _isBossActive = false;
+                _isWaveRunning = false;
+                yield break;
             }
 
-            // 구형 이동 스크립트 강제 비활성화
+            Vector3 finalSpawnPos = _spawnPoint.position;
+            _currentBossInstance = Instantiate(_monsterPrefab, finalSpawnPos, Quaternion.identity);
+
+            if (_currentBossInstance == null)
+            {
+                Debug.LogError("[BattleWaveExecutor] Boss instantiation failed!");
+                _isFaulted = true;
+                _isBossActive = false;
+                _isWaveRunning = false;
+                yield break;
+            }
+
+            RegisterMonsterSpawned();
+
             MonsterMovement oldMove = _currentBossInstance.GetComponent<MonsterMovement>();
             if (oldMove != null) oldMove.enabled = false;
 
-            // 새 이동 스크립트 연결 및 보스 레인 강제
             BattleMonsterMovement newMove = _currentBossInstance.GetComponent<BattleMonsterMovement>();
             if (newMove == null) newMove = _currentBossInstance.AddComponent<BattleMonsterMovement>();
 
             newMove.Lane = LaneType.BossSharedLane;
             newMove.Speed = _bossSpeed;
-            _currentBossInstance.transform.localScale = Vector3.one * 2.0f; // 크기 확대
+            _currentBossInstance.transform.localScale = Vector3.one * 2.0f;
 
-            // 보스 타이머 가동
             if (_bossTimerCoroutine != null) StopCoroutine(_bossTimerCoroutine);
             _bossTimerCoroutine = StartCoroutine(BossTimerRoutine());
 
             yield return null;
-            _isWaveRunning = false; // 보스 스폰 자체는 끝났으므로 웩져 스폰 러프 상태는 끎 (보스 락만 유지)
+            _isWaveRunning = false;
         }
 
-        // 보스 제한시간 카운트다운 타이머
         private IEnumerator BossTimerRoutine()
         {
             float timeLeft = _bossTimeLimit;
@@ -183,43 +315,51 @@ namespace MyDefense.Battle
                 yield return new WaitForSeconds(1.0f);
                 timeLeft -= 1.0f;
 
-                // 보스가 중간에 처치되면 타이머 루프 즉시 탈출
-                if (!_isBossActive) yield break;
+                if (_bossState != BossStatusState.Active) yield break;
             }
 
-            // 제한시간 종료 처리
             OnBossTimerTick?.Invoke(0f);
-            Debug.LogError($"[BattleWaveExecutor] 💀 보스 제한시간 {_bossTimeLimit}초 초과! 배틀 미션 실패 조건 충족.");
-            
-            // 외부 구독자들에게 실패 상태 전달
+            _bossState = BossStatusState.TimedOut;
+            Debug.LogError($"[BattleWaveExecutor] Boss limit {_bossTimeLimit}s exceeded! Wave loop halted.");
+
             OnBossTimeout?.Invoke();
         }
 
-        // 보스 처치 완료 시점 호출
         private void HandleBossDefeated()
         {
             _isBossActive = false;
+            _bossState = BossStatusState.Defeated;
+
             if (_bossTimerCoroutine != null)
             {
                 StopCoroutine(_bossTimerCoroutine);
                 _bossTimerCoroutine = null;
             }
 
-            Debug.Log($"[BattleWaveExecutor] 🎉 보스 처치 완료! 다음 라운드 진입 조건 해제.");
+            Debug.Log("[BattleWaveExecutor] Boss defeated! Next round criteria cleared.");
             OnBossDefeated?.Invoke();
         }
 
-        // 일반 몬스터 스폰 편의 함수
         private void SpawnMonster(LaneType lane, float speed, float scale)
         {
-            if (_monsterPrefab == null) return;
-
-            Vector3 finalSpawnPos = _spawnPoint != null ? _spawnPoint.position : Vector3.zero;
-            GameObject go = Instantiate(_monsterPrefab, finalSpawnPos, Quaternion.identity);
-            if (go != null)
+            if (_monsterPrefab == null || _spawnPoint == null)
             {
-                RegisterMonsterSpawned();
+                Debug.LogError("[BattleWaveExecutor] SpawnMonster failed: prefab or spawnPoint is null!");
+                _isFaulted = true;
+                return;
             }
+
+            Vector3 finalSpawnPos = _spawnPoint.position;
+            GameObject go = Instantiate(_monsterPrefab, finalSpawnPos, Quaternion.identity);
+
+            if (go == null)
+            {
+                Debug.LogError("[BattleWaveExecutor] Monster instantiation failed!");
+                _isFaulted = true;
+                return;
+            }
+
+            RegisterMonsterSpawned();
 
             MonsterMovement oldMove = go.GetComponent<MonsterMovement>();
             if (oldMove != null) oldMove.enabled = false;
