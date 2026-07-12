@@ -1,5 +1,5 @@
 {
-  "baseRewardGold": 100,
-  "goldPerWave": 10,
-  "maxRewardGold": 1000
+  "baseRewardGold" : 100,
+  "goldPerWave" : 10,
+  "maxRewardGold" : 1000
 }
