@@ -5,6 +5,8 @@ import com.denfense.server.service.AlienService;
 import com.denfense.server.service.ShopService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import com.denfense.server.dto.response.AlienUpgradeResponseDto;
+import io.swagger.v3.oas.annotations.Operation;
 
 @RestController
 @RequestMapping("/api/aliens")
@@ -14,15 +16,9 @@ public class AlienController {
 
     private final AlienService alienService;
 
-    //
-    /**
-     * 왹져 업그레이드
-     * * [POST] http://localhost:8080/api/aliens/1/upgrade?username=MyDev
-     * - username: 유저 아이디
-     * - count: 1 또는 10 (안 보내면 기본값 1)
-     */
+    @Operation(summary = "왹져 강화", description = "왹져의 카드를 소모하여 강화합니다. (추후 토큰에서 userId 추출 권장)")
     @PostMapping("/{alienId}/upgrade")
-    public UserAlien upgrade(@PathVariable int alienId, @RequestParam String username) {
-        return alienService.aleinUpgrade(username, alienId);
+    public AlienUpgradeResponseDto upgrade(@PathVariable int alienId, @RequestParam String username) {
+        return alienService.upgradeAlien(username, alienId);
     }
 }
