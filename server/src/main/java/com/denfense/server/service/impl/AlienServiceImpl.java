@@ -74,7 +74,7 @@ public class AlienServiceImpl implements AlienService {
                 .remainingGold(user.getGold())
                 .usedGrowthCell(cost.getRequiredGrowthCell())
                 .remainingGrowthCell(user.getGrowthCell())
-                .maxLevelReached(myAlien.getLevel() >= UpgradeCostPolicy.MAX_LEVEL)
+                .maxLevelReached(myAlien.getLevel() >= upgradeCostPolicy.getMaxLevel())
                 .build();
     }
 }

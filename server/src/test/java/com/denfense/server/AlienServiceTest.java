@@ -38,6 +38,9 @@ class AlienServiceTest {
     @Autowired
     private AlienSpecRepository alienSpecRepository;
 
+    @Autowired
+    private UpgradeCostPolicy upgradeCostPolicy;
+
     private User testUser;
     private AlienSpec testAlienSpec;
     private UserAlien testUserAlien;
@@ -159,7 +162,7 @@ class AlienServiceTest {
     @Test
     @DisplayName("최대 레벨 도달 예외")
     void upgrade_maxLevel_throwsException() {
-        testUserAlien.setLevel(UpgradeCostPolicy.MAX_LEVEL);
+        testUserAlien.setLevel(upgradeCostPolicy.getMaxLevel());
         userAlienRepository.save(testUserAlien);
         
         BusinessException ex = assertThrows(BusinessException.class, () -> 

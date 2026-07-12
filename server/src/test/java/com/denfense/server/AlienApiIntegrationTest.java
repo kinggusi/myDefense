@@ -36,6 +36,9 @@ public class AlienApiIntegrationTest {
     @Autowired
     private AlienSpecRepository alienSpecRepository;
 
+    @Autowired
+    private UpgradeCostPolicy upgradeCostPolicy;
+
     private User testUser;
     private AlienSpec testAlienSpec;
     private UserAlien testUserAlien;
@@ -109,7 +112,7 @@ public class AlienApiIntegrationTest {
 
     @Test
     void testApi_5_MaxLevel() {
-        testUserAlien.setLevel(UpgradeCostPolicy.MAX_LEVEL);
+        testUserAlien.setLevel(upgradeCostPolicy.getMaxLevel());
         userAlienRepository.save(testUserAlien);
         String url = "http://localhost:" + port + "/api/aliens/" + testAlienSpec.getId() + "/upgrade?username=ApiTester";
         ResponseEntity<String> response = restTemplate.postForEntity(url, null, String.class);
