@@ -30,20 +30,20 @@ public class DataInit implements CommandLineRunner {
 
         System.out.println("====== [TEST DATA] 왹져 데이터 생성 시작 ======");
 
-        // 1. 전설 7마리 (최상위라 진화 타겟 없음)
-        List<AlienSpec> legends = createAliens(AlienSpec.Grade.LEGEND, 7, 5.0, null);
+        // 1. 전설 7마리 (최상위라 진화 타겟 없음) -> IDs: 1~7
+        List<AlienSpec> legends = createAliens(AlienSpec.Grade.LEGEND, 7, 5.0, null, 1);
 
         // 2. 유니크 7마리 (전설과 연결)
-        // Unique 1 -> Legend 1 로 진화
-        List<AlienSpec> uniques = createAliens(AlienSpec.Grade.UNIQUE, 7, 2.5, legends);
+        // Unique 1 -> Legend 1 로 진화 -> IDs: 8~14
+        List<AlienSpec> uniques = createAliens(AlienSpec.Grade.UNIQUE, 7, 2.5, legends, 8);
 
         // 3. 에픽 7마리 (유니크와 연결)
-        // Epic 1 -> Unique 1 로 진화
-        List<AlienSpec> epics = createAliens(AlienSpec.Grade.EPIC, 7, 1.5, uniques);
+        // Epic 1 -> Unique 1 로 진화 -> IDs: 15~21
+        List<AlienSpec> epics = createAliens(AlienSpec.Grade.EPIC, 7, 1.5, uniques, 15);
 
         // 4. 노말 7마리 (에픽과 연결)
-        // Normal 1 -> Epic 1 로 진화
-        List<AlienSpec> normals = createAliens(AlienSpec.Grade.NORMAL, 7, 1.0, epics);
+        // Normal 1 -> Epic 1 로 진화 -> IDs: 22~28
+        List<AlienSpec> normals = createAliens(AlienSpec.Grade.NORMAL, 7, 1.0, epics, 22);
 
         List<MonsterSpec> mc = createMonster(1, MonsterSpec.MonsterType.NORMAL, 3);
         List<MonsterSpec> mc1 = createMonster(2, MonsterSpec.MonsterType.NORMAL, 3);
@@ -51,8 +51,8 @@ public class DataInit implements CommandLineRunner {
         List<MonsterSpec> mc3 = createMonster(4, MonsterSpec.MonsterType.NORMAL, 3);
         List<MonsterSpec> mc4 = createMonster(5, MonsterSpec.MonsterType.NORMAL, 3);
 
-        // (전설 합성은 선택권 방식이라 고정 타겟 ID는 일단 null로 둠)
-        createAliens(AlienSpec.Grade.MYTHIC, 4, 10.0, null);
+        // (전설 합성은 선택권 방식이라 고정 타겟 ID는 일단 null로 둠) -> IDs: 29~32
+        createAliens(AlienSpec.Grade.MYTHIC, 4, 10.0, null, 29);
 
         System.out.println("====== [TEST DATA] 생성 완료 ======");
 
@@ -110,12 +110,12 @@ public class DataInit implements CommandLineRunner {
 
 
 
-    private List<AlienSpec> createAliens(AlienSpec.Grade grade, int count, double multiplier, List<AlienSpec> upperSpecs) {
+    private List<AlienSpec> createAliens(AlienSpec.Grade grade, int count, double multiplier, List<AlienSpec> upperSpecs, long startId) {
         List<AlienSpec> createdSpecs = new ArrayList<>();
 
         for (int i = 0; i < count; i++) {
             AlienSpec spec = new AlienSpec();
-
+            spec.setId(startId + i);
             // 이름 예: NORMAL 1, LEGEND 3
             spec.setName(grade.name() + " " + (i + 1));
             spec.setGrade(grade);
