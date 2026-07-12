@@ -21,6 +21,9 @@ public enum ErrorCode {
     INSUFFICIENT_ACCOUNT_GOLD(HttpStatus.CONFLICT, "계정 골드가 부족합니다."),
     INSUFFICIENT_GROWTH_CELL(HttpStatus.CONFLICT, "성장 세포가 부족합니다."),
     INVALID_UPGRADE_REQUEST(HttpStatus.BAD_REQUEST, "잘못된 강화 요청입니다."),
+    INSUFFICIENT_HEART(HttpStatus.CONFLICT, "하트가 부족합니다."),
+    GAME_SESSION_CREATE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "게임 세션 생성에 실패했습니다."),
+    INVALID_GAME_ENTRY_REQUEST(HttpStatus.BAD_REQUEST, "잘못된 게임 입장 요청입니다."),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "예상치 못한 서버 에러가 발생했습니다.");
 
     private final HttpStatus status;
