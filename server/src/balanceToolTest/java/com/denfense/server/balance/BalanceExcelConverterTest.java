@@ -76,6 +76,29 @@ class BalanceExcelConverterTest {
         rowUpgrade2.createCell(1).setCellValue(10);
         rowUpgrade2.createCell(2).setCellValue(200);
         rowUpgrade2.createCell(3).setCellValue(0);
+
+        Sheet spec = workbook.createSheet("AlienSpec");
+        Row headerSpec = spec.createRow(0);
+        headerSpec.createCell(0).setCellValue("alienId");
+        headerSpec.createCell(1).setCellValue("name");
+        headerSpec.createCell(2).setCellValue("description");
+        headerSpec.createCell(3).setCellValue("grade");
+        headerSpec.createCell(4).setCellValue("baseAttack");
+        headerSpec.createCell(5).setCellValue("baseMp");
+        headerSpec.createCell(6).setCellValue("attackSpeed");
+        headerSpec.createCell(7).setCellValue("attackRange");
+        headerSpec.createCell(8).setCellValue("evolutionTargetId");
+        headerSpec.createCell(9).setCellValue("isLocked");
+        Row rowSpec = spec.createRow(1);
+        rowSpec.createCell(0).setCellValue(1);
+        rowSpec.createCell(1).setCellValue("A");
+        rowSpec.createCell(2).setCellValue("");
+        rowSpec.createCell(3).setCellValue("NORMAL");
+        rowSpec.createCell(4).setCellValue(10);
+        rowSpec.createCell(5).setCellValue(10);
+        rowSpec.createCell(6).setCellValue(1.0);
+        rowSpec.createCell(7).setCellValue(1.0);
+        rowSpec.createCell(9).setCellValue(false);
     }
 
     @Test
