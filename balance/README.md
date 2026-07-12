@@ -50,3 +50,37 @@ cd server
 3. `git diff`를 통해 변환된 JSON 파일의 변경점 확인
 4. `.\gradlew test`를 실행하여 밸런스 변경으로 인해 서버 테스트가 깨지지 않는지 확인
 5. `.xlsx` 원본과 `generated/*.json` 파일들을 함께 커밋 및 푸시
+
+---
+
+## 🚨 CI 동기화 검사 주의사항
+본 프로젝트는 GitHub Actions CI를 통해 PR 및 `dev` 브랜치 Push 시 **Excel 원본과 JSON 간의 동기화 상태를 검사**합니다.
+
+Excel 파일만 수정하고 `convertBalance`를 실행하지 않은 채 커밋하면 **CI가 실패**하므로 주의하십시오.
+
+### 🛠️ 로컬 변환 및 검증 명령
+**Windows (PowerShell)**:
+```powershell
+cd server
+.\gradlew balanceToolTest
+.\gradlew convertBalance
+.\gradlew test
+```
+
+**Linux / macOS**:
+```bash
+cd server
+./gradlew balanceToolTest
+./gradlew convertBalance
+./gradlew test
+```
+
+### ❌ CI 실패 시 조치 방법
+동기화가 맞지 않을 경우 CI 로그에 아래와 같이 표시됩니다:
+```text
+::error::Balance JSON is out of sync with balance-data.xlsx.
+::error::Linux/macOS: cd server && ./gradlew convertBalance
+::error::Windows: cd server; .\gradlew convertBalance
+::error::Commit balance-data.xlsx and both generated JSON files.
+```
+이때는 위의 로컬 변환 명령을 실행하고, 변경된 JSON 파일들을 추가로 커밋(`git commit --amend` 또는 새 커밋) 후 푸시해야 합니다.
