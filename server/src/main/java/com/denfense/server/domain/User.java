@@ -59,6 +59,18 @@ public class User {
         this.gold -= amount;
     }
 
+    public void earnGold(int amount) {
+        if (amount < 0) {
+            throw new com.denfense.server.exception.BusinessException(com.denfense.server.exception.ErrorCode.INVALID_REQUEST, "지급 금액은 0 이상이어야 합니다.");
+        }
+        long newGold = (long) this.gold + amount;
+        if (newGold > Integer.MAX_VALUE) {
+            this.gold = Integer.MAX_VALUE;
+        } else {
+            this.gold = (int) newGold;
+        }
+    }
+
     public void spendUniversalPiece(int amount) {
         if (amount < 0) {
             throw new com.denfense.server.exception.BusinessException(com.denfense.server.exception.ErrorCode.INVALID_REQUEST, "차감 개수는 0 이상이어야 합니다.");

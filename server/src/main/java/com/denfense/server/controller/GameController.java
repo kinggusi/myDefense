@@ -14,6 +14,7 @@ import com.denfense.server.service.InGameService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.validation.Valid;
 import java.util.List;
 
 @RestController
@@ -24,6 +25,7 @@ public class GameController {
     private final GameSessionManager sessionManager;
     private final InGameService inGameService;
     private final com.denfense.server.service.GameEntryService gameEntryService;
+    private final com.denfense.server.service.GameSettlementService gameSettlementService;
 
     private final com.denfense.server.repository.UserRepository userRepository;
 
@@ -164,6 +166,14 @@ public class GameController {
         } catch (Exception e) {
             return errorResponse(e);
         }
+    }
+
+    /**
+     * finishGame - 게임 최종 종료 및 보상 정산 API
+     */
+    @PostMapping("/finish")
+    public com.denfense.server.dto.response.GameFinishResponseDto finishGame(@Valid @RequestBody com.denfense.server.dto.request.GameFinishRequestDto request) {
+        return gameSettlementService.finishGame(request);
     }
 
     // 8. 치트키
