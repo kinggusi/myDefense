@@ -33,7 +33,9 @@ public class ExcelBalanceReader {
             
             upgradeCosts.sort(Comparator.comparingInt(AlienUpgradeCostBalance::currentLevel));
             
-            return new BalanceData(reward, new AlienUpgradeBalanceFile(maxLevel, upgradeCosts));
+            List<com.denfense.server.balance.AlienSpecBalance> alienSpecs = readAlienSpecSheet(workbook);
+
+            return new BalanceData(reward, new AlienUpgradeBalanceFile(maxLevel, upgradeCosts), alienSpecs);
 
         } catch (IOException e) {
             throw new BalanceConversionException("파일을 읽는 중 오류가 발생했습니다: " + filePath, e);
@@ -259,7 +261,11 @@ public class ExcelBalanceReader {
         if (type != CellType.STRING) {
             throw new BalanceConversionException(String.format("[%s] %d행 '%s' 열: 문자열이어야 합니다.", sheetName, rowIdx + 1, colName));
         }
-        return cell.getStringCellValue().trim();
+        String val = cell.getStringCellValue().trim();
+        if (val.isEmpty()) {
+            throw new BalanceConversionException(String.format("[%s] %d행 '%s' 열: 빈 문자열입니다.", sheetName, rowIdx + 1, colName));
+        }
+        return val;
     }
 
     private int readIntCell(String sheetName, int rowIdx, String colName, Cell cell) {
@@ -316,5 +322,149 @@ public class ExcelBalanceReader {
         return (int) value;
     }
 
-    public static record BalanceData(GameRewardBalance gameReward, AlienUpgradeBalanceFile alienUpgrade) {}
+    private List<com.denfense.server.balance.AlienSpecBalance> readAlienSpecSheet(Workbook workbook) {
+        Sheet sheet = getSheetOrThrow(workbook, "AlienSpec");
+
+        Row headerRow = sheet.getRow(0);
+        if (headerRow == null) {
+            throw new BalanceConversionException("[AlienSpec] 헤더가 없습니다.");
+        }
+
+        List<String> expectedHeaders = Arrays.asList("alienId", "name", "description", "grade", "baseAttack", "baseMp", "attackSpeed", "attackRange", "evolutionTargetId", "isLocked");
+        List<String> headers = readHeaders(sheet.getSheetName(), headerRow, expectedHeaders);
+
+        int idIdx = headers.indexOf("alienId");
+        int nameIdx = headers.indexOf("name");
+        int descIdx = headers.indexOf("description");
+        int gradeIdx = headers.indexOf("grade");
+        int atkIdx = headers.indexOf("baseAttack");
+        int mpIdx = headers.indexOf("baseMp");
+        int speedIdx = headers.indexOf("attackSpeed");
+        int rangeIdx = headers.indexOf("attackRange");
+        int targetIdx = headers.indexOf("evolutionTargetId");
+        int lockIdx = headers.indexOf("isLocked");
+
+        List<com.denfense.server.balance.AlienSpecBalance> specs = new ArrayList<>();
+
+        for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+            Row row = sheet.getRow(i);
+            if (row == null) continue;
+
+            boolean hasData = false;
+            for (int col = 0; col < headers.size(); col++) {
+                Cell cell = row.getCell(col);
+                if (cell != null && cell.getCellType() != CellType.BLANK) {
+                    hasData = true;
+                    break;
+                }
+            }
+            if (!hasData) continue;
+
+            long id = readLongCell(sheet.getSheetName(), i, "alienId", row.getCell(idIdx));
+            String name = readStringCell(sheet.getSheetName(), i, "name", row.getCell(nameIdx));
+            String desc = readStringCellOrDefault(sheet.getSheetName(), i, "description", row.getCell(descIdx), "");
+            String grade = readStringCell(sheet.getSheetName(), i, "grade", row.getCell(gradeIdx));
+            int atk = readIntCell(sheet.getSheetName(), i, "baseAttack", row.getCell(atkIdx));
+            int mp = readIntCell(sheet.getSheetName(), i, "baseMp", row.getCell(mpIdx));
+            double speed = readDoubleCell(sheet.getSheetName(), i, "attackSpeed", row.getCell(speedIdx));
+            double range = readDoubleCell(sheet.getSheetName(), i, "attackRange", row.getCell(rangeIdx));
+            Long target = readLongCellNullable(sheet.getSheetName(), i, "evolutionTargetId", row.getCell(targetIdx));
+            boolean locked = readBooleanCell(sheet.getSheetName(), i, "isLocked", row.getCell(lockIdx));
+
+            specs.add(new com.denfense.server.balance.AlienSpecBalance(id, name, desc, grade, atk, mp, speed, range, target, locked));
+        }
+
+        return specs;
+    }
+
+    private String readStringCellOrDefault(String sheetName, int rowIdx, String colName, Cell cell, String defaultValue) {
+        if (cell == null || cell.getCellType() == CellType.BLANK) {
+            return defaultValue;
+        }
+        if (cell.getCellType() == CellType.STRING) {
+            String val = cell.getStringCellValue().trim();
+            if (val.isEmpty()) return defaultValue;
+        }
+        return readStringCell(sheetName, rowIdx, colName, cell);
+    }
+
+    private long readLongCell(String sheetName, int rowIdx, String colName, Cell cell) {
+        return (long) readIntCell(sheetName, rowIdx, colName, cell);
+    }
+
+    private Long readLongCellNullable(String sheetName, int rowIdx, String colName, Cell cell) {
+        if (cell == null || cell.getCellType() == CellType.BLANK) {
+            return null;
+        }
+        return readLongCell(sheetName, rowIdx, colName, cell);
+    }
+
+    private double readDoubleCell(String sheetName, int rowIdx, String colName, Cell cell) {
+        if (cell == null || cell.getCellType() == CellType.BLANK) {
+            throw new BalanceConversionException(String.format("[%s] %d행 '%s' 열: 빈 셀입니다.", sheetName, rowIdx + 1, colName));
+        }
+
+        CellType type = cell.getCellType();
+        double value;
+        String rawString = "";
+
+        if (type == CellType.FORMULA) {
+            try {
+                CellValue cv = evaluator.evaluate(cell);
+                type = cv.getCellType();
+                if (type == CellType.NUMERIC) {
+                    value = cv.getNumberValue();
+                    rawString = String.valueOf(value);
+                } else {
+                    throw new BalanceConversionException(String.format("[%s] %d행 '%s' 열: 수식 결과가 숫자가 아닙니다.", sheetName, rowIdx + 1, colName));
+                }
+            } catch (Exception e) {
+                 if (e instanceof BalanceConversionException) throw e;
+                 throw new BalanceConversionException(String.format("[%s] %d행 '%s' 열: 수식 계산 실패", sheetName, rowIdx + 1, colName), e);
+            }
+        } else if (type == CellType.NUMERIC) {
+            value = cell.getNumericCellValue();
+            rawString = String.valueOf(value);
+            if (DateUtil.isCellDateFormatted(cell)) {
+                throw new BalanceConversionException(String.format("[%s] %d행 '%s' 열: %s - 날짜 타입은 허용되지 않습니다.", sheetName, rowIdx + 1, colName, cell.getLocalDateTimeCellValue()));
+            }
+        } else if (type == CellType.STRING) {
+            rawString = cell.getStringCellValue();
+            throw new BalanceConversionException(String.format("[%s] %d행 '%s' 열: %s - 문자열 형태의 숫자는 허용되지 않습니다.", sheetName, rowIdx + 1, colName, rawString));
+        } else if (type == CellType.BOOLEAN) {
+            rawString = String.valueOf(cell.getBooleanCellValue());
+            throw new BalanceConversionException(String.format("[%s] %d행 '%s' 열: %s - Boolean 타입은 허용되지 않습니다.", sheetName, rowIdx + 1, colName, rawString));
+        } else {
+            throw new BalanceConversionException(String.format("[%s] %d행 '%s' 열: 지원하지 않는 셀 타입입니다.", sheetName, rowIdx + 1, colName));
+        }
+
+        if (!Double.isFinite(value)) {
+            throw new BalanceConversionException(String.format("[%s] %d행 '%s' 열: %s - NaN/Infinity는 허용되지 않습니다.", sheetName, rowIdx + 1, colName, rawString));
+        }
+
+        return value;
+    }
+
+    private boolean readBooleanCell(String sheetName, int rowIdx, String colName, Cell cell) {
+        if (cell == null || cell.getCellType() == CellType.BLANK) {
+            throw new BalanceConversionException(String.format("[%s] %d행 '%s' 열: 빈 셀입니다.", sheetName, rowIdx + 1, colName));
+        }
+
+        CellType type = cell.getCellType();
+        if (type == CellType.FORMULA) {
+            CellValue cv = evaluator.evaluate(cell);
+            type = cv.getCellType();
+            if (type == CellType.BOOLEAN) {
+                return cv.getBooleanValue();
+            } else {
+                throw new BalanceConversionException(String.format("[%s] %d행 '%s' 열: 수식 결과가 Boolean이 아닙니다.", sheetName, rowIdx + 1, colName));
+            }
+        } else if (type == CellType.BOOLEAN) {
+            return cell.getBooleanCellValue();
+        } else {
+            throw new BalanceConversionException(String.format("[%s] %d행 '%s' 열: Boolean이어야 합니다.", sheetName, rowIdx + 1, colName));
+        }
+    }
+
+    public static record BalanceData(GameRewardBalance gameReward, AlienUpgradeBalanceFile alienUpgrade, List<com.denfense.server.balance.AlienSpecBalance> alienSpecs) {}
 }

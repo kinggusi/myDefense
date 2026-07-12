@@ -28,7 +28,9 @@ public class BalanceJsonWriter {
         this.mapper.enable(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY);
         
         DefaultPrettyPrinter printer = new DefaultPrettyPrinter();
-        printer.indentArraysWith(DefaultIndenter.SYSTEM_LINEFEED_INSTANCE);
+        DefaultIndenter indenter = new DefaultIndenter("  ", "\n");
+        printer.indentArraysWith(indenter);
+        printer.indentObjectsWith(indenter);
         this.mapper.setDefaultPrettyPrinter(printer);
     }
 
@@ -45,7 +47,9 @@ public class BalanceJsonWriter {
                 
                 String json = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(data);
                 writer.write(json);
-                writer.write("\n"); // 마지막 줄 개행
+                if (!json.endsWith("\n")) {
+                    writer.write("\n");
+                }
             }
             return tempPath;
         } catch (IOException e) {

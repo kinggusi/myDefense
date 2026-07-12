@@ -10,6 +10,9 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Component;
 
+import com.denfense.server.balance.AlienSpecBalance;
+import com.fasterxml.jackson.core.type.TypeReference;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -30,12 +33,19 @@ public class BalanceDataLoader implements ApplicationRunner {
     @Value("${balance.upgrade.path:classpath:balance/generated/alien-upgrade.json}")
     private String upgradeFilePath;
 
+    @Value("${balance.spec.path:classpath:balance/generated/alien-spec.json}")
+    private String specFilePath;
+
     public void setRewardFilePath(String rewardFilePath) {
         this.rewardFilePath = rewardFilePath;
     }
 
     public void setUpgradeFilePath(String upgradeFilePath) {
         this.upgradeFilePath = upgradeFilePath;
+    }
+
+    public void setSpecFilePath(String specFilePath) {
+        this.specFilePath = specFilePath;
     }
 
     @Override
@@ -67,7 +77,14 @@ public class BalanceDataLoader implements ApplicationRunner {
             Map<Integer, AlienUpgradeCostBalance> costMap = upgradeFile.costs().stream()
                     .collect(Collectors.toMap(AlienUpgradeCostBalance::currentLevel, Function.identity()));
 
-            registry.init(rewardBalance, upgradeFile.maxLevel(), costMap);
+            Resource specRes = resourceLoader.getResource(specFilePath);
+            if (!specRes.exists()) {
+                throw new IllegalStateException("파일을 찾을 수 없습니다: " + specFilePath);
+            }
+            List<AlienSpecBalance> specs = strictMapper.readValue(specRes.getInputStream(), new TypeReference<List<AlienSpecBalance>>() {});
+            validator.validateAlienSpec(specs);
+
+            registry.init(rewardBalance, upgradeFile.maxLevel(), costMap, specs);
 
             log.info("Balance 데이터 로딩 완료. MaxLevel: {}", upgradeFile.maxLevel());
         } catch (Exception e) {

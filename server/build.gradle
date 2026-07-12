@@ -82,8 +82,9 @@ task convertBalance(type: JavaExec) {
     def excelPath = project.hasProperty('excelPath') ? project.property('excelPath') : "${project.projectDir}/../balance/source/balance-data.xlsx"
     def rewardPath = project.hasProperty('rewardPath') ? project.property('rewardPath') : "${project.projectDir}/src/main/resources/balance/generated/game-reward.json"
     def upgradePath = project.hasProperty('upgradePath') ? project.property('upgradePath') : "${project.projectDir}/src/main/resources/balance/generated/alien-upgrade.json"
+    def specPath = project.hasProperty('specPath') ? project.property('specPath') : "${project.projectDir}/src/main/resources/balance/generated/alien-spec.json"
 
-    args = [excelPath, rewardPath, upgradePath]
+    args = [excelPath, rewardPath, upgradePath, specPath]
 }
 
 task balanceToolTest(type: Test) {
@@ -92,9 +93,4 @@ task balanceToolTest(type: Test) {
     testClassesDirs = sourceSets.balanceToolTest.output.classesDirs
     classpath = sourceSets.balanceToolTest.runtimeClasspath
     useJUnitPlatform()
-}
-
-task createExcelTemplate(type: JavaExec) {
-    classpath = sourceSets.balanceToolTest.runtimeClasspath
-    mainClass = 'com.denfense.server.CreateExcelTemplate'
 }

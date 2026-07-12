@@ -43,12 +43,13 @@ jobs:
         run: |
           if ! git diff --exit-code -- \
             src/main/resources/balance/generated/game-reward.json \
-            src/main/resources/balance/generated/alien-upgrade.json
+            src/main/resources/balance/generated/alien-upgrade.json \
+            src/main/resources/balance/generated/alien-spec.json
           then
             echo "::error::Balance JSON is out of sync with balance-data.xlsx."
             echo "::error::Linux/macOS: cd server && ./gradlew convertBalance"
             echo "::error::Windows: cd server; .\gradlew convertBalance"
-            echo "::error::Commit balance-data.xlsx and both generated JSON files."
+            echo "::error::Commit the Excel file and all generated balance JSON files."
             exit 1
           fi
 

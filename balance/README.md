@@ -16,6 +16,7 @@ cd server
 이 명령은 `balance/source/balance-data.xlsx`를 읽어 유효성을 검사하고, 성공 시 아래 위치에 JSON 파일을 생성/교체합니다.
 - `server/src/main/resources/balance/generated/game-reward.json`
 - `server/src/main/resources/balance/generated/alien-upgrade.json`
+- `server/src/main/resources/balance/generated/alien-spec.json`
 
 ## Excel 시트 구조 (엄격한 검증)
 엑셀의 데이터는 매우 엄격하게 검증됩니다. 기획 오류를 방지하기 위해 다음 규칙을 반드시 지켜야 합니다.
@@ -36,6 +37,12 @@ cd server
 ### AlienUpgrade 시트
 - 필수 헤더: `currentLevel`, `requiredPieces`, `requiredGold`, `requiredGrowthCell`
 - 데이터 행: `currentLevel` 1부터 `maxLevel-1`까지 연속적으로 작성되어야 합니다.
+
+### AlienSpec 시트
+- 필수 헤더: `alienId`, `name`, `description`, `grade`, `baseAttack`, `baseMp`, `attackSpeed`, `attackRange`, `evolutionTargetId`, `isLocked`
+- `description`: 빈 셀 입력 시 빈 문자열(`""`)로 저장됩니다.
+- `evolutionTargetId`: 빈 셀 입력 시 `null`로 저장되며, 존재하지 않는 대상이나 순환 참조 입력 시 실패합니다.
+- `isLocked`: 반드시 Excel `BOOLEAN` 셀(`TRUE`/`FALSE`) 타입이어야 합니다 (문자열 금지).
 
 ## 검증 실패 예시
 변환 실패 시 기획자가 즉시 수정할 수 있도록 에러 메시지가 출력됩니다.
@@ -81,6 +88,6 @@ cd server
 ::error::Balance JSON is out of sync with balance-data.xlsx.
 ::error::Linux/macOS: cd server && ./gradlew convertBalance
 ::error::Windows: cd server; .\gradlew convertBalance
-::error::Commit balance-data.xlsx and both generated JSON files.
+::error::Commit the Excel file and all generated balance JSON files.
 ```
 이때는 위의 로컬 변환 명령을 실행하고, 변경된 JSON 파일들을 추가로 커밋(`git commit --amend` 또는 새 커밋) 후 푸시해야 합니다.
