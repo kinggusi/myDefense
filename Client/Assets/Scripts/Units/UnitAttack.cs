@@ -1,4 +1,5 @@
 using UnityEngine;
+using MyDefense.Shared.Contracts;
 
 public class UnitAttack : MonoBehaviour
 {
@@ -67,6 +68,23 @@ public class UnitAttack : MonoBehaviour
         GameObject bulletGO = Instantiate(bulletPrefab, transform.position, Quaternion.identity);
         Bullet bullet = bulletGO.GetComponent<Bullet>();
         if (bullet != null)
+        {
+            long attackerId = 0;
+            UnitData unitData = GetComponent<UnitData>();
+            if (unitData != null)
+            {
+                attackerId = unitData.serverId;
+            }
+
+            DamagePayload payload = new DamagePayload
+            {
+                AttackerId = attackerId,
+                Amount = bullet.damage,
+                IsCritical = false
+            };
+
+            bullet.SetDamagePayload(payload);
             bullet.Seek(target);
+        }
     }
 }

@@ -690,6 +690,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameManager
   unitPrefab: {fileID: 7653261081890833016, guid: 7902ea49c16ecc74d8f5b66efd6d04ba, type: 3}
+  injectorPrefab: {fileID: 924239533131947740, guid: 455923828866d6149bee619e46c7ed66, type: 3}
   myGridParent: {fileID: 674111500}
   enemyGridParent: {fileID: 160059715}
   summonBtn: {fileID: 1924121961}

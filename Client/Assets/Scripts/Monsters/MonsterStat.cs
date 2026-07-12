@@ -1,7 +1,8 @@
 using UnityEngine;
 using System.Collections;
+using MyDefense.Shared.Contracts;
 
-public class MonsterStat : MonoBehaviour
+public class MonsterStat : MonoBehaviour, IDamageable
 {
     public float hp = 30f;
     
@@ -10,12 +11,25 @@ public class MonsterStat : MonoBehaviour
 
     private bool isDead = false;
 
-    public void TakeDamage(float amount)
+    // IDamageable 속성 구현
+    public float CurrentHp => hp;
+    public bool IsDead => isDead;
+
+    // IDamageable 메서드 구현
+    public void ApplyDamage(DamagePayload payload)
     {
         if (isDead) return;
-        hp -= amount;
 
-        if (hp <= 0) Die();
+        hp -= payload.Amount;
+        if (hp <= 0)
+        {
+            Die();
+        }
+    }
+
+    public void TakeDamage(float amount)
+    {
+        ApplyDamage(new DamagePayload { AttackerId = 0, Amount = amount, IsCritical = false });
     }
 
     void Die()

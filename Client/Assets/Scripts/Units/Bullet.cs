@@ -1,4 +1,5 @@
 using UnityEngine;
+using MyDefense.Shared.Contracts;
 
 public class Bullet : MonoBehaviour
 {
@@ -6,9 +7,29 @@ public class Bullet : MonoBehaviour
     public float damage = 10f;
     private Transform target;
 
+    private DamagePayload payload;
+    private bool hasPayload = false;
+
+    public void SetDamagePayload(DamagePayload payload)
+    {
+        this.payload = payload;
+        hasPayload = true;
+    }
+
     public void Seek(Transform _target)
     {
         target = _target;
+
+        if (!hasPayload)
+        {
+            payload = new DamagePayload
+            {
+                AttackerId = 0,
+                Amount = damage,
+                IsCritical = false
+            };
+            hasPayload = true;
+        }
     }
 
     void Update()
@@ -36,11 +57,10 @@ public class Bullet : MonoBehaviour
 
     void HitTarget()
     {
-        // 몬스터의 체력 깎기
-        MonsterStat monster = target.GetComponent<MonsterStat>();
-        if (monster != null)
+        IDamageable damageable = target.GetComponent<IDamageable>();
+        if (damageable != null)
         {
-            monster.TakeDamage(damage);
+            damageable.ApplyDamage(payload);
         }
         Destroy(gameObject); // 총알 삭제
     }

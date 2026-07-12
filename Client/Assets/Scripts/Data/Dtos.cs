@@ -25,6 +25,8 @@ public class InGameAlien {
     public int mutationRerollCount;
     public int gridX;
     public int gridY;
+    public string objectType;
+    public string mutationType;
 }
 
 [Serializable]
@@ -83,4 +85,13 @@ public class ApiResult<T>
     public T Data;
     public ApiErrorResponse Error;
     public string NetworkError;
+}
+
+[Serializable]
+public class MoveObjectRequestDto
+{
+    public long userId;
+    public long objectId;
+    public int newX;
+    public int newY;
 }
