@@ -457,4 +457,38 @@ public class GameSession {
         // 9. 변경된 Alien 반환
         return alien;
     }
+
+    /**
+     * 동기화 기반의 안전한 보드 객체 상태 스냅샷 컬렉션 생성
+     */
+    public synchronized java.util.List<com.denfense.server.dto.response.BoardObjectStateDto> createBoardStateSnapshot() {
+        java.util.List<com.denfense.server.dto.response.BoardObjectStateDto> list = new java.util.ArrayList<>();
+        for (BoardObject obj : boardObjects.values()) {
+            if (obj instanceof InGameAlien) {
+                InGameAlien alien = (InGameAlien) obj;
+                list.add(com.denfense.server.dto.response.BoardObjectStateDto.builder()
+                        .id(alien.getId())
+                        .objectType(alien.getObjectType())
+                        .gridX(alien.getGridX())
+                        .gridY(alien.getGridY())
+                        .alienSpec(alien.getAlienSpec())
+                        .grade(alien.getAlienSpec() != null ? alien.getAlienSpec().getGrade().name() : "")
+                        .pendingMutationType(alien.getPendingMutationType())
+                        .activeMutationType(alien.getActiveMutationType())
+                        .mutationRerollCount(alien.getMutationRerollCount()) // 원시 int형 대입
+                        .build());
+            } else if (obj instanceof InGameInjector) {
+                InGameInjector injector = (InGameInjector) obj;
+                list.add(com.denfense.server.dto.response.BoardObjectStateDto.builder()
+                        .id(injector.getId())
+                        .objectType(injector.getObjectType())
+                        .gridX(injector.getGridX())
+                        .gridY(injector.getGridY())
+                        .mutationType(injector.getMutationType())
+                        .mutationRerollCount(0) // 원시 int형 기본값 대입
+                        .build());
+            }
+        }
+        return list;
+    }
 }

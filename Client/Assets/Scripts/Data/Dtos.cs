@@ -1,4 +1,5 @@
 using System;
+using UnityEngine;
 
 [Serializable]
 public class GameResponseDto {
@@ -88,10 +89,113 @@ public class ApiResult<T>
 }
 
 [Serializable]
+public class EmptyRequestBody {}
+
+public enum BoardObjectKind
+{
+    Alien,
+    Injector
+}
+
+[Serializable]
 public class MoveObjectRequestDto
 {
     public long userId;
     public long objectId;
     public int newX;
     public int newY;
+}
+
+public static class BoardObjectHelper
+{
+    // 기존 호환성 오버로드 유지
+    public static bool TryGetBoardObject(GameObject obj, out long serverId, out BoardObjectKind kind)
+    {
+        return TryGetBoardObject(obj, out serverId, out kind, out _, out _, out _, out _, out _);
+    }
+
+    // 상세 조회 아웃인자 고도화 버전
+    public static bool TryGetBoardObject(
+        GameObject obj,
+        out long serverId,
+        out BoardObjectKind kind,
+        out int gridX,
+        out int gridY,
+        out bool isMine,
+        out UnitData alienData,
+        out InjectorData injectorData)
+    {
+        serverId = -1;
+        kind = BoardObjectKind.Alien;
+        gridX = -1;
+        gridY = -1;
+        isMine = true;
+        alienData = null;
+        injectorData = null;
+
+        if (obj == null) return false;
+
+        // 1. Alien 검사 (UnitData의 grade가 INJECTOR가 아닌 정상 Alien 유닛만 필터링)
+        UnitData ud = obj.GetComponent<UnitData>();
+        if (ud != null && ud.grade != "INJECTOR")
+        {
+            serverId = ud.serverId;
+            kind = BoardObjectKind.Alien;
+            gridX = ud.gridX;
+            gridY = ud.gridY;
+            // 게임오브젝트 명칭으로 내 왹져인지 상대방 것인지 판단
+            isMine = obj.name.Contains("Me");
+            alienData = ud;
+            return true;
+        }
+
+        // 2. Injector 검사
+        InjectorData idData = obj.GetComponent<InjectorData>();
+        if (idData != null)
+        {
+            serverId = idData.serverId;
+            kind = BoardObjectKind.Injector;
+            gridX = idData.gridX;
+            gridY = idData.gridY;
+            isMine = idData.isMine;
+            injectorData = idData;
+            return true;
+        }
+
+        return false;
+    }
+}
+
+[Serializable]
+public class UseInjectorRequestDto
+{
+    public long userId;
+    public long injectorId;
+    public long alienId;
+}
+
+[Serializable]
+public class UseInjectorResponseDto
+{
+    public long alienId;
+    public string pendingMutationType;
+    public string activeMutationType;
+    public long consumedInjectorId;
+    public int gridX;
+    public int gridY;
+}
+
+[Serializable]
+public class GameStateRequestDto
+{
+    public long userId;
+}
+
+[Serializable]
+public class GameSessionStateDto
+{
+    public long userId;
+    public int remainingGold;
+    public bool isGameOver;
+    public System.Collections.Generic.List<BoardObjectDto> boardObjects;
 }

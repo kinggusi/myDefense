@@ -22,6 +22,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.ArrayList;
 
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.contains;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -272,5 +274,57 @@ class GameControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.alien.objectType", is("MUTATION_INJECTOR")))
                 .andExpect(jsonPath("$.alien.mutationType", is("BERSERK")));
+    }
+
+    @Test
+    @DisplayName("게임 상태 조회 API - 정상 빈 보드")
+    void getGameState_emptyBoard() throws Exception {
+        sessionManager.createSession(testUser.getId());
+
+        String json = String.format("{\"userId\":%d}", testUser.getId());
+
+        mockMvc.perform(post("/api/game/state")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.userId", is(testUser.getId().intValue())))
+                .andExpect(jsonPath("$.isGameOver", is(false)))
+                .andExpect(jsonPath("$.boardObjects", hasSize(0)));
+    }
+
+    @Test
+    @DisplayName("게임 상태 조회 API - 왹져와 인젝터 혼합 보드 및 Snapshot 검증")
+    void getGameState_mixedBoard() throws Exception {
+        GameSession session = sessionManager.createSession(testUser.getId());
+        session.spawnAlien(normalAlienSpec, MutationType.NONE, MutationType.NONE, 0, 1, 1);
+        session.spawnInjector(MutationType.BERSERK, 0, 3);
+
+        String json = String.format("{\"userId\":%d}", testUser.getId());
+
+        mockMvc.perform(post("/api/game/state")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.userId", is(testUser.getId().intValue())))
+                .andExpect(jsonPath("$.boardObjects", hasSize(2)))
+                // MUTATION_INJECTOR 문자열 확인
+                .andExpect(jsonPath("$.boardObjects[?(@.objectType=='MUTATION_INJECTOR')].mutationType", contains("BERSERK")))
+                // ALIEN 필드 grade 확인
+                .andExpect(jsonPath("$.boardObjects[?(@.objectType=='ALIEN')].grade", contains("NORMAL")))
+                // mutationRerollCount 필드 정수형(0) 확인
+                .andExpect(jsonPath("$.boardObjects[?(@.objectType=='MUTATION_INJECTOR')].mutationRerollCount", contains(0)));
+    }
+
+    @Test
+    @DisplayName("게임 상태 조회 API - 세션 없음 오류코드 반환")
+    void getGameState_noSession() throws Exception {
+        // 세션을 아예 생성하지 않음
+        String json = "{\"userId\":9999}";
+
+        mockMvc.perform(post("/api/game/state")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code", is("GAME_SESSION_NOT_FOUND")));
     }
 }

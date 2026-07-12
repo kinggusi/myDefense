@@ -167,6 +167,12 @@ public class GameController {
         );
     }
 
+    // 💡 10. 보드 전체 동기화 및 재접속 복구 API
+    @PostMapping("/state")
+    public com.denfense.server.dto.response.GameSessionStateDto getGameState(@RequestBody com.denfense.server.dto.request.GameStateRequestDto request) {
+        return inGameService.getGameState(request.getUserId());
+    }
+
     // ==================================================================
     // 🛠️ 내부 헬퍼 메서드
     // ==================================================================

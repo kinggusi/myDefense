@@ -10,6 +10,8 @@ public class UnitData : MonoBehaviour
     public string pendingMutationType;
     public string activeMutationType;
     public int mutationRerollCount;
+    public int gridX; // 신규 추가: 보드 상의 grid X 좌표
+    public int gridY; // 신규 추가: 보드 상의 grid Y 좌표
 
     [Header("서버 좌표")]
     public int gridX;
