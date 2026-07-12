@@ -14,8 +14,11 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.core.annotation.Order;
+
 @Component
 @RequiredArgsConstructor
+@Order(10)
 public class DataInit implements CommandLineRunner {
 
     private final AlienSpecRepository alienSpecRepository;

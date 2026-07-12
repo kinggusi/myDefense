@@ -17,9 +17,12 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.springframework.core.annotation.Order;
+
 @Slf4j
 @Component
 @RequiredArgsConstructor
+@Order(1)
 public class BalanceDataLoader implements ApplicationRunner {
 
     private final ResourceLoader resourceLoader;
