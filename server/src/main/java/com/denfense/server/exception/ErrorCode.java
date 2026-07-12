@@ -24,6 +24,10 @@ public enum ErrorCode {
     INSUFFICIENT_HEART(HttpStatus.CONFLICT, "하트가 부족합니다."),
     GAME_SESSION_CREATE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "게임 세션 생성에 실패했습니다."),
     INVALID_GAME_ENTRY_REQUEST(HttpStatus.BAD_REQUEST, "잘못된 게임 입장 요청입니다."),
+    GAME_SESSION_OWNERSHIP_MISMATCH(HttpStatus.FORBIDDEN, "세션 소유권이 일치하지 않습니다."),
+    GAME_NOT_FINISHED(HttpStatus.BAD_REQUEST, "아직 게임이 종료되지 않았습니다."),
+    INVALID_GAME_FINISH_REQUEST(HttpStatus.BAD_REQUEST, "잘못된 게임 종료 요청입니다."),
+    GAME_REWARD_CALCULATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "보상 계산에 실패했습니다."),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "예상치 못한 서버 에러가 발생했습니다.");
 
     private final HttpStatus status;
