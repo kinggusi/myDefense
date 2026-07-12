@@ -1,8 +1,17 @@
 using UnityEngine;
+using MyDefense.Shared.Contracts;
 using System.Collections;
 
-public class MonsterStat : MonoBehaviour
+public class MonsterStat : MonoBehaviour, IDamageable
 {
+    public float CurrentHp => hp;
+    public bool IsDead => isDead;
+
+    public void ApplyDamage(DamagePayload payload)
+    {
+        if (payload.Amount <= 0f) return;
+        TakeDamage(payload.Amount);
+    }
     public float hp = 30f;
     
     // ★ 서버 DB에 있는 몬스터 ID (테스트용으로 1번이라고 칩시다)

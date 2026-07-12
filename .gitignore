@@ -67,6 +67,8 @@ Client/.agent/
 Client/Assets/Plugins/NuGet/
 Client/Assets/Plugins/NuGet.meta
 Client/Assets/Plugins.meta
+Client/Assets/_Recovery/
+Client/Assets/_Recovery.meta
 api_log.txt
 scene_info.txt
 

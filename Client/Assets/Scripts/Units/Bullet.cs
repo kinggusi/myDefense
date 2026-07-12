@@ -1,10 +1,20 @@
 using UnityEngine;
+using MyDefense.Shared.Contracts;
 
 public class Bullet : MonoBehaviour
 {
     public float speed = 10f;
     public float damage = 10f;
     private Transform target;
+    private bool hasHit = false;
+    private DamagePayload damagePayload;
+    private bool hasDamagePayload;
+
+    public void SetDamagePayload(DamagePayload payload)
+    {
+        damagePayload = payload;
+        hasDamagePayload = true;
+    }
 
     public void Seek(Transform _target)
     {
@@ -13,7 +23,7 @@ public class Bullet : MonoBehaviour
 
     void Update()
     {
-        if (target == null)
+        if (target == null || !target.gameObject.activeInHierarchy)
         {
             Destroy(gameObject); // 목표가 사라지면 총알도 삭제
             return;
@@ -36,11 +46,24 @@ public class Bullet : MonoBehaviour
 
     void HitTarget()
     {
+        if (hasHit) return;
+        hasHit = true;
         // 몬스터의 체력 깎기
-        MonsterStat monster = target.GetComponent<MonsterStat>();
-        if (monster != null)
+        if (target != null && target.gameObject.activeInHierarchy)
         {
-            monster.TakeDamage(damage);
+            IDamageable damageable = target.GetComponent<IDamageable>();
+            if (damageable != null)
+            {
+                DamagePayload payload = hasDamagePayload
+                    ? damagePayload
+                    : new DamagePayload
+                    {
+                        AttackerId = 0,
+                        Amount = damage,
+                        IsCritical = false
+                    };
+                damageable.ApplyDamage(payload);
+            }
         }
         Destroy(gameObject); // 총알 삭제
     }
