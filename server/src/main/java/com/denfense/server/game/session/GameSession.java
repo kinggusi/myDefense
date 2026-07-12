@@ -12,6 +12,7 @@ import lombok.Getter;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.time.LocalDateTime;
 
 /**
  * 게임 한 판의 상태를 관리하는 세션 객체
@@ -32,6 +33,8 @@ public class GameSession {
 
     // 4x6 그리드를 관리할 인메모리 배열
     private final BoardObject[][] grid = new BoardObject[4][6];
+
+    private final LocalDateTime createdAt = LocalDateTime.now();
 
     public GameSession(Long userId) {
         this.userId = userId;

@@ -90,4 +90,19 @@ public class User {
         this.heart = snapshot.calculatedHeart();
         this.lastHeartUpdateTime = snapshot.effectiveLastHeartUpdateTime();
     }
+
+    public void applyHeartSnapshot(com.denfense.server.service.HeartSnapshot snapshot) {
+        this.heart = snapshot.calculatedHeart();
+        this.lastHeartUpdateTime = snapshot.effectiveLastHeartUpdateTime();
+    }
+
+    public void spendHeart(int amount) {
+        if (amount <= 0) {
+            throw new com.denfense.server.exception.BusinessException(com.denfense.server.exception.ErrorCode.INVALID_REQUEST, "소비할 하트 개수는 양수여야 합니다.");
+        }
+        if (this.heart < amount) {
+            throw new com.denfense.server.exception.BusinessException(com.denfense.server.exception.ErrorCode.INSUFFICIENT_HEART, "하트가 부족합니다.");
+        }
+        this.heart -= amount;
+    }
 }

@@ -23,15 +23,32 @@ public class GameController {
 
     private final GameSessionManager sessionManager;
     private final InGameService inGameService;
+    private final com.denfense.server.service.GameEntryService gameEntryService;
+
+    private final com.denfense.server.repository.UserRepository userRepository;
 
     /**
-     * startGame - 세션생성
+     * startGame - 기존 게임 시작 (하트 소비 우회 방지 위해 GameEntryService 호출)
      * @param userId
      */
     @PostMapping("/start")
     public String startGame(@RequestParam Long userId) {
-        sessionManager.createSession(userId);
+        // 기존 /start를 유지하여 Unity 호환성 제공
+        // userId 기반으로 username을 조회하여 신규 입장 정책(하트 소비)을 타게 함
+        String username = userRepository.findById(userId)
+                .map(com.denfense.server.domain.User::getUsername)
+                .orElseThrow(() -> new com.denfense.server.exception.BusinessException(com.denfense.server.exception.ErrorCode.USER_NOT_FOUND, "유저를 찾을 수 없습니다."));
+
+        gameEntryService.enterGame(username);
         return "게임 시작! (세션 생성됨) - UserId: " + userId;
+    }
+
+    /**
+     * 신규 입장 API - 하트 1개 차감
+     */
+    @PostMapping("/enter")
+    public com.denfense.server.dto.response.GameEntryResponseDto enterGame(@RequestBody com.denfense.server.dto.request.GameEntryRequestDto request) {
+        return gameEntryService.enterGame(request.getUsername());
     }
 
     /**
