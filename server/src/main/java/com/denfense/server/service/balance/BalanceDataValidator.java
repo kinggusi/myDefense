@@ -139,4 +139,134 @@ public class BalanceDataValidator {
         states.put(current, 2); // VISITED
         return false;
     }
+
+    public void validateGachaPool(com.denfense.server.balance.GachaPoolBalanceDocument document, List<com.denfense.server.balance.AlienSpecBalance> specs) {
+        if (document == null) {
+            throw new IllegalStateException("GachaPoolBalanceDocument가 null입니다.");
+        }
+        if (document.pools() == null) {
+            throw new IllegalStateException("GachaPool 목록(pools)이 null입니다.");
+        }
+
+        Set<String> poolIds = new HashSet<>();
+        java.util.Map<Long, String> alienSpecGradeMap = specs.stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        com.denfense.server.balance.AlienSpecBalance::alienId,
+                        com.denfense.server.balance.AlienSpecBalance::grade
+                ));
+
+        for (com.denfense.server.balance.GachaPoolBalance pool : document.pools()) {
+            if (pool.poolId() == null || pool.poolId().trim().isEmpty()) {
+                throw new IllegalStateException("poolId는 null이거나 공백일 수 없습니다.");
+            }
+            if (!poolIds.add(pool.poolId())) {
+                throw new IllegalStateException("중복된 poolId가 존재합니다: " + pool.poolId());
+            }
+            if (pool.name() == null || pool.name().trim().isEmpty()) {
+                throw new IllegalStateException("name은 null이거나 공백일 수 없습니다: " + pool.poolId());
+            }
+
+            if (pool.active() && (pool.gradeEntries() == null || pool.gradeEntries().isEmpty())) {
+                throw new IllegalStateException("활성 상태인 GachaPool의 gradeEntries는 비어 있을 수 없습니다: " + pool.poolId());
+            }
+
+            if (pool.gradeEntries() != null) {
+                Set<String> entryGrades = new HashSet<>();
+                Set<Long> poolAlienIds = new HashSet<>();
+                int totalWeight = 0;
+
+                for (com.denfense.server.balance.GachaGradeEntryBalance entry : pool.gradeEntries()) {
+                    if (entry.grade() == null || entry.grade().trim().isEmpty()) {
+                        throw new IllegalStateException("grade는 null이거나 공백일 수 없습니다: " + pool.poolId());
+                    }
+                    try {
+                        com.denfense.server.domain.AlienSpec.Grade.valueOf(entry.grade());
+                    } catch (IllegalArgumentException e) {
+                        throw new IllegalStateException("유효하지 않은 grade입니다: " + entry.grade());
+                    }
+                    if (!entryGrades.add(entry.grade())) {
+                        throw new IllegalStateException("동일 Pool 내 중복된 grade가 존재합니다: " + pool.poolId() + ", " + entry.grade());
+                    }
+                    if (entry.weight() <= 0) {
+                        throw new IllegalStateException("weight는 0보다 커야 합니다: " + pool.poolId() + ", " + entry.grade());
+                    }
+                    totalWeight += entry.weight();
+
+                    if (entry.alienIds() == null || entry.alienIds().isEmpty()) {
+                        throw new IllegalStateException("alienIds는 비어 있을 수 없습니다: " + pool.poolId() + ", " + entry.grade());
+                    }
+
+                    Set<Long> entryAlienIds = new HashSet<>();
+                    for (Long alienId : entry.alienIds()) {
+                        if (!entryAlienIds.add(alienId)) {
+                            throw new IllegalStateException("동일 entry 내 중복된 alienId가 존재합니다: " + pool.poolId() + ", " + alienId);
+                        }
+                        if (!poolAlienIds.add(alienId)) {
+                            throw new IllegalStateException("동일 Pool 전체에서 중복된 alienId가 존재합니다: " + pool.poolId() + ", " + alienId);
+                        }
+
+                        String specGrade = alienSpecGradeMap.get(alienId);
+                        if (specGrade == null) {
+                            throw new IllegalStateException("AlienSpec에 존재하지 않는 alienId입니다: " + pool.poolId() + ", " + alienId);
+                        }
+                        if (!specGrade.equals(entry.grade())) {
+                            throw new IllegalStateException("AlienSpec.grade와 entry.grade가 일치하지 않습니다. pool: " + pool.poolId() + ", alienId: " + alienId + ", 예상: " + entry.grade() + ", 실제: " + specGrade);
+                        }
+                    }
+                }
+
+                if (pool.active() && totalWeight != 10000) {
+                    throw new IllegalStateException("활성 Pool의 weight 총합은 10000이어야 합니다. pool: " + pool.poolId() + ", 현재 총합: " + totalWeight);
+                }
+            }
+        }
+    }
+
+    public void validateShopProduct(com.denfense.server.balance.ShopProductBalanceDocument document, com.denfense.server.balance.GachaPoolBalanceDocument poolDocument) {
+        if (document == null) {
+            throw new IllegalStateException("ShopProductBalanceDocument가 null입니다.");
+        }
+        if (document.products() == null) {
+            throw new IllegalStateException("products 목록이 null입니다.");
+        }
+
+        Set<String> poolIds = new HashSet<>();
+        if (poolDocument != null && poolDocument.pools() != null) {
+            for (com.denfense.server.balance.GachaPoolBalance pool : poolDocument.pools()) {
+                poolIds.add(pool.poolId());
+            }
+        }
+
+        Set<String> productIds = new HashSet<>();
+        for (com.denfense.server.balance.ShopProductBalance product : document.products()) {
+            if (product.productId() == null || product.productId().trim().isEmpty()) {
+                throw new IllegalStateException("productId는 null이거나 공백일 수 없습니다.");
+            }
+            if (!productIds.add(product.productId())) {
+                throw new IllegalStateException("중복된 productId가 존재합니다: " + product.productId());
+            }
+            if (product.name() == null || product.name().trim().isEmpty()) {
+                throw new IllegalStateException("name은 null이거나 공백일 수 없습니다: " + product.productId());
+            }
+            if (product.currencyType() == null || product.currencyType().trim().isEmpty()) {
+                throw new IllegalStateException("currencyType은 null이거나 공백일 수 없습니다: " + product.productId());
+            }
+            // 임시로 DIAMOND만 사용하지만 enum 검증을 위해 체크
+            if (!"DIAMOND".equals(product.currencyType()) && !"GOLD".equals(product.currencyType())) {
+                throw new IllegalStateException("유효하지 않은 currencyType입니다: " + product.currencyType());
+            }
+            if (product.price() <= 0) {
+                throw new IllegalStateException("price는 0보다 커야 합니다: " + product.productId());
+            }
+            if (product.drawCount() <= 0) {
+                throw new IllegalStateException("drawCount는 0보다 커야 합니다: " + product.productId());
+            }
+            if (product.gachaPoolId() == null || product.gachaPoolId().trim().isEmpty()) {
+                throw new IllegalStateException("gachaPoolId는 null이거나 공백일 수 없습니다: " + product.productId());
+            }
+            if (!poolIds.contains(product.gachaPoolId())) {
+                throw new IllegalStateException("연결된 GachaPool이 존재하지 않습니다. productId: " + product.productId() + ", gachaPoolId: " + product.gachaPoolId());
+            }
+        }
+    }
 }
