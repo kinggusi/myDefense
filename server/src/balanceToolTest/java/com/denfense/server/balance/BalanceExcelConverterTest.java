@@ -89,16 +89,106 @@ class BalanceExcelConverterTest {
         headerSpec.createCell(7).setCellValue("attackRange");
         headerSpec.createCell(8).setCellValue("evolutionTargetId");
         headerSpec.createCell(9).setCellValue("isLocked");
-        Row rowSpec = spec.createRow(1);
-        rowSpec.createCell(0).setCellValue(1);
-        rowSpec.createCell(1).setCellValue("A");
-        rowSpec.createCell(2).setCellValue("");
-        rowSpec.createCell(3).setCellValue("NORMAL");
-        rowSpec.createCell(4).setCellValue(10);
-        rowSpec.createCell(5).setCellValue(10);
-        rowSpec.createCell(6).setCellValue(1.0);
-        rowSpec.createCell(7).setCellValue(1.0);
-        rowSpec.createCell(9).setCellValue(false);
+        Object[][] specs = {
+            {1, "NORMAL"},
+            {2, "EPIC"},
+            {3, "UNIQUE"},
+            {4, "LEGEND"},
+            {29, "MYTHIC"},
+            {30, "MYTHIC"},
+            {31, "MYTHIC"},
+            {32, "MYTHIC"}
+        };
+        int r = 1;
+        for (Object[] sp : specs) {
+            Row rowSpec = spec.createRow(r++);
+            rowSpec.createCell(0).setCellValue((Integer) sp[0]);
+            rowSpec.createCell(1).setCellValue("A");
+            rowSpec.createCell(2).setCellValue("");
+            rowSpec.createCell(3).setCellValue((String) sp[1]);
+            rowSpec.createCell(4).setCellValue(10);
+            rowSpec.createCell(5).setCellValue(10);
+            rowSpec.createCell(6).setCellValue(1.0);
+            rowSpec.createCell(7).setCellValue(1.0);
+            rowSpec.createCell(9).setCellValue(false);
+        }
+
+        Sheet shop = workbook.createSheet("ShopProduct");
+        Row hShop = shop.createRow(0);
+        hShop.createCell(0).setCellValue("productId");
+        hShop.createCell(1).setCellValue("name");
+        hShop.createCell(2).setCellValue("currencyType");
+        hShop.createCell(3).setCellValue("price");
+        hShop.createCell(4).setCellValue("drawCount");
+        hShop.createCell(5).setCellValue("gachaPoolId");
+        hShop.createCell(6).setCellValue("active");
+
+        Row rShop1 = shop.createRow(1);
+        rShop1.createCell(0).setCellValue("ALIEN_GACHA_SINGLE");
+        rShop1.createCell(1).setCellValue("1회 뽑기");
+        rShop1.createCell(2).setCellValue("DIAMOND");
+        rShop1.createCell(3).setCellValue(500);
+        rShop1.createCell(4).setCellValue(1);
+        rShop1.createCell(5).setCellValue("STANDARD_ALIEN_POOL");
+        rShop1.createCell(6).setCellValue(true);
+
+        Row rShop2 = shop.createRow(2);
+        rShop2.createCell(0).setCellValue("ALIEN_GACHA_TEN");
+        rShop2.createCell(1).setCellValue("10회 연속 뽑기");
+        rShop2.createCell(2).setCellValue("DIAMOND");
+        rShop2.createCell(3).setCellValue(5000);
+        rShop2.createCell(4).setCellValue(10);
+        rShop2.createCell(5).setCellValue("STANDARD_ALIEN_POOL");
+        rShop2.createCell(6).setCellValue(true);
+
+        Sheet pool = workbook.createSheet("GachaPool");
+        Row hPool = pool.createRow(0);
+        hPool.createCell(0).setCellValue("poolId");
+        hPool.createCell(1).setCellValue("poolName");
+        hPool.createCell(2).setCellValue("poolActive");
+        hPool.createCell(3).setCellValue("grade");
+        hPool.createCell(4).setCellValue("weight");
+        hPool.createCell(5).setCellValue("alienIds");
+
+        Row rPool1 = pool.createRow(1);
+        rPool1.createCell(0).setCellValue("STANDARD_ALIEN_POOL");
+        rPool1.createCell(1).setCellValue("Test Pool");
+        rPool1.createCell(2).setCellValue(true);
+        rPool1.createCell(3).setCellValue("NORMAL");
+        rPool1.createCell(4).setCellValue(6000);
+        rPool1.createCell(5).setCellValue("1");
+
+        Row rPool2 = pool.createRow(2);
+        rPool2.createCell(0).setCellValue("STANDARD_ALIEN_POOL");
+        rPool2.createCell(1).setCellValue("Test Pool");
+        rPool2.createCell(2).setCellValue(true);
+        rPool2.createCell(3).setCellValue("EPIC");
+        rPool2.createCell(4).setCellValue(2800);
+        rPool2.createCell(5).setCellValue("2");
+
+        Row rPool3 = pool.createRow(3);
+        rPool3.createCell(0).setCellValue("STANDARD_ALIEN_POOL");
+        rPool3.createCell(1).setCellValue("Test Pool");
+        rPool3.createCell(2).setCellValue(true);
+        rPool3.createCell(3).setCellValue("UNIQUE");
+        rPool3.createCell(4).setCellValue(900);
+        rPool3.createCell(5).setCellValue("3");
+
+        Row rPool4 = pool.createRow(4);
+        rPool4.createCell(0).setCellValue("STANDARD_ALIEN_POOL");
+        rPool4.createCell(1).setCellValue("Test Pool");
+        rPool4.createCell(2).setCellValue(true);
+        rPool4.createCell(3).setCellValue("LEGEND");
+        rPool4.createCell(4).setCellValue(250);
+        rPool4.createCell(5).setCellValue("4");
+
+        Row rPool5 = pool.createRow(5);
+        rPool5.createCell(0).setCellValue("STANDARD_ALIEN_POOL");
+        rPool5.createCell(1).setCellValue("Test Pool");
+        rPool5.createCell(2).setCellValue(true);
+        rPool5.createCell(3).setCellValue("MYTHIC");
+        rPool5.createCell(4).setCellValue(50);
+        rPool5.createCell(5).setCellValue("29,30,31,32");
     }
 
     @Test
@@ -113,10 +203,42 @@ class BalanceExcelConverterTest {
         BalanceDataValidator validator = new BalanceDataValidator();
         validator.validateGameReward(data.gameReward());
         validator.validateAlienUpgrade(data.alienUpgrade());
+        validator.validateAlienSpec(data.alienSpecs());
+        com.denfense.server.balance.GachaPoolBalanceDocument poolDoc = new com.denfense.server.balance.GachaPoolBalanceDocument(data.gachaPools());
+        validator.validateGachaPool(poolDoc, data.alienSpecs());
+        com.denfense.server.balance.ShopProductBalanceDocument shopDoc = new com.denfense.server.balance.ShopProductBalanceDocument(data.shopProducts());
+        validator.validateShopProduct(shopDoc, poolDoc);
 
         assertThat(data.gameReward().baseRewardGold()).isEqualTo(100);
         assertThat(data.alienUpgrade().maxLevel()).isEqualTo(3);
         assertThat(data.alienUpgrade().costs()).hasSize(2);
+        
+        assertThat(data.shopProducts()).hasSize(2);
+        com.denfense.server.balance.ShopProductBalance shop1 = data.shopProducts().get(0);
+        assertThat(shop1.productId()).isEqualTo("ALIEN_GACHA_SINGLE");
+        assertThat(shop1.price()).isEqualTo(500);
+        assertThat(shop1.drawCount()).isEqualTo(1);
+        assertThat(shop1.gachaPoolId()).isEqualTo("STANDARD_ALIEN_POOL");
+        
+        com.denfense.server.balance.ShopProductBalance shop2 = data.shopProducts().get(1);
+        assertThat(shop2.productId()).isEqualTo("ALIEN_GACHA_TEN");
+        assertThat(shop2.price()).isEqualTo(5000);
+        assertThat(shop2.drawCount()).isEqualTo(10);
+        assertThat(shop2.gachaPoolId()).isEqualTo("STANDARD_ALIEN_POOL");
+        
+        assertThat(data.gachaPools()).hasSize(1);
+        com.denfense.server.balance.GachaPoolBalance pool = data.gachaPools().get(0);
+        assertThat(pool.poolId()).isEqualTo("STANDARD_ALIEN_POOL");
+        assertThat(pool.gradeEntries()).hasSize(5);
+        
+        int weightSum = pool.gradeEntries().stream().mapToInt(com.denfense.server.balance.GachaGradeEntryBalance::weight).sum();
+        assertThat(weightSum).isEqualTo(10000);
+        
+        com.denfense.server.balance.GachaGradeEntryBalance mythicEntry = pool.gradeEntries().stream()
+            .filter(e -> "MYTHIC".equals(e.grade()))
+            .findFirst().orElseThrow();
+        assertThat(mythicEntry.weight()).isEqualTo(50);
+        assertThat(mythicEntry.alienIds()).containsExactly(29L, 30L, 31L, 32L);
     }
 
     @Test
@@ -202,5 +324,110 @@ class BalanceExcelConverterTest {
         ExcelBalanceReader.BalanceData data = reader.read();
         BalanceDataValidator validator = new BalanceDataValidator();
         assertThrows(IllegalStateException.class, () -> validator.validateAlienUpgrade(data.alienUpgrade()));
+    }
+
+    @Test
+    @DisplayName("duplicateShopProductId_fails")
+    void duplicateShopProductId_fails() throws IOException {
+        createValidWorkbook();
+        workbook.getSheet("ShopProduct").getRow(2).getCell(0).setCellValue("ALIEN_GACHA_SINGLE");
+        saveAndClose();
+
+        ExcelBalanceReader reader = new ExcelBalanceReader(tempExcel.getAbsolutePath());
+        BalanceConversionException ex = assertThrows(BalanceConversionException.class, reader::read);
+        assertThat(ex).hasMessageContaining("중복된 상품 ID입니다");
+    }
+
+    @Test
+    @DisplayName("nonPositiveShopProductPrice_fails")
+    void nonPositiveShopProductPrice_fails() throws IOException {
+        createValidWorkbook();
+        workbook.getSheet("ShopProduct").getRow(1).getCell(3).setCellValue(0);
+        saveAndClose();
+
+        ExcelBalanceReader reader = new ExcelBalanceReader(tempExcel.getAbsolutePath());
+        BalanceConversionException ex = assertThrows(BalanceConversionException.class, reader::read);
+        assertThat(ex).hasMessageContaining("가격은 양수여야 합니다");
+    }
+
+    @Test
+    @DisplayName("nonPositiveDrawCount_fails")
+    void nonPositiveDrawCount_fails() throws IOException {
+        createValidWorkbook();
+        workbook.getSheet("ShopProduct").getRow(1).getCell(4).setCellValue(0);
+        saveAndClose();
+
+        ExcelBalanceReader reader = new ExcelBalanceReader(tempExcel.getAbsolutePath());
+        BalanceConversionException ex = assertThrows(BalanceConversionException.class, reader::read);
+        assertThat(ex).hasMessageContaining("뽑기 횟수는 양수여야 합니다");
+    }
+
+    @Test
+    @DisplayName("duplicateGradeInSamePool_fails")
+    void duplicateGradeInSamePool_fails() throws IOException {
+        createValidWorkbook();
+        workbook.getSheet("GachaPool").getRow(2).getCell(3).setCellValue("NORMAL");
+        saveAndClose();
+
+        ExcelBalanceReader reader = new ExcelBalanceReader(tempExcel.getAbsolutePath());
+        ExcelBalanceReader.BalanceData data = reader.read();
+        BalanceDataValidator validator = new BalanceDataValidator();
+        com.denfense.server.balance.GachaPoolBalanceDocument poolDoc = new com.denfense.server.balance.GachaPoolBalanceDocument(data.gachaPools());
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> validator.validateGachaPool(poolDoc, data.alienSpecs()));
+        assertThat(ex).hasMessageContaining("중복된 grade가 존재합니다");
+    }
+
+    @Test
+    @DisplayName("invalidPoolWeightSum_fails")
+    void invalidPoolWeightSum_fails() throws IOException {
+        createValidWorkbook();
+        workbook.getSheet("GachaPool").getRow(1).getCell(4).setCellValue(6001);
+        saveAndClose();
+
+        ExcelBalanceReader reader = new ExcelBalanceReader(tempExcel.getAbsolutePath());
+        ExcelBalanceReader.BalanceData data = reader.read();
+        BalanceDataValidator validator = new BalanceDataValidator();
+        com.denfense.server.balance.GachaPoolBalanceDocument poolDoc = new com.denfense.server.balance.GachaPoolBalanceDocument(data.gachaPools());
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> validator.validateGachaPool(poolDoc, data.alienSpecs()));
+        assertThat(ex).hasMessageContaining("총합은 10000이어야 합니다");
+    }
+
+    @Test
+    @DisplayName("invalidAlienIds_fails")
+    void invalidAlienIds_fails() throws IOException {
+        createValidWorkbook();
+        workbook.getSheet("GachaPool").getRow(1).getCell(5).setCellValue("1,abc,2");
+        saveAndClose();
+
+        ExcelBalanceReader reader = new ExcelBalanceReader(tempExcel.getAbsolutePath());
+        BalanceConversionException ex = assertThrows(BalanceConversionException.class, reader::read);
+        assertThat(ex).hasMessageContaining("숫자가 아닙니다");
+    }
+
+    @Test
+    @DisplayName("duplicateAlienIdInSamePool_fails")
+    void duplicateAlienIdInSamePool_fails() throws IOException {
+        createValidWorkbook();
+        workbook.getSheet("GachaPool").getRow(2).getCell(5).setCellValue("1"); // Row 1 already has "1"
+        saveAndClose();
+
+        ExcelBalanceReader reader = new ExcelBalanceReader(tempExcel.getAbsolutePath());
+        ExcelBalanceReader.BalanceData data = reader.read();
+        BalanceDataValidator validator = new BalanceDataValidator();
+        com.denfense.server.balance.GachaPoolBalanceDocument poolDoc = new com.denfense.server.balance.GachaPoolBalanceDocument(data.gachaPools());
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> validator.validateGachaPool(poolDoc, data.alienSpecs()));
+        assertThat(ex).hasMessageContaining("중복된 alienId가 존재합니다");
+    }
+
+    @Test
+    @DisplayName("invalidBoolean_fails")
+    void invalidBoolean_fails() throws IOException {
+        createValidWorkbook();
+        workbook.getSheet("ShopProduct").getRow(1).getCell(6).setCellValue("invalid_boolean");
+        saveAndClose();
+
+        ExcelBalanceReader reader = new ExcelBalanceReader(tempExcel.getAbsolutePath());
+        BalanceConversionException ex = assertThrows(BalanceConversionException.class, reader::read);
+        assertThat(ex).hasMessageContaining("Boolean이어야 합니다");
     }
 }

@@ -1,22 +1,22 @@
 {
-  "products": [
+  "products" : [
     {
-      "productId": "ALIEN_GACHA_SINGLE",
-      "name": "왹져 1회 뽑기",
-      "currencyType": "DIAMOND",
-      "price": 500,
-      "drawCount": 1,
-      "gachaPoolId": "STANDARD_ALIEN_POOL",
-      "active": true
+      "active" : true,
+      "currencyType" : "DIAMOND",
+      "drawCount" : 1,
+      "gachaPoolId" : "STANDARD_ALIEN_POOL",
+      "name" : "왹져 1회 뽑기",
+      "price" : 500,
+      "productId" : "ALIEN_GACHA_SINGLE"
     },
     {
-      "productId": "ALIEN_GACHA_TEN",
-      "name": "왹져 10회 연속 뽑기",
-      "currencyType": "DIAMOND",
-      "price": 5000,
-      "drawCount": 10,
-      "gachaPoolId": "STANDARD_ALIEN_POOL",
-      "active": true
+      "active" : true,
+      "currencyType" : "DIAMOND",
+      "drawCount" : 10,
+      "gachaPoolId" : "STANDARD_ALIEN_POOL",
+      "name" : "왹져 10회 연속 뽑기",
+      "price" : 5000,
+      "productId" : "ALIEN_GACHA_TEN"
     }
   ]
 }

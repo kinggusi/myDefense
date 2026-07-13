@@ -78,6 +78,42 @@ public class AlienSpecBalanceExcelConverterTest {
         rowUpgrade2.createCell(1).setCellValue(10);
         rowUpgrade2.createCell(2).setCellValue(200);
         rowUpgrade2.createCell(3).setCellValue(0);
+
+        Sheet shop = workbook.createSheet("ShopProduct");
+        Row hShop = shop.createRow(0);
+        hShop.createCell(0).setCellValue("productId");
+        hShop.createCell(1).setCellValue("name");
+        hShop.createCell(2).setCellValue("currencyType");
+        hShop.createCell(3).setCellValue("price");
+        hShop.createCell(4).setCellValue("drawCount");
+        hShop.createCell(5).setCellValue("gachaPoolId");
+        hShop.createCell(6).setCellValue("active");
+
+        Row rShop = shop.createRow(1);
+        rShop.createCell(0).setCellValue("TEST_PROD");
+        rShop.createCell(1).setCellValue("Test Prod");
+        rShop.createCell(2).setCellValue("DIAMOND");
+        rShop.createCell(3).setCellValue(500);
+        rShop.createCell(4).setCellValue(1);
+        rShop.createCell(5).setCellValue("TEST_POOL");
+        rShop.createCell(6).setCellValue(true);
+
+        Sheet pool = workbook.createSheet("GachaPool");
+        Row hPool = pool.createRow(0);
+        hPool.createCell(0).setCellValue("poolId");
+        hPool.createCell(1).setCellValue("poolName");
+        hPool.createCell(2).setCellValue("poolActive");
+        hPool.createCell(3).setCellValue("grade");
+        hPool.createCell(4).setCellValue("weight");
+        hPool.createCell(5).setCellValue("alienIds");
+
+        Row rPool = pool.createRow(1);
+        rPool.createCell(0).setCellValue("TEST_POOL");
+        rPool.createCell(1).setCellValue("Test Pool");
+        rPool.createCell(2).setCellValue(true);
+        rPool.createCell(3).setCellValue("NORMAL");
+        rPool.createCell(4).setCellValue(10000);
+        rPool.createCell(5).setCellValue("1");
     }
 
     private Sheet createAlienSpecSheet() {

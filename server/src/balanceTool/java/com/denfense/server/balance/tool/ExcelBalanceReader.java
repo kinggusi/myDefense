@@ -34,8 +34,10 @@ public class ExcelBalanceReader {
             upgradeCosts.sort(Comparator.comparingInt(AlienUpgradeCostBalance::currentLevel));
             
             List<com.denfense.server.balance.AlienSpecBalance> alienSpecs = readAlienSpecSheet(workbook);
+            List<com.denfense.server.balance.ShopProductBalance> shopProducts = readShopProductSheet(workbook);
+            List<com.denfense.server.balance.GachaPoolBalance> gachaPools = readGachaPoolSheet(workbook);
 
-            return new BalanceData(reward, new AlienUpgradeBalanceFile(maxLevel, upgradeCosts), alienSpecs);
+            return new BalanceData(reward, new AlienUpgradeBalanceFile(maxLevel, upgradeCosts), alienSpecs, shopProducts, gachaPools);
 
         } catch (IOException e) {
             throw new BalanceConversionException("파일을 읽는 중 오류가 발생했습니다: " + filePath, e);
@@ -466,5 +468,158 @@ public class ExcelBalanceReader {
         }
     }
 
-    public static record BalanceData(GameRewardBalance gameReward, AlienUpgradeBalanceFile alienUpgrade, List<com.denfense.server.balance.AlienSpecBalance> alienSpecs) {}
+    private List<com.denfense.server.balance.ShopProductBalance> readShopProductSheet(Workbook workbook) {
+        Sheet sheet = getSheetOrThrow(workbook, "ShopProduct");
+
+        Row headerRow = sheet.getRow(0);
+        if (headerRow == null) {
+            throw new BalanceConversionException("[ShopProduct] 헤더가 없습니다.");
+        }
+
+        List<String> expectedHeaders = Arrays.asList("productId", "name", "currencyType", "price", "drawCount", "gachaPoolId", "active");
+        List<String> headers = readHeaders(sheet.getSheetName(), headerRow, expectedHeaders);
+
+        int idIdx = headers.indexOf("productId");
+        int nameIdx = headers.indexOf("name");
+        int currIdx = headers.indexOf("currencyType");
+        int priceIdx = headers.indexOf("price");
+        int countIdx = headers.indexOf("drawCount");
+        int poolIdx = headers.indexOf("gachaPoolId");
+        int activeIdx = headers.indexOf("active");
+
+        List<com.denfense.server.balance.ShopProductBalance> products = new ArrayList<>();
+        Set<String> seenIds = new HashSet<>();
+
+        for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+            Row row = sheet.getRow(i);
+            if (row == null) continue;
+
+            boolean hasData = false;
+            for (int col = 0; col < headers.size(); col++) {
+                Cell cell = row.getCell(col);
+                if (cell != null && cell.getCellType() != CellType.BLANK) {
+                    hasData = true;
+                    break;
+                }
+            }
+            if (!hasData) continue;
+
+            String productId = readStringCell(sheet.getSheetName(), i, "productId", row.getCell(idIdx));
+            if (!seenIds.add(productId)) {
+                throw new BalanceConversionException(String.format("[%s] %d행 'productId' 열: %s - 중복된 상품 ID입니다.", sheet.getSheetName(), i + 1, productId));
+            }
+
+            String name = readStringCell(sheet.getSheetName(), i, "name", row.getCell(nameIdx));
+            String currencyType = readStringCell(sheet.getSheetName(), i, "currencyType", row.getCell(currIdx));
+            int price = readIntCell(sheet.getSheetName(), i, "price", row.getCell(priceIdx));
+            if (price <= 0) {
+                throw new BalanceConversionException(String.format("[%s] %d행 'price' 열: %d - 가격은 양수여야 합니다.", sheet.getSheetName(), i + 1, price));
+            }
+            int drawCount = readIntCell(sheet.getSheetName(), i, "drawCount", row.getCell(countIdx));
+            if (drawCount <= 0) {
+                throw new BalanceConversionException(String.format("[%s] %d행 'drawCount' 열: %d - 뽑기 횟수는 양수여야 합니다.", sheet.getSheetName(), i + 1, drawCount));
+            }
+            String gachaPoolId = readStringCell(sheet.getSheetName(), i, "gachaPoolId", row.getCell(poolIdx));
+            boolean active = readBooleanCell(sheet.getSheetName(), i, "active", row.getCell(activeIdx));
+
+            products.add(new com.denfense.server.balance.ShopProductBalance(productId, name, currencyType, price, drawCount, gachaPoolId, active));
+        }
+        
+        products.sort(Comparator.comparing(com.denfense.server.balance.ShopProductBalance::productId));
+        return products;
+    }
+
+    private List<com.denfense.server.balance.GachaPoolBalance> readGachaPoolSheet(Workbook workbook) {
+        Sheet sheet = getSheetOrThrow(workbook, "GachaPool");
+
+        Row headerRow = sheet.getRow(0);
+        if (headerRow == null) {
+            throw new BalanceConversionException("[GachaPool] 헤더가 없습니다.");
+        }
+
+        List<String> expectedHeaders = Arrays.asList("poolId", "poolName", "poolActive", "grade", "weight", "alienIds");
+        List<String> headers = readHeaders(sheet.getSheetName(), headerRow, expectedHeaders);
+
+        int poolIdIdx = headers.indexOf("poolId");
+        int nameIdx = headers.indexOf("poolName");
+        int activeIdx = headers.indexOf("poolActive");
+        int gradeIdx = headers.indexOf("grade");
+        int weightIdx = headers.indexOf("weight");
+        int alienIdsIdx = headers.indexOf("alienIds");
+
+        class PoolBuilder {
+            String poolId;
+            String poolName;
+            boolean poolActive;
+            List<com.denfense.server.balance.GachaGradeEntryBalance> entries = new ArrayList<>();
+        }
+        Map<String, PoolBuilder> builderMap = new LinkedHashMap<>();
+
+        for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+            Row row = sheet.getRow(i);
+            if (row == null) continue;
+
+            boolean hasData = false;
+            for (int col = 0; col < headers.size(); col++) {
+                Cell cell = row.getCell(col);
+                if (cell != null && cell.getCellType() != CellType.BLANK) {
+                    hasData = true;
+                    break;
+                }
+            }
+            if (!hasData) continue;
+
+            String poolId = readStringCell(sheet.getSheetName(), i, "poolId", row.getCell(poolIdIdx));
+            String poolName = readStringCell(sheet.getSheetName(), i, "poolName", row.getCell(nameIdx));
+            boolean poolActive = readBooleanCell(sheet.getSheetName(), i, "poolActive", row.getCell(activeIdx));
+            String grade = readStringCell(sheet.getSheetName(), i, "grade", row.getCell(gradeIdx));
+            int weight = readIntCell(sheet.getSheetName(), i, "weight", row.getCell(weightIdx));
+            if (weight <= 0) {
+                throw new BalanceConversionException(String.format("[%s] %d행 'weight' 열: 가중치는 0보다 커야 합니다.", sheet.getSheetName(), i + 1));
+            }
+            
+            String alienIdsStr = readStringCell(sheet.getSheetName(), i, "alienIds", row.getCell(alienIdsIdx));
+            String[] alienIdTokens = alienIdsStr.split(",");
+            List<Long> alienIds = new ArrayList<>();
+            for (String token : alienIdTokens) {
+                token = token.trim();
+                if (token.isEmpty()) {
+                    throw new BalanceConversionException(String.format("[%s] %d행 'alienIds' 열: 쉼표 사이에 빈 값이 있습니다.", sheet.getSheetName(), i + 1));
+                }
+                try {
+                    alienIds.add(Long.parseLong(token));
+                } catch (NumberFormatException e) {
+                    throw new BalanceConversionException(String.format("[%s] %d행 'alienIds' 열: %s - 숫자가 아닙니다.", sheet.getSheetName(), i + 1, token));
+                }
+            }
+            if (alienIds.isEmpty()) {
+                throw new BalanceConversionException(String.format("[%s] %d행 'alienIds' 열: 비어 있습니다.", sheet.getSheetName(), i + 1));
+            }
+            alienIds.sort(Long::compareTo);
+
+            PoolBuilder builder = builderMap.computeIfAbsent(poolId, id -> {
+                PoolBuilder b = new PoolBuilder();
+                b.poolId = id;
+                b.poolName = poolName;
+                b.poolActive = poolActive;
+                return b;
+            });
+            builder.entries.add(new com.denfense.server.balance.GachaGradeEntryBalance(grade, weight, alienIds));
+        }
+        
+        List<com.denfense.server.balance.GachaPoolBalance> pools = new ArrayList<>();
+        for (PoolBuilder b : builderMap.values()) {
+            pools.add(new com.denfense.server.balance.GachaPoolBalance(b.poolId, b.poolName, b.poolActive, b.entries));
+        }
+        pools.sort(Comparator.comparing(com.denfense.server.balance.GachaPoolBalance::poolId));
+        return pools;
+    }
+
+    public static record BalanceData(
+        GameRewardBalance gameReward, 
+        AlienUpgradeBalanceFile alienUpgrade, 
+        List<com.denfense.server.balance.AlienSpecBalance> alienSpecs,
+        List<com.denfense.server.balance.ShopProductBalance> shopProducts,
+        List<com.denfense.server.balance.GachaPoolBalance> gachaPools
+    ) {}
 }
