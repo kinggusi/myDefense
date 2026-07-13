@@ -13,10 +13,12 @@ cd server
 ./gradlew convertBalance
 ```
 
-이 명령은 `balance/source/balance-data.xlsx`를 읽어 유효성을 검사하고, 성공 시 아래 위치에 JSON 파일을 생성/교체합니다.
+이 명령은 `balance/source/balance-data.xlsx`를 읽어 유효성을 검사하고, 성공 시 아래 위치에 5종의 JSON 파일을 생성/교체합니다.
 - `server/src/main/resources/balance/generated/game-reward.json`
 - `server/src/main/resources/balance/generated/alien-upgrade.json`
 - `server/src/main/resources/balance/generated/alien-spec.json`
+- `server/src/main/resources/balance/generated/shop-products.json`
+- `server/src/main/resources/balance/generated/gacha-pools.json`
 
 ## Excel 시트 구조 (엄격한 검증)
 엑셀의 데이터는 매우 엄격하게 검증됩니다. 기획 오류를 방지하기 위해 다음 규칙을 반드시 지켜야 합니다.
@@ -43,6 +45,17 @@ cd server
 - `description`: 빈 셀 입력 시 빈 문자열(`""`)로 저장됩니다.
 - `evolutionTargetId`: 빈 셀 입력 시 `null`로 저장되며, 존재하지 않는 대상이나 순환 참조 입력 시 실패합니다.
 - `isLocked`: 반드시 Excel `BOOLEAN` 셀(`TRUE`/`FALSE`) 타입이어야 합니다 (문자열 금지).
+
+### ShopProduct 시트
+- 필수 헤더: `productId`, `name`, `currencyType`, `price`, `drawCount`, `gachaPoolId`, `active`
+- `active`: 반드시 Excel `BOOLEAN` 셀(`TRUE`/`FALSE`) 타입이어야 합니다.
+- `price`, `drawCount`: 0보다 커야 합니다.
+
+### GachaPool 시트
+- 필수 헤더: `poolId`, `poolName`, `poolActive`, `grade`, `weight`, `alienIds`
+- 동일한 `poolId`를 가진 행들은 하나의 풀로 그룹화됩니다.
+- `weight`: 0보다 커야 하며, 한 풀의 전체 weight 합계는 10000이어야 합니다.
+- `alienIds`: 콤마(`,`)로 구분된 `alienId` 번호 목록이어야 하며 공백은 무시됩니다 (예: `22, 23, 24`).
 
 ## 검증 실패 예시
 변환 실패 시 기획자가 즉시 수정할 수 있도록 에러 메시지가 출력됩니다.
