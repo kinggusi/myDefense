@@ -16,4 +16,7 @@ public interface AlienSpecRepository extends JpaRepository<AlienSpec, Long> {
     // 성능 최적화를 위해 LIMIT 1 사용
     @Query(value = "SELECT * FROM alien_specs WHERE grade = :grade ORDER BY RAND() LIMIT 1", nativeQuery = true)
     Optional<AlienSpec> findRandomByGrade(@Param("grade") String gradeName);
+
+    @Query("SELECT a.id FROM AlienSpec a")
+    List<Long> findAllIds();
 }
