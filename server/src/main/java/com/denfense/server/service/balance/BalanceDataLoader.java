@@ -17,9 +17,12 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.springframework.core.annotation.Order;
+
 @Slf4j
 @Component
 @RequiredArgsConstructor
+@Order(1)
 public class BalanceDataLoader implements ApplicationRunner {
 
     private final ResourceLoader resourceLoader;
@@ -36,6 +39,12 @@ public class BalanceDataLoader implements ApplicationRunner {
     @Value("${balance.spec.path:classpath:balance/generated/alien-spec.json}")
     private String specFilePath;
 
+    @Value("${balance.pool.path:classpath:balance/generated/gacha-pools.json}")
+    private String poolFilePath;
+
+    @Value("${balance.product.path:classpath:balance/generated/shop-products.json}")
+    private String productFilePath;
+
     public void setRewardFilePath(String rewardFilePath) {
         this.rewardFilePath = rewardFilePath;
     }
@@ -46,6 +55,14 @@ public class BalanceDataLoader implements ApplicationRunner {
 
     public void setSpecFilePath(String specFilePath) {
         this.specFilePath = specFilePath;
+    }
+
+    public void setPoolFilePath(String poolFilePath) {
+        this.poolFilePath = poolFilePath;
+    }
+
+    public void setProductFilePath(String productFilePath) {
+        this.productFilePath = productFilePath;
     }
 
     @Override
@@ -84,7 +101,21 @@ public class BalanceDataLoader implements ApplicationRunner {
             List<AlienSpecBalance> specs = strictMapper.readValue(specRes.getInputStream(), new TypeReference<List<AlienSpecBalance>>() {});
             validator.validateAlienSpec(specs);
 
-            registry.init(rewardBalance, upgradeFile.maxLevel(), costMap, specs);
+            Resource poolRes = resourceLoader.getResource(poolFilePath);
+            if (!poolRes.exists()) {
+                throw new IllegalStateException("파일을 찾을 수 없습니다: " + poolFilePath);
+            }
+            com.denfense.server.balance.GachaPoolBalanceDocument poolDoc = strictMapper.readValue(poolRes.getInputStream(), com.denfense.server.balance.GachaPoolBalanceDocument.class);
+            validator.validateGachaPool(poolDoc, specs);
+
+            Resource productRes = resourceLoader.getResource(productFilePath);
+            if (!productRes.exists()) {
+                throw new IllegalStateException("파일을 찾을 수 없습니다: " + productFilePath);
+            }
+            com.denfense.server.balance.ShopProductBalanceDocument productDoc = strictMapper.readValue(productRes.getInputStream(), com.denfense.server.balance.ShopProductBalanceDocument.class);
+            validator.validateShopProduct(productDoc, poolDoc);
+
+            registry.init(rewardBalance, upgradeFile.maxLevel(), costMap, specs, productDoc.products(), poolDoc.pools());
 
             log.info("Balance 데이터 로딩 완료. MaxLevel: {}", upgradeFile.maxLevel());
         } catch (Exception e) {

@@ -49,24 +49,28 @@ class InGameServiceTest {
 
         // 1. 테스트용 AlienSpec DB 저장
         normalAlienSpec = new AlienSpec();
+        normalAlienSpec.setId(100L);
         normalAlienSpec.setName("일반왹져");
         normalAlienSpec.setGrade(AlienSpec.Grade.NORMAL);
         normalAlienSpec.setLocked(false);
         alienSpecRepository.save(normalAlienSpec);
 
         epicAlienSpec = new AlienSpec();
+        epicAlienSpec.setId(101L);
         epicAlienSpec.setName("에픽왹져");
         epicAlienSpec.setGrade(AlienSpec.Grade.EPIC);
         epicAlienSpec.setLocked(false);
         alienSpecRepository.save(epicAlienSpec);
 
         legendAlienSpec = new AlienSpec();
+        legendAlienSpec.setId(102L);
         legendAlienSpec.setName("전설왹져");
         legendAlienSpec.setGrade(AlienSpec.Grade.LEGEND);
         legendAlienSpec.setLocked(false);
         alienSpecRepository.save(legendAlienSpec);
 
         mythicAlienSpec = new AlienSpec();
+        mythicAlienSpec.setId(103L);
         mythicAlienSpec.setName("신화왹져");
         mythicAlienSpec.setGrade(AlienSpec.Grade.MYTHIC);
         mythicAlienSpec.setLocked(false);

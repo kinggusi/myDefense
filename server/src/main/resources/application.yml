@@ -31,3 +31,7 @@ spring:
     init:
       mode: always
       defer-datasource-initialization: true
+balance:
+  alien-spec:
+    consistency-mode: warn
+    seed-enabled: true

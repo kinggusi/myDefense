@@ -25,7 +25,7 @@ public class BalanceRegistryTest {
         rewardBalance = new GameRewardBalance(100, 10, 1000);
         costMap = new HashMap<>();
         costMap.put(1, new AlienUpgradeCostBalance(1, 10, 100, 0));
-        
+
         specs = List.of(
             new AlienSpecBalance(2, "B", "", "NORMAL", 10, 10, 1.0, 1.0, null, false),
             new AlienSpecBalance(1, "A", "", "NORMAL", 10, 10, 1.0, 1.0, null, false)
@@ -33,44 +33,91 @@ public class BalanceRegistryTest {
     }
 
     @Test
-    @DisplayName("getAlienSpec 정상 조회")
+    @DisplayName("getAlienSpec ?�상 조회")
     void getAlienSpec() {
-        registry.init(rewardBalance, 2, costMap, specs);
+        registry.init(rewardBalance, 2, costMap, specs, List.of(), List.of());
         AlienSpecBalance spec = registry.getAlienSpec(1);
         assertThat(spec.name()).isEqualTo("A");
     }
 
     @Test
-    @DisplayName("없는 ID 조회 시 명시적 예외")
+    @DisplayName("?�는 ID 조회 ??명시???�외")
     void getAlienSpecNotFound() {
-        registry.init(rewardBalance, 2, costMap, specs);
+        registry.init(rewardBalance, 2, costMap, specs, List.of(), List.of());
         assertThrows(IllegalArgumentException.class, () -> registry.getAlienSpec(99));
     }
 
     @Test
-    @DisplayName("getAllAlienSpecs alienId 오름차순 및 반환 List 수정 불가")
+    @DisplayName("getAllAlienSpecs alienId ?�름차순 �?반환 List ?�정 불�?")
     void getAllAlienSpecsSortedAndImmutable() {
-        registry.init(rewardBalance, 2, costMap, specs);
+        registry.init(rewardBalance, 2, costMap, specs, List.of(), List.of());
         List<AlienSpecBalance> all = registry.getAllAlienSpecs();
-        
-        // 오름차순 검증
-        assertThat(all.get(0).alienId()).isEqualTo(1);
+
+        // ?�름차순 검�?        assertThat(all.get(0).alienId()).isEqualTo(1);
         assertThat(all.get(1).alienId()).isEqualTo(2);
 
-        // 수정 불가 검증 (UnsupportedOperationException)
+        // ?�정 불�? 검�?(UnsupportedOperationException)
         assertThrows(UnsupportedOperationException.class, () -> all.add(new AlienSpecBalance(3, "C", "", "NORMAL", 10, 10, 1.0, 1.0, null, false)));
     }
 
     @Test
-    @DisplayName("AlienSpecBalance가 record 또는 불변 객체인지 확인")
+    @DisplayName("AlienSpecBalance가 record ?�는 불�? 객체?��? ?�인")
     void checkRecord() {
         assertThat(AlienSpecBalance.class.isRecord()).isTrue();
     }
 
     @Test
-    @DisplayName("Registry 중복 초기화 거절")
+    @DisplayName("Registry 중복 초기??거절")
     void duplicateInit() {
-        registry.init(rewardBalance, 2, costMap, specs);
-        assertThrows(IllegalStateException.class, () -> registry.init(rewardBalance, 2, costMap, specs));
+        registry.init(rewardBalance, 2, costMap, specs, List.of(), List.of());
+        assertThrows(IllegalStateException.class, () -> registry.init(rewardBalance, 2, costMap, specs, List.of(), List.of()));
+    }
+
+    @Test
+    @DisplayName("getShopProduct ?�상 조회 �??�는 ID ?�외")
+    void getShopProduct() {
+        com.denfense.server.balance.ShopProductBalance product = new com.denfense.server.balance.ShopProductBalance("S1", "??", "DIAMOND", 500, 1, "P1", true);
+        registry.init(rewardBalance, 2, costMap, specs, List.of(product), List.of());
+
+        assertThat(registry.getShopProduct("S1").name()).isEqualTo("??");
+        assertThrows(IllegalArgumentException.class, () -> registry.getShopProduct("S99"));
+    }
+
+    @Test
+    @DisplayName("getAllShopProducts 컬렉??변�?불�?")
+    void getAllShopProductsImmutable() {
+        com.denfense.server.balance.ShopProductBalance product = new com.denfense.server.balance.ShopProductBalance("S1", "??", "DIAMOND", 500, 1, "P1", true);
+        registry.init(rewardBalance, 2, costMap, specs, List.of(product), List.of());
+
+        List<com.denfense.server.balance.ShopProductBalance> all = registry.getAllShopProducts();
+        assertThrows(UnsupportedOperationException.class, () -> all.clear());
+    }
+
+    @Test
+    @DisplayName("getGachaPool ?�상 조회 �??�는 ID ?�외")
+    void getGachaPool() {
+        com.denfense.server.balance.GachaPoolBalance pool = new com.denfense.server.balance.GachaPoolBalance("P1", "?�1", true, List.of());
+        registry.init(rewardBalance, 2, costMap, specs, List.of(), List.of(pool));
+
+        assertThat(registry.getGachaPool("P1").name()).isEqualTo("?�1");
+        assertThrows(IllegalArgumentException.class, () -> registry.getGachaPool("P99"));
+    }
+
+    @Test
+    @DisplayName("getAllGachaPools �??��? 컬렉??변�?불�?")
+    void getAllGachaPoolsImmutable() {
+        com.denfense.server.balance.GachaPoolBalance pool = new com.denfense.server.balance.GachaPoolBalance("P1", "?�1", true, List.of(
+            new com.denfense.server.balance.GachaGradeEntryBalance("NORMAL", 10000, List.of(1L))
+        ));
+        registry.init(rewardBalance, 2, costMap, specs, List.of(), List.of(pool));
+
+        List<com.denfense.server.balance.GachaPoolBalance> all = registry.getAllGachaPools();
+        assertThrows(UnsupportedOperationException.class, () -> all.clear());
+
+        com.denfense.server.balance.GachaPoolBalance fetchedPool = all.get(0);
+        assertThrows(UnsupportedOperationException.class, () -> fetchedPool.gradeEntries().clear());
+
+        com.denfense.server.balance.GachaGradeEntryBalance entry = fetchedPool.gradeEntries().get(0);
+        assertThrows(UnsupportedOperationException.class, () -> entry.alienIds().clear());
     }
 }

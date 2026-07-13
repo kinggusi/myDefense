@@ -50,6 +50,7 @@ public class AlienApiIntegrationTest {
         alienSpecRepository.deleteAll();
 
         testAlienSpec = new AlienSpec();
+        testAlienSpec.setId(100L);
         testAlienSpec.setName("HTTP테스트왹져");
         testAlienSpec.setGrade(AlienSpec.Grade.NORMAL);
         alienSpecRepository.save(testAlienSpec);

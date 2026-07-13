@@ -52,6 +52,7 @@ class AlienServiceTest {
         alienSpecRepository.deleteAll();
 
         testAlienSpec = new AlienSpec();
+        testAlienSpec.setId(100L);
         testAlienSpec.setName("테스트왹져");
         testAlienSpec.setGrade(AlienSpec.Grade.NORMAL);
         testAlienSpec.setLocked(false);
