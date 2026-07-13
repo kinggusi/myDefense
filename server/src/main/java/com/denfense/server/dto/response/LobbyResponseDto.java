@@ -1,6 +1,7 @@
 package com.denfense.server.dto.response;
 
 import com.denfense.server.domain.AlienSpec;
+import com.denfense.server.domain.UserAlien;
 import lombok.Data;
 import java.util.List;
 
@@ -15,32 +16,59 @@ public class LobbyResponseDto {
         private int gold;
         private int diamond;
         private int heart;
+        private int universalPiece;
+        private int growthCell;
+        private java.time.LocalDateTime nextHeartRecoveryAt;
     }
 
     @Data
     public static class AlienInventoryDto {
         private Long id;
         private String name;
+        private String description;
         private String grade;
         private int level;
         private int pieces;
         private int requiredPieces;
-        private boolean locked; // 프론트에서 쓸 잠금 여부
+        private boolean locked; // 레거시 호환성 유지용
 
-        public static AlienInventoryDto fromEntity(AlienSpec spec, int currentLevel, int currentPieces) {
+        // 신규 추가 필드
+        private boolean owned;
+        private int baseAtk;
+        private int baseMp;
+        private double atkSpeed;
+        private double range;
+        private Long evolutionTargetId;
+        private boolean specLocked;
+
+        public static AlienInventoryDto fromEntity(AlienSpec spec, UserAlien userAlien) {
             AlienInventoryDto dto = new AlienInventoryDto();
             dto.setId(spec.getId());
             dto.setName(spec.getName());
-
-            // Enum 처리 (grade가 null일 경우를 대비해 안전하게 처리)
+            dto.setDescription(spec.getDescription());
             dto.setGrade(spec.getGrade() != null ? spec.getGrade().name() : "NORMAL");
 
-            dto.setLevel(currentLevel);
-            dto.setPieces(currentPieces);
+            dto.setBaseAtk(spec.getBaseAtk());
+            dto.setBaseMp(spec.getBaseMp());
+            dto.setAtkSpeed(spec.getAtkSpeed());
+            dto.setRange(spec.getRange());
+            dto.setEvolutionTargetId(spec.getEvolutionTargetId());
+            dto.setSpecLocked(spec.isLocked());
 
-            dto.setRequiredPieces(currentLevel * 10);
+            if (userAlien != null) {
+                dto.setOwned(true);
+                dto.setLevel(userAlien.getLevel());
+                dto.setPieces(userAlien.getPieces());
+                dto.setRequiredPieces(userAlien.getLevel() * 10);
+                dto.setLocked(false); // 기존 로직 호환 (보유 시 잠금해제)
+            } else {
+                dto.setOwned(false);
+                dto.setLevel(0); // 기존 1에서 0으로 정책 변경 (미보유 상태 명확화)
+                dto.setPieces(0);
+                dto.setRequiredPieces(10);
+                dto.setLocked(spec.isLocked());
+            }
 
-            dto.setLocked(spec.isLocked());
             return dto;
         }
     }
