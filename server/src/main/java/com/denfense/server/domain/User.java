@@ -25,6 +25,8 @@ public class User {
     private int gold;
     private int diamond;
     private int heart;
+    private int universalPiece;
+    private int growthCell;
     private LocalDateTime lastHeartUpdateTime;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
@@ -34,6 +36,8 @@ public class User {
         this.username = username;
         this.password = password;
         this.gold = 0; // 초기 골드는 0으로 시작 (나중에 setGold로 수정 가능)
+        this.universalPiece = 0;
+        this.growthCell = 0;
     }
 
 
@@ -45,41 +49,72 @@ public class User {
         this.diamond = diamond;
     }
 
+    public void spendGold(int amount) {
+        if (amount < 0) {
+            throw new com.denfense.server.exception.BusinessException(com.denfense.server.exception.ErrorCode.INVALID_REQUEST, "차감 금액은 0 이상이어야 합니다.");
+        }
+        if (this.gold < amount) {
+            throw new com.denfense.server.exception.BusinessException(com.denfense.server.exception.ErrorCode.INSUFFICIENT_ACCOUNT_GOLD, "골드가 부족합니다.");
+        }
+        this.gold -= amount;
+    }
+
+    public void earnGold(int amount) {
+        if (amount < 0) {
+            throw new com.denfense.server.exception.BusinessException(com.denfense.server.exception.ErrorCode.INVALID_REQUEST, "지급 금액은 0 이상이어야 합니다.");
+        }
+        long newGold = (long) this.gold + amount;
+        if (newGold > Integer.MAX_VALUE) {
+            this.gold = Integer.MAX_VALUE;
+        } else {
+            this.gold = (int) newGold;
+        }
+    }
+
+    public void spendUniversalPiece(int amount) {
+        if (amount < 0) {
+            throw new com.denfense.server.exception.BusinessException(com.denfense.server.exception.ErrorCode.INVALID_REQUEST, "차감 개수는 0 이상이어야 합니다.");
+        }
+        if (this.universalPiece < amount) {
+            throw new com.denfense.server.exception.BusinessException(com.denfense.server.exception.ErrorCode.INSUFFICIENT_ALIEN_PIECES, "대체 코인이 부족합니다.");
+        }
+        this.universalPiece -= amount;
+    }
+
+    public void spendGrowthCell(int amount) {
+        if (amount < 0) {
+            throw new com.denfense.server.exception.BusinessException(com.denfense.server.exception.ErrorCode.INVALID_REQUEST, "차감 개수는 0 이상이어야 합니다.");
+        }
+        if (this.growthCell < amount) {
+            throw new com.denfense.server.exception.BusinessException(com.denfense.server.exception.ErrorCode.INSUFFICIENT_GROWTH_CELL, "성장 세포가 부족합니다.");
+        }
+        this.growthCell -= amount;
+    }
+
     // 하트 계산 로직 (도메인 메서드)
+    /**
+     * @deprecated Use {@link com.denfense.server.service.HeartPolicy} directly.
+     * This method alters entity state and may cause unintended DB updates in read-only scenarios.
+     */
+    @Deprecated
     public void calculateOfflineHearts() {
-        int maxNaturalHeart = 100;    // 소프트 캡
-        int rechargeMinutes = 15;     // 15분
-        int heartsPerInterval = 10;   // 10개씩
+        com.denfense.server.service.HeartSnapshot snapshot = new com.denfense.server.service.HeartPolicy().calculate(this.heart, this.lastHeartUpdateTime);
+        this.heart = snapshot.calculatedHeart();
+        this.lastHeartUpdateTime = snapshot.effectiveLastHeartUpdateTime();
+    }
 
-        if (this.lastHeartUpdateTime == null) {
-            this.lastHeartUpdateTime = LocalDateTime.now();
-            this.heart = maxNaturalHeart; // 미안하니까(?) 하트를 꽉 채워줍니다.
-            return;
+    public void applyHeartSnapshot(com.denfense.server.service.HeartSnapshot snapshot) {
+        this.heart = snapshot.calculatedHeart();
+        this.lastHeartUpdateTime = snapshot.effectiveLastHeartUpdateTime();
+    }
+
+    public void spendHeart(int amount) {
+        if (amount <= 0) {
+            throw new com.denfense.server.exception.BusinessException(com.denfense.server.exception.ErrorCode.INVALID_REQUEST, "소비할 하트 개수는 양수여야 합니다.");
         }
-
-        // 1. 이미 100개 이상이면 시간만 갱신하고 종료
-        if (this.heart >= maxNaturalHeart) {
-            this.lastHeartUpdateTime = LocalDateTime.now();
-            return;
+        if (this.heart < amount) {
+            throw new com.denfense.server.exception.BusinessException(com.denfense.server.exception.ErrorCode.INSUFFICIENT_HEART, "하트가 부족합니다.");
         }
-
-        LocalDateTime now = LocalDateTime.now();
-        long minutesPassed = java.time.Duration.between(this.lastHeartUpdateTime, now).toMinutes();
-
-        // 2. 15분이 지났을 때만 계산
-        if (minutesPassed >= rechargeMinutes) {
-            int intervals = (int) (minutesPassed / rechargeMinutes);
-            int earnedHearts = intervals * heartsPerInterval;
-            int newHeart = this.heart + earnedHearts;
-
-            if (newHeart >= maxNaturalHeart) {
-                this.heart = maxNaturalHeart;
-                this.lastHeartUpdateTime = now;
-            } else {
-                this.heart = newHeart;
-                // 사용한 시간만큼만 갱신 (자투리 시간 보존)
-                this.lastHeartUpdateTime = this.lastHeartUpdateTime.plusMinutes((long) intervals * rechargeMinutes);
-            }
-        }
+        this.heart -= amount;
     }
 }

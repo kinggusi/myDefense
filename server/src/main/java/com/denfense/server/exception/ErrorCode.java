@@ -14,6 +14,20 @@ public enum ErrorCode {
     INVALID_MERGE(HttpStatus.BAD_REQUEST, "잘못된 합성 시도입니다."),
     INVALID_INJECTOR(HttpStatus.BAD_REQUEST, "잘못된 인젝터 주입 시도입니다."),
     INVALID_REQUEST(HttpStatus.BAD_REQUEST, "잘못된 요청 형식입니다."),
+    USER_NOT_FOUND(HttpStatus.NOT_FOUND, "사용자 정보를 찾을 수 없습니다."),
+    USER_ALIEN_NOT_FOUND(HttpStatus.NOT_FOUND, "보유하지 않은 왹져입니다."),
+    MAX_ALIEN_LEVEL_REACHED(HttpStatus.CONFLICT, "왹져가 최대 레벨에 도달했습니다."),
+    INSUFFICIENT_ALIEN_PIECES(HttpStatus.CONFLICT, "왹져 전용 조각 및 대체 코인이 부족합니다."),
+    INSUFFICIENT_ACCOUNT_GOLD(HttpStatus.CONFLICT, "계정 골드가 부족합니다."),
+    INSUFFICIENT_GROWTH_CELL(HttpStatus.CONFLICT, "성장 세포가 부족합니다."),
+    INVALID_UPGRADE_REQUEST(HttpStatus.BAD_REQUEST, "잘못된 강화 요청입니다."),
+    INSUFFICIENT_HEART(HttpStatus.CONFLICT, "하트가 부족합니다."),
+    GAME_SESSION_CREATE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "게임 세션 생성에 실패했습니다."),
+    INVALID_GAME_ENTRY_REQUEST(HttpStatus.BAD_REQUEST, "잘못된 게임 입장 요청입니다."),
+    GAME_SESSION_OWNERSHIP_MISMATCH(HttpStatus.FORBIDDEN, "세션 소유권이 일치하지 않습니다."),
+    GAME_NOT_FINISHED(HttpStatus.BAD_REQUEST, "아직 게임이 종료되지 않았습니다."),
+    INVALID_GAME_FINISH_REQUEST(HttpStatus.BAD_REQUEST, "잘못된 게임 종료 요청입니다."),
+    GAME_REWARD_CALCULATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "보상 계산에 실패했습니다."),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "예상치 못한 서버 에러가 발생했습니다.");
 
     private final HttpStatus status;

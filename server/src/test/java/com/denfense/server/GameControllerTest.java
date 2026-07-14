@@ -55,6 +55,7 @@ class GameControllerTest {
         alienSpecRepository.deleteAll();
 
         normalAlienSpec = new AlienSpec();
+        normalAlienSpec.setId(100L);
         normalAlienSpec.setName("일반왹져");
         normalAlienSpec.setGrade(AlienSpec.Grade.NORMAL);
         normalAlienSpec.setLocked(false);
@@ -176,6 +177,7 @@ class GameControllerTest {
         GameSession session = sessionManager.createSession(testUser.getId());
         
         AlienSpec epicAlienSpec = new AlienSpec();
+        epicAlienSpec.setId(101L);
         epicAlienSpec.setName("에픽왹져");
         epicAlienSpec.setGrade(AlienSpec.Grade.EPIC);
         epicAlienSpec.setLocked(false);

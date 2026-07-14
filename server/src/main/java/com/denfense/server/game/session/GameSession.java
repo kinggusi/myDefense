@@ -12,6 +12,8 @@ import lombok.Getter;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.time.LocalDateTime;
+import java.util.UUID;
 
 /**
  * 게임 한 판의 상태를 관리하는 세션 객체
@@ -20,6 +22,7 @@ import java.util.concurrent.atomic.AtomicLong;
 @Getter
 public class GameSession {
 
+    private final String sessionId; // 고유 세션 ID (UUID)
     private final Long userId; // 이 세션의 주인
 
     // 현재 필드에 나와있는 모든 객체들 (Key: 객체ID, Value: BoardObject)
@@ -33,7 +36,10 @@ public class GameSession {
     // 4x6 그리드를 관리할 인메모리 배열
     private final BoardObject[][] grid = new BoardObject[4][6];
 
+    private final LocalDateTime createdAt = LocalDateTime.now();
+
     public GameSession(Long userId) {
+        this.sessionId = UUID.randomUUID().toString();
         this.userId = userId;
     }
 
@@ -369,7 +375,7 @@ public class GameSession {
     /**
      * 웨이브 초기
      */
-    private int currentWave = 0;
+    private int currentWave = 1;
 
     /**
      * 웨이브 ++
@@ -490,5 +496,9 @@ public class GameSession {
             }
         }
         return list;
+    }
+
+    public int getClearedWave() {
+        return Math.max(0, currentWave - 1);
     }
 }

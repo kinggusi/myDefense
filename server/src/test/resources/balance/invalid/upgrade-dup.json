@@ -1,0 +1,7 @@
+{
+  "maxLevel": 3,
+  "costs": [
+    { "currentLevel": 1, "requiredPieces": 5, "requiredGold": 100, "requiredGrowthCell": 0 },
+    { "currentLevel": 1, "requiredPieces": 10, "requiredGold": 200, "requiredGrowthCell": 0 }
+  ]
+}

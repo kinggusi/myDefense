@@ -1,0 +1,299 @@
+{
+  "costs" : [
+    {
+      "currentLevel" : 1,
+      "requiredGold" : 100,
+      "requiredGrowthCell" : 0,
+      "requiredPieces" : 5
+    },
+    {
+      "currentLevel" : 2,
+      "requiredGold" : 200,
+      "requiredGrowthCell" : 0,
+      "requiredPieces" : 10
+    },
+    {
+      "currentLevel" : 3,
+      "requiredGold" : 300,
+      "requiredGrowthCell" : 0,
+      "requiredPieces" : 15
+    },
+    {
+      "currentLevel" : 4,
+      "requiredGold" : 400,
+      "requiredGrowthCell" : 0,
+      "requiredPieces" : 20
+    },
+    {
+      "currentLevel" : 5,
+      "requiredGold" : 500,
+      "requiredGrowthCell" : 0,
+      "requiredPieces" : 25
+    },
+    {
+      "currentLevel" : 6,
+      "requiredGold" : 600,
+      "requiredGrowthCell" : 0,
+      "requiredPieces" : 30
+    },
+    {
+      "currentLevel" : 7,
+      "requiredGold" : 700,
+      "requiredGrowthCell" : 0,
+      "requiredPieces" : 35
+    },
+    {
+      "currentLevel" : 8,
+      "requiredGold" : 800,
+      "requiredGrowthCell" : 0,
+      "requiredPieces" : 40
+    },
+    {
+      "currentLevel" : 9,
+      "requiredGold" : 900,
+      "requiredGrowthCell" : 0,
+      "requiredPieces" : 45
+    },
+    {
+      "currentLevel" : 10,
+      "requiredGold" : 1000,
+      "requiredGrowthCell" : 2,
+      "requiredPieces" : 50
+    },
+    {
+      "currentLevel" : 11,
+      "requiredGold" : 1100,
+      "requiredGrowthCell" : 4,
+      "requiredPieces" : 55
+    },
+    {
+      "currentLevel" : 12,
+      "requiredGold" : 1200,
+      "requiredGrowthCell" : 6,
+      "requiredPieces" : 60
+    },
+    {
+      "currentLevel" : 13,
+      "requiredGold" : 1300,
+      "requiredGrowthCell" : 8,
+      "requiredPieces" : 65
+    },
+    {
+      "currentLevel" : 14,
+      "requiredGold" : 1400,
+      "requiredGrowthCell" : 10,
+      "requiredPieces" : 70
+    },
+    {
+      "currentLevel" : 15,
+      "requiredGold" : 1500,
+      "requiredGrowthCell" : 12,
+      "requiredPieces" : 75
+    },
+    {
+      "currentLevel" : 16,
+      "requiredGold" : 1600,
+      "requiredGrowthCell" : 14,
+      "requiredPieces" : 80
+    },
+    {
+      "currentLevel" : 17,
+      "requiredGold" : 1700,
+      "requiredGrowthCell" : 16,
+      "requiredPieces" : 85
+    },
+    {
+      "currentLevel" : 18,
+      "requiredGold" : 1800,
+      "requiredGrowthCell" : 18,
+      "requiredPieces" : 90
+    },
+    {
+      "currentLevel" : 19,
+      "requiredGold" : 1900,
+      "requiredGrowthCell" : 20,
+      "requiredPieces" : 95
+    },
+    {
+      "currentLevel" : 20,
+      "requiredGold" : 2000,
+      "requiredGrowthCell" : 22,
+      "requiredPieces" : 100
+    },
+    {
+      "currentLevel" : 21,
+      "requiredGold" : 2100,
+      "requiredGrowthCell" : 24,
+      "requiredPieces" : 105
+    },
+    {
+      "currentLevel" : 22,
+      "requiredGold" : 2200,
+      "requiredGrowthCell" : 26,
+      "requiredPieces" : 110
+    },
+    {
+      "currentLevel" : 23,
+      "requiredGold" : 2300,
+      "requiredGrowthCell" : 28,
+      "requiredPieces" : 115
+    },
+    {
+      "currentLevel" : 24,
+      "requiredGold" : 2400,
+      "requiredGrowthCell" : 30,
+      "requiredPieces" : 120
+    },
+    {
+      "currentLevel" : 25,
+      "requiredGold" : 2500,
+      "requiredGrowthCell" : 32,
+      "requiredPieces" : 125
+    },
+    {
+      "currentLevel" : 26,
+      "requiredGold" : 2600,
+      "requiredGrowthCell" : 34,
+      "requiredPieces" : 130
+    },
+    {
+      "currentLevel" : 27,
+      "requiredGold" : 2700,
+      "requiredGrowthCell" : 36,
+      "requiredPieces" : 135
+    },
+    {
+      "currentLevel" : 28,
+      "requiredGold" : 2800,
+      "requiredGrowthCell" : 38,
+      "requiredPieces" : 140
+    },
+    {
+      "currentLevel" : 29,
+      "requiredGold" : 2900,
+      "requiredGrowthCell" : 40,
+      "requiredPieces" : 145
+    },
+    {
+      "currentLevel" : 30,
+      "requiredGold" : 3000,
+      "requiredGrowthCell" : 42,
+      "requiredPieces" : 150
+    },
+    {
+      "currentLevel" : 31,
+      "requiredGold" : 3100,
+      "requiredGrowthCell" : 44,
+      "requiredPieces" : 155
+    },
+    {
+      "currentLevel" : 32,
+      "requiredGold" : 3200,
+      "requiredGrowthCell" : 46,
+      "requiredPieces" : 160
+    },
+    {
+      "currentLevel" : 33,
+      "requiredGold" : 3300,
+      "requiredGrowthCell" : 48,
+      "requiredPieces" : 165
+    },
+    {
+      "currentLevel" : 34,
+      "requiredGold" : 3400,
+      "requiredGrowthCell" : 50,
+      "requiredPieces" : 170
+    },
+    {
+      "currentLevel" : 35,
+      "requiredGold" : 3500,
+      "requiredGrowthCell" : 52,
+      "requiredPieces" : 175
+    },
+    {
+      "currentLevel" : 36,
+      "requiredGold" : 3600,
+      "requiredGrowthCell" : 54,
+      "requiredPieces" : 180
+    },
+    {
+      "currentLevel" : 37,
+      "requiredGold" : 3700,
+      "requiredGrowthCell" : 56,
+      "requiredPieces" : 185
+    },
+    {
+      "currentLevel" : 38,
+      "requiredGold" : 3800,
+      "requiredGrowthCell" : 58,
+      "requiredPieces" : 190
+    },
+    {
+      "currentLevel" : 39,
+      "requiredGold" : 3900,
+      "requiredGrowthCell" : 60,
+      "requiredPieces" : 195
+    },
+    {
+      "currentLevel" : 40,
+      "requiredGold" : 4000,
+      "requiredGrowthCell" : 62,
+      "requiredPieces" : 200
+    },
+    {
+      "currentLevel" : 41,
+      "requiredGold" : 4100,
+      "requiredGrowthCell" : 64,
+      "requiredPieces" : 205
+    },
+    {
+      "currentLevel" : 42,
+      "requiredGold" : 4200,
+      "requiredGrowthCell" : 66,
+      "requiredPieces" : 210
+    },
+    {
+      "currentLevel" : 43,
+      "requiredGold" : 4300,
+      "requiredGrowthCell" : 68,
+      "requiredPieces" : 215
+    },
+    {
+      "currentLevel" : 44,
+      "requiredGold" : 4400,
+      "requiredGrowthCell" : 70,
+      "requiredPieces" : 220
+    },
+    {
+      "currentLevel" : 45,
+      "requiredGold" : 4500,
+      "requiredGrowthCell" : 72,
+      "requiredPieces" : 225
+    },
+    {
+      "currentLevel" : 46,
+      "requiredGold" : 4600,
+      "requiredGrowthCell" : 74,
+      "requiredPieces" : 230
+    },
+    {
+      "currentLevel" : 47,
+      "requiredGold" : 4700,
+      "requiredGrowthCell" : 76,
+      "requiredPieces" : 235
+    },
+    {
+      "currentLevel" : 48,
+      "requiredGold" : 4800,
+      "requiredGrowthCell" : 78,
+      "requiredPieces" : 240
+    },
+    {
+      "currentLevel" : 49,
+      "requiredGold" : 4900,
+      "requiredGrowthCell" : 80,
+      "requiredPieces" : 245
+    }
+  ],
+  "maxLevel" : 50
+}
