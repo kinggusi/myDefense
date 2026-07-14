@@ -10,6 +10,7 @@ import com.denfense.server.dto.gacha.GachaDrawDto;
 import com.denfense.server.dto.gacha.GachaPurchaseResponseDto;
 import com.denfense.server.dto.gacha.GachaRewardDto;
 import com.denfense.server.repository.AlienSpecRepository;
+import com.denfense.server.repository.GachaPurchaseRepository;
 import com.denfense.server.repository.UserAlienRepository;
 import com.denfense.server.repository.UserRepository;
 import com.denfense.server.service.balance.BalanceRegistry;
@@ -19,11 +20,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -50,6 +54,12 @@ class GachaPurchaseServiceTest {
 
     @Mock
     private BalanceRegistry balanceRegistry;
+
+    @Mock
+    private GachaPurchaseRepository gachaPurchaseRepository;
+
+    @Spy
+    private ObjectMapper objectMapper = new ObjectMapper();
 
     @InjectMocks
     private GachaPurchaseService gachaPurchaseService;
@@ -88,7 +98,7 @@ class GachaPurchaseServiceTest {
         when(alienSpecRepository.findAllById(anySet())).thenReturn(List.of(spec22));
         when(userAlienRepository.findByUserAndAlienSpecIdIn(user, Set.of(22L))).thenReturn(List.of());
 
-        GachaPurchaseResponseDto result = gachaPurchaseService.purchase("testUser", "SINGLE");
+        GachaPurchaseResponseDto result = gachaPurchaseService.purchase("testUser", "SINGLE", UUID.randomUUID());
 
         // 잔액 차감 확인
         assertThat(user.getDiamond()).isEqualTo(4500);
@@ -136,7 +146,7 @@ class GachaPurchaseServiceTest {
         when(alienSpecRepository.findAllById(anySet())).thenReturn(List.of(spec29, spec22));
         when(userAlienRepository.findByUserAndAlienSpecIdIn(user, Set.of(29L, 22L))).thenReturn(List.of());
 
-        GachaPurchaseResponseDto result = gachaPurchaseService.purchase("testUser", "TEN");
+        GachaPurchaseResponseDto result = gachaPurchaseService.purchase("testUser", "TEN", UUID.randomUUID());
 
         assertThat(user.getDiamond()).isEqualTo(0);
         assertThat(result.rewards()).hasSize(2);
@@ -168,7 +178,7 @@ class GachaPurchaseServiceTest {
         existingAlien.setPieces(20);
         when(userAlienRepository.findByUserAndAlienSpecIdIn(user, Set.of(29L))).thenReturn(List.of(existingAlien));
 
-        GachaPurchaseResponseDto result = gachaPurchaseService.purchase("testUser", "SINGLE");
+        GachaPurchaseResponseDto result = gachaPurchaseService.purchase("testUser", "SINGLE", UUID.randomUUID());
 
         GachaRewardDto reward = result.rewards().get(0);
         assertThat(reward.occurrenceCount()).isEqualTo(1);
@@ -185,7 +195,7 @@ class GachaPurchaseServiceTest {
     @DisplayName("19. 사용자 없음 예외")
     void userNotFound() {
         when(userRepository.findByUsernameForUpdate("unknown")).thenReturn(Optional.empty());
-        assertThatThrownBy(() -> gachaPurchaseService.purchase("unknown", "SINGLE"))
+        assertThatThrownBy(() -> gachaPurchaseService.purchase("unknown", "SINGLE", UUID.randomUUID()))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("존재하지 않는 유저입니다");
     }
@@ -196,7 +206,7 @@ class GachaPurchaseServiceTest {
         when(userRepository.findByUsernameForUpdate("testUser")).thenReturn(Optional.of(user));
         when(balanceRegistry.getShopProduct("NOT_FOUND")).thenReturn(null);
         
-        assertThatThrownBy(() -> gachaPurchaseService.purchase("testUser", "NOT_FOUND"))
+        assertThatThrownBy(() -> gachaPurchaseService.purchase("testUser", "NOT_FOUND", UUID.randomUUID()))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("존재하지 않는 상품입니다");
     }
@@ -207,7 +217,7 @@ class GachaPurchaseServiceTest {
         when(userRepository.findByUsernameForUpdate("testUser")).thenReturn(Optional.of(user));
         when(balanceRegistry.getShopProduct("INACTIVE")).thenReturn(createProduct("INACTIVE", 500, 1, false, "DIAMOND"));
         
-        assertThatThrownBy(() -> gachaPurchaseService.purchase("testUser", "INACTIVE"))
+        assertThatThrownBy(() -> gachaPurchaseService.purchase("testUser", "INACTIVE", UUID.randomUUID()))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("비활성 상품입니다");
     }
@@ -218,7 +228,7 @@ class GachaPurchaseServiceTest {
         when(userRepository.findByUsernameForUpdate("testUser")).thenReturn(Optional.of(user));
         when(balanceRegistry.getShopProduct("GOLD_GACHA")).thenReturn(createProduct("GOLD_GACHA", 500, 1, true, "GOLD"));
         
-        assertThatThrownBy(() -> gachaPurchaseService.purchase("testUser", "GOLD_GACHA"))
+        assertThatThrownBy(() -> gachaPurchaseService.purchase("testUser", "GOLD_GACHA", UUID.randomUUID()))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("지원하지 않는 재화 타입입니다");
     }
@@ -230,7 +240,7 @@ class GachaPurchaseServiceTest {
         when(userRepository.findByUsernameForUpdate("testUser")).thenReturn(Optional.of(user));
         when(balanceRegistry.getShopProduct("SINGLE")).thenReturn(createProduct("SINGLE", 500, 1, true, "DIAMOND"));
         
-        assertThatThrownBy(() -> gachaPurchaseService.purchase("testUser", "SINGLE"))
+        assertThatThrownBy(() -> gachaPurchaseService.purchase("testUser", "SINGLE", UUID.randomUUID()))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("다이아가 부족합니다");
         
@@ -251,7 +261,7 @@ class GachaPurchaseServiceTest {
         
         when(alienSpecRepository.findAllById(anySet())).thenReturn(List.of()); // 비어 있음 (DB 불일치)
         
-        assertThatThrownBy(() -> gachaPurchaseService.purchase("testUser", "SINGLE"))
+        assertThatThrownBy(() -> gachaPurchaseService.purchase("testUser", "SINGLE", UUID.randomUUID()))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("추첨된 AlienSpec 중 일부를 DB에서 찾을 수 없습니다");
     }

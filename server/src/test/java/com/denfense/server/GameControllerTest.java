@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -26,6 +27,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.contains;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.mockito.Mockito.doThrow;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -45,6 +47,9 @@ class GameControllerTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @SpyBean
+    private com.denfense.server.service.InGameService inGameService;
 
     private User testUser;
     private AlienSpec normalAlienSpec;
@@ -230,9 +235,11 @@ class GameControllerTest {
     @Test
     @DisplayName("예상치 못한 서버 에러 발생 시 HTTP 500과 INTERNAL_SERVER_ERROR를 반환하고 스택트레이스를 노출하지 않는다")
     void internalServerError_hidesTrace() throws Exception {
-        // sessionManager에 userId를 null로 조회하여 강제로 NullPointerException 유발
+        doThrow(new RuntimeException("unexpected failure"))
+                .when(inGameService).summonAlien(testUser.getId());
+
         mockMvc.perform(post("/api/game/summon")
-                .param("userId", ""))
+                .param("userId", testUser.getId().toString()))
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.code", is("INTERNAL_SERVER_ERROR")))
                 .andExpect(jsonPath("$.message", is("예상치 못한 서버 에러가 발생했습니다.")));

@@ -17,6 +17,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -32,6 +33,9 @@ class GachaPurchaseServiceConcurrencyTest {
 
     @Autowired
     private com.denfense.server.repository.UserAlienRepository userAlienRepository;
+
+    @Autowired
+    private com.denfense.server.repository.GachaPurchaseRepository gachaPurchaseRepository;
 
     @MockBean
     private com.denfense.server.service.gacha.GachaRandomGenerator randomGenerator;
@@ -51,6 +55,7 @@ class GachaPurchaseServiceConcurrencyTest {
 
     @AfterEach
     void tearDown() {
+        gachaPurchaseRepository.deleteAll();
         userAlienRepository.deleteAll();
         userRepository.deleteAll();
     }
@@ -68,7 +73,7 @@ class GachaPurchaseServiceConcurrencyTest {
         for (int i = 0; i < threadCount; i++) {
             executorService.execute(() -> {
                 try {
-                    gachaPurchaseService.purchase("concurrentUser", "ALIEN_GACHA_SINGLE");
+                    gachaPurchaseService.purchase("concurrentUser", "ALIEN_GACHA_SINGLE", UUID.randomUUID());
                     successCount.incrementAndGet();
                 } catch (Exception e) {
                     failCount.incrementAndGet();

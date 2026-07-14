@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/shop")
@@ -37,7 +38,8 @@ public class ShopController {
     @PostMapping("/gacha/purchase")
     public com.denfense.server.dto.gacha.GachaPurchaseResponseDto purchase(
             @RequestParam String username,
-            @RequestParam String productId) {
-        return gachaPurchaseService.purchase(username, productId);
+            @RequestParam String productId,
+            @RequestParam UUID purchaseRequestId) {
+        return gachaPurchaseService.purchase(username, productId, purchaseRequestId);
     }
 }

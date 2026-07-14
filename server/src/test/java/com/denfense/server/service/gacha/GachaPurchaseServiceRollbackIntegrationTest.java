@@ -15,6 +15,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
+import java.util.UUID;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -28,6 +29,9 @@ class GachaPurchaseServiceRollbackIntegrationTest {
 
     @Autowired
     private com.denfense.server.repository.UserAlienRepository userAlienRepository;
+
+    @Autowired
+    private com.denfense.server.repository.GachaPurchaseRepository gachaPurchaseRepository;
 
     @MockBean
     private GachaDrawService gachaDrawService; // 여기서 에러 발생시켜 롤백 유도
@@ -43,6 +47,8 @@ class GachaPurchaseServiceRollbackIntegrationTest {
 
     @AfterEach
     void tearDown() {
+        gachaPurchaseRepository.deleteAll();
+        userAlienRepository.deleteAll();
         userRepository.deleteAll();
     }
 
@@ -52,7 +58,7 @@ class GachaPurchaseServiceRollbackIntegrationTest {
         // 추첨 시 예외 발생 유도 (다이아 차감 이후 시점)
         when(gachaDrawService.draw(anyString())).thenThrow(new RuntimeException("지급 중 런타임 에러 발생"));
 
-        assertThatThrownBy(() -> gachaPurchaseService.purchase("rollbackUser", "ALIEN_GACHA_SINGLE"))
+        assertThatThrownBy(() -> gachaPurchaseService.purchase("rollbackUser", "ALIEN_GACHA_SINGLE", UUID.randomUUID()))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessage("지급 중 런타임 에러 발생");
 
@@ -63,5 +69,6 @@ class GachaPurchaseServiceRollbackIntegrationTest {
         // UserAlien 생성 없음 확인
         java.util.List<com.denfense.server.domain.UserAlien> userAliens = userAlienRepository.findAllByUser(updatedUser);
         assertThat(userAliens).isEmpty();
+        assertThat(gachaPurchaseRepository.findAll()).isEmpty();
     }
 }
