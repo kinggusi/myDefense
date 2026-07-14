@@ -12,7 +12,8 @@ public class GameSessionStateDto {
     private int remainingGold;
 
     @JsonProperty("isGameOver")
-    private boolean isGameOver; // 정확한 JSON 키 'isGameOver' 바인딩 보장
+    private boolean isGameOver;
 
     private List<BoardObjectStateDto> boardObjects;
+    private int currentKidnapCost;
 }

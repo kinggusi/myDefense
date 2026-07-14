@@ -4,17 +4,19 @@ using UnityEngine;
 [Serializable]
 public class GameResponseDto {
     public string message;
-    public InGameAlien alien; // 레거시 호환성을 위해 InGameAlien 유지
+    public InGameAlien alien;
     public int remainingGold;
     public bool isGameOver;
+    public int currentKidnapCost;
 }
 
 [Serializable]
 public class GameResponseObjectDto {
     public string message;
-    public BoardObjectDto alien; // 다형성 수용이 필요한 새 응답을 위한 DTO
+    public BoardObjectDto alien;
     public int remainingGold;
     public bool isGameOver;
+    public int currentKidnapCost;
 }
 
 [Serializable]
@@ -196,4 +198,5 @@ public class GameSessionStateDto
     public int remainingGold;
     public bool isGameOver;
     public System.Collections.Generic.List<BoardObjectDto> boardObjects;
+    public int currentKidnapCost;
 }
