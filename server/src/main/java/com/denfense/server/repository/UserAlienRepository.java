@@ -17,6 +17,9 @@ public interface UserAlienRepository extends JpaRepository<UserAlien, Long> {
     // 특정 유저의 모든 왹져 목록 가져오기
     List<UserAlien> findAllByUser(User user);
 
+    // SELECT * FROM user_aliens WHERE user_id = ? AND alien_id IN (?)
+    List<UserAlien> findByUserAndAlienSpecIdIn(User user, java.util.Collection<Long> alienSpecIds);
+
     // SELECT * FROM user_aliens WHERE user_id = ? AND alien_id = ?
     Optional<UserAlien> findByUserAndAlienSpec(User user, AlienSpec alienSpec);
 
