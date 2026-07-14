@@ -40,6 +40,8 @@ namespace MyDefense.Battle
         [Header("Continuous Wave Settings")]
         [SerializeField] private bool _continuousWaves = true;
         [SerializeField] private float _interWaveDelay = 3f;
+        [SerializeField] private float _healthGrowthPerRound = 0.10f;
+        [SerializeField] private float _bossHpMultiplier = 10f;
 
         private GameObject _currentBossInstance = null;
         private Coroutine _bossTimerCoroutine = null;
@@ -56,6 +58,7 @@ namespace MyDefense.Battle
         public event System.Action OnBossTimeout;
         public event System.Action<float> OnBossTimerTick;
         public event System.Action OnBossDefeated;
+        public event System.Action<int> OnRoundChanged;
 
         public int CurrentRound => _currentRound;
         public bool IsBossActive => _isBossActive;
@@ -218,6 +221,8 @@ namespace MyDefense.Battle
             _currentRound++;
             _isWaveRunning = true;
 
+            OnRoundChanged?.Invoke(_currentRound);
+
             Debug.Log($"[BattleWaveExecutor] Round {_currentRound} started!");
 
             if (_currentRound % 10 == 0)
@@ -287,6 +292,15 @@ namespace MyDefense.Battle
             }
 
             RegisterMonsterSpawned();
+
+            MonsterStat stat = _currentBossInstance.GetComponent<MonsterStat>();
+            if (stat != null)
+            {
+                float baseMaxHp = stat.hp;
+                float regularMaxHp = baseMaxHp * (1f + (_currentRound - 1) * _healthGrowthPerRound);
+                float bossMaxHp = regularMaxHp * _bossHpMultiplier;
+                stat.InitializeHp(bossMaxHp);
+            }
 
             MonsterMovement oldMove = _currentBossInstance.GetComponent<MonsterMovement>();
             if (oldMove != null) oldMove.enabled = false;
@@ -370,6 +384,14 @@ namespace MyDefense.Battle
             newMove.Lane = lane;
             newMove.Speed = speed;
             go.transform.localScale = Vector3.one * scale;
+
+            MonsterStat stat = go.GetComponent<MonsterStat>();
+            if (stat != null)
+            {
+                float baseMaxHp = stat.hp;
+                float scaledMaxHp = baseMaxHp * (1f + (_currentRound - 1) * _healthGrowthPerRound);
+                stat.InitializeHp(scaledMaxHp);
+            }
         }
     }
 }

@@ -5,24 +5,45 @@ using System.Collections;
 public class MonsterStat : MonoBehaviour, IDamageable
 {
     public float CurrentHp => hp;
+    public float MaxHp => maxHp;
     public bool IsDead => isDead;
+
+    public float hp = 30f;
+    public float maxHp = 30f;
+
+    public event System.Action<float, float> OnHpChanged;
+    public event System.Action<float, float> OnHpInitialized;
+
+    public long monsterSpecId = 1;
+
+    private bool isDead = false;
+
+    private void Awake()
+    {
+        maxHp = hp;
+    }
+
+    public void InitializeHp(float newMaxHp)
+    {
+        if (newMaxHp < 1f) newMaxHp = 1f;
+        maxHp = newMaxHp;
+        hp = newMaxHp;
+        OnHpInitialized?.Invoke(hp, maxHp);
+    }
 
     public void ApplyDamage(DamagePayload payload)
     {
         if (payload.Amount <= 0f) return;
         TakeDamage(payload.Amount);
     }
-    public float hp = 30f;
-    
-    // ★ 서버 DB에 있는 몬스터 ID (테스트용으로 1번이라고 칩시다)
-    public long monsterSpecId = 1; 
-
-    private bool isDead = false;
 
     public void TakeDamage(float amount)
     {
         if (isDead) return;
         hp -= amount;
+        if (hp < 0f) hp = 0f;
+
+        OnHpChanged?.Invoke(hp, maxHp);
 
         if (hp <= 0) Die();
     }
@@ -36,7 +57,11 @@ public class MonsterStat : MonoBehaviour, IDamageable
             MyDefense.Battle.BattleWaveExecutor.Instance.RegisterMonsterKilled();
         }
 
-        FindObjectOfType<GameManager>().OnKillMonster(monsterSpecId);
+        GameManager gm = UnityEngine.Object.FindFirstObjectByType<GameManager>();
+        if (gm != null)
+        {
+            gm.OnKillMonster(monsterSpecId);
+        }
 
         StartCoroutine(FadeOutAndDestroy());
     }

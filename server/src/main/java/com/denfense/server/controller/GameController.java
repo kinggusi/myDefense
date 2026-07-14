@@ -99,7 +99,7 @@ public class GameController {
                 msg = sb.toString();
             }
 
-            return new GameResponseDto(msg, null, session.getInGameGold(), session.isGameOver());
+            return new GameResponseDto(msg, null, session.getInGameGold(), session.isGameOver(), session.getCurrentKidnapCost());
         } catch (Exception e) {
             return errorResponse(e);
         }
@@ -143,7 +143,7 @@ public class GameController {
         try {
             GameSession session = sessionManager.getSession(userId);
             session.setGameOver(true); // 서버 상태 강제 사망 처리
-            return new GameResponseDto("사망 처리됨", null, session.getInGameGold(), true);
+            return new GameResponseDto("사망 처리됨", null, session.getInGameGold(), true, session.getCurrentKidnapCost());
         } catch (Exception e) {
             return errorResponse(e);
         }
@@ -183,12 +183,13 @@ public class GameController {
                 msg,
                 alien,
                 session.getInGameGold(),
-                session.isGameOver() // 클라이언트에 생존 여부를 항상 전달
+                session.isGameOver(),
+                session.getCurrentKidnapCost()
         );
     }
 
     private GameResponseDto errorResponse(Exception e) {
         e.printStackTrace();
-        return new GameResponseDto("오류 발생: " + e.getMessage(), null, 0, false);
+        return new GameResponseDto("오류 발생: " + e.getMessage(), null, 0, false, 0);
     }
 }
