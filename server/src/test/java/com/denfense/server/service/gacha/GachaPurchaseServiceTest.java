@@ -4,11 +4,15 @@ import com.denfense.server.balance.GachaGradeEntryBalance;
 import com.denfense.server.balance.GachaPoolBalance;
 import com.denfense.server.balance.ShopProductBalance;
 import com.denfense.server.domain.AlienSpec;
+import com.denfense.server.domain.GachaPurchase;
+import com.denfense.server.domain.GachaPurchaseStatus;
 import com.denfense.server.domain.User;
 import com.denfense.server.domain.UserAlien;
 import com.denfense.server.dto.gacha.GachaDrawDto;
 import com.denfense.server.dto.gacha.GachaPurchaseResponseDto;
 import com.denfense.server.dto.gacha.GachaRewardDto;
+import com.denfense.server.exception.BusinessException;
+import com.denfense.server.exception.ErrorCode;
 import com.denfense.server.repository.AlienSpecRepository;
 import com.denfense.server.repository.GachaPurchaseRepository;
 import com.denfense.server.repository.UserAlienRepository;
@@ -196,8 +200,8 @@ class GachaPurchaseServiceTest {
     void userNotFound() {
         when(userRepository.findByUsernameForUpdate("unknown")).thenReturn(Optional.empty());
         assertThatThrownBy(() -> gachaPurchaseService.purchase("unknown", "SINGLE", UUID.randomUUID()))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("존재하지 않는 유저입니다");
+                .isInstanceOfSatisfying(BusinessException.class,
+                        e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.USER_NOT_FOUND));
     }
 
     @Test
@@ -207,8 +211,8 @@ class GachaPurchaseServiceTest {
         when(balanceRegistry.getShopProduct("NOT_FOUND")).thenReturn(null);
         
         assertThatThrownBy(() -> gachaPurchaseService.purchase("testUser", "NOT_FOUND", UUID.randomUUID()))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("존재하지 않는 상품입니다");
+                .isInstanceOfSatisfying(BusinessException.class,
+                        e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.SHOP_PRODUCT_NOT_FOUND));
     }
 
     @Test
@@ -218,8 +222,8 @@ class GachaPurchaseServiceTest {
         when(balanceRegistry.getShopProduct("INACTIVE")).thenReturn(createProduct("INACTIVE", 500, 1, false, "DIAMOND"));
         
         assertThatThrownBy(() -> gachaPurchaseService.purchase("testUser", "INACTIVE", UUID.randomUUID()))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("비활성 상품입니다");
+                .isInstanceOfSatisfying(BusinessException.class,
+                        e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.SHOP_PRODUCT_INACTIVE));
     }
 
     @Test
@@ -229,8 +233,8 @@ class GachaPurchaseServiceTest {
         when(balanceRegistry.getShopProduct("GOLD_GACHA")).thenReturn(createProduct("GOLD_GACHA", 500, 1, true, "GOLD"));
         
         assertThatThrownBy(() -> gachaPurchaseService.purchase("testUser", "GOLD_GACHA", UUID.randomUUID()))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("지원하지 않는 재화 타입입니다");
+                .isInstanceOfSatisfying(BusinessException.class,
+                        e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.UNSUPPORTED_CURRENCY));
     }
 
     @Test
@@ -241,8 +245,8 @@ class GachaPurchaseServiceTest {
         when(balanceRegistry.getShopProduct("SINGLE")).thenReturn(createProduct("SINGLE", 500, 1, true, "DIAMOND"));
         
         assertThatThrownBy(() -> gachaPurchaseService.purchase("testUser", "SINGLE", UUID.randomUUID()))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("다이아가 부족합니다");
+                .isInstanceOfSatisfying(BusinessException.class,
+                        e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.INSUFFICIENT_DIAMOND));
         
         // 차감 안됨
         assertThat(user.getDiamond()).isEqualTo(100);
@@ -262,7 +266,50 @@ class GachaPurchaseServiceTest {
         when(alienSpecRepository.findAllById(anySet())).thenReturn(List.of()); // 비어 있음 (DB 불일치)
         
         assertThatThrownBy(() -> gachaPurchaseService.purchase("testUser", "SINGLE", UUID.randomUUID()))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("추첨된 AlienSpec 중 일부를 DB에서 찾을 수 없습니다");
+                .isInstanceOfSatisfying(BusinessException.class,
+                        e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.ALIEN_SPEC_NOT_FOUND));
+    }
+
+    @Test
+    @DisplayName("PROCESSING 구매 기록 재요청은 PURCHASE_ALREADY_PROCESSING")
+    void purchaseAlreadyProcessing() {
+        UUID requestId = UUID.randomUUID();
+        GachaPurchase existing = new GachaPurchase(user, requestId, "SINGLE", GachaPurchaseStatus.PROCESSING);
+        when(userRepository.findByUsernameForUpdate("testUser")).thenReturn(Optional.of(user));
+        when(gachaPurchaseRepository.findByUserAndPurchaseRequestId(user, requestId)).thenReturn(Optional.of(existing));
+
+        assertThatThrownBy(() -> gachaPurchaseService.purchase("testUser", "SINGLE", requestId))
+                .isInstanceOfSatisfying(BusinessException.class,
+                        e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.PURCHASE_ALREADY_PROCESSING));
+        verify(gachaDrawService, never()).draw(any());
+    }
+
+    @Test
+    @DisplayName("FAILED 구매 기록 재요청은 INTERNAL_SERVER_ERROR")
+    void failedPurchaseState() {
+        UUID requestId = UUID.randomUUID();
+        GachaPurchase existing = new GachaPurchase(user, requestId, "SINGLE", GachaPurchaseStatus.FAILED);
+        when(userRepository.findByUsernameForUpdate("testUser")).thenReturn(Optional.of(user));
+        when(gachaPurchaseRepository.findByUserAndPurchaseRequestId(user, requestId)).thenReturn(Optional.of(existing));
+
+        assertThatThrownBy(() -> gachaPurchaseService.purchase("testUser", "SINGLE", requestId))
+                .isInstanceOfSatisfying(BusinessException.class,
+                        e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.INTERNAL_SERVER_ERROR));
+        verify(gachaDrawService, never()).draw(any());
+    }
+
+    @Test
+    @DisplayName("COMPLETED 구매의 빈 responseJson은 PURCHASE_RESPONSE_RESTORE_FAILED")
+    void completedPurchaseWithBlankResponse() {
+        UUID requestId = UUID.randomUUID();
+        GachaPurchase existing = new GachaPurchase(user, requestId, "SINGLE", GachaPurchaseStatus.PROCESSING);
+        existing.complete(" ");
+        when(userRepository.findByUsernameForUpdate("testUser")).thenReturn(Optional.of(user));
+        when(gachaPurchaseRepository.findByUserAndPurchaseRequestId(user, requestId)).thenReturn(Optional.of(existing));
+
+        assertThatThrownBy(() -> gachaPurchaseService.purchase("testUser", "SINGLE", requestId))
+                .isInstanceOfSatisfying(BusinessException.class,
+                        e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.PURCHASE_RESPONSE_RESTORE_FAILED));
+        verify(gachaDrawService, never()).draw(any());
     }
 }

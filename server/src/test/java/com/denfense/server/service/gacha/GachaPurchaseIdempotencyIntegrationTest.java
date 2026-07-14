@@ -4,6 +4,8 @@ import com.denfense.server.domain.GachaPurchase;
 import com.denfense.server.domain.GachaPurchaseStatus;
 import com.denfense.server.domain.User;
 import com.denfense.server.dto.gacha.GachaPurchaseResponseDto;
+import com.denfense.server.exception.BusinessException;
+import com.denfense.server.exception.ErrorCode;
 import com.denfense.server.repository.GachaPurchaseRepository;
 import com.denfense.server.repository.UserAlienRepository;
 import com.denfense.server.repository.UserRepository;
@@ -148,8 +150,8 @@ class GachaPurchaseIdempotencyIntegrationTest {
 
         // 다른 productId로 재요청 → 예외
         assertThatThrownBy(() -> gachaPurchaseService.purchase("idempotencyUser1", "ALIEN_GACHA_TEN", requestId))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("다른 상품 ID");
+                .isInstanceOfSatisfying(BusinessException.class,
+                        e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.PURCHASE_REQUEST_CONFLICT));
 
         // 추가 차감 없음
         User userAfterConflict = userRepository.findByUsername("idempotencyUser1").orElseThrow();
@@ -206,8 +208,8 @@ class GachaPurchaseIdempotencyIntegrationTest {
         user1.setDiamond(0);
         userRepository.saveAndFlush(user1);
         assertThatThrownBy(() -> gachaPurchaseService.purchase("idempotencyUser1", "ALIEN_GACHA_SINGLE", requestId))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("다이아가 부족합니다");
+                .isInstanceOfSatisfying(BusinessException.class,
+                        e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.INSUFFICIENT_DIAMOND));
 
         // PROCESSING 기록도 롤백되어 없어야 함
         assertThat(gachaPurchaseRepository.findAll()).isEmpty();

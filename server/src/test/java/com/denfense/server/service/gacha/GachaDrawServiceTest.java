@@ -3,6 +3,8 @@ package com.denfense.server.service.gacha;
 import com.denfense.server.balance.GachaGradeEntryBalance;
 import com.denfense.server.balance.GachaPoolBalance;
 import com.denfense.server.balance.ShopProductBalance;
+import com.denfense.server.exception.BusinessException;
+import com.denfense.server.exception.ErrorCode;
 import com.denfense.server.service.balance.BalanceRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -134,8 +136,8 @@ class GachaDrawServiceTest {
         when(balanceRegistry.getShopProduct("NOT_FOUND")).thenReturn(null);
 
         assertThatThrownBy(() -> gachaDrawService.draw("NOT_FOUND"))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("존재하지 않는 상품입니다");
+                .isInstanceOfSatisfying(BusinessException.class,
+                        e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.SHOP_PRODUCT_NOT_FOUND));
     }
 
     @Test
@@ -144,8 +146,8 @@ class GachaDrawServiceTest {
         when(balanceRegistry.getShopProduct("INACTIVE")).thenReturn(createProduct("INACTIVE", false, 1, "POOL1"));
 
         assertThatThrownBy(() -> gachaDrawService.draw("INACTIVE"))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("비활성 상품입니다");
+                .isInstanceOfSatisfying(BusinessException.class,
+                        e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.SHOP_PRODUCT_INACTIVE));
     }
 
     @Test
@@ -155,8 +157,19 @@ class GachaDrawServiceTest {
         when(balanceRegistry.getGachaPool("INACTIVE_POOL")).thenReturn(createPool("INACTIVE_POOL", false));
 
         assertThatThrownBy(() -> gachaDrawService.draw("PROD"))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("비활성 GachaPool입니다");
+                .isInstanceOfSatisfying(BusinessException.class,
+                        e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.GACHA_POOL_INACTIVE));
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 Pool은 GACHA_POOL_NOT_FOUND")
+    void poolNotFound() {
+        when(balanceRegistry.getShopProduct("PROD")).thenReturn(createProduct("PROD", true, 1, "MISSING_POOL"));
+        when(balanceRegistry.getGachaPool("MISSING_POOL")).thenReturn(null);
+
+        assertThatThrownBy(() -> gachaDrawService.draw("PROD"))
+                .isInstanceOfSatisfying(BusinessException.class,
+                        e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.GACHA_POOL_NOT_FOUND));
     }
 
     // B. 등급 경계

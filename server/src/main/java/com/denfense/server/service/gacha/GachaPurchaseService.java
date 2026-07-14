@@ -9,6 +9,8 @@ import com.denfense.server.domain.UserAlien;
 import com.denfense.server.dto.gacha.GachaDrawDto;
 import com.denfense.server.dto.gacha.GachaPurchaseResponseDto;
 import com.denfense.server.dto.gacha.GachaRewardDto;
+import com.denfense.server.exception.BusinessException;
+import com.denfense.server.exception.ErrorCode;
 import com.denfense.server.repository.AlienSpecRepository;
 import com.denfense.server.repository.GachaPurchaseRepository;
 import com.denfense.server.repository.UserAlienRepository;
@@ -46,12 +48,12 @@ public class GachaPurchaseService {
     @Transactional
     public GachaPurchaseResponseDto purchase(String username, String productId, UUID purchaseRequestId) {
         if (purchaseRequestId == null) {
-            throw new IllegalArgumentException("purchaseRequestId는 필수입니다.");
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "purchaseRequestId는 필수입니다.");
         }
 
         // 1. User 비관적 락 조회
         User user = userRepository.findByUsernameForUpdate(username)
-                .orElseThrow(() -> new IllegalStateException("존재하지 않는 유저입니다: " + username));
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
         // 2. 저장 응답을 반환하기 전에 동일 키의 productId 충돌부터 검사한다.
         GachaPurchase existingPurchase = gachaPurchaseRepository
@@ -59,26 +61,34 @@ public class GachaPurchaseService {
                 .orElse(null);
         if (existingPurchase != null) {
             if (!existingPurchase.getProductId().equals(productId)) {
-                throw new IllegalStateException("동일 purchaseRequestId를 다른 상품 ID로 재사용할 수 없습니다.");
+                throw new BusinessException(ErrorCode.PURCHASE_REQUEST_CONFLICT);
             }
             if (existingPurchase.getStatus() == GachaPurchaseStatus.COMPLETED) {
                 return deserializeResponse(existingPurchase.getResponseJson());
             }
-            throw new IllegalStateException("이미 처리 중인 구매 요청입니다.");
+            if (existingPurchase.getStatus() == GachaPurchaseStatus.PROCESSING) {
+                throw new BusinessException(ErrorCode.PURCHASE_ALREADY_PROCESSING);
+            }
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR, "가챠 구매 기록의 상태가 올바르지 않습니다.");
         }
 
         // 3. ShopProduct 조회 및 active 검증
-        ShopProductBalance product = balanceRegistry.getShopProduct(productId);
+        ShopProductBalance product = getShopProduct(productId);
         if (product == null) {
-            throw new IllegalStateException("존재하지 않는 상품입니다: " + productId);
+            throw new BusinessException(ErrorCode.SHOP_PRODUCT_NOT_FOUND);
         }
         if (!product.active()) {
-            throw new IllegalStateException("비활성 상품입니다: " + productId);
+            throw new BusinessException(ErrorCode.SHOP_PRODUCT_INACTIVE);
         }
 
         // 4. currencyType 지원 여부 검증
         if (!"DIAMOND".equals(product.currencyType())) {
-            throw new IllegalStateException("지원하지 않는 재화 타입입니다: " + product.currencyType());
+            throw new BusinessException(ErrorCode.UNSUPPORTED_CURRENCY);
+        }
+
+        int price = product.price();
+        if (user.getDiamond() < price) {
+            throw new BusinessException(ErrorCode.INSUFFICIENT_DIAMOND);
         }
 
         // 5. PROCESSING을 즉시 INSERT한다. 이후 실패하면 같은 트랜잭션에서 함께 롤백된다.
@@ -91,7 +101,6 @@ public class GachaPurchaseService {
         gachaPurchaseRepository.saveAndFlush(purchase);
 
         // 6. 잔액 확인 및 차감
-        int price = product.price();
         user.decreaseDiamond(price);
 
         // 7. GachaDrawService.draw(productId) 호출
@@ -115,7 +124,7 @@ public class GachaPurchaseService {
         Set<Long> alienIds = drawCountsByAlienId.keySet();
         List<AlienSpec> specs = alienSpecRepository.findAllById(alienIds);
         if (specs.size() != alienIds.size()) {
-            throw new IllegalStateException("추첨된 AlienSpec 중 일부를 DB에서 찾을 수 없습니다.");
+            throw new BusinessException(ErrorCode.ALIEN_SPEC_NOT_FOUND);
         }
         Map<Long, AlienSpec> specMap = specs.stream().collect(Collectors.toMap(AlienSpec::getId, spec -> spec));
 
@@ -197,18 +206,26 @@ public class GachaPurchaseService {
         try {
             return objectMapper.writeValueAsString(response);
         } catch (JsonProcessingException e) {
-            throw new IllegalStateException("Gacha 구매 응답 직렬화에 실패했습니다.", e);
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR, "가챠 구매 응답 직렬화에 실패했습니다.");
         }
     }
 
     private GachaPurchaseResponseDto deserializeResponse(String responseJson) {
         if (responseJson == null || responseJson.isBlank()) {
-            throw new IllegalStateException("완료된 Gacha 구매 응답이 비어 있습니다.");
+            throw new BusinessException(ErrorCode.PURCHASE_RESPONSE_RESTORE_FAILED);
         }
         try {
             return objectMapper.readValue(responseJson, GachaPurchaseResponseDto.class);
         } catch (JsonProcessingException e) {
-            throw new IllegalStateException("저장된 Gacha 구매 응답 역직렬화에 실패했습니다.", e);
+            throw new BusinessException(ErrorCode.PURCHASE_RESPONSE_RESTORE_FAILED);
+        }
+    }
+
+    private ShopProductBalance getShopProduct(String productId) {
+        try {
+            return balanceRegistry.getShopProduct(productId);
+        } catch (IllegalArgumentException e) {
+            throw new BusinessException(ErrorCode.SHOP_PRODUCT_NOT_FOUND);
         }
     }
 }

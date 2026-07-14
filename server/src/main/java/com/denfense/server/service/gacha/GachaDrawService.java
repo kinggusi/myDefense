@@ -3,6 +3,8 @@ package com.denfense.server.service.gacha;
 import com.denfense.server.balance.GachaGradeEntryBalance;
 import com.denfense.server.balance.GachaPoolBalance;
 import com.denfense.server.balance.ShopProductBalance;
+import com.denfense.server.exception.BusinessException;
+import com.denfense.server.exception.ErrorCode;
 import com.denfense.server.service.balance.BalanceRegistry;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -19,14 +21,14 @@ public class GachaDrawService {
 
     public List<GachaDrawResult> draw(String productId) {
         // 1. ShopProduct 조회
-        ShopProductBalance product = balanceRegistry.getShopProduct(productId);
+        ShopProductBalance product = getShopProduct(productId);
         if (product == null) {
-            throw new IllegalStateException("존재하지 않는 상품입니다: " + productId);
+            throw new BusinessException(ErrorCode.SHOP_PRODUCT_NOT_FOUND);
         }
 
         // 2. 상품 active 확인
         if (!product.active()) {
-            throw new IllegalStateException("비활성 상품입니다: " + productId);
+            throw new BusinessException(ErrorCode.SHOP_PRODUCT_INACTIVE);
         }
 
         // drawCount만큼 drawOne 반복
@@ -48,17 +50,17 @@ public class GachaDrawService {
         // 3. 연결된 GachaPool 조회
         String poolId = product.gachaPoolId();
         if (poolId == null || poolId.trim().isEmpty()) {
-            throw new IllegalStateException("연결된 GachaPool ID가 없습니다. 상품: " + product.productId());
+            throw new BusinessException(ErrorCode.GACHA_POOL_NOT_FOUND);
         }
 
-        GachaPoolBalance pool = balanceRegistry.getGachaPool(poolId);
+        GachaPoolBalance pool = getGachaPool(poolId);
         if (pool == null) {
-            throw new IllegalStateException("존재하지 않는 GachaPool입니다: " + poolId);
+            throw new BusinessException(ErrorCode.GACHA_POOL_NOT_FOUND);
         }
 
         // 4. Pool active 확인
         if (!pool.active()) {
-            throw new IllegalStateException("비활성 GachaPool입니다: " + poolId);
+            throw new BusinessException(ErrorCode.GACHA_POOL_INACTIVE);
         }
 
         List<GachaGradeEntryBalance> gradeEntries = pool.gradeEntries();
@@ -105,5 +107,21 @@ public class GachaDrawService {
                 selectedEntry.grade(),
                 alienId
         );
+    }
+
+    private ShopProductBalance getShopProduct(String productId) {
+        try {
+            return balanceRegistry.getShopProduct(productId);
+        } catch (IllegalArgumentException e) {
+            throw new BusinessException(ErrorCode.SHOP_PRODUCT_NOT_FOUND);
+        }
+    }
+
+    private GachaPoolBalance getGachaPool(String poolId) {
+        try {
+            return balanceRegistry.getGachaPool(poolId);
+        } catch (IllegalArgumentException e) {
+            throw new BusinessException(ErrorCode.GACHA_POOL_NOT_FOUND);
+        }
     }
 }
