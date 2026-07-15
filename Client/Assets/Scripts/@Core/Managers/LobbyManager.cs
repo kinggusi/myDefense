@@ -4,6 +4,12 @@ using System.Collections.Generic;
 
 public class LobbyManager : MonoBehaviour
 {
+    private const string DefaultUsername = "sh1";
+    private string currentUsername = DefaultUsername;
+
+    public string CurrentUsername => currentUsername;
+    public string CurrentDiamondText => text_Diamond != null ? text_Diamond.text : "0";
+
     [Header("화면 리스트 (Shop, Units, Main, Clan, Etc 순서)")]
     public GameObject[] viewObjects; 
 
@@ -41,10 +47,14 @@ public class LobbyManager : MonoBehaviour
     {
         Debug.Log("서버에 유저 정보를 요청합니다...");
 
-        NetworkManager.Instance.Get("/lobby/info/sh1", 
+        NetworkManager.Instance.Get($"/lobby/info/{CurrentUsername}",
             (json) => {
                 // 성공: JSON 데이터를 C# 객체로 변환
                 LobbyResponseDto data = JsonUtility.FromJson<LobbyResponseDto>(json);
+                if (data != null && data.user != null && !string.IsNullOrWhiteSpace(data.user.username))
+                {
+                    currentUsername = data.user.username;
+                }
                 
                 // 1. 상단 바 UI 갱신
                 UpdateTopBarUI(data.user);
@@ -58,6 +68,11 @@ public class LobbyManager : MonoBehaviour
                 Debug.LogError("서버 연결 실패: " + error);
             }
         );
+    }
+
+    public void UpdateRemainingDiamond(int remainingDiamond)
+    {
+        text_Diamond.text = remainingDiamond.ToString("N0");
     }
 
     // 상단 재화 UI 업데이트
