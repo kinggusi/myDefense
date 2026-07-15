@@ -1,6 +1,5 @@
 package com.denfense.server.balance.tool;
 
-import com.denfense.server.service.balance.AlienUpgradeBalanceFile;
 import com.denfense.server.service.balance.AlienUpgradeCostBalance;
 import com.denfense.server.service.balance.GameRewardBalance;
 import org.apache.poi.ss.usermodel.*;
@@ -8,6 +7,8 @@ import org.apache.poi.ss.usermodel.*;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 
 public class ExcelBalanceReader {
@@ -27,9 +28,9 @@ public class ExcelBalanceReader {
             
             checkMergedRegions(workbook);
 
-            int maxLevel = readConfigSheet(workbook);
             GameRewardBalance reward = readGameRewardSheet(workbook);
-            List<AlienUpgradeCostBalance> upgradeCosts = readAlienUpgradeSheet(workbook, maxLevel);
+            List<AlienUpgradeCostBalance> upgradeCosts = readAlienUpgradeCostSheet(workbook);
+            List<com.denfense.server.service.balance.AlienLevelStatBalance> levelStats = readAlienLevelStatSheet(workbook);
             
             upgradeCosts.sort(Comparator.comparingInt(AlienUpgradeCostBalance::currentLevel));
             
@@ -37,7 +38,7 @@ public class ExcelBalanceReader {
             List<com.denfense.server.balance.ShopProductBalance> shopProducts = readShopProductSheet(workbook);
             List<com.denfense.server.balance.GachaPoolBalance> gachaPools = readGachaPoolSheet(workbook);
 
-            return new BalanceData(reward, new AlienUpgradeBalanceFile(maxLevel, upgradeCosts), alienSpecs, shopProducts, gachaPools);
+            return new BalanceData(reward, upgradeCosts, levelStats, alienSpecs, shopProducts, gachaPools);
 
         } catch (IOException e) {
             throw new BalanceConversionException("파일을 읽는 중 오류가 발생했습니다: " + filePath, e);
@@ -190,10 +191,76 @@ public class ExcelBalanceReader {
             int gold = readIntCell(sheet.getSheetName(), i, "requiredGold", row.getCell(goldIndex));
             int gcell = readIntCell(sheet.getSheetName(), i, "requiredGrowthCell", row.getCell(cellIndex));
             
-            costs.add(new AlienUpgradeCostBalance(clvl, pieces, gold, gcell));
+            costs.add(new AlienUpgradeCostBalance(clvl, clvl + 1, pieces, gold, gcell));
         }
         
         return costs;
+    }
+
+    private List<AlienUpgradeCostBalance> readAlienUpgradeCostSheet(Workbook workbook) {
+        Sheet sheet = getSheetOrThrow(workbook, "AlienUpgradeCost");
+        Row headerRow = sheet.getRow(0);
+        if (headerRow == null) {
+            throw new BalanceConversionException("[AlienUpgradeCost] 헤더가 없습니다.");
+        }
+        List<String> headers = readHeaders(sheet.getSheetName(), headerRow,
+                Arrays.asList("currentLevel", "targetLevel", "requiredPieces", "requiredGold", "requiredGrowthCell"));
+        int currentIndex = headers.indexOf("currentLevel");
+        int targetIndex = headers.indexOf("targetLevel");
+        int piecesIndex = headers.indexOf("requiredPieces");
+        int goldIndex = headers.indexOf("requiredGold");
+        int growthIndex = headers.indexOf("requiredGrowthCell");
+        List<AlienUpgradeCostBalance> costs = new ArrayList<>();
+        for (int rowIndex = 1; rowIndex <= sheet.getLastRowNum(); rowIndex++) {
+            Row row = sheet.getRow(rowIndex);
+            if (row == null || isBlankRow(row, headers.size())) continue;
+            costs.add(new AlienUpgradeCostBalance(
+                    readIntCell(sheet.getSheetName(), rowIndex, "currentLevel", row.getCell(currentIndex)),
+                    readIntCell(sheet.getSheetName(), rowIndex, "targetLevel", row.getCell(targetIndex)),
+                    readIntCell(sheet.getSheetName(), rowIndex, "requiredPieces", row.getCell(piecesIndex)),
+                    readIntCell(sheet.getSheetName(), rowIndex, "requiredGold", row.getCell(goldIndex)),
+                    readIntCell(sheet.getSheetName(), rowIndex, "requiredGrowthCell", row.getCell(growthIndex))
+            ));
+        }
+        costs.sort(Comparator.comparingInt(AlienUpgradeCostBalance::currentLevel));
+        return costs;
+    }
+
+    private List<com.denfense.server.service.balance.AlienLevelStatBalance> readAlienLevelStatSheet(Workbook workbook) {
+        Sheet sheet = getSheetOrThrow(workbook, "AlienLevelStat");
+        Row headerRow = sheet.getRow(0);
+        if (headerRow == null) {
+            throw new BalanceConversionException("[AlienLevelStat] 헤더가 없습니다.");
+        }
+        List<String> headers = readHeaders(sheet.getSheetName(), headerRow,
+                Arrays.asList("level", "atkMultiplier", "mpMultiplier", "atkSpeedMultiplier", "rangeMultiplier"));
+        int levelIndex = headers.indexOf("level");
+        int atkIndex = headers.indexOf("atkMultiplier");
+        int mpIndex = headers.indexOf("mpMultiplier");
+        int speedIndex = headers.indexOf("atkSpeedMultiplier");
+        int rangeIndex = headers.indexOf("rangeMultiplier");
+        List<com.denfense.server.service.balance.AlienLevelStatBalance> stats = new ArrayList<>();
+        for (int rowIndex = 1; rowIndex <= sheet.getLastRowNum(); rowIndex++) {
+            Row row = sheet.getRow(rowIndex);
+            if (row == null || isBlankRow(row, headers.size())) continue;
+            stats.add(new com.denfense.server.service.balance.AlienLevelStatBalance(
+                    readIntCell(sheet.getSheetName(), rowIndex, "level", row.getCell(levelIndex)),
+                    readDecimalCell(sheet.getSheetName(), rowIndex, "atkMultiplier", row.getCell(atkIndex)),
+                    readDecimalCell(sheet.getSheetName(), rowIndex, "mpMultiplier", row.getCell(mpIndex)),
+                    readDecimalCell(sheet.getSheetName(), rowIndex, "atkSpeedMultiplier", row.getCell(speedIndex)),
+                    readDecimalCell(sheet.getSheetName(), rowIndex, "rangeMultiplier", row.getCell(rangeIndex))
+            ));
+        }
+        stats.sort(Comparator.comparingInt(com.denfense.server.service.balance.AlienLevelStatBalance::level));
+        return stats;
+    }
+
+    private boolean isBlankRow(Row row, int columnCount) {
+        for (int column = 0; column < columnCount; column++) {
+            Cell cell = row.getCell(column);
+            if (cell != null && cell.getCellType() != CellType.BLANK) return false;
+        }
+        return true;
     }
 
     private Sheet getSheetOrThrow(Workbook workbook, String sheetName) {
@@ -447,6 +514,21 @@ public class ExcelBalanceReader {
         return value;
     }
 
+    private BigDecimal readDecimalCell(String sheetName, int rowIdx, String colName, Cell cell) {
+        if (cell == null || cell.getCellType() == CellType.BLANK) {
+            throw new BalanceConversionException(String.format("[%s] %d행 '%s' 값이 비어 있습니다.", sheetName, rowIdx + 1, colName));
+        }
+        CellValue evaluated = evaluator.evaluate(cell);
+        if (evaluated == null || evaluated.getCellType() != CellType.NUMERIC) {
+            throw new BalanceConversionException(String.format("[%s] %d행 '%s' 값은 숫자여야 합니다.", sheetName, rowIdx + 1, colName));
+        }
+        double value = evaluated.getNumberValue();
+        if (!Double.isFinite(value)) {
+            throw new BalanceConversionException(String.format("[%s] %d행 '%s' 값이 유한한 숫자가 아닙니다.", sheetName, rowIdx + 1, colName));
+        }
+        return BigDecimal.valueOf(value).setScale(2, RoundingMode.HALF_UP);
+    }
+
     private boolean readBooleanCell(String sheetName, int rowIdx, String colName, Cell cell) {
         if (cell == null || cell.getCellType() == CellType.BLANK) {
             throw new BalanceConversionException(String.format("[%s] %d행 '%s' 열: 빈 셀입니다.", sheetName, rowIdx + 1, colName));
@@ -617,7 +699,8 @@ public class ExcelBalanceReader {
 
     public static record BalanceData(
         GameRewardBalance gameReward, 
-        AlienUpgradeBalanceFile alienUpgrade, 
+        List<AlienUpgradeCostBalance> alienUpgradeCosts,
+        List<com.denfense.server.service.balance.AlienLevelStatBalance> alienLevelStats,
         List<com.denfense.server.balance.AlienSpecBalance> alienSpecs,
         List<com.denfense.server.balance.ShopProductBalance> shopProducts,
         List<com.denfense.server.balance.GachaPoolBalance> gachaPools

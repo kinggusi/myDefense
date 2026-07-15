@@ -15,7 +15,8 @@ cd server
 
 이 명령은 `balance/source/balance-data.xlsx`를 읽어 유효성을 검사하고, 성공 시 아래 위치에 5종의 JSON 파일을 생성/교체합니다.
 - `server/src/main/resources/balance/generated/game-reward.json`
-- `server/src/main/resources/balance/generated/alien-upgrade.json`
+- `server/src/main/resources/balance/generated/alien-upgrade-cost.json`
+- `server/src/main/resources/balance/generated/alien-level-stat.json`
 - `server/src/main/resources/balance/generated/alien-spec.json`
 - `server/src/main/resources/balance/generated/shop-products.json`
 - `server/src/main/resources/balance/generated/gacha-pools.json`

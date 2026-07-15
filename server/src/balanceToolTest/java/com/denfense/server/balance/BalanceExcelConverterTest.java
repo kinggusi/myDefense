@@ -2,7 +2,6 @@ package com.denfense.server.balance;
 
 import com.denfense.server.balance.tool.BalanceConversionException;
 import com.denfense.server.balance.tool.ExcelBalanceReader;
-import com.denfense.server.service.balance.AlienUpgradeBalanceFile;
 import com.denfense.server.service.balance.BalanceDataValidator;
 import com.denfense.server.service.balance.GameRewardBalance;
 import org.apache.poi.ss.usermodel.Cell;
@@ -17,6 +16,9 @@ import org.junit.jupiter.api.Test;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -58,24 +60,37 @@ class BalanceExcelConverterTest {
         rowReward.createCell(1).setCellValue(10);
         rowReward.createCell(2).setCellValue(1000);
 
-        Sheet upgrade = workbook.createSheet("AlienUpgrade");
+        Sheet upgrade = workbook.createSheet("AlienUpgradeCost");
         Row headerUpgrade = upgrade.createRow(0);
         headerUpgrade.createCell(0).setCellValue("currentLevel");
-        headerUpgrade.createCell(1).setCellValue("requiredPieces");
-        headerUpgrade.createCell(2).setCellValue("requiredGold");
-        headerUpgrade.createCell(3).setCellValue("requiredGrowthCell");
+        headerUpgrade.createCell(1).setCellValue("targetLevel");
+        headerUpgrade.createCell(2).setCellValue("requiredPieces");
+        headerUpgrade.createCell(3).setCellValue("requiredGold");
+        headerUpgrade.createCell(4).setCellValue("requiredGrowthCell");
+        for (int level = 1; level <= 49; level++) {
+            Row row = upgrade.createRow(level);
+            row.createCell(0).setCellValue(level);
+            row.createCell(1).setCellValue(level + 1);
+            row.createCell(2).setCellValue(level * 5);
+            row.createCell(3).setCellValue(level * 100);
+            row.createCell(4).setCellValue(level < 9 ? 0 : Math.min(50, ((level - 9) / 10 + 1) * 10));
+        }
 
-        Row rowUpgrade1 = upgrade.createRow(1);
-        rowUpgrade1.createCell(0).setCellValue(1);
-        rowUpgrade1.createCell(1).setCellValue(5);
-        rowUpgrade1.createCell(2).setCellValue(100);
-        rowUpgrade1.createCell(3).setCellValue(0);
-
-        Row rowUpgrade2 = upgrade.createRow(2);
-        rowUpgrade2.createCell(0).setCellValue(2);
-        rowUpgrade2.createCell(1).setCellValue(10);
-        rowUpgrade2.createCell(2).setCellValue(200);
-        rowUpgrade2.createCell(3).setCellValue(0);
+        Sheet levelStat = workbook.createSheet("AlienLevelStat");
+        Row headerStat = levelStat.createRow(0);
+        headerStat.createCell(0).setCellValue("level");
+        headerStat.createCell(1).setCellValue("atkMultiplier");
+        headerStat.createCell(2).setCellValue("mpMultiplier");
+        headerStat.createCell(3).setCellValue("atkSpeedMultiplier");
+        headerStat.createCell(4).setCellValue("rangeMultiplier");
+        for (int level = 1; level <= 50; level++) {
+            Row row = levelStat.createRow(level);
+            row.createCell(0).setCellValue(level);
+            row.createCell(1).setCellValue(1 + (level - 1) * 0.05);
+            row.createCell(2).setCellValue(1 + (level - 1) * 0.03);
+            row.createCell(3).setCellValue(1 + (level / 10) * 0.02);
+            row.createCell(4).setCellValue(1.00);
+        }
 
         Sheet spec = workbook.createSheet("AlienSpec");
         Row headerSpec = spec.createRow(0);
@@ -202,7 +217,8 @@ class BalanceExcelConverterTest {
 
         BalanceDataValidator validator = new BalanceDataValidator();
         validator.validateGameReward(data.gameReward());
-        validator.validateAlienUpgrade(data.alienUpgrade());
+        validator.validateAlienLevelStats(data.alienLevelStats());
+        validator.validateAlienUpgradeCosts(data.alienUpgradeCosts(), 50);
         validator.validateAlienSpec(data.alienSpecs());
         com.denfense.server.balance.GachaPoolBalanceDocument poolDoc = new com.denfense.server.balance.GachaPoolBalanceDocument(data.gachaPools());
         validator.validateGachaPool(poolDoc, data.alienSpecs());
@@ -210,8 +226,35 @@ class BalanceExcelConverterTest {
         validator.validateShopProduct(shopDoc, poolDoc);
 
         assertThat(data.gameReward().baseRewardGold()).isEqualTo(100);
-        assertThat(data.alienUpgrade().maxLevel()).isEqualTo(3);
-        assertThat(data.alienUpgrade().costs()).hasSize(2);
+        assertThat(data.alienLevelStats()).hasSize(50);
+        assertThat(data.alienUpgradeCosts()).hasSize(49);
+
+        Map<Integer, com.denfense.server.service.balance.AlienUpgradeCostBalance> costsByLevel =
+                data.alienUpgradeCosts().stream().collect(Collectors.toMap(
+                        com.denfense.server.service.balance.AlienUpgradeCostBalance::currentLevel,
+                        Function.identity()));
+        assertThat(costsByLevel.get(8).requiredGrowthCell()).isZero();
+        assertThat(costsByLevel.get(9).requiredGrowthCell()).isEqualTo(10);
+        assertThat(costsByLevel.get(18).requiredGrowthCell()).isEqualTo(10);
+        assertThat(costsByLevel.get(19).requiredGrowthCell()).isEqualTo(20);
+        assertThat(costsByLevel.get(28).requiredGrowthCell()).isEqualTo(20);
+        assertThat(costsByLevel.get(29).requiredGrowthCell()).isEqualTo(30);
+        assertThat(costsByLevel.get(38).requiredGrowthCell()).isEqualTo(30);
+        assertThat(costsByLevel.get(39).requiredGrowthCell()).isEqualTo(40);
+        assertThat(costsByLevel.get(48).requiredGrowthCell()).isEqualTo(40);
+        assertThat(costsByLevel.get(49).requiredGrowthCell()).isEqualTo(50);
+
+        Map<Integer, com.denfense.server.service.balance.AlienLevelStatBalance> statsByLevel =
+                data.alienLevelStats().stream().collect(Collectors.toMap(
+                        com.denfense.server.service.balance.AlienLevelStatBalance::level,
+                        Function.identity()));
+        assertStat(statsByLevel, 1, "1.00", "1.00", "1.00");
+        assertStat(statsByLevel, 9, "1.40", "1.24", "1.00");
+        assertStat(statsByLevel, 10, "1.45", "1.27", "1.02");
+        assertStat(statsByLevel, 20, "1.95", "1.57", "1.04");
+        assertStat(statsByLevel, 30, "2.45", "1.87", "1.06");
+        assertStat(statsByLevel, 40, "2.95", "2.17", "1.08");
+        assertStat(statsByLevel, 50, "3.45", "2.47", "1.10");
         
         assertThat(data.shopProducts()).hasSize(2);
         com.denfense.server.balance.ShopProductBalance shop1 = data.shopProducts().get(0);
@@ -241,6 +284,20 @@ class BalanceExcelConverterTest {
         assertThat(mythicEntry.alienIds()).containsExactly(29L, 30L, 31L, 32L);
     }
 
+    private void assertStat(
+            Map<Integer, com.denfense.server.service.balance.AlienLevelStatBalance> statsByLevel,
+            int level,
+            String atk,
+            String mp,
+            String speed
+    ) {
+        com.denfense.server.service.balance.AlienLevelStatBalance stat = statsByLevel.get(level);
+        assertThat(stat.atkMultiplier()).isEqualByComparingTo(atk);
+        assertThat(stat.mpMultiplier()).isEqualByComparingTo(mp);
+        assertThat(stat.atkSpeedMultiplier()).isEqualByComparingTo(speed);
+        assertThat(stat.rangeMultiplier()).isEqualByComparingTo("1.00");
+    }
+
     @Test
     @DisplayName("4. AlienUpgrade 시트 없음")
     void missingSheet() throws IOException {
@@ -250,14 +307,14 @@ class BalanceExcelConverterTest {
 
         ExcelBalanceReader reader = new ExcelBalanceReader(tempExcel.getAbsolutePath());
         BalanceConversionException ex = assertThrows(BalanceConversionException.class, reader::read);
-        assertThat(ex).hasMessageContaining("필수 시트가 없습니다: AlienUpgrade");
+        assertThat(ex).hasMessageContaining("AlienUpgradeCost");
     }
 
     @Test
     @DisplayName("10. 문자열 숫자 거부")
     void stringNumeric() throws IOException {
         createValidWorkbook();
-        workbook.getSheet("Config").getRow(1).getCell(1).setCellValue("3"); // String instead of numeric
+        workbook.getSheet("AlienUpgradeCost").getRow(1).getCell(0).setCellValue("1");
         saveAndClose();
 
         ExcelBalanceReader reader = new ExcelBalanceReader(tempExcel.getAbsolutePath());
@@ -293,12 +350,12 @@ class BalanceExcelConverterTest {
     @DisplayName("19. 숨김 행 처리됨")
     void hiddenRow() throws IOException {
         createValidWorkbook();
-        workbook.getSheet("AlienUpgrade").getRow(1).setZeroHeight(true);
+        workbook.getSheet("AlienUpgradeCost").getRow(1).setZeroHeight(true);
         saveAndClose();
 
         ExcelBalanceReader reader = new ExcelBalanceReader(tempExcel.getAbsolutePath());
         ExcelBalanceReader.BalanceData data = reader.read();
-        assertThat(data.alienUpgrade().costs()).hasSize(2);
+        assertThat(data.alienUpgradeCosts()).hasSize(49);
     }
 
     @Test
@@ -317,13 +374,13 @@ class BalanceExcelConverterTest {
     @DisplayName("22. 중복 레벨 거부 (Validator에서 수행)")
     void duplicateLevel() throws IOException {
         createValidWorkbook();
-        workbook.getSheet("AlienUpgrade").getRow(2).getCell(0).setCellValue(1); // Dup level 1
+        workbook.getSheet("AlienUpgradeCost").getRow(2).getCell(0).setCellValue(1);
         saveAndClose();
 
         ExcelBalanceReader reader = new ExcelBalanceReader(tempExcel.getAbsolutePath());
         ExcelBalanceReader.BalanceData data = reader.read();
         BalanceDataValidator validator = new BalanceDataValidator();
-        assertThrows(IllegalStateException.class, () -> validator.validateAlienUpgrade(data.alienUpgrade()));
+        assertThrows(IllegalStateException.class, () -> validator.validateAlienUpgradeCosts(data.alienUpgradeCosts(), 50));
     }
 
     @Test
@@ -417,6 +474,92 @@ class BalanceExcelConverterTest {
         com.denfense.server.balance.GachaPoolBalanceDocument poolDoc = new com.denfense.server.balance.GachaPoolBalanceDocument(data.gachaPools());
         IllegalStateException ex = assertThrows(IllegalStateException.class, () -> validator.validateGachaPool(poolDoc, data.alienSpecs()));
         assertThat(ex).hasMessageContaining("중복된 alienId가 존재합니다");
+    }
+
+    @Test
+    void upgradeCostTargetLevelMismatchFails() throws IOException {
+        createValidWorkbook();
+        workbook.getSheet("AlienUpgradeCost").getRow(1).getCell(1).setCellValue(3);
+        assertUpgradeValidationFails();
+    }
+
+    @Test
+    void upgradeCostNonPositiveValuesFail() throws IOException {
+        createValidWorkbook();
+        workbook.getSheet("AlienUpgradeCost").getRow(1).getCell(2).setCellValue(0);
+        assertUpgradeValidationFails();
+    }
+
+    @Test
+    void upgradeCostNegativeGrowthCellFails() throws IOException {
+        createValidWorkbook();
+        workbook.getSheet("AlienUpgradeCost").getRow(1).getCell(4).setCellValue(-1);
+        assertUpgradeValidationFails();
+    }
+
+    @Test
+    void upgradeCostLevel50RowFails() throws IOException {
+        createValidWorkbook();
+        Row row = workbook.getSheet("AlienUpgradeCost").createRow(50);
+        row.createCell(0).setCellValue(50);
+        row.createCell(1).setCellValue(51);
+        row.createCell(2).setCellValue(250);
+        row.createCell(3).setCellValue(5000);
+        row.createCell(4).setCellValue(50);
+        assertUpgradeValidationFails();
+    }
+
+    @Test
+    void alienLevelStatMissingAndDuplicateLevelFail() throws IOException {
+        createValidWorkbook();
+        workbook.getSheet("AlienLevelStat").getRow(50).getCell(0).setCellValue(49);
+        assertLevelStatValidationFails();
+    }
+
+    @Test
+    void alienLevelStatNonPositiveMultiplierFails() throws IOException {
+        createValidWorkbook();
+        workbook.getSheet("AlienLevelStat").getRow(10).getCell(1).setCellValue(0);
+        assertLevelStatValidationFails();
+    }
+
+    @Test
+    void alienLevelStatLevelOneRuleFails() throws IOException {
+        createValidWorkbook();
+        workbook.getSheet("AlienLevelStat").getRow(1).getCell(1).setCellValue(1.05);
+        assertLevelStatValidationFails();
+    }
+
+    @Test
+    void alienLevelStatRangeRuleFails() throws IOException {
+        createValidWorkbook();
+        workbook.getSheet("AlienLevelStat").getRow(2).getCell(4).setCellValue(1.01);
+        assertLevelStatValidationFails();
+    }
+
+    @Test
+    void alienLevelStatMalformedDecimalFailsDuringRead() throws IOException {
+        createValidWorkbook();
+        workbook.getSheet("AlienLevelStat").getRow(10).getCell(1).setCellValue("1.45");
+        saveAndClose();
+        assertThrows(BalanceConversionException.class,
+                () -> new ExcelBalanceReader(tempExcel.getAbsolutePath()).read());
+    }
+
+    private void assertUpgradeValidationFails() throws IOException {
+        saveAndClose();
+        ExcelBalanceReader.BalanceData data = new ExcelBalanceReader(tempExcel.getAbsolutePath()).read();
+        BalanceDataValidator validator = new BalanceDataValidator();
+        assertThrows(IllegalStateException.class,
+                () -> validator.validateAlienUpgradeCosts(data.alienUpgradeCosts(), 50));
+    }
+
+    private void assertLevelStatValidationFails() throws IOException {
+        saveAndClose();
+        ExcelBalanceReader.BalanceData data = new ExcelBalanceReader(tempExcel.getAbsolutePath()).read();
+        BalanceDataValidator validator = new BalanceDataValidator();
+        assertThrows(IllegalStateException.class,
+                () -> validator.validateAlienLevelStats(data.alienLevelStats()));
     }
 
     @Test

@@ -60,24 +60,37 @@ public class AlienSpecBalanceExcelConverterTest {
         rowReward.createCell(1).setCellValue(10);
         rowReward.createCell(2).setCellValue(1000);
 
-        Sheet upgrade = workbook.createSheet("AlienUpgrade");
+        Sheet upgrade = workbook.createSheet("AlienUpgradeCost");
         Row headerUpgrade = upgrade.createRow(0);
         headerUpgrade.createCell(0).setCellValue("currentLevel");
-        headerUpgrade.createCell(1).setCellValue("requiredPieces");
-        headerUpgrade.createCell(2).setCellValue("requiredGold");
-        headerUpgrade.createCell(3).setCellValue("requiredGrowthCell");
+        headerUpgrade.createCell(1).setCellValue("targetLevel");
+        headerUpgrade.createCell(2).setCellValue("requiredPieces");
+        headerUpgrade.createCell(3).setCellValue("requiredGold");
+        headerUpgrade.createCell(4).setCellValue("requiredGrowthCell");
+        for (int level = 1; level <= 49; level++) {
+            Row row = upgrade.createRow(level);
+            row.createCell(0).setCellValue(level);
+            row.createCell(1).setCellValue(level + 1);
+            row.createCell(2).setCellValue(level * 5);
+            row.createCell(3).setCellValue(level * 100);
+            row.createCell(4).setCellValue(level < 9 ? 0 : Math.min(50, ((level - 9) / 10 + 1) * 10));
+        }
 
-        Row rowUpgrade1 = upgrade.createRow(1);
-        rowUpgrade1.createCell(0).setCellValue(1);
-        rowUpgrade1.createCell(1).setCellValue(5);
-        rowUpgrade1.createCell(2).setCellValue(100);
-        rowUpgrade1.createCell(3).setCellValue(0);
-
-        Row rowUpgrade2 = upgrade.createRow(2);
-        rowUpgrade2.createCell(0).setCellValue(2);
-        rowUpgrade2.createCell(1).setCellValue(10);
-        rowUpgrade2.createCell(2).setCellValue(200);
-        rowUpgrade2.createCell(3).setCellValue(0);
+        Sheet levelStat = workbook.createSheet("AlienLevelStat");
+        Row statHeader = levelStat.createRow(0);
+        statHeader.createCell(0).setCellValue("level");
+        statHeader.createCell(1).setCellValue("atkMultiplier");
+        statHeader.createCell(2).setCellValue("mpMultiplier");
+        statHeader.createCell(3).setCellValue("atkSpeedMultiplier");
+        statHeader.createCell(4).setCellValue("rangeMultiplier");
+        for (int level = 1; level <= 50; level++) {
+            Row row = levelStat.createRow(level);
+            row.createCell(0).setCellValue(level);
+            row.createCell(1).setCellValue(1 + (level - 1) * 0.05);
+            row.createCell(2).setCellValue(1 + (level - 1) * 0.03);
+            row.createCell(3).setCellValue(1 + (level / 10) * 0.02);
+            row.createCell(4).setCellValue(1.0);
+        }
 
         Sheet shop = workbook.createSheet("ShopProduct");
         Row hShop = shop.createRow(0);

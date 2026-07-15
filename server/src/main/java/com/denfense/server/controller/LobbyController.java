@@ -31,6 +31,7 @@ public class LobbyController {
     private final AlienSpecRepository alienSpecRepository;
     private final UserAlienRepository userAlienRepository;
     private final com.denfense.server.service.HeartPolicy heartPolicy;
+    private final com.denfense.server.service.UpgradeCostPolicy upgradeCostPolicy;
 
     @GetMapping("/info/{username}")
     public ResponseEntity<?> getLobbyInfo(@PathVariable String username) {
@@ -66,7 +67,13 @@ public class LobbyController {
 
         // 유닛 목록 매핑 (Spec + UserAlien 조합)
         List<LobbyResponseDto.AlienInventoryDto> inventoryList = allSpecs.stream()
-                .map(spec -> LobbyResponseDto.AlienInventoryDto.fromEntity(spec, myAlienMap.get(spec.getId())))
+                .map(spec -> {
+                    UserAlien userAlien = myAlienMap.get(spec.getId());
+                    int requiredPieces = userAlien != null && userAlien.getLevel() < upgradeCostPolicy.getMaxLevel()
+                            ? upgradeCostPolicy.calculate(userAlien.getLevel()).getRequiredPieces()
+                            : 0;
+                    return LobbyResponseDto.AlienInventoryDto.fromEntity(spec, userAlien, requiredPieces);
+                })
                 .collect(Collectors.toList());
 
         response.setAliens(inventoryList);

@@ -3,6 +3,7 @@ package com.denfense.server;
 import com.denfense.server.service.balance.BalanceDataLoader;
 import com.denfense.server.service.balance.BalanceDataValidator;
 import com.denfense.server.service.balance.BalanceRegistry;
+import com.denfense.server.service.balance.AlienUpgradeBalanceRegistry;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -26,6 +27,11 @@ class BalanceContextFailFastTest {
         }
 
         @Bean
+        public AlienUpgradeBalanceRegistry alienUpgradeBalanceRegistry() {
+            return new AlienUpgradeBalanceRegistry();
+        }
+
+        @Bean
         public BalanceDataValidator balanceDataValidator() {
             return new BalanceDataValidator();
         }
@@ -36,8 +42,9 @@ class BalanceContextFailFastTest {
         }
 
         @Bean
-        public BalanceDataLoader balanceDataLoader(ObjectMapper mapper, BalanceDataValidator validator, BalanceRegistry registry) {
-            return new BalanceDataLoader(new DefaultResourceLoader(), mapper, validator, registry);
+        public BalanceDataLoader balanceDataLoader(ObjectMapper mapper, BalanceDataValidator validator,
+                                                   BalanceRegistry registry, AlienUpgradeBalanceRegistry upgradeRegistry) {
+            return new BalanceDataLoader(new DefaultResourceLoader(), mapper, validator, registry, upgradeRegistry);
         }
     }
 
@@ -47,7 +54,8 @@ class BalanceContextFailFastTest {
         contextRunner
                 .withPropertyValues(
                         "balance.reward.path=classpath:balance/valid/game-reward.json",
-                        "balance.upgrade.path=classpath:balance/valid/alien-upgrade.json"
+                        "balance.upgrade-cost.path=classpath:balance/valid/alien-upgrade-cost.json",
+                        "balance.level-stat.path=classpath:balance/generated/alien-level-stat.json"
                 )
                 .run(context -> {
                     assertThat(context).hasNotFailed();
@@ -64,7 +72,8 @@ class BalanceContextFailFastTest {
         contextRunner
                 .withPropertyValues(
                         "balance.reward.path=classpath:balance/invalid/reward-negative.json",
-                        "balance.upgrade.path=classpath:balance/valid/alien-upgrade.json"
+                        "balance.upgrade-cost.path=classpath:balance/valid/alien-upgrade-cost.json",
+                        "balance.level-stat.path=classpath:balance/generated/alien-level-stat.json"
                 )
                 .run(context -> {
                     assertThat(context).hasNotFailed();
@@ -80,10 +89,43 @@ class BalanceContextFailFastTest {
         contextRunner
                 .withPropertyValues(
                         "balance.reward.path=classpath:balance/invalid/not-exists.json",
-                        "balance.upgrade.path=classpath:balance/valid/alien-upgrade.json"
+                        "balance.upgrade-cost.path=classpath:balance/valid/alien-upgrade-cost.json",
+                        "balance.level-stat.path=classpath:balance/generated/alien-level-stat.json"
                 )
                 .run(context -> {
                     assertThat(context).hasNotFailed();
+                    BalanceDataLoader loader = context.getBean(BalanceDataLoader.class);
+                    Exception exception = org.junit.jupiter.api.Assertions.assertThrows(Exception.class, loader::loadData);
+                    assertThat(exception).hasMessageContaining("파일을 찾을 수 없습니다");
+                });
+    }
+
+    @Test
+    @DisplayName("강화 비용 JSON 누락 시 fail-fast")
+    void contextFails_withMissingUpgradeCostFile() {
+        contextRunner
+                .withPropertyValues(
+                        "balance.reward.path=classpath:balance/valid/game-reward.json",
+                        "balance.upgrade-cost.path=classpath:balance/invalid/not-exists-upgrade-cost.json",
+                        "balance.level-stat.path=classpath:balance/generated/alien-level-stat.json"
+                )
+                .run(context -> {
+                    BalanceDataLoader loader = context.getBean(BalanceDataLoader.class);
+                    Exception exception = org.junit.jupiter.api.Assertions.assertThrows(Exception.class, loader::loadData);
+                    assertThat(exception).hasMessageContaining("파일을 찾을 수 없습니다");
+                });
+    }
+
+    @Test
+    @DisplayName("레벨 능력치 JSON 누락 시 fail-fast")
+    void contextFails_withMissingLevelStatFile() {
+        contextRunner
+                .withPropertyValues(
+                        "balance.reward.path=classpath:balance/valid/game-reward.json",
+                        "balance.upgrade-cost.path=classpath:balance/valid/alien-upgrade-cost.json",
+                        "balance.level-stat.path=classpath:balance/invalid/not-exists-level-stat.json"
+                )
+                .run(context -> {
                     BalanceDataLoader loader = context.getBean(BalanceDataLoader.class);
                     Exception exception = org.junit.jupiter.api.Assertions.assertThrows(Exception.class, loader::loadData);
                     assertThat(exception).hasMessageContaining("파일을 찾을 수 없습니다");

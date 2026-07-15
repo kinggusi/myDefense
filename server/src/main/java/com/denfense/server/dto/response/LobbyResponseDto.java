@@ -41,7 +41,7 @@ public class LobbyResponseDto {
         private Long evolutionTargetId;
         private boolean specLocked;
 
-        public static AlienInventoryDto fromEntity(AlienSpec spec, UserAlien userAlien) {
+        public static AlienInventoryDto fromEntity(AlienSpec spec, UserAlien userAlien, int requiredPieces) {
             AlienInventoryDto dto = new AlienInventoryDto();
             dto.setId(spec.getId());
             dto.setName(spec.getName());
@@ -59,13 +59,13 @@ public class LobbyResponseDto {
                 dto.setOwned(true);
                 dto.setLevel(userAlien.getLevel());
                 dto.setPieces(userAlien.getPieces());
-                dto.setRequiredPieces(userAlien.getLevel() * 10);
+                dto.setRequiredPieces(requiredPieces);
                 dto.setLocked(false); // 기존 로직 호환 (보유 시 잠금해제)
             } else {
                 dto.setOwned(false);
                 dto.setLevel(0); // 기존 1에서 0으로 정책 변경 (미보유 상태 명확화)
                 dto.setPieces(0);
-                dto.setRequiredPieces(10);
+                dto.setRequiredPieces(0);
                 dto.setLocked(spec.isLocked());
             }
 

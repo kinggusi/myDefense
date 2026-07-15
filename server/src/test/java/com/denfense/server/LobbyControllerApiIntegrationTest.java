@@ -20,7 +20,6 @@ import java.util.List;
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -102,10 +101,12 @@ public class LobbyControllerApiIntegrationTest {
                 .andExpect(jsonPath("$.aliens[0].owned").value(true))
                 .andExpect(jsonPath("$.aliens[0].level").value(3))
                 .andExpect(jsonPath("$.aliens[0].pieces").value(7))
+                .andExpect(jsonPath("$.aliens[0].requiredPieces").value(15))
                 // 4. 미보유 Alien 검증 (ID 2)
                 .andExpect(jsonPath("$.aliens[1].owned").value(false))
                 .andExpect(jsonPath("$.aliens[1].level").value(0))
                 .andExpect(jsonPath("$.aliens[1].pieces").value(0))
+                .andExpect(jsonPath("$.aliens[1].requiredPieces").value(0))
                 // 5. specLocked와 owned 분리 및 기존 locked 호환 검증
                 .andExpect(jsonPath("$.aliens[0].specLocked").isBoolean())
                 .andExpect(jsonPath("$.aliens[0].locked").value(false)) // 보유 시 무조건 false
@@ -118,6 +119,27 @@ public class LobbyControllerApiIntegrationTest {
                 .andExpect(jsonPath("$.aliens[0].range").isNumber());
                 // 7. evolutionTargetId 매핑 검증
                 // jsonPath에서는 값이 null일 때 exists()가 실패할 수 있음. 매핑됨을 다른 방식으로 간접 확인.
+    }
+
+    @Test
+    void requiredPiecesUsesBalanceCostForOwnedLevelsAndZeroAtMax() throws Exception {
+        AlienSpec firstSpec = alienSpecRepository.findAll().stream()
+                .min(java.util.Comparator.comparing(AlienSpec::getId))
+                .orElseThrow();
+        UserAlien owned = userAlienRepository.findByUserAndAlienSpec(testUser, firstSpec).orElseThrow();
+
+        assertRequiredPieces(owned, 1, 5);
+        assertRequiredPieces(owned, 9, 45);
+        assertRequiredPieces(owned, 10, 50);
+        assertRequiredPieces(owned, 50, 0);
+    }
+
+    private void assertRequiredPieces(UserAlien owned, int level, int expected) throws Exception {
+        owned.setLevel(level);
+        userAlienRepository.save(owned);
+        mockMvc.perform(get("/api/lobby/info/lobbyUser1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.aliens[0].requiredPieces").value(expected));
     }
 
     @Test

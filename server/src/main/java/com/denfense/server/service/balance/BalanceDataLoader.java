@@ -13,9 +13,6 @@ import org.springframework.stereotype.Component;
 import com.denfense.server.balance.AlienSpecBalance;
 import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import org.springframework.core.annotation.Order;
 
@@ -29,12 +26,16 @@ public class BalanceDataLoader implements ApplicationRunner {
     private final ObjectMapper baseObjectMapper;
     private final BalanceDataValidator validator;
     private final BalanceRegistry registry;
+    private final AlienUpgradeBalanceRegistry alienUpgradeRegistry;
 
     @Value("${balance.reward.path:classpath:balance/generated/game-reward.json}")
     private String rewardFilePath;
 
-    @Value("${balance.upgrade.path:classpath:balance/generated/alien-upgrade.json}")
-    private String upgradeFilePath;
+    @Value("${balance.upgrade-cost.path:classpath:balance/generated/alien-upgrade-cost.json}")
+    private String upgradeCostFilePath;
+
+    @Value("${balance.level-stat.path:classpath:balance/generated/alien-level-stat.json}")
+    private String levelStatFilePath;
 
     @Value("${balance.spec.path:classpath:balance/generated/alien-spec.json}")
     private String specFilePath;
@@ -50,7 +51,11 @@ public class BalanceDataLoader implements ApplicationRunner {
     }
 
     public void setUpgradeFilePath(String upgradeFilePath) {
-        this.upgradeFilePath = upgradeFilePath;
+        this.upgradeCostFilePath = upgradeFilePath;
+    }
+
+    public void setLevelStatFilePath(String levelStatFilePath) {
+        this.levelStatFilePath = levelStatFilePath;
     }
 
     public void setSpecFilePath(String specFilePath) {
@@ -84,15 +89,22 @@ public class BalanceDataLoader implements ApplicationRunner {
             GameRewardBalance rewardBalance = strictMapper.readValue(rewardRes.getInputStream(), GameRewardBalance.class);
             validator.validateGameReward(rewardBalance);
 
-            Resource upgradeRes = resourceLoader.getResource(upgradeFilePath);
+            Resource upgradeRes = resourceLoader.getResource(upgradeCostFilePath);
             if (!upgradeRes.exists()) {
-                throw new IllegalStateException("파일을 찾을 수 없습니다: " + upgradeFilePath);
+                throw new IllegalStateException("파일을 찾을 수 없습니다: " + upgradeCostFilePath);
             }
-            AlienUpgradeBalanceFile upgradeFile = strictMapper.readValue(upgradeRes.getInputStream(), AlienUpgradeBalanceFile.class);
-            validator.validateAlienUpgrade(upgradeFile);
+            List<AlienUpgradeCostBalance> upgradeCosts = strictMapper.readValue(
+                    upgradeRes.getInputStream(), new TypeReference<List<AlienUpgradeCostBalance>>() {});
 
-            Map<Integer, AlienUpgradeCostBalance> costMap = upgradeFile.costs().stream()
-                    .collect(Collectors.toMap(AlienUpgradeCostBalance::currentLevel, Function.identity()));
+            Resource levelStatRes = resourceLoader.getResource(levelStatFilePath);
+            if (!levelStatRes.exists()) {
+                throw new IllegalStateException("파일을 찾을 수 없습니다: " + levelStatFilePath);
+            }
+            List<AlienLevelStatBalance> levelStats = strictMapper.readValue(
+                    levelStatRes.getInputStream(), new TypeReference<List<AlienLevelStatBalance>>() {});
+            validator.validateAlienLevelStats(levelStats);
+            int maxLevel = levelStats.stream().mapToInt(AlienLevelStatBalance::level).max().orElseThrow();
+            validator.validateAlienUpgradeCosts(upgradeCosts, maxLevel);
 
             Resource specRes = resourceLoader.getResource(specFilePath);
             if (!specRes.exists()) {
@@ -115,9 +127,10 @@ public class BalanceDataLoader implements ApplicationRunner {
             com.denfense.server.balance.ShopProductBalanceDocument productDoc = strictMapper.readValue(productRes.getInputStream(), com.denfense.server.balance.ShopProductBalanceDocument.class);
             validator.validateShopProduct(productDoc, poolDoc);
 
-            registry.init(rewardBalance, upgradeFile.maxLevel(), costMap, specs, productDoc.products(), poolDoc.pools());
+            alienUpgradeRegistry.init(upgradeCosts, levelStats);
+            registry.init(rewardBalance, specs, productDoc.products(), poolDoc.pools());
 
-            log.info("Balance 데이터 로딩 완료. MaxLevel: {}", upgradeFile.maxLevel());
+            log.info("Balance 데이터 로딩 완료. MaxLevel: {}", maxLevel);
         } catch (Exception e) {
             log.error("Balance 데이터 로딩 실패! 서버 시작을 중단합니다.", e);
             throw e;

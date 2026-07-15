@@ -81,12 +81,13 @@ task convertBalance(type: JavaExec) {
 
     def excelPath = project.hasProperty('excelPath') ? project.property('excelPath') : "${project.projectDir}/../balance/source/balance-data.xlsx"
     def rewardPath = project.hasProperty('rewardPath') ? project.property('rewardPath') : "${project.projectDir}/src/main/resources/balance/generated/game-reward.json"
-    def upgradePath = project.hasProperty('upgradePath') ? project.property('upgradePath') : "${project.projectDir}/src/main/resources/balance/generated/alien-upgrade.json"
+    def upgradePath = project.hasProperty('upgradePath') ? project.property('upgradePath') : "${project.projectDir}/src/main/resources/balance/generated/alien-upgrade-cost.json"
+    def levelStatPath = project.hasProperty('levelStatPath') ? project.property('levelStatPath') : "${project.projectDir}/src/main/resources/balance/generated/alien-level-stat.json"
     def specPath = project.hasProperty('specPath') ? project.property('specPath') : "${project.projectDir}/src/main/resources/balance/generated/alien-spec.json"
     def shopPath = project.hasProperty('shopPath') ? project.property('shopPath') : "${project.projectDir}/src/main/resources/balance/generated/shop-products.json"
     def poolPath = project.hasProperty('poolPath') ? project.property('poolPath') : "${project.projectDir}/src/main/resources/balance/generated/gacha-pools.json"
 
-    args = [excelPath, rewardPath, upgradePath, specPath, shopPath, poolPath]
+    args = [excelPath, rewardPath, upgradePath, levelStatPath, specPath, shopPath, poolPath]
 }
 
 task balanceToolTest(type: Test) {

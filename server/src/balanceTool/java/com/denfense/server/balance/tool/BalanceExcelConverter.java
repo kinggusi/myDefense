@@ -9,17 +9,18 @@ import java.util.Collections;
 public class BalanceExcelConverter {
 
     public static void main(String[] args) {
-        if (args.length < 6) {
-            System.err.println("Usage: convertBalance <excelPath> <rewardPath> <upgradePath> <specPath> <shopPath> <poolPath>");
+        if (args.length < 7) {
+            System.err.println("Usage: convertBalance <excelPath> <rewardPath> <upgradeCostPath> <levelStatPath> <specPath> <shopPath> <poolPath>");
             System.exit(1);
         }
 
         String excelPath = args[0];
         Path rewardPath = Paths.get(args[1]);
-        Path upgradePath = Paths.get(args[2]);
-        Path specPath = Paths.get(args[3]);
-        Path shopPath = Paths.get(args[4]);
-        Path poolPath = Paths.get(args[5]);
+        Path upgradeCostPath = Paths.get(args[2]);
+        Path levelStatPath = Paths.get(args[3]);
+        Path specPath = Paths.get(args[4]);
+        Path shopPath = Paths.get(args[5]);
+        Path poolPath = Paths.get(args[6]);
 
         try {
             System.out.println("Starting Excel conversion...");
@@ -32,7 +33,9 @@ public class BalanceExcelConverter {
             // 2. Validate
             BalanceDataValidator validator = new BalanceDataValidator();
             validator.validateGameReward(data.gameReward());
-            validator.validateAlienUpgrade(data.alienUpgrade());
+            validator.validateAlienLevelStats(data.alienLevelStats());
+            int maxLevel = data.alienLevelStats().stream().mapToInt(com.denfense.server.service.balance.AlienLevelStatBalance::level).max().orElseThrow();
+            validator.validateAlienUpgradeCosts(data.alienUpgradeCosts(), maxLevel);
             validator.validateAlienSpec(data.alienSpecs());
             com.denfense.server.balance.GachaPoolBalanceDocument poolDoc = new com.denfense.server.balance.GachaPoolBalanceDocument(data.gachaPools());
             validator.validateGachaPool(poolDoc, data.alienSpecs());
@@ -42,7 +45,8 @@ public class BalanceExcelConverter {
             // 3. Write temp files
             BalanceJsonWriter writer = new BalanceJsonWriter();
             Path rewardTemp = writer.writeTempJson(rewardPath, data.gameReward());
-            Path upgradeTemp = writer.writeTempJson(upgradePath, data.alienUpgrade());
+            Path upgradeTemp = writer.writeTempJson(upgradeCostPath, data.alienUpgradeCosts());
+            Path levelStatTemp = writer.writeTempJson(levelStatPath, data.alienLevelStats());
             Path specTemp = writer.writeTempJson(specPath, data.alienSpecs());
             Path shopTemp = writer.writeTempJson(shopPath, shopDoc);
             Path poolTemp = writer.writeTempJson(poolPath, poolDoc);
@@ -50,7 +54,8 @@ public class BalanceExcelConverter {
             // 4. Atomic move
             try {
                 writer.replaceFile(rewardTemp, rewardPath);
-                writer.replaceFile(upgradeTemp, upgradePath);
+                writer.replaceFile(upgradeTemp, upgradeCostPath);
+                writer.replaceFile(levelStatTemp, levelStatPath);
                 writer.replaceFile(specTemp, specPath);
                 writer.replaceFile(shopTemp, shopPath);
                 writer.replaceFile(poolTemp, poolPath);
@@ -61,7 +66,8 @@ public class BalanceExcelConverter {
 
             System.out.println("Conversion successful.");
             System.out.println("Reward JSON: " + rewardPath.toAbsolutePath());
-            System.out.println("Upgrade JSON: " + upgradePath.toAbsolutePath());
+            System.out.println("Upgrade cost JSON: " + upgradeCostPath.toAbsolutePath());
+            System.out.println("Level stat JSON: " + levelStatPath.toAbsolutePath());
             System.out.println("Spec JSON: " + specPath.toAbsolutePath());
             System.out.println("Shop JSON: " + shopPath.toAbsolutePath());
             System.out.println("Pool JSON: " + poolPath.toAbsolutePath());

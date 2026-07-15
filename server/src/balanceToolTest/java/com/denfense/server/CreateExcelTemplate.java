@@ -30,35 +30,39 @@ public class CreateExcelTemplate {
         r2.createCell(1).setCellValue(10);
         r2.createCell(2).setCellValue(1000);
         
-        // 3. AlienUpgrade
-        Sheet upgrade = workbook.createSheet("AlienUpgrade");
+        // 3. AlienUpgradeCost
+        Sheet upgrade = workbook.createSheet("AlienUpgradeCost");
         Row h3 = upgrade.createRow(0);
         h3.createCell(0).setCellValue("currentLevel");
-        h3.createCell(1).setCellValue("requiredPieces");
-        h3.createCell(2).setCellValue("requiredGold");
-        h3.createCell(3).setCellValue("requiredGrowthCell");
+        h3.createCell(1).setCellValue("targetLevel");
+        h3.createCell(2).setCellValue("requiredPieces");
+        h3.createCell(3).setCellValue("requiredGold");
+        h3.createCell(4).setCellValue("requiredGrowthCell");
         
         for (int i = 1; i < 50; i++) {
             Row r = upgrade.createRow(i);
             r.createCell(0).setCellValue(i);
             
-            // From UpgradeCostPolicy (or json)
-            // 1~9: pieces=5, gold=i*10
-            // 10~19: pieces=10, gold=i*15
-            // 20~29: pieces=15, gold=i*20, cell=1
-            // 30~39: pieces=20, gold=i*30, cell=2
-            // 40~49: pieces=30, gold=i*40, cell=3
-            
-            int p, g, c;
-            if (i < 10) { p=5; g=i*10; c=0; }
-            else if (i < 20) { p=10; g=i*15; c=0; }
-            else if (i < 30) { p=15; g=i*20; c=1; }
-            else if (i < 40) { p=20; g=i*30; c=2; }
-            else { p=30; g=i*40; c=3; }
-            
-            r.createCell(1).setCellValue(p);
-            r.createCell(2).setCellValue(g);
-            r.createCell(3).setCellValue(c);
+            r.createCell(1).setCellValue(i + 1);
+            r.createCell(2).setCellValue(i * 5);
+            r.createCell(3).setCellValue(i * 100);
+            r.createCell(4).setCellValue(i < 9 ? 0 : Math.min(50, ((i - 9) / 10 + 1) * 10));
+        }
+
+        Sheet levelStat = workbook.createSheet("AlienLevelStat");
+        Row statHeader = levelStat.createRow(0);
+        statHeader.createCell(0).setCellValue("level");
+        statHeader.createCell(1).setCellValue("atkMultiplier");
+        statHeader.createCell(2).setCellValue("mpMultiplier");
+        statHeader.createCell(3).setCellValue("atkSpeedMultiplier");
+        statHeader.createCell(4).setCellValue("rangeMultiplier");
+        for (int level = 1; level <= 50; level++) {
+            Row row = levelStat.createRow(level);
+            row.createCell(0).setCellValue(level);
+            row.createCell(1).setCellValue(1 + (level - 1) * 0.05);
+            row.createCell(2).setCellValue(1 + (level - 1) * 0.03);
+            row.createCell(3).setCellValue(1 + (level / 10) * 0.02);
+            row.createCell(4).setCellValue(1.0);
         }
         
         File dir = new File("../balance/source");

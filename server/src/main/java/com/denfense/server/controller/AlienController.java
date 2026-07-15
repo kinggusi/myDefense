@@ -6,6 +6,7 @@ import com.denfense.server.service.ShopService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import com.denfense.server.dto.response.AlienUpgradeResponseDto;
+import com.denfense.server.dto.response.AlienUpgradeStatusResponseDto;
 import io.swagger.v3.oas.annotations.Operation;
 
 @RestController
@@ -20,5 +21,10 @@ public class AlienController {
     @PostMapping("/{alienId}/upgrade")
     public AlienUpgradeResponseDto upgrade(@PathVariable int alienId, @RequestParam String username) {
         return alienService.upgradeAlien(username, alienId);
+    }
+
+    @GetMapping("/{alienId}/upgrade-status")
+    public AlienUpgradeStatusResponseDto getUpgradeStatus(@PathVariable int alienId, @RequestParam String username) {
+        return alienService.getUpgradeStatus(username, alienId);
     }
 }

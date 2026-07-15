@@ -136,13 +136,13 @@ class AlienServiceTest {
         testUserAlien.setLevel(10);
         userAlienRepository.save(testUserAlien);
         
-        // level 10 cost: 50 pieces, 1000 gold, 2 cell
+        // level 10 cost: 50 pieces, 1000 gold, 10 cells
         AlienUpgradeResponseDto response = alienService.upgradeAlien(testUser.getUsername(), testAlienSpec.getId().intValue());
         
-        assertEquals(2, response.getUsedGrowthCell());
+        assertEquals(10, response.getUsedGrowthCell());
         
         User user = userRepository.findById(testUser.getId()).get();
-        assertEquals(48, user.getGrowthCell()); // 50 - 2
+        assertEquals(40, user.getGrowthCell());
     }
 
     @Test
@@ -151,7 +151,7 @@ class AlienServiceTest {
         testUserAlien.setLevel(10);
         userAlienRepository.save(testUserAlien);
         
-        testUser.setGrowthCell(1); // need 2
+        testUser.setGrowthCell(1); // need 10
         userRepository.save(testUser);
         
         BusinessException ex = assertThrows(BusinessException.class, () -> 

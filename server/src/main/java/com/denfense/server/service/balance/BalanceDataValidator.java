@@ -5,6 +5,7 @@ import org.springframework.stereotype.Component;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.math.BigDecimal;
 
 @Component
 public class BalanceDataValidator {
@@ -27,39 +28,73 @@ public class BalanceDataValidator {
         }
     }
 
-    public void validateAlienUpgrade(AlienUpgradeBalanceFile file) {
-        if (file == null) {
-            throw new IllegalStateException("AlienUpgradeBalanceFile이 null입니다.");
-        }
-        if (file.maxLevel() < 2) {
-            throw new IllegalStateException("maxLevel은 2 이상이어야 합니다.");
-        }
-        List<AlienUpgradeCostBalance> costs = file.costs();
+    public void validateAlienUpgradeCosts(List<AlienUpgradeCostBalance> costs, int maxLevel) {
         if (costs == null || costs.isEmpty()) {
-            throw new IllegalStateException("costs 배열이 null이거나 비어 있습니다.");
+            throw new IllegalStateException("AlienUpgradeCost 데이터가 비어 있습니다.");
         }
-        if (costs.size() != file.maxLevel() - 1) {
-            throw new IllegalStateException("costs 배열 크기는 maxLevel - 1 이어야 합니다. 기대: " + (file.maxLevel() - 1) + ", 실제: " + costs.size());
+        if (costs.size() != maxLevel - 1) {
+            throw new IllegalStateException("AlienUpgradeCost 행 수는 maxLevel - 1 이어야 합니다.");
         }
 
         Set<Integer> levels = new HashSet<>();
         for (AlienUpgradeCostBalance cost : costs) {
-            if (cost.currentLevel() < 1 || cost.currentLevel() >= file.maxLevel()) {
+            if (cost.currentLevel() < 1 || cost.currentLevel() >= maxLevel) {
                 throw new IllegalStateException("currentLevel은 1부터 maxLevel - 1 사이여야 합니다: " + cost.currentLevel());
             }
             if (!levels.add(cost.currentLevel())) {
                 throw new IllegalStateException("중복된 currentLevel이 존재합니다: " + cost.currentLevel());
             }
-            if (cost.requiredPieces() < 0 || cost.requiredGold() < 0 || cost.requiredGrowthCell() < 0) {
-                throw new IllegalStateException("요구 비용은 0 이상이어야 합니다. 레벨: " + cost.currentLevel());
+            if (cost.targetLevel() != cost.currentLevel() + 1) {
+                throw new IllegalStateException("targetLevel은 currentLevel + 1 이어야 합니다: " + cost.currentLevel());
+            }
+            if (cost.requiredPieces() <= 0 || cost.requiredGold() <= 0 || cost.requiredGrowthCell() < 0) {
+                throw new IllegalStateException("조각/Gold는 양수이고 GrowthCell은 0 이상이어야 합니다: " + cost.currentLevel());
             }
         }
 
-        for (int i = 1; i < file.maxLevel(); i++) {
+        for (int i = 1; i < maxLevel; i++) {
             if (!levels.contains(i)) {
                 throw new IllegalStateException("누락된 currentLevel이 존재합니다: " + i);
             }
         }
+    }
+
+    public void validateAlienLevelStats(List<AlienLevelStatBalance> stats) {
+        if (stats == null || stats.isEmpty()) {
+            throw new IllegalStateException("AlienLevelStat 데이터가 비어 있습니다.");
+        }
+        Set<Integer> levels = new HashSet<>();
+        int maxLevel = stats.stream().mapToInt(AlienLevelStatBalance::level).max().orElseThrow();
+        if (maxLevel < 1 || stats.size() != maxLevel) {
+            throw new IllegalStateException("AlienLevelStat은 level 1부터 최대 level까지 연속이어야 합니다.");
+        }
+        for (AlienLevelStatBalance stat : stats) {
+            if (stat.level() < 1 || stat.level() > maxLevel || !levels.add(stat.level())) {
+                throw new IllegalStateException("level 범위 또는 중복 오류: " + stat.level());
+            }
+            if (!positive(stat.atkMultiplier()) || !positive(stat.mpMultiplier())
+                    || !positive(stat.atkSpeedMultiplier()) || !positive(stat.rangeMultiplier())) {
+                throw new IllegalStateException("모든 multiplier는 0보다 커야 합니다: " + stat.level());
+            }
+            if (stat.rangeMultiplier().compareTo(new BigDecimal("1.00")) != 0) {
+                throw new IllegalStateException("rangeMultiplier는 항상 1.00이어야 합니다: " + stat.level());
+            }
+            if (stat.level() == 1 && (stat.atkMultiplier().compareTo(BigDecimal.ONE) != 0
+                    || stat.mpMultiplier().compareTo(BigDecimal.ONE) != 0
+                    || stat.atkSpeedMultiplier().compareTo(BigDecimal.ONE) != 0
+                    || stat.rangeMultiplier().compareTo(BigDecimal.ONE) != 0)) {
+                throw new IllegalStateException("level 1 multiplier는 모두 1.00이어야 합니다.");
+            }
+        }
+        for (int level = 1; level <= maxLevel; level++) {
+            if (!levels.contains(level)) {
+                throw new IllegalStateException("누락된 level이 존재합니다: " + level);
+            }
+        }
+    }
+
+    private boolean positive(BigDecimal value) {
+        return value != null && value.compareTo(BigDecimal.ZERO) > 0;
     }
 
     public void validateAlienSpec(List<com.denfense.server.balance.AlienSpecBalance> specs) {
