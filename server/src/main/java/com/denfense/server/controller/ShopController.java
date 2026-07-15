@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/shop")
@@ -16,18 +17,29 @@ import java.util.List;
 public class ShopController {
 
     private final ShopService shopService;
+    private final com.denfense.server.service.gacha.GachaPurchaseService gachaPurchaseService;
 
     /**
      * 왹져 소환 (Gacha) API
      * * [POST] /api/shop/gacha?username=MyDev&count=10
      * - username: 유저 아이디
      * - count: 1 또는 10 (안 보내면 기본값 1)
+     * @deprecated 신규 구매 서비스 연동 완료 후 제거 예정. /api/shop/gacha/purchase 를 사용하세요.
      */
+    @Deprecated
     @PostMapping("/gacha")
     public List<UserAlienResponseDto> gacha(@RequestParam String username,
                                             @RequestParam(defaultValue = "1") int count) {
 
         // 서비스에게 주문 전달하고, 결과(변경된 왹져 목록)를 바로 반환
         return shopService.gachaAlien(username, count);
+    }
+
+    @PostMapping("/gacha/purchase")
+    public com.denfense.server.dto.gacha.GachaPurchaseResponseDto purchase(
+            @RequestParam String username,
+            @RequestParam String productId,
+            @RequestParam UUID purchaseRequestId) {
+        return gachaPurchaseService.purchase(username, productId, purchaseRequestId);
     }
 }
