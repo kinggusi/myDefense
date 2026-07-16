@@ -119,6 +119,8 @@ public class AlienSpecBalanceExcelConverterTest {
         rPool.createCell(3).setCellValue("NORMAL");
         rPool.createCell(4).setCellValue(10000);
         rPool.createCell(5).setCellValue("1");
+
+        BattleBalanceTestWorkbook.addValidSheets(workbook);
     }
 
     private Sheet createAlienSpecSheet() {

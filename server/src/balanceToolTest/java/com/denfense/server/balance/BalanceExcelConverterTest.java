@@ -196,6 +196,8 @@ class BalanceExcelConverterTest {
         rPool5.createCell(3).setCellValue("MYTHIC");
         rPool5.createCell(4).setCellValue(50);
         rPool5.createCell(5).setCellValue("29,30,31,32");
+
+        BattleBalanceTestWorkbook.addValidSheets(workbook);
     }
 
     @Test

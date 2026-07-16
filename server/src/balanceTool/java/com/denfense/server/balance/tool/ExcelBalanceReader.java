@@ -37,8 +37,16 @@ public class ExcelBalanceReader {
             List<com.denfense.server.balance.AlienSpecBalance> alienSpecs = readAlienSpecSheet(workbook);
             List<com.denfense.server.balance.ShopProductBalance> shopProducts = readShopProductSheet(workbook);
             List<com.denfense.server.balance.GachaPoolBalance> gachaPools = readGachaPoolSheet(workbook);
+            List<com.denfense.server.balance.MonsterSpecBalance> monsters = readMonsterSpecSheet(workbook);
+            List<com.denfense.server.balance.WaveSpecBalance> waves = readWaveSpecSheet(workbook);
+            List<com.denfense.server.balance.WaveSpawnBalance> waveSpawns = readWaveSpawnSheet(workbook);
+            List<com.denfense.server.balance.FieldLimitBalance> fieldLimits = readFieldLimitSheet(workbook);
+            List<com.denfense.server.balance.SummonBalance> summons = readSummonBalanceSheet(workbook);
+            List<com.denfense.server.balance.MergeRuleBalance> mergeRules = readMergeRuleSheet(workbook);
+            List<com.denfense.server.balance.MythicChoiceBalance> mythicChoices = readMythicChoiceSheet(workbook);
 
-            return new BalanceData(reward, upgradeCosts, levelStats, alienSpecs, shopProducts, gachaPools);
+            return new BalanceData(reward, upgradeCosts, levelStats, alienSpecs, shopProducts, gachaPools,
+                    monsters, waves, waveSpawns, fieldLimits, summons, mergeRules, mythicChoices);
 
         } catch (IOException e) {
             throw new BalanceConversionException("파일을 읽는 중 오류가 발생했습니다: " + filePath, e);
@@ -609,12 +617,187 @@ public class ExcelBalanceReader {
         return pools;
     }
 
+    private List<com.denfense.server.balance.MonsterSpecBalance> readMonsterSpecSheet(Workbook workbook) {
+        Sheet sheet = getSheetOrThrow(workbook, "MonsterSpec");
+        List<String> headers = requiredHeaders(sheet,
+                "monsterId", "name", "monsterType", "baseHp", "moveSpeed", "killGold", "enabled");
+        List<com.denfense.server.balance.MonsterSpecBalance> result = new ArrayList<>();
+        for (int rowIndex = 1; rowIndex <= sheet.getLastRowNum(); rowIndex++) {
+            Row row = sheet.getRow(rowIndex);
+            if (row == null || isBlankRow(row, headers.size())) continue;
+            result.add(new com.denfense.server.balance.MonsterSpecBalance(
+                    readStringCell(sheet.getSheetName(), rowIndex, "monsterId", row.getCell(headers.indexOf("monsterId"))),
+                    readStringCell(sheet.getSheetName(), rowIndex, "name", row.getCell(headers.indexOf("name"))),
+                    readStringCell(sheet.getSheetName(), rowIndex, "monsterType", row.getCell(headers.indexOf("monsterType"))),
+                    readDecimalCell(sheet.getSheetName(), rowIndex, "baseHp", row.getCell(headers.indexOf("baseHp"))),
+                    readDecimalCell(sheet.getSheetName(), rowIndex, "moveSpeed", row.getCell(headers.indexOf("moveSpeed"))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "killGold", row.getCell(headers.indexOf("killGold"))),
+                    readBooleanCell(sheet.getSheetName(), rowIndex, "enabled", row.getCell(headers.indexOf("enabled")))
+            ));
+        }
+        result.sort(Comparator.comparing(com.denfense.server.balance.MonsterSpecBalance::monsterId));
+        return result;
+    }
+
+    private List<com.denfense.server.balance.WaveSpecBalance> readWaveSpecSheet(Workbook workbook) {
+        Sheet sheet = getSheetOrThrow(workbook, "WaveSpec");
+        List<String> headers = requiredHeaders(sheet, "modeId", "wave", "hpMultiplier", "interWaveDelaySeconds",
+                "isBossWave", "bossTimeLimitSeconds", "spawnGroupId", "enabled");
+        List<com.denfense.server.balance.WaveSpecBalance> result = new ArrayList<>();
+        for (int rowIndex = 1; rowIndex <= sheet.getLastRowNum(); rowIndex++) {
+            Row row = sheet.getRow(rowIndex);
+            if (row == null || isBlankRow(row, headers.size())) continue;
+            result.add(new com.denfense.server.balance.WaveSpecBalance(
+                    readStringCell(sheet.getSheetName(), rowIndex, "modeId", row.getCell(headers.indexOf("modeId"))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "wave", row.getCell(headers.indexOf("wave"))),
+                    readDecimalCell(sheet.getSheetName(), rowIndex, "hpMultiplier", row.getCell(headers.indexOf("hpMultiplier"))),
+                    readDecimalCell(sheet.getSheetName(), rowIndex, "interWaveDelaySeconds", row.getCell(headers.indexOf("interWaveDelaySeconds"))),
+                    readBooleanCell(sheet.getSheetName(), rowIndex, "isBossWave", row.getCell(headers.indexOf("isBossWave"))),
+                    readDecimalCell(sheet.getSheetName(), rowIndex, "bossTimeLimitSeconds", row.getCell(headers.indexOf("bossTimeLimitSeconds"))),
+                    readStringCell(sheet.getSheetName(), rowIndex, "spawnGroupId", row.getCell(headers.indexOf("spawnGroupId"))),
+                    readBooleanCell(sheet.getSheetName(), rowIndex, "enabled", row.getCell(headers.indexOf("enabled")))
+            ));
+        }
+        result.sort(Comparator.comparing(com.denfense.server.balance.WaveSpecBalance::modeId)
+                .thenComparingInt(com.denfense.server.balance.WaveSpecBalance::wave));
+        return result;
+    }
+
+    private List<com.denfense.server.balance.WaveSpawnBalance> readWaveSpawnSheet(Workbook workbook) {
+        Sheet sheet = getSheetOrThrow(workbook, "WaveSpawn");
+        List<String> headers = requiredHeaders(sheet, "spawnGroupId", "order", "monsterId", "spawnCountPerField",
+                "startDelaySeconds", "spawnIntervalSeconds", "lanePolicy");
+        List<com.denfense.server.balance.WaveSpawnBalance> result = new ArrayList<>();
+        for (int rowIndex = 1; rowIndex <= sheet.getLastRowNum(); rowIndex++) {
+            Row row = sheet.getRow(rowIndex);
+            if (row == null || isBlankRow(row, headers.size())) continue;
+            result.add(new com.denfense.server.balance.WaveSpawnBalance(
+                    readStringCell(sheet.getSheetName(), rowIndex, "spawnGroupId", row.getCell(headers.indexOf("spawnGroupId"))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "order", row.getCell(headers.indexOf("order"))),
+                    readStringCell(sheet.getSheetName(), rowIndex, "monsterId", row.getCell(headers.indexOf("monsterId"))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "spawnCountPerField", row.getCell(headers.indexOf("spawnCountPerField"))),
+                    readDecimalCell(sheet.getSheetName(), rowIndex, "startDelaySeconds", row.getCell(headers.indexOf("startDelaySeconds"))),
+                    readDecimalCell(sheet.getSheetName(), rowIndex, "spawnIntervalSeconds", row.getCell(headers.indexOf("spawnIntervalSeconds"))),
+                    readStringCell(sheet.getSheetName(), rowIndex, "lanePolicy", row.getCell(headers.indexOf("lanePolicy")))
+            ));
+        }
+        result.sort(Comparator.comparing(com.denfense.server.balance.WaveSpawnBalance::spawnGroupId)
+                .thenComparingInt(com.denfense.server.balance.WaveSpawnBalance::order));
+        return result;
+    }
+
+    private List<com.denfense.server.balance.FieldLimitBalance> readFieldLimitSheet(Workbook workbook) {
+        Sheet sheet = getSheetOrThrow(workbook, "FieldLimitBalance");
+        List<String> headers = requiredHeaders(sheet, "modeId", "playerCount", "maxAliveMonsterCountPerField",
+                "warningThreshold", "dangerThreshold");
+        List<com.denfense.server.balance.FieldLimitBalance> result = new ArrayList<>();
+        for (int rowIndex = 1; rowIndex <= sheet.getLastRowNum(); rowIndex++) {
+            Row row = sheet.getRow(rowIndex);
+            if (row == null || isBlankRow(row, headers.size())) continue;
+            result.add(new com.denfense.server.balance.FieldLimitBalance(
+                    readStringCell(sheet.getSheetName(), rowIndex, "modeId", row.getCell(headers.indexOf("modeId"))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "playerCount", row.getCell(headers.indexOf("playerCount"))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "maxAliveMonsterCountPerField", row.getCell(headers.indexOf("maxAliveMonsterCountPerField"))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "warningThreshold", row.getCell(headers.indexOf("warningThreshold"))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "dangerThreshold", row.getCell(headers.indexOf("dangerThreshold")))
+            ));
+        }
+        result.sort(Comparator.comparing(com.denfense.server.balance.FieldLimitBalance::modeId));
+        return result;
+    }
+
+    private List<com.denfense.server.balance.SummonBalance> readSummonBalanceSheet(Workbook workbook) {
+        Sheet sheet = getSheetOrThrow(workbook, "SummonBalance");
+        List<String> headers = requiredHeaders(sheet, "modeId", "summonType", "baseCost", "costIncreasePerUse",
+                "maxUses", "resultPoolId", "enabled");
+        List<com.denfense.server.balance.SummonBalance> result = new ArrayList<>();
+        for (int rowIndex = 1; rowIndex <= sheet.getLastRowNum(); rowIndex++) {
+            Row row = sheet.getRow(rowIndex);
+            if (row == null || isBlankRow(row, headers.size())) continue;
+            result.add(new com.denfense.server.balance.SummonBalance(
+                    readStringCell(sheet.getSheetName(), rowIndex, "modeId", row.getCell(headers.indexOf("modeId"))),
+                    readStringCell(sheet.getSheetName(), rowIndex, "summonType", row.getCell(headers.indexOf("summonType"))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "baseCost", row.getCell(headers.indexOf("baseCost"))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "costIncreasePerUse", row.getCell(headers.indexOf("costIncreasePerUse"))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "maxUses", row.getCell(headers.indexOf("maxUses"))),
+                    readStringCell(sheet.getSheetName(), rowIndex, "resultPoolId", row.getCell(headers.indexOf("resultPoolId"))),
+                    readBooleanCell(sheet.getSheetName(), rowIndex, "enabled", row.getCell(headers.indexOf("enabled")))
+            ));
+        }
+        result.sort(Comparator.comparing(com.denfense.server.balance.SummonBalance::modeId)
+                .thenComparing(com.denfense.server.balance.SummonBalance::summonType));
+        return result;
+    }
+
+    private List<com.denfense.server.balance.MergeRuleBalance> readMergeRuleSheet(Workbook workbook) {
+        Sheet sheet = getSheetOrThrow(workbook, "MergeRule");
+        List<String> headers = requiredHeaders(sheet, "sourceGrade", "requiredCount", "sameSpeciesRequired",
+                "resultType", "resultGrade", "enabled");
+        List<com.denfense.server.balance.MergeRuleBalance> result = new ArrayList<>();
+        for (int rowIndex = 1; rowIndex <= sheet.getLastRowNum(); rowIndex++) {
+            Row row = sheet.getRow(rowIndex);
+            if (row == null || isBlankRow(row, headers.size())) continue;
+            result.add(new com.denfense.server.balance.MergeRuleBalance(
+                    readStringCell(sheet.getSheetName(), rowIndex, "sourceGrade", row.getCell(headers.indexOf("sourceGrade"))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "requiredCount", row.getCell(headers.indexOf("requiredCount"))),
+                    readBooleanCell(sheet.getSheetName(), rowIndex, "sameSpeciesRequired", row.getCell(headers.indexOf("sameSpeciesRequired"))),
+                    readStringCell(sheet.getSheetName(), rowIndex, "resultType", row.getCell(headers.indexOf("resultType"))),
+                    readStringCell(sheet.getSheetName(), rowIndex, "resultGrade", row.getCell(headers.indexOf("resultGrade"))),
+                    readBooleanCell(sheet.getSheetName(), rowIndex, "enabled", row.getCell(headers.indexOf("enabled")))
+            ));
+        }
+        List<String> gradeOrder = List.of("NORMAL", "EPIC", "UNIQUE", "LEGEND", "MYTHIC");
+        result.sort(Comparator.comparingInt(rule -> gradeOrder.indexOf(rule.sourceGrade())));
+        return result;
+    }
+
+    private List<com.denfense.server.balance.MythicChoiceBalance> readMythicChoiceSheet(Workbook workbook) {
+        Sheet sheet = getSheetOrThrow(workbook, "MythicChoiceBalance");
+        List<String> headers = requiredHeaders(sheet, "modeId", "candidateCount", "freeRerollCount", "paidRerollLimit",
+                "paidRerollCost", "excludePreviousCandidates", "selectionTimeoutSeconds", "autoSelectPolicy",
+                "battleContinuesDuringSelection", "enabled");
+        List<com.denfense.server.balance.MythicChoiceBalance> result = new ArrayList<>();
+        for (int rowIndex = 1; rowIndex <= sheet.getLastRowNum(); rowIndex++) {
+            Row row = sheet.getRow(rowIndex);
+            if (row == null || isBlankRow(row, headers.size())) continue;
+            result.add(new com.denfense.server.balance.MythicChoiceBalance(
+                    readStringCell(sheet.getSheetName(), rowIndex, "modeId", row.getCell(headers.indexOf("modeId"))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "candidateCount", row.getCell(headers.indexOf("candidateCount"))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "freeRerollCount", row.getCell(headers.indexOf("freeRerollCount"))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "paidRerollLimit", row.getCell(headers.indexOf("paidRerollLimit"))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "paidRerollCost", row.getCell(headers.indexOf("paidRerollCost"))),
+                    readBooleanCell(sheet.getSheetName(), rowIndex, "excludePreviousCandidates", row.getCell(headers.indexOf("excludePreviousCandidates"))),
+                    readDecimalCell(sheet.getSheetName(), rowIndex, "selectionTimeoutSeconds", row.getCell(headers.indexOf("selectionTimeoutSeconds"))),
+                    readStringCell(sheet.getSheetName(), rowIndex, "autoSelectPolicy", row.getCell(headers.indexOf("autoSelectPolicy"))),
+                    readBooleanCell(sheet.getSheetName(), rowIndex, "battleContinuesDuringSelection", row.getCell(headers.indexOf("battleContinuesDuringSelection"))),
+                    readBooleanCell(sheet.getSheetName(), rowIndex, "enabled", row.getCell(headers.indexOf("enabled")))
+            ));
+        }
+        result.sort(Comparator.comparing(com.denfense.server.balance.MythicChoiceBalance::modeId));
+        return result;
+    }
+
+    private List<String> requiredHeaders(Sheet sheet, String... expected) {
+        Row header = sheet.getRow(0);
+        if (header == null) {
+            throw new BalanceConversionException("[" + sheet.getSheetName() + "] header is missing.");
+        }
+        return readHeaders(sheet.getSheetName(), header, Arrays.asList(expected));
+    }
+
     public static record BalanceData(
         GameRewardBalance gameReward, 
         List<AlienUpgradeCostBalance> alienUpgradeCosts,
         List<com.denfense.server.service.balance.AlienLevelStatBalance> alienLevelStats,
         List<com.denfense.server.balance.AlienSpecBalance> alienSpecs,
         List<com.denfense.server.balance.ShopProductBalance> shopProducts,
-        List<com.denfense.server.balance.GachaPoolBalance> gachaPools
+        List<com.denfense.server.balance.GachaPoolBalance> gachaPools,
+        List<com.denfense.server.balance.MonsterSpecBalance> monsters,
+        List<com.denfense.server.balance.WaveSpecBalance> waves,
+        List<com.denfense.server.balance.WaveSpawnBalance> waveSpawns,
+        List<com.denfense.server.balance.FieldLimitBalance> fieldLimits,
+        List<com.denfense.server.balance.SummonBalance> summons,
+        List<com.denfense.server.balance.MergeRuleBalance> mergeRules,
+        List<com.denfense.server.balance.MythicChoiceBalance> mythicChoices
     ) {}
 }

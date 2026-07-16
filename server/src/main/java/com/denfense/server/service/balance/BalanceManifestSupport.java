@@ -15,9 +15,16 @@ public final class BalanceManifestSupport {
             "alien-level-stat.json",
             "alien-spec.json",
             "alien-upgrade-cost.json",
+            "field-limit.json",
             "gacha-pools.json",
             "game-reward.json",
-            "shop-products.json"
+            "merge-rules.json",
+            "monster-spec.json",
+            "mythic-choice-balance.json",
+            "shop-products.json",
+            "summon-balance.json",
+            "wave-spawn.json",
+            "wave-spec.json"
     );
 
     private BalanceManifestSupport() {

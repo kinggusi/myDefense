@@ -4,6 +4,9 @@ import com.denfense.server.service.balance.BalanceDataLoader;
 import com.denfense.server.service.balance.BalanceDataValidator;
 import com.denfense.server.service.balance.BalanceRegistry;
 import com.denfense.server.service.balance.AlienUpgradeBalanceRegistry;
+import com.denfense.server.service.balance.MonsterBalanceRegistry;
+import com.denfense.server.service.balance.WaveBalanceRegistry;
+import com.denfense.server.service.balance.BattleRuleBalanceRegistry;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -32,6 +35,15 @@ class BalanceContextFailFastTest {
         }
 
         @Bean
+        public MonsterBalanceRegistry monsterBalanceRegistry() { return new MonsterBalanceRegistry(); }
+
+        @Bean
+        public WaveBalanceRegistry waveBalanceRegistry() { return new WaveBalanceRegistry(); }
+
+        @Bean
+        public BattleRuleBalanceRegistry battleRuleBalanceRegistry() { return new BattleRuleBalanceRegistry(); }
+
+        @Bean
         public BalanceDataValidator balanceDataValidator() {
             return new BalanceDataValidator();
         }
@@ -43,8 +55,11 @@ class BalanceContextFailFastTest {
 
         @Bean
         public BalanceDataLoader balanceDataLoader(ObjectMapper mapper, BalanceDataValidator validator,
-                                                   BalanceRegistry registry, AlienUpgradeBalanceRegistry upgradeRegistry) {
-            return new BalanceDataLoader(new DefaultResourceLoader(), mapper, validator, registry, upgradeRegistry);
+                                                   BalanceRegistry registry, AlienUpgradeBalanceRegistry upgradeRegistry,
+                                                   MonsterBalanceRegistry monsterRegistry, WaveBalanceRegistry waveRegistry,
+                                                   BattleRuleBalanceRegistry battleRuleRegistry) {
+            return new BalanceDataLoader(new DefaultResourceLoader(), mapper, validator, registry, upgradeRegistry,
+                    monsterRegistry, waveRegistry, battleRuleRegistry);
         }
     }
 
@@ -129,6 +144,22 @@ class BalanceContextFailFastTest {
                     BalanceDataLoader loader = context.getBean(BalanceDataLoader.class);
                     Exception exception = org.junit.jupiter.api.Assertions.assertThrows(Exception.class, loader::loadData);
                     assertThat(exception).hasMessageContaining("파일을 찾을 수 없습니다");
+                });
+    }
+
+    @Test
+    @DisplayName("battle balance JSON missing fails before registry initialization")
+    void contextFails_withMissingBattleBalanceFile() {
+        contextRunner
+                .withPropertyValues("balance.monster.path=classpath:balance/invalid/not-exists-monster.json")
+                .run(context -> {
+                    BalanceDataLoader loader = context.getBean(BalanceDataLoader.class);
+                    Exception exception = org.junit.jupiter.api.Assertions.assertThrows(Exception.class, loader::loadData);
+                    assertThat(exception).hasMessageContaining("Balance file not found");
+                    MonsterBalanceRegistry monsterRegistry = context.getBean(MonsterBalanceRegistry.class);
+                    assertThat(org.junit.jupiter.api.Assertions.assertThrows(
+                            IllegalStateException.class, monsterRegistry::getAll).getMessage())
+                            .contains("not initialized");
                 });
     }
 }

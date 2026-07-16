@@ -1,0 +1,112 @@
+{
+  "spawns" : [
+    {
+      "spawnGroupId" : "WAVE_01",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 10,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_02",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 10,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_03",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 10,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_04",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 10,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_05",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 8,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_05",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 2,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_06",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 10,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_07",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 10,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_08",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 8,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_08",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 2,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_09",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 10,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_10_BOSS",
+      "order" : 1,
+      "monsterId" : "WAVE_BOSS",
+      "spawnCountPerField" : 1,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    }
+  ]
+}
