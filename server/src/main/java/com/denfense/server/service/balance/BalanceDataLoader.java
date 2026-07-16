@@ -10,12 +10,9 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Component;
 
-import com.denfense.server.balance.AlienSpecBalance;
+import com.denfense.server.balance.*;
 import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import org.springframework.core.annotation.Order;
 
@@ -29,12 +26,19 @@ public class BalanceDataLoader implements ApplicationRunner {
     private final ObjectMapper baseObjectMapper;
     private final BalanceDataValidator validator;
     private final BalanceRegistry registry;
+    private final AlienUpgradeBalanceRegistry alienUpgradeRegistry;
+    private final MonsterBalanceRegistry monsterBalanceRegistry;
+    private final WaveBalanceRegistry waveBalanceRegistry;
+    private final BattleRuleBalanceRegistry battleRuleBalanceRegistry;
 
     @Value("${balance.reward.path:classpath:balance/generated/game-reward.json}")
     private String rewardFilePath;
 
-    @Value("${balance.upgrade.path:classpath:balance/generated/alien-upgrade.json}")
-    private String upgradeFilePath;
+    @Value("${balance.upgrade-cost.path:classpath:balance/generated/alien-upgrade-cost.json}")
+    private String upgradeCostFilePath;
+
+    @Value("${balance.level-stat.path:classpath:balance/generated/alien-level-stat.json}")
+    private String levelStatFilePath;
 
     @Value("${balance.spec.path:classpath:balance/generated/alien-spec.json}")
     private String specFilePath;
@@ -45,12 +49,37 @@ public class BalanceDataLoader implements ApplicationRunner {
     @Value("${balance.product.path:classpath:balance/generated/shop-products.json}")
     private String productFilePath;
 
+    @Value("${balance.monster.path:classpath:balance/generated/monster-spec.json}")
+    private String monsterFilePath;
+
+    @Value("${balance.wave.path:classpath:balance/generated/wave-spec.json}")
+    private String waveFilePath;
+
+    @Value("${balance.wave-spawn.path:classpath:balance/generated/wave-spawn.json}")
+    private String waveSpawnFilePath;
+
+    @Value("${balance.field-limit.path:classpath:balance/generated/field-limit.json}")
+    private String fieldLimitFilePath;
+
+    @Value("${balance.summon.path:classpath:balance/generated/summon-balance.json}")
+    private String summonFilePath;
+
+    @Value("${balance.merge-rule.path:classpath:balance/generated/merge-rules.json}")
+    private String mergeRuleFilePath;
+
+    @Value("${balance.mythic-choice.path:classpath:balance/generated/mythic-choice-balance.json}")
+    private String mythicChoiceFilePath;
+
     public void setRewardFilePath(String rewardFilePath) {
         this.rewardFilePath = rewardFilePath;
     }
 
     public void setUpgradeFilePath(String upgradeFilePath) {
-        this.upgradeFilePath = upgradeFilePath;
+        this.upgradeCostFilePath = upgradeFilePath;
+    }
+
+    public void setLevelStatFilePath(String levelStatFilePath) {
+        this.levelStatFilePath = levelStatFilePath;
     }
 
     public void setSpecFilePath(String specFilePath) {
@@ -64,6 +93,14 @@ public class BalanceDataLoader implements ApplicationRunner {
     public void setProductFilePath(String productFilePath) {
         this.productFilePath = productFilePath;
     }
+
+    public void setMonsterFilePath(String value) { this.monsterFilePath = value; }
+    public void setWaveFilePath(String value) { this.waveFilePath = value; }
+    public void setWaveSpawnFilePath(String value) { this.waveSpawnFilePath = value; }
+    public void setFieldLimitFilePath(String value) { this.fieldLimitFilePath = value; }
+    public void setSummonFilePath(String value) { this.summonFilePath = value; }
+    public void setMergeRuleFilePath(String value) { this.mergeRuleFilePath = value; }
+    public void setMythicChoiceFilePath(String value) { this.mythicChoiceFilePath = value; }
 
     @Override
     public void run(ApplicationArguments args) throws Exception {
@@ -84,15 +121,22 @@ public class BalanceDataLoader implements ApplicationRunner {
             GameRewardBalance rewardBalance = strictMapper.readValue(rewardRes.getInputStream(), GameRewardBalance.class);
             validator.validateGameReward(rewardBalance);
 
-            Resource upgradeRes = resourceLoader.getResource(upgradeFilePath);
+            Resource upgradeRes = resourceLoader.getResource(upgradeCostFilePath);
             if (!upgradeRes.exists()) {
-                throw new IllegalStateException("파일을 찾을 수 없습니다: " + upgradeFilePath);
+                throw new IllegalStateException("파일을 찾을 수 없습니다: " + upgradeCostFilePath);
             }
-            AlienUpgradeBalanceFile upgradeFile = strictMapper.readValue(upgradeRes.getInputStream(), AlienUpgradeBalanceFile.class);
-            validator.validateAlienUpgrade(upgradeFile);
+            List<AlienUpgradeCostBalance> upgradeCosts = strictMapper.readValue(
+                    upgradeRes.getInputStream(), new TypeReference<List<AlienUpgradeCostBalance>>() {});
 
-            Map<Integer, AlienUpgradeCostBalance> costMap = upgradeFile.costs().stream()
-                    .collect(Collectors.toMap(AlienUpgradeCostBalance::currentLevel, Function.identity()));
+            Resource levelStatRes = resourceLoader.getResource(levelStatFilePath);
+            if (!levelStatRes.exists()) {
+                throw new IllegalStateException("파일을 찾을 수 없습니다: " + levelStatFilePath);
+            }
+            List<AlienLevelStatBalance> levelStats = strictMapper.readValue(
+                    levelStatRes.getInputStream(), new TypeReference<List<AlienLevelStatBalance>>() {});
+            validator.validateAlienLevelStats(levelStats);
+            int maxLevel = levelStats.stream().mapToInt(AlienLevelStatBalance::level).max().orElseThrow();
+            validator.validateAlienUpgradeCosts(upgradeCosts, maxLevel);
 
             Resource specRes = resourceLoader.getResource(specFilePath);
             if (!specRes.exists()) {
@@ -115,12 +159,38 @@ public class BalanceDataLoader implements ApplicationRunner {
             com.denfense.server.balance.ShopProductBalanceDocument productDoc = strictMapper.readValue(productRes.getInputStream(), com.denfense.server.balance.ShopProductBalanceDocument.class);
             validator.validateShopProduct(productDoc, poolDoc);
 
-            registry.init(rewardBalance, upgradeFile.maxLevel(), costMap, specs, productDoc.products(), poolDoc.pools());
+            MonsterSpecBalanceDocument monsterDoc = readDocument(strictMapper, monsterFilePath, MonsterSpecBalanceDocument.class);
+            WaveSpecBalanceDocument waveDoc = readDocument(strictMapper, waveFilePath, WaveSpecBalanceDocument.class);
+            WaveSpawnBalanceDocument spawnDoc = readDocument(strictMapper, waveSpawnFilePath, WaveSpawnBalanceDocument.class);
+            FieldLimitBalanceDocument fieldLimitDoc = readDocument(strictMapper, fieldLimitFilePath, FieldLimitBalanceDocument.class);
+            SummonBalanceDocument summonDoc = readDocument(strictMapper, summonFilePath, SummonBalanceDocument.class);
+            MergeRuleBalanceDocument mergeRuleDoc = readDocument(strictMapper, mergeRuleFilePath, MergeRuleBalanceDocument.class);
+            MythicChoiceBalanceDocument mythicChoiceDoc = readDocument(strictMapper, mythicChoiceFilePath, MythicChoiceBalanceDocument.class);
 
-            log.info("Balance 데이터 로딩 완료. MaxLevel: {}", upgradeFile.maxLevel());
+            validator.validateBattleBalance(monsterDoc, waveDoc, spawnDoc, fieldLimitDoc, summonDoc,
+                    mergeRuleDoc, mythicChoiceDoc, specs);
+
+            alienUpgradeRegistry.init(upgradeCosts, levelStats);
+            registry.init(rewardBalance, specs, productDoc.products(), poolDoc.pools());
+            monsterBalanceRegistry.init(monsterDoc.monsters());
+            waveBalanceRegistry.init(waveDoc.waves(), spawnDoc.spawns());
+            battleRuleBalanceRegistry.init(fieldLimitDoc.fieldLimits(), summonDoc.summons(),
+                    mergeRuleDoc.mergeRules(), mythicChoiceDoc.mythicChoices(), specs);
+
+            log.info("Balance 데이터 로딩 완료. MaxLevel: {}", maxLevel);
         } catch (Exception e) {
             log.error("Balance 데이터 로딩 실패! 서버 시작을 중단합니다.", e);
             throw e;
+        }
+    }
+
+    private <T> T readDocument(ObjectMapper mapper, String path, Class<T> type) throws Exception {
+        Resource resource = resourceLoader.getResource(path);
+        if (!resource.exists()) {
+            throw new IllegalStateException("Balance file not found: " + path);
+        }
+        try (var input = resource.getInputStream()) {
+            return mapper.readValue(input, type);
         }
     }
 }

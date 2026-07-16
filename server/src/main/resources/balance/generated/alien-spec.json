@@ -345,7 +345,7 @@
     "attackSpeed" : 1.0,
     "attackRange" : 3.5,
     "evolutionTargetId" : null,
-    "isLocked" : true
+    "isLocked" : false
   },
   {
     "alienId" : 30,
@@ -357,7 +357,7 @@
     "attackSpeed" : 1.0,
     "attackRange" : 3.5,
     "evolutionTargetId" : null,
-    "isLocked" : true
+    "isLocked" : false
   },
   {
     "alienId" : 31,
@@ -369,12 +369,204 @@
     "attackSpeed" : 1.0,
     "attackRange" : 3.5,
     "evolutionTargetId" : null,
-    "isLocked" : true
+    "isLocked" : false
   },
   {
     "alienId" : 32,
     "name" : "MYTHIC 4",
     "description" : "MYTHIC 등급의 강력한 왹져입니다.",
+    "grade" : "MYTHIC",
+    "baseAttack" : 100,
+    "baseMp" : 1000,
+    "attackSpeed" : 1.0,
+    "attackRange" : 3.5,
+    "evolutionTargetId" : null,
+    "isLocked" : false
+  },
+  {
+    "alienId" : 33,
+    "name" : "MYTHIC 5",
+    "description" : "출시 예정 신화 왹져입니다.",
+    "grade" : "MYTHIC",
+    "baseAttack" : 100,
+    "baseMp" : 1000,
+    "attackSpeed" : 1.0,
+    "attackRange" : 3.5,
+    "evolutionTargetId" : null,
+    "isLocked" : true
+  },
+  {
+    "alienId" : 34,
+    "name" : "MYTHIC 6",
+    "description" : "출시 예정 신화 왹져입니다.",
+    "grade" : "MYTHIC",
+    "baseAttack" : 100,
+    "baseMp" : 1000,
+    "attackSpeed" : 1.0,
+    "attackRange" : 3.5,
+    "evolutionTargetId" : null,
+    "isLocked" : true
+  },
+  {
+    "alienId" : 35,
+    "name" : "MYTHIC 7",
+    "description" : "출시 예정 신화 왹져입니다.",
+    "grade" : "MYTHIC",
+    "baseAttack" : 100,
+    "baseMp" : 1000,
+    "attackSpeed" : 1.0,
+    "attackRange" : 3.5,
+    "evolutionTargetId" : null,
+    "isLocked" : true
+  },
+  {
+    "alienId" : 36,
+    "name" : "MYTHIC 8",
+    "description" : "출시 예정 신화 왹져입니다.",
+    "grade" : "MYTHIC",
+    "baseAttack" : 100,
+    "baseMp" : 1000,
+    "attackSpeed" : 1.0,
+    "attackRange" : 3.5,
+    "evolutionTargetId" : null,
+    "isLocked" : true
+  },
+  {
+    "alienId" : 37,
+    "name" : "MYTHIC 9",
+    "description" : "출시 예정 신화 왹져입니다.",
+    "grade" : "MYTHIC",
+    "baseAttack" : 100,
+    "baseMp" : 1000,
+    "attackSpeed" : 1.0,
+    "attackRange" : 3.5,
+    "evolutionTargetId" : null,
+    "isLocked" : true
+  },
+  {
+    "alienId" : 38,
+    "name" : "MYTHIC 10",
+    "description" : "출시 예정 신화 왹져입니다.",
+    "grade" : "MYTHIC",
+    "baseAttack" : 100,
+    "baseMp" : 1000,
+    "attackSpeed" : 1.0,
+    "attackRange" : 3.5,
+    "evolutionTargetId" : null,
+    "isLocked" : true
+  },
+  {
+    "alienId" : 39,
+    "name" : "MYTHIC 11",
+    "description" : "출시 예정 신화 왹져입니다.",
+    "grade" : "MYTHIC",
+    "baseAttack" : 100,
+    "baseMp" : 1000,
+    "attackSpeed" : 1.0,
+    "attackRange" : 3.5,
+    "evolutionTargetId" : null,
+    "isLocked" : true
+  },
+  {
+    "alienId" : 40,
+    "name" : "MYTHIC 12",
+    "description" : "출시 예정 신화 왹져입니다.",
+    "grade" : "MYTHIC",
+    "baseAttack" : 100,
+    "baseMp" : 1000,
+    "attackSpeed" : 1.0,
+    "attackRange" : 3.5,
+    "evolutionTargetId" : null,
+    "isLocked" : true
+  },
+  {
+    "alienId" : 41,
+    "name" : "MYTHIC 13",
+    "description" : "출시 예정 신화 왹져입니다.",
+    "grade" : "MYTHIC",
+    "baseAttack" : 100,
+    "baseMp" : 1000,
+    "attackSpeed" : 1.0,
+    "attackRange" : 3.5,
+    "evolutionTargetId" : null,
+    "isLocked" : true
+  },
+  {
+    "alienId" : 42,
+    "name" : "MYTHIC 14",
+    "description" : "출시 예정 신화 왹져입니다.",
+    "grade" : "MYTHIC",
+    "baseAttack" : 100,
+    "baseMp" : 1000,
+    "attackSpeed" : 1.0,
+    "attackRange" : 3.5,
+    "evolutionTargetId" : null,
+    "isLocked" : true
+  },
+  {
+    "alienId" : 43,
+    "name" : "MYTHIC 15",
+    "description" : "출시 예정 신화 왹져입니다.",
+    "grade" : "MYTHIC",
+    "baseAttack" : 100,
+    "baseMp" : 1000,
+    "attackSpeed" : 1.0,
+    "attackRange" : 3.5,
+    "evolutionTargetId" : null,
+    "isLocked" : true
+  },
+  {
+    "alienId" : 44,
+    "name" : "MYTHIC 16",
+    "description" : "출시 예정 신화 왹져입니다.",
+    "grade" : "MYTHIC",
+    "baseAttack" : 100,
+    "baseMp" : 1000,
+    "attackSpeed" : 1.0,
+    "attackRange" : 3.5,
+    "evolutionTargetId" : null,
+    "isLocked" : true
+  },
+  {
+    "alienId" : 45,
+    "name" : "MYTHIC 17",
+    "description" : "출시 예정 신화 왹져입니다.",
+    "grade" : "MYTHIC",
+    "baseAttack" : 100,
+    "baseMp" : 1000,
+    "attackSpeed" : 1.0,
+    "attackRange" : 3.5,
+    "evolutionTargetId" : null,
+    "isLocked" : true
+  },
+  {
+    "alienId" : 46,
+    "name" : "MYTHIC 18",
+    "description" : "출시 예정 신화 왹져입니다.",
+    "grade" : "MYTHIC",
+    "baseAttack" : 100,
+    "baseMp" : 1000,
+    "attackSpeed" : 1.0,
+    "attackRange" : 3.5,
+    "evolutionTargetId" : null,
+    "isLocked" : true
+  },
+  {
+    "alienId" : 47,
+    "name" : "MYTHIC 19",
+    "description" : "출시 예정 신화 왹져입니다.",
+    "grade" : "MYTHIC",
+    "baseAttack" : 100,
+    "baseMp" : 1000,
+    "attackSpeed" : 1.0,
+    "attackRange" : 3.5,
+    "evolutionTargetId" : null,
+    "isLocked" : true
+  },
+  {
+    "alienId" : 48,
+    "name" : "MYTHIC 20",
+    "description" : "출시 예정 신화 왹져입니다.",
     "grade" : "MYTHIC",
     "baseAttack" : 100,
     "baseMp" : 1000,

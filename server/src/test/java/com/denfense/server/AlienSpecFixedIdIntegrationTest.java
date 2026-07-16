@@ -65,11 +65,11 @@ public class AlienSpecFixedIdIntegrationTest {
     @Test
     @DisplayName("삽입 순서 무관하게 각 ID가 유지됨")
     void insertionOrderIndependent() {
-        AlienSpec spec32 = new AlienSpec();
-        spec32.setId(32L);
-        spec32.setName("마지막 왹져");
-        spec32.setGrade(AlienSpec.Grade.MYTHIC);
-        alienSpecRepository.save(spec32);
+        AlienSpec spec48 = new AlienSpec();
+        spec48.setId(48L);
+        spec48.setName("마지막 왹져");
+        spec48.setGrade(AlienSpec.Grade.MYTHIC);
+        alienSpecRepository.save(spec48);
 
         AlienSpec spec1 = new AlienSpec();
         spec1.setId(1L);
@@ -77,12 +77,12 @@ public class AlienSpecFixedIdIntegrationTest {
         spec1.setGrade(AlienSpec.Grade.NORMAL);
         alienSpecRepository.save(spec1);
 
-        assertThat(alienSpecRepository.findById(32L).get().getName()).isEqualTo("마지막 왹져");
+        assertThat(alienSpecRepository.findById(48L).get().getName()).isEqualTo("마지막 왹져");
         assertThat(alienSpecRepository.findById(1L).get().getName()).isEqualTo("처음 왹져");
     }
 
     @Test
-    @DisplayName("DataInit 결과 32건 및 ID 정확히 1~32 유지 검증")
+    @DisplayName("DataInit 결과 48건 및 ID 정확히 1~48 유지 검증")
     void dataInitResults() {
         for (AlienSpecBalance b : balanceRegistry.getAllAlienSpecs()) {
             AlienSpec s = new AlienSpec();
@@ -93,7 +93,7 @@ public class AlienSpecFixedIdIntegrationTest {
         }
 
         List<AlienSpec> all = alienSpecRepository.findAll();
-        assertThat(all).hasSize(32);
+        assertThat(all).hasSize(48);
 
         Set<Long> dbIds = all.stream().map(AlienSpec::getId).collect(Collectors.toSet());
         Set<Long> jsonIds = balanceRegistry.getAllAlienSpecs().stream()
@@ -101,7 +101,7 @@ public class AlienSpecFixedIdIntegrationTest {
                 .collect(Collectors.toSet());
 
         assertThat(dbIds).containsExactlyInAnyOrderElementsOf(jsonIds);
-        for (long i = 1; i <= 32; i++) {
+        for (long i = 1; i <= 48; i++) {
             assertThat(dbIds).contains(i);
         }
     }

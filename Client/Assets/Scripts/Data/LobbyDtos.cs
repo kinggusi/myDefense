@@ -27,4 +27,6 @@ public class AlienInventoryDto
     public int pieces;
     public int requiredPieces;
     public bool locked;
+    public bool owned;
+    public bool specLocked;
 }

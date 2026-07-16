@@ -30,7 +30,7 @@ public class AlienSpecSeedRollbackIntegrationTest {
     @Test
     @DisplayName("Seed Service 단일 트랜잭션 전체 롤백 검증")
     void duplicatePk_seedServiceRollback() {
-        // 1. 기존 DB 상태 확인 (SeedRunner 등에 의해 이미 32건이 들어있음)
+        // 1. 기존 DB 상태 확인 (SeedRunner 등에 의해 이미 48건이 들어있음)
         long countBefore = alienSpecRepository.count();
         assertThat(countBefore).isGreaterThan(0);
 
@@ -38,10 +38,10 @@ public class AlienSpecSeedRollbackIntegrationTest {
         assertThat(alienSpecRepository.existsById(1L)).isTrue();
 
         // 2. 동시성 / Stale Read 모사:
-        // 실제 findAllIds()는 [1, 2, ..., 32]를 반환하겠지만,
-        // Spy를 이용해 ID 1이 없다고 속임. (예: [2, 3, ..., 32]만 반환)
+        // 실제 findAllIds()는 [1, 2, ..., 48]을 반환하겠지만,
+        // Spy를 이용해 ID 1이 없다고 속임. (예: [2, 3, ..., 48]만 반환)
         List<Long> mockedIds = new ArrayList<>();
-        for (long i = 2; i <= 32; i++) {
+        for (long i = 2; i <= 48; i++) {
             mockedIds.add(i);
         }
         Mockito.doReturn(mockedIds).when(alienSpecRepository).findAllIds();

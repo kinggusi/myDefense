@@ -1,10 +1,14 @@
 package com.denfense.server.service.balance;
 
+import com.denfense.server.balance.*;
 import org.springframework.stereotype.Component;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.math.BigDecimal;
+import java.util.stream.Collectors;
 
 @Component
 public class BalanceDataValidator {
@@ -27,39 +31,73 @@ public class BalanceDataValidator {
         }
     }
 
-    public void validateAlienUpgrade(AlienUpgradeBalanceFile file) {
-        if (file == null) {
-            throw new IllegalStateException("AlienUpgradeBalanceFile이 null입니다.");
-        }
-        if (file.maxLevel() < 2) {
-            throw new IllegalStateException("maxLevel은 2 이상이어야 합니다.");
-        }
-        List<AlienUpgradeCostBalance> costs = file.costs();
+    public void validateAlienUpgradeCosts(List<AlienUpgradeCostBalance> costs, int maxLevel) {
         if (costs == null || costs.isEmpty()) {
-            throw new IllegalStateException("costs 배열이 null이거나 비어 있습니다.");
+            throw new IllegalStateException("AlienUpgradeCost 데이터가 비어 있습니다.");
         }
-        if (costs.size() != file.maxLevel() - 1) {
-            throw new IllegalStateException("costs 배열 크기는 maxLevel - 1 이어야 합니다. 기대: " + (file.maxLevel() - 1) + ", 실제: " + costs.size());
+        if (costs.size() != maxLevel - 1) {
+            throw new IllegalStateException("AlienUpgradeCost 행 수는 maxLevel - 1 이어야 합니다.");
         }
 
         Set<Integer> levels = new HashSet<>();
         for (AlienUpgradeCostBalance cost : costs) {
-            if (cost.currentLevel() < 1 || cost.currentLevel() >= file.maxLevel()) {
+            if (cost.currentLevel() < 1 || cost.currentLevel() >= maxLevel) {
                 throw new IllegalStateException("currentLevel은 1부터 maxLevel - 1 사이여야 합니다: " + cost.currentLevel());
             }
             if (!levels.add(cost.currentLevel())) {
                 throw new IllegalStateException("중복된 currentLevel이 존재합니다: " + cost.currentLevel());
             }
-            if (cost.requiredPieces() < 0 || cost.requiredGold() < 0 || cost.requiredGrowthCell() < 0) {
-                throw new IllegalStateException("요구 비용은 0 이상이어야 합니다. 레벨: " + cost.currentLevel());
+            if (cost.targetLevel() != cost.currentLevel() + 1) {
+                throw new IllegalStateException("targetLevel은 currentLevel + 1 이어야 합니다: " + cost.currentLevel());
+            }
+            if (cost.requiredPieces() <= 0 || cost.requiredGold() <= 0 || cost.requiredGrowthCell() < 0) {
+                throw new IllegalStateException("조각/Gold는 양수이고 GrowthCell은 0 이상이어야 합니다: " + cost.currentLevel());
             }
         }
 
-        for (int i = 1; i < file.maxLevel(); i++) {
+        for (int i = 1; i < maxLevel; i++) {
             if (!levels.contains(i)) {
                 throw new IllegalStateException("누락된 currentLevel이 존재합니다: " + i);
             }
         }
+    }
+
+    public void validateAlienLevelStats(List<AlienLevelStatBalance> stats) {
+        if (stats == null || stats.isEmpty()) {
+            throw new IllegalStateException("AlienLevelStat 데이터가 비어 있습니다.");
+        }
+        Set<Integer> levels = new HashSet<>();
+        int maxLevel = stats.stream().mapToInt(AlienLevelStatBalance::level).max().orElseThrow();
+        if (maxLevel < 1 || stats.size() != maxLevel) {
+            throw new IllegalStateException("AlienLevelStat은 level 1부터 최대 level까지 연속이어야 합니다.");
+        }
+        for (AlienLevelStatBalance stat : stats) {
+            if (stat.level() < 1 || stat.level() > maxLevel || !levels.add(stat.level())) {
+                throw new IllegalStateException("level 범위 또는 중복 오류: " + stat.level());
+            }
+            if (!positive(stat.atkMultiplier()) || !positive(stat.mpMultiplier())
+                    || !positive(stat.atkSpeedMultiplier()) || !positive(stat.rangeMultiplier())) {
+                throw new IllegalStateException("모든 multiplier는 0보다 커야 합니다: " + stat.level());
+            }
+            if (stat.rangeMultiplier().compareTo(new BigDecimal("1.00")) != 0) {
+                throw new IllegalStateException("rangeMultiplier는 항상 1.00이어야 합니다: " + stat.level());
+            }
+            if (stat.level() == 1 && (stat.atkMultiplier().compareTo(BigDecimal.ONE) != 0
+                    || stat.mpMultiplier().compareTo(BigDecimal.ONE) != 0
+                    || stat.atkSpeedMultiplier().compareTo(BigDecimal.ONE) != 0
+                    || stat.rangeMultiplier().compareTo(BigDecimal.ONE) != 0)) {
+                throw new IllegalStateException("level 1 multiplier는 모두 1.00이어야 합니다.");
+            }
+        }
+        for (int level = 1; level <= maxLevel; level++) {
+            if (!levels.contains(level)) {
+                throw new IllegalStateException("누락된 level이 존재합니다: " + level);
+            }
+        }
+    }
+
+    private boolean positive(BigDecimal value) {
+        return value != null && value.compareTo(BigDecimal.ZERO) > 0;
     }
 
     public void validateAlienSpec(List<com.denfense.server.balance.AlienSpecBalance> specs) {
@@ -267,6 +305,233 @@ public class BalanceDataValidator {
             if (!poolIds.contains(product.gachaPoolId())) {
                 throw new IllegalStateException("연결된 GachaPool이 존재하지 않습니다. productId: " + product.productId() + ", gachaPoolId: " + product.gachaPoolId());
             }
+        }
+    }
+
+    public void validateMonsterSpecs(MonsterSpecBalanceDocument document) {
+        if (document == null || document.monsters() == null || document.monsters().isEmpty()) {
+            throw new IllegalStateException("MonsterSpec data is empty.");
+        }
+        Set<String> ids = new HashSet<>();
+        Set<String> types = new HashSet<>();
+        Set<String> allowedTypes = Set.of("NORMAL", "ELITE", "WAVE_BOSS");
+        for (MonsterSpecBalance monster : document.monsters()) {
+            requireText(monster.monsterId(), "monsterId");
+            requireText(monster.name(), "monster name");
+            if (!ids.add(monster.monsterId())) {
+                throw new IllegalStateException("Duplicate monsterId: " + monster.monsterId());
+            }
+            if (!allowedTypes.contains(monster.monsterType())) {
+                throw new IllegalStateException("Unsupported monsterType: " + monster.monsterType());
+            }
+            types.add(monster.monsterType());
+            if (!positive(monster.baseHp()) || !positive(monster.moveSpeed())) {
+                throw new IllegalStateException("Monster HP and move speed must be positive: " + monster.monsterId());
+            }
+            if (monster.killGold() < 0) {
+                throw new IllegalStateException("Monster killGold must be non-negative: " + monster.monsterId());
+            }
+        }
+        if (!types.containsAll(allowedTypes)) {
+            throw new IllegalStateException("MonsterSpec must contain NORMAL, ELITE, and WAVE_BOSS.");
+        }
+    }
+
+    public void validateWaves(WaveSpecBalanceDocument waveDocument, WaveSpawnBalanceDocument spawnDocument) {
+        if (waveDocument == null || waveDocument.waves() == null || waveDocument.waves().isEmpty()) {
+            throw new IllegalStateException("WaveSpec data is empty.");
+        }
+        if (spawnDocument == null || spawnDocument.spawns() == null || spawnDocument.spawns().isEmpty()) {
+            throw new IllegalStateException("WaveSpawn data is empty.");
+        }
+        Set<String> spawnGroups = spawnDocument.spawns().stream()
+                .map(WaveSpawnBalance::spawnGroupId)
+                .collect(Collectors.toSet());
+        Set<String> keys = new HashSet<>();
+        Map<String, List<WaveSpecBalance>> byMode = waveDocument.waves().stream()
+                .collect(Collectors.groupingBy(WaveSpecBalance::modeId));
+        for (WaveSpecBalance wave : waveDocument.waves()) {
+            requireText(wave.modeId(), "wave modeId");
+            requireText(wave.spawnGroupId(), "spawnGroupId");
+            if (!keys.add(wave.modeId() + "\0" + wave.wave())) {
+                throw new IllegalStateException("Duplicate modeId+wave: " + wave.modeId() + "/" + wave.wave());
+            }
+            if (wave.wave() <= 0 || !positive(wave.hpMultiplier())
+                    || wave.interWaveDelaySeconds() == null || wave.interWaveDelaySeconds().signum() < 0) {
+                throw new IllegalStateException("Invalid WaveSpec numeric value: " + wave.modeId() + "/" + wave.wave());
+            }
+            if (wave.isBossWave()) {
+                if (!positive(wave.bossTimeLimitSeconds())) {
+                    throw new IllegalStateException("Boss wave time limit must be positive: " + wave.modeId() + "/" + wave.wave());
+                }
+            } else if (wave.bossTimeLimitSeconds() == null || wave.bossTimeLimitSeconds().signum() != 0) {
+                throw new IllegalStateException("Normal wave bossTimeLimitSeconds must be zero: " + wave.modeId() + "/" + wave.wave());
+            }
+            if (!spawnGroups.contains(wave.spawnGroupId())) {
+                throw new IllegalStateException("Wave references missing spawnGroupId: " + wave.spawnGroupId());
+            }
+        }
+        for (Map.Entry<String, List<WaveSpecBalance>> entry : byMode.entrySet()) {
+            List<Integer> waves = entry.getValue().stream().map(WaveSpecBalance::wave).sorted().toList();
+            for (int expected = 1; expected <= waves.size(); expected++) {
+                if (waves.get(expected - 1) != expected) {
+                    throw new IllegalStateException("Waves must be continuous from 1 for mode: " + entry.getKey());
+                }
+            }
+            if (entry.getValue().stream().noneMatch(WaveSpecBalance::isBossWave)) {
+                throw new IllegalStateException("At least one boss wave is required for mode: " + entry.getKey());
+            }
+        }
+    }
+
+    public void validateWaveSpawns(WaveSpawnBalanceDocument document, MonsterSpecBalanceDocument monsters) {
+        if (document == null || document.spawns() == null || document.spawns().isEmpty()) {
+            throw new IllegalStateException("WaveSpawn data is empty.");
+        }
+        Set<String> monsterIds = monsters.monsters().stream()
+                .map(MonsterSpecBalance::monsterId)
+                .collect(Collectors.toSet());
+        Set<String> keys = new HashSet<>();
+        for (WaveSpawnBalance spawn : document.spawns()) {
+            requireText(spawn.spawnGroupId(), "spawnGroupId");
+            requireText(spawn.monsterId(), "spawn monsterId");
+            if (!keys.add(spawn.spawnGroupId() + "\0" + spawn.order())) {
+                throw new IllegalStateException("Duplicate spawnGroupId+order: " + spawn.spawnGroupId() + "/" + spawn.order());
+            }
+            if (!monsterIds.contains(spawn.monsterId())) {
+                throw new IllegalStateException("WaveSpawn references missing monsterId: " + spawn.monsterId());
+            }
+            if (spawn.order() <= 0 || spawn.spawnCountPerField() <= 0
+                    || spawn.startDelaySeconds() == null || spawn.startDelaySeconds().signum() < 0
+                    || !positive(spawn.spawnIntervalSeconds())) {
+                throw new IllegalStateException("Invalid WaveSpawn numeric value: " + spawn.spawnGroupId() + "/" + spawn.order());
+            }
+            if (!"EACH_FIELD".equals(spawn.lanePolicy())) {
+                throw new IllegalStateException("Only EACH_FIELD lanePolicy is supported: " + spawn.lanePolicy());
+            }
+        }
+    }
+
+    public void validateFieldLimits(FieldLimitBalanceDocument document) {
+        if (document == null || document.fieldLimits() == null || document.fieldLimits().isEmpty()) {
+            throw new IllegalStateException("FieldLimitBalance data is empty.");
+        }
+        Set<String> modes = new HashSet<>();
+        for (FieldLimitBalance limit : document.fieldLimits()) {
+            requireText(limit.modeId(), "field limit modeId");
+            if (!modes.add(limit.modeId())) {
+                throw new IllegalStateException("Duplicate FieldLimit modeId: " + limit.modeId());
+            }
+            if (limit.playerCount() != 2 || limit.warningThreshold() <= 0
+                    || limit.warningThreshold() >= limit.dangerThreshold()
+                    || limit.dangerThreshold() >= limit.maxAliveMonsterCountPerField()) {
+                throw new IllegalStateException("Invalid field limit thresholds for mode: " + limit.modeId());
+            }
+        }
+    }
+
+    public void validateSummons(SummonBalanceDocument document) {
+        if (document == null || document.summons() == null || document.summons().isEmpty()) {
+            throw new IllegalStateException("SummonBalance data is empty.");
+        }
+        Set<String> keys = new HashSet<>();
+        for (SummonBalance summon : document.summons()) {
+            requireText(summon.modeId(), "summon modeId");
+            requireText(summon.summonType(), "summonType");
+            requireText(summon.resultPoolId(), "resultPoolId");
+            if (!keys.add(summon.modeId() + "\0" + summon.summonType())) {
+                throw new IllegalStateException("Duplicate SummonBalance modeId+summonType: " + summon.modeId() + "/" + summon.summonType());
+            }
+            if (summon.baseCost() < 0 || summon.costIncreasePerUse() < 0
+                    || (summon.maxUses() != -1 && summon.maxUses() <= 0)) {
+                throw new IllegalStateException("Invalid SummonBalance numeric value: " + summon.modeId() + "/" + summon.summonType());
+            }
+        }
+    }
+
+    public void validateMergeRules(MergeRuleBalanceDocument document) {
+        if (document == null || document.mergeRules() == null || document.mergeRules().isEmpty()) {
+            throw new IllegalStateException("MergeRule data is empty.");
+        }
+        Map<String, String> expectedResultGrade = Map.of(
+                "NORMAL", "EPIC", "EPIC", "UNIQUE", "UNIQUE", "LEGEND", "LEGEND", "MYTHIC", "MYTHIC", "MYTHIC");
+        Map<String, String> expectedResultType = Map.of(
+                "NORMAL", "RANDOM_NEXT_GRADE", "EPIC", "RANDOM_NEXT_GRADE", "UNIQUE", "RANDOM_NEXT_GRADE",
+                "LEGEND", "MYTHIC_CHOICE", "MYTHIC", "DISABLED");
+        Set<String> grades = new HashSet<>();
+        for (MergeRuleBalance rule : document.mergeRules()) {
+            if (!expectedResultGrade.containsKey(rule.sourceGrade()) || !grades.add(rule.sourceGrade())) {
+                throw new IllegalStateException("Invalid or duplicate MergeRule sourceGrade: " + rule.sourceGrade());
+            }
+            if (rule.requiredCount() != 2 || !rule.sameSpeciesRequired()) {
+                throw new IllegalStateException("Merge requires two Aliens with the same grade and alienId: " + rule.sourceGrade());
+            }
+            if (!expectedResultGrade.get(rule.sourceGrade()).equals(rule.resultGrade())
+                    || !expectedResultType.get(rule.sourceGrade()).equals(rule.resultType())) {
+                throw new IllegalStateException("Invalid merge grade transition: " + rule.sourceGrade());
+            }
+        }
+        if (!grades.equals(expectedResultGrade.keySet())) {
+            throw new IllegalStateException("MergeRule must contain all Alien grades.");
+        }
+    }
+
+    public void validateMythicChoices(MythicChoiceBalanceDocument document, List<AlienSpecBalance> alienSpecs) {
+        if (document == null || document.mythicChoices() == null || document.mythicChoices().isEmpty()) {
+            throw new IllegalStateException("MythicChoiceBalance data is empty.");
+        }
+        List<AlienSpecBalance> mythics = alienSpecs.stream()
+                .filter(spec -> "MYTHIC".equals(spec.grade()))
+                .toList();
+        if (mythics.size() != 20) {
+            throw new IllegalStateException("Mythic choice pool must derive exactly 20 MYTHIC AlienSpec rows.");
+        }
+        Set<String> modes = new HashSet<>();
+        Set<String> policies = Set.of("FIRST", "RANDOM");
+        for (MythicChoiceBalance choice : document.mythicChoices()) {
+            requireText(choice.modeId(), "mythic choice modeId");
+            if (!modes.add(choice.modeId())) {
+                throw new IllegalStateException("Duplicate MythicChoice modeId: " + choice.modeId());
+            }
+            if (choice.candidateCount() != 3 || choice.candidateCount() > mythics.size()
+                    || choice.freeRerollCount() < 0 || choice.paidRerollLimit() < 0
+                    || choice.paidRerollCost() < 0 || !positive(choice.selectionTimeoutSeconds())
+                    || !policies.contains(choice.autoSelectPolicy())) {
+                throw new IllegalStateException("Invalid MythicChoiceBalance: " + choice.modeId());
+            }
+        }
+    }
+
+    public void validateBattleBalance(
+            MonsterSpecBalanceDocument monsters,
+            WaveSpecBalanceDocument waves,
+            WaveSpawnBalanceDocument spawns,
+            FieldLimitBalanceDocument fieldLimits,
+            SummonBalanceDocument summons,
+            MergeRuleBalanceDocument mergeRules,
+            MythicChoiceBalanceDocument mythicChoices,
+            List<AlienSpecBalance> alienSpecs
+    ) {
+        validateMonsterSpecs(monsters);
+        validateWaveSpawns(spawns, monsters);
+        validateWaves(waves, spawns);
+        validateFieldLimits(fieldLimits);
+        validateSummons(summons);
+        validateMergeRules(mergeRules);
+        validateMythicChoices(mythicChoices, alienSpecs);
+
+        Set<String> waveModes = waves.waves().stream().map(WaveSpecBalance::modeId).collect(Collectors.toSet());
+        Set<String> fieldModes = fieldLimits.fieldLimits().stream().map(FieldLimitBalance::modeId).collect(Collectors.toSet());
+        Set<String> summonModes = summons.summons().stream().map(SummonBalance::modeId).collect(Collectors.toSet());
+        Set<String> choiceModes = mythicChoices.mythicChoices().stream().map(MythicChoiceBalance::modeId).collect(Collectors.toSet());
+        if (!waveModes.equals(fieldModes) || !waveModes.equals(summonModes) || !waveModes.equals(choiceModes)) {
+            throw new IllegalStateException("Battle balance modeId sets must match across Wave, FieldLimit, Summon, and MythicChoice.");
+        }
+    }
+
+    private void requireText(String value, String field) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalStateException(field + " must not be blank.");
         }
     }
 }

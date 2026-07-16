@@ -1,0 +1,13 @@
+{
+  "summons" : [
+    {
+      "modeId" : "COOP_STANDARD",
+      "summonType" : "KIDNAP",
+      "baseCost" : 50,
+      "costIncreasePerUse" : 10,
+      "maxUses" : -1,
+      "resultPoolId" : "STANDARD_SUMMON_POOL",
+      "enabled" : true
+    }
+  ]
+}

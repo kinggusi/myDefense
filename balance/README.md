@@ -1,85 +1,12 @@
 # Wak-jeo Defense Balance Data
 
-게임 내 밸런스 데이터를 관리하는 Excel 원본 및 변환 스크립트입니다.
+`balance/source/balance-data.xlsx`가 Balance 데이터의 canonical source입니다. 변환된 JSON과
+`balance-manifest.json`은 파생 산출물이므로 직접 수정하지 않습니다.
 
-## 요구 사항
-- JDK 17 이상
+## 변환과 검증
 
-## 실행 명령
-서버 모듈 디렉터리(`server/`)에서 다음 Gradle 태스크를 실행합니다.
+JDK 17 이상에서 서버 디렉터리를 기준으로 실행합니다.
 
-```bash
-cd server
-./gradlew convertBalance
-```
-
-이 명령은 `balance/source/balance-data.xlsx`를 읽어 유효성을 검사하고, 성공 시 아래 위치에 5종의 JSON 파일을 생성/교체합니다.
-- `server/src/main/resources/balance/generated/game-reward.json`
-- `server/src/main/resources/balance/generated/alien-upgrade.json`
-- `server/src/main/resources/balance/generated/alien-spec.json`
-- `server/src/main/resources/balance/generated/shop-products.json`
-- `server/src/main/resources/balance/generated/gacha-pools.json`
-
-## Excel 시트 구조 (엄격한 검증)
-엑셀의 데이터는 매우 엄격하게 검증됩니다. 기획 오류를 방지하기 위해 다음 규칙을 반드시 지켜야 합니다.
-
-1. **숫자는 반드시 `NUMERIC` 셀이어야 합니다.** (텍스트 형태의 숫자 허용 안 됨)
-2. **소수점이나 음수는 허용되지 않습니다.**
-3. **빈 셀, 중복 헤더, 병합 셀은 오류를 발생시킵니다.**
-4. 숨김 처리된 행도 일반 데이터로 읽힙니다. 적용을 제외하려면 명시적으로 데이터를 지우거나 향후 시스템 확장을 요청하세요.
-
-### Config 시트
-- 필수 헤더: `key`, `value`
-- 필수 데이터: `maxLevel` (최대 레벨 지정)
-
-### GameReward 시트
-- 필수 헤더: `baseRewardGold`, `goldPerWave`, `maxRewardGold`
-- 데이터 행: **정확히 1줄**
-
-### AlienUpgrade 시트
-- 필수 헤더: `currentLevel`, `requiredPieces`, `requiredGold`, `requiredGrowthCell`
-- 데이터 행: `currentLevel` 1부터 `maxLevel-1`까지 연속적으로 작성되어야 합니다.
-
-### AlienSpec 시트
-- 필수 헤더: `alienId`, `name`, `description`, `grade`, `baseAttack`, `baseMp`, `attackSpeed`, `attackRange`, `evolutionTargetId`, `isLocked`
-- `description`: 빈 셀 입력 시 빈 문자열(`""`)로 저장됩니다.
-- `evolutionTargetId`: 빈 셀 입력 시 `null`로 저장되며, 존재하지 않는 대상이나 순환 참조 입력 시 실패합니다.
-- `isLocked`: 반드시 Excel `BOOLEAN` 셀(`TRUE`/`FALSE`) 타입이어야 합니다 (문자열 금지).
-
-### ShopProduct 시트
-- 필수 헤더: `productId`, `name`, `currencyType`, `price`, `drawCount`, `gachaPoolId`, `active`
-- `active`: 반드시 Excel `BOOLEAN` 셀(`TRUE`/`FALSE`) 타입이어야 합니다.
-- `price`, `drawCount`: 0보다 커야 합니다.
-
-### GachaPool 시트
-- 필수 헤더: `poolId`, `poolName`, `poolActive`, `grade`, `weight`, `alienIds`
-- 동일한 `poolId`를 가진 행들은 하나의 풀로 그룹화됩니다.
-- `weight`: 0보다 커야 하며, 한 풀의 전체 weight 합계는 10000이어야 합니다.
-- `alienIds`: 콤마(`,`)로 구분된 `alienId` 번호 목록이어야 하며 공백은 무시됩니다 (예: `22, 23, 24`).
-
-## 검증 실패 예시
-변환 실패 시 기획자가 즉시 수정할 수 있도록 에러 메시지가 출력됩니다.
-> `[AlienUpgrade] 12행 'requiredGold' 열: -10 - 0 이상이어야 합니다.`
-> `[Config] 2행 'value' 열: 문자열 형태의 숫자는 허용되지 않습니다.`
-
-## 작업 순서 (매우 중요)
-밸런스 데이터를 변경할 때는 **반드시 Excel과 변환된 JSON을 함께 커밋**해야 합니다. 서버 런타임은 오직 JSON만 읽습니다.
-
-1. `balance-data.xlsx` 파일 수정
-2. `server/` 디렉터리에서 `.\gradlew convertBalance` 실행
-3. `git diff`를 통해 변환된 JSON 파일의 변경점 확인
-4. `.\gradlew test`를 실행하여 밸런스 변경으로 인해 서버 테스트가 깨지지 않는지 확인
-5. `.xlsx` 원본과 `generated/*.json` 파일들을 함께 커밋 및 푸시
-
----
-
-## 🚨 CI 동기화 검사 주의사항
-본 프로젝트는 GitHub Actions CI를 통해 PR 및 `dev` 브랜치 Push 시 **Excel 원본과 JSON 간의 동기화 상태를 검사**합니다.
-
-Excel 파일만 수정하고 `convertBalance`를 실행하지 않은 채 커밋하면 **CI가 실패**하므로 주의하십시오.
-
-### 🛠️ 로컬 변환 및 검증 명령
-**Windows (PowerShell)**:
 ```powershell
 cd server
 .\gradlew balanceToolTest
@@ -87,20 +14,97 @@ cd server
 .\gradlew test
 ```
 
-**Linux / macOS**:
-```bash
-cd server
-./gradlew balanceToolTest
-./gradlew convertBalance
-./gradlew test
-```
+`convertBalance`는 Excel 전체를 검증한 뒤 13개 JSON과 manifest를 한 묶음으로 교체합니다.
+검증이나 파일 생성이 실패하면 기존 정상 generated 파일과 manifest를 유지합니다.
 
-### ❌ CI 실패 시 조치 방법
-동기화가 맞지 않을 경우 CI 로그에 아래와 같이 표시됩니다:
-```text
-::error::Balance JSON is out of sync with balance-data.xlsx.
-::error::Linux/macOS: cd server && ./gradlew convertBalance
-::error::Windows: cd server; .\gradlew convertBalance
-::error::Commit the Excel file and all generated balance JSON files.
-```
-이때는 위의 로컬 변환 명령을 실행하고, 변경된 JSON 파일들을 추가로 커밋(`git commit --amend` 또는 새 커밋) 후 푸시해야 합니다.
+## Excel 시트
+
+기존 영구 계정 Balance:
+
+- `GameReward`: 전투 보상 기본값
+- `AlienSpec`: Alien 48종의 기본 능력치와 출시 상태
+- `ShopProduct`: Gacha 상품
+- `GachaPool`: 등급별 Gacha 확률과 Alien Pool
+- `AlienUpgradeCost`: Lv.1→50 강화 비용 49행
+- `AlienLevelStat`: 레벨별 능력치 배율 50행
+
+전투 공통 계약:
+
+- `MonsterSpec`: Monster ID, 타입, 기본 HP, 이동 속도, 처치 Gold
+- `WaveSpec`: 모드별 Wave 순서, HP 배율, 간격, Boss 여부와 Spawn Group
+- `WaveSpawn`: Spawn Group별 Monster 구성과 필드별 Spawn 수
+- `FieldLimitBalance`: 필드별 생존 Monster 한도와 UI 경고 구간
+- `SummonBalance`: Kidnap 비용 증가 및 결과 Pool 식별자
+- `MergeRule`: 등급별 Merge 재료 수와 결과 방식
+- `MythicChoiceBalance`: LEGEND Merge의 MYTHIC 후보·Reroll·제한 시간 정책
+
+숫자는 Excel `NUMERIC`, 플래그는 `BOOLEAN` 타입이어야 합니다. 병합 셀, 중복 헤더, 필수 값 누락,
+문자열로 저장된 숫자와 Boolean은 변환 실패 대상입니다.
+
+## 전투 임시 Balance 값
+
+8-1I-C에 추가된 다음 수치는 현재 전투 구현을 옮긴 MVP placeholder이며 플레이테스트 후 조정 대상입니다.
+
+- Monster: Normal HP 30/속도 5/Gold 20, Elite HP 60/속도 4/Gold 40, Wave Boss HP 300/속도 2/Gold 200
+- Wave: 10 Wave, Wave당 HP 배율 +0.10, Wave 간격 3초, 10 Wave Boss, Boss 제한 30초
+- Spawn: 기본 필드당 10마리, 5·8 Wave는 Normal 8 + Elite 2, Boss는 필드당 1마리
+- Field limit: 최대 100, warning 80, danger 90, 플레이어 2명
+- Kidnap: 기본 50 Gold, 성공당 +10, `maxUses=-1`은 무제한
+- MYTHIC 선택: 후보 3, 무료 Reroll 1, 유료 Reroll 1, 비용 100, 제한 8초, 시간 초과 시 첫 후보
+
+## 전투 코드 계약
+
+- 개인 탈락: 각 플레이어 필드의 `aliveMonsterCountPerField >= maxAliveMonsterCountPerField`이면 해당 플레이어만 `ELIMINATED`
+- 한 플레이어만 `ELIMINATED`이면 Match는 `RUNNING`을 유지하고, 모든 플레이어가 `ELIMINATED`일 때 최종 `FAILED`
+- 필드별 생존 Monster 수는 독립적으로 관리하며 두 필드 수를 합산하지 않음
+- Wave Clear: 모든 Spawn 완료 **AND** 해당 Wave 생존 Monster 수가 0
+- 모든 Spawn은 `lanePolicy=EACH_FIELD`
+- 같은 등급이면서 같은 `alienId`인 Alien 두 개만 Merge 가능하며 `sameSpeciesRequired=true`
+- NORMAL→EPIC→UNIQUE→LEGEND는 다음 등급 전체 Pool에서 무작위
+- LEGEND Merge는 즉시 결과를 만들지 않고 `MYTHIC_CHOICE` transaction을 시작
+- MYTHIC은 최종 등급이며 `DISABLED`
+- MYTHIC 후보 Pool은 `AlienSpec.grade == MYTHIC`인 20종 전체에서 자동 파생
+- 후보는 서로 달라야 하고 owned/isLocked/specLocked는 후보 확률이나 필터에 사용하지 않음
+- owned=true MYTHIC만 Mutation 가능
+- 전투 중 Spring Boot API를 반복 호출하지 않음
+- Fusion State Authority가 Kidnap, Merge, 후보, Reroll, 선택과 Gold 사용을 검증할 예정
+
+`SummonBalance.resultPoolId`가 참조할 `SummonPool`은 후속 시트입니다. 후보 컬럼은
+`resultPoolId`, `entryOrder`, `resultType`, `grade`, `alienId`, `mutationType`, `weight`, `enabled`입니다.
+Skill/Mutation 실행 계약도 후속 작업입니다.
+
+## Generated JSON
+
+기존 6종:
+
+- `game-reward.json`
+- `alien-upgrade-cost.json`
+- `alien-level-stat.json`
+- `alien-spec.json`
+- `shop-products.json`
+- `gacha-pools.json`
+
+전투 계약 7종:
+
+- `monster-spec.json`
+- `wave-spec.json`
+- `wave-spawn.json`
+- `field-limit.json`
+- `summon-balance.json`
+- `merge-rules.json`
+- `mythic-choice-balance.json`
+
+전투 계약 JSON은 Unity parser 호환성을 위해 배열을 직접 root로 사용하지 않고 wrapper object를 사용합니다.
+모든 JSON은 UTF-8(BOM 없음), LF, 결정적 파일명·행 순서와 기존 pretty-print 규칙을 사용합니다.
+
+## Manifest 규칙
+
+`balance-manifest.json`은 위 13개 JSON의 파일명, byte 크기, SHA-256과 전체 `contentHash`를 기록합니다.
+manifest 자신은 `files`에서 제외하고 timestamp, OS, 사용자나 빌드 환경 정보는 포함하지 않습니다.
+서버는 시작할 때 manifest와 실제 파일을 검증한 뒤에만 Registry를 초기화합니다.
+
+## 서버와 Unity 공유
+
+현재 canonical 산출물 위치는 `server/src/main/resources/balance/generated`입니다. 8-1I-D에서 검증된
+Gradle sync task가 manifest와 generated 파일을 `Client/Assets/StreamingAssets/Balance/generated`로
+byte-for-byte 복사할 예정입니다. 이번 단계에서는 Unity 파일이나 sync task를 추가하지 않습니다.

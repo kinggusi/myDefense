@@ -42,14 +42,6 @@ public class AlienSpecBalanceExcelConverterTest {
     }
 
     private void createBaseSheets() {
-        Sheet config = workbook.createSheet("Config");
-        Row headerConfig = config.createRow(0);
-        headerConfig.createCell(0).setCellValue("key");
-        headerConfig.createCell(1).setCellValue("value");
-        Row rowConfig = config.createRow(1);
-        rowConfig.createCell(0).setCellValue("maxLevel");
-        rowConfig.createCell(1).setCellValue(3);
-
         Sheet reward = workbook.createSheet("GameReward");
         Row headerReward = reward.createRow(0);
         headerReward.createCell(0).setCellValue("baseRewardGold");
@@ -60,24 +52,37 @@ public class AlienSpecBalanceExcelConverterTest {
         rowReward.createCell(1).setCellValue(10);
         rowReward.createCell(2).setCellValue(1000);
 
-        Sheet upgrade = workbook.createSheet("AlienUpgrade");
+        Sheet upgrade = workbook.createSheet("AlienUpgradeCost");
         Row headerUpgrade = upgrade.createRow(0);
         headerUpgrade.createCell(0).setCellValue("currentLevel");
-        headerUpgrade.createCell(1).setCellValue("requiredPieces");
-        headerUpgrade.createCell(2).setCellValue("requiredGold");
-        headerUpgrade.createCell(3).setCellValue("requiredGrowthCell");
+        headerUpgrade.createCell(1).setCellValue("targetLevel");
+        headerUpgrade.createCell(2).setCellValue("requiredPieces");
+        headerUpgrade.createCell(3).setCellValue("requiredGold");
+        headerUpgrade.createCell(4).setCellValue("requiredGrowthCell");
+        for (int level = 1; level <= 49; level++) {
+            Row row = upgrade.createRow(level);
+            row.createCell(0).setCellValue(level);
+            row.createCell(1).setCellValue(level + 1);
+            row.createCell(2).setCellValue(level * 5);
+            row.createCell(3).setCellValue(level * 100);
+            row.createCell(4).setCellValue(level < 9 ? 0 : Math.min(50, ((level - 9) / 10 + 1) * 10));
+        }
 
-        Row rowUpgrade1 = upgrade.createRow(1);
-        rowUpgrade1.createCell(0).setCellValue(1);
-        rowUpgrade1.createCell(1).setCellValue(5);
-        rowUpgrade1.createCell(2).setCellValue(100);
-        rowUpgrade1.createCell(3).setCellValue(0);
-
-        Row rowUpgrade2 = upgrade.createRow(2);
-        rowUpgrade2.createCell(0).setCellValue(2);
-        rowUpgrade2.createCell(1).setCellValue(10);
-        rowUpgrade2.createCell(2).setCellValue(200);
-        rowUpgrade2.createCell(3).setCellValue(0);
+        Sheet levelStat = workbook.createSheet("AlienLevelStat");
+        Row statHeader = levelStat.createRow(0);
+        statHeader.createCell(0).setCellValue("level");
+        statHeader.createCell(1).setCellValue("atkMultiplier");
+        statHeader.createCell(2).setCellValue("mpMultiplier");
+        statHeader.createCell(3).setCellValue("atkSpeedMultiplier");
+        statHeader.createCell(4).setCellValue("rangeMultiplier");
+        for (int level = 1; level <= 50; level++) {
+            Row row = levelStat.createRow(level);
+            row.createCell(0).setCellValue(level);
+            row.createCell(1).setCellValue(1 + (level - 1) * 0.05);
+            row.createCell(2).setCellValue(1 + (level - 1) * 0.03);
+            row.createCell(3).setCellValue(1 + (level / 10) * 0.02);
+            row.createCell(4).setCellValue(1.0);
+        }
 
         Sheet shop = workbook.createSheet("ShopProduct");
         Row hShop = shop.createRow(0);
@@ -114,6 +119,8 @@ public class AlienSpecBalanceExcelConverterTest {
         rPool.createCell(3).setCellValue("NORMAL");
         rPool.createCell(4).setCellValue(10000);
         rPool.createCell(5).setCellValue("1");
+
+        BattleBalanceTestWorkbook.addValidSheets(workbook);
     }
 
     private Sheet createAlienSpecSheet() {
@@ -159,21 +166,21 @@ public class AlienSpecBalanceExcelConverterTest {
     }
 
     @Test
-    @DisplayName("1. 정상 AlienSpec 32건 변환 및 2. alienId 오름차순 검증")
-    void valid32Specs() throws IOException {
+    @DisplayName("1. 정상 AlienSpec 48건 변환 및 2. alienId 오름차순 검증")
+    void valid48Specs() throws IOException {
         createBaseSheets();
         Sheet spec = createAlienSpecSheet();
-        for (int i = 1; i <= 32; i++) {
+        for (int i = 1; i <= 48; i++) {
             addSpecRow(spec, i, i, "Name" + i, "Desc" + i, "NORMAL", 10, 10, 1.0, 1.0, null, false);
         }
         
         ExcelBalanceReader.BalanceData data = readData();
         List<AlienSpecBalance> specs = data.alienSpecs();
-        assertThat(specs).hasSize(32);
+        assertThat(specs).hasSize(48);
         
         validator.validateAlienSpec(specs);
         
-        for (int i = 0; i < 32; i++) {
+        for (int i = 0; i < 48; i++) {
             assertThat(specs.get(i).alienId()).isEqualTo(i + 1);
         }
     }

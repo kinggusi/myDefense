@@ -18,9 +18,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.List;
 
 import static org.hamcrest.Matchers.*;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -43,7 +43,7 @@ public class LobbyControllerApiIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        // DB는 Application 기동 시 DataInit/Seed로 인해 기본 32종이 들어있는 상태를 가정
+        // DB는 Application 기동 시 DataInit/Seed로 인해 기본 48종이 들어있는 상태를 가정
         userAlienRepository.deleteAll();
         userRepository.deleteAll();
 
@@ -102,15 +102,17 @@ public class LobbyControllerApiIntegrationTest {
                 .andExpect(jsonPath("$.aliens[0].owned").value(true))
                 .andExpect(jsonPath("$.aliens[0].level").value(3))
                 .andExpect(jsonPath("$.aliens[0].pieces").value(7))
+                .andExpect(jsonPath("$.aliens[0].requiredPieces").value(15))
                 // 4. 미보유 Alien 검증 (ID 2)
                 .andExpect(jsonPath("$.aliens[1].owned").value(false))
                 .andExpect(jsonPath("$.aliens[1].level").value(0))
                 .andExpect(jsonPath("$.aliens[1].pieces").value(0))
-                // 5. specLocked와 owned 분리 및 기존 locked 호환 검증
+                .andExpect(jsonPath("$.aliens[1].requiredPieces").value(0))
+                // 5. specLocked는 출시 메타데이터, legacy locked는 미보유 여부만 표현
                 .andExpect(jsonPath("$.aliens[0].specLocked").isBoolean())
-                .andExpect(jsonPath("$.aliens[0].locked").value(false)) // 보유 시 무조건 false
-                .andExpect(jsonPath("$.aliens[1].specLocked").isBoolean()) // 미보유 시 스펙 본연의 값
-                .andExpect(jsonPath("$.aliens[1].locked").isBoolean()) // 미보유 시 specLocked와 동일 (기존 호환 유지)
+                .andExpect(jsonPath("$.aliens[0].locked").value(false))
+                .andExpect(jsonPath("$.aliens[1].specLocked").isBoolean())
+                .andExpect(jsonPath("$.aliens[1].locked").value(true))
                 // 6. 기본 스탯 반환 검증
                 .andExpect(jsonPath("$.aliens[0].baseAtk").isNumber())
                 .andExpect(jsonPath("$.aliens[0].baseMp").isNumber())
@@ -118,6 +120,27 @@ public class LobbyControllerApiIntegrationTest {
                 .andExpect(jsonPath("$.aliens[0].range").isNumber());
                 // 7. evolutionTargetId 매핑 검증
                 // jsonPath에서는 값이 null일 때 exists()가 실패할 수 있음. 매핑됨을 다른 방식으로 간접 확인.
+    }
+
+    @Test
+    void requiredPiecesUsesBalanceCostForOwnedLevelsAndZeroAtMax() throws Exception {
+        AlienSpec firstSpec = alienSpecRepository.findAll().stream()
+                .min(java.util.Comparator.comparing(AlienSpec::getId))
+                .orElseThrow();
+        UserAlien owned = userAlienRepository.findByUserAndAlienSpec(testUser, firstSpec).orElseThrow();
+
+        assertRequiredPieces(owned, 1, 5);
+        assertRequiredPieces(owned, 9, 45);
+        assertRequiredPieces(owned, 10, 50);
+        assertRequiredPieces(owned, 50, 0);
+    }
+
+    private void assertRequiredPieces(UserAlien owned, int level, int expected) throws Exception {
+        owned.setLevel(level);
+        userAlienRepository.save(owned);
+        mockMvc.perform(get("/api/lobby/info/lobbyUser1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.aliens[0].requiredPieces").value(expected));
     }
 
     @Test

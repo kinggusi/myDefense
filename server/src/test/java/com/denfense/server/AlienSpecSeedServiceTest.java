@@ -55,18 +55,18 @@ public class AlienSpecSeedServiceTest {
     }
 
     @Test
-    @DisplayName("enabled + 전체 기존 → persist 0회, inserted=0, skipped=32")
+    @DisplayName("enabled + 전체 기존 → persist 0회, inserted=0, skipped=48")
     void whenAllExist_thenNoPersist() {
         when(properties.isSeedEnabled()).thenReturn(true);
 
-        // 32 existing IDs
+        // 48 existing IDs
         List<Long> existingIds = new java.util.ArrayList<>();
-        for (long i = 1; i <= 32; i++) existingIds.add(i);
+        for (long i = 1; i <= 48; i++) existingIds.add(i);
         when(alienSpecRepository.findAllIds()).thenReturn(existingIds);
 
-        // 32 balances from registry
+        // 48 balances from registry
         List<AlienSpecBalance> balances = new java.util.ArrayList<>();
-        for (long i = 1; i <= 32; i++) {
+        for (long i = 1; i <= 48; i++) {
             balances.add(new AlienSpecBalance(i, "N" + i, "D" + i, "NORMAL", 10, 5, 1.0, 2.0, null, false));
         }
         when(balanceRegistry.getAllAlienSpecs()).thenReturn(balances);
@@ -75,7 +75,7 @@ public class AlienSpecSeedServiceTest {
 
         assertThat(result.enabled()).isTrue();
         assertThat(result.insertedCount()).isZero();
-        assertThat(result.skippedCount()).isEqualTo(32);
+        assertThat(result.skippedCount()).isEqualTo(48);
 
         verify(entityManager, never()).persist(any());
         verify(entityManager, never()).flush();
@@ -86,13 +86,13 @@ public class AlienSpecSeedServiceTest {
     void whenPartialMissing_thenPersistOnlyMissing() {
         when(properties.isSeedEnabled()).thenReturn(true);
 
-        // IDs 1~30 exist, 31~32 missing
+        // 기존 ID 1~32는 존재하고 신규 ID 33~48만 누락
         List<Long> existingIds = new java.util.ArrayList<>();
-        for (long i = 1; i <= 30; i++) existingIds.add(i);
+        for (long i = 1; i <= 32; i++) existingIds.add(i);
         when(alienSpecRepository.findAllIds()).thenReturn(existingIds);
 
         List<AlienSpecBalance> balances = new java.util.ArrayList<>();
-        for (long i = 1; i <= 32; i++) {
+        for (long i = 1; i <= 48; i++) {
             balances.add(new AlienSpecBalance(i, "N" + i, "D" + i, "NORMAL", 10, 5, 1.0, 2.0, null, false));
         }
         when(balanceRegistry.getAllAlienSpecs()).thenReturn(balances);
@@ -100,26 +100,28 @@ public class AlienSpecSeedServiceTest {
         AlienSpecSeedResult result = seedService.seed();
 
         assertThat(result.enabled()).isTrue();
-        assertThat(result.insertedCount()).isEqualTo(2);
-        assertThat(result.skippedCount()).isEqualTo(30);
+        assertThat(result.insertedCount()).isEqualTo(16);
+        assertThat(result.skippedCount()).isEqualTo(32);
 
         ArgumentCaptor<AlienSpec> captor = ArgumentCaptor.forClass(AlienSpec.class);
-        verify(entityManager, times(2)).persist(captor.capture());
+        verify(entityManager, times(16)).persist(captor.capture());
 
         List<AlienSpec> persisted = captor.getAllValues();
-        assertThat(persisted).extracting(AlienSpec::getId).containsExactly(31L, 32L);
+        assertThat(persisted).extracting(AlienSpec::getId)
+                .containsExactly(33L, 34L, 35L, 36L, 37L, 38L, 39L, 40L,
+                        41L, 42L, 43L, 44L, 45L, 46L, 47L, 48L);
 
         verify(entityManager, times(1)).flush();
     }
 
     @Test
-    @DisplayName("빈 DB → 32건 전부 persist")
+    @DisplayName("빈 DB → 48건 전부 persist")
     void whenEmptyDb_thenPersistAll() {
         when(properties.isSeedEnabled()).thenReturn(true);
         when(alienSpecRepository.findAllIds()).thenReturn(Collections.emptyList());
 
         List<AlienSpecBalance> balances = new java.util.ArrayList<>();
-        for (long i = 1; i <= 32; i++) {
+        for (long i = 1; i <= 48; i++) {
             balances.add(new AlienSpecBalance(i, "N" + i, "D" + i, "NORMAL", 10, 5, 1.0, 2.0, null, false));
         }
         when(balanceRegistry.getAllAlienSpecs()).thenReturn(balances);
@@ -127,10 +129,10 @@ public class AlienSpecSeedServiceTest {
         AlienSpecSeedResult result = seedService.seed();
 
         assertThat(result.enabled()).isTrue();
-        assertThat(result.insertedCount()).isEqualTo(32);
+        assertThat(result.insertedCount()).isEqualTo(48);
         assertThat(result.skippedCount()).isZero();
 
-        verify(entityManager, times(32)).persist(any(AlienSpec.class));
+        verify(entityManager, times(48)).persist(any(AlienSpec.class));
         verify(entityManager, times(1)).flush();
     }
 
