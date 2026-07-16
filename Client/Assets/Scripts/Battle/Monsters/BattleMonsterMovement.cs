@@ -11,8 +11,11 @@ namespace MyDefense.Battle
 
         private List<Transform> _waypoints;
         private int _targetIndex = 0;
+        private int _travelDirection = 1;
         private bool _isInitialized = false;
         private bool _isPathCompleted = false;
+        private bool _pathInitializationAttempted = false;
+        private bool _invalidPathReported = false;
 
         public float Speed
         {
@@ -28,6 +31,11 @@ namespace MyDefense.Battle
                 _laneType = value;
                 _isInitialized = false; // 새로운 레인으로 지정 시 재초기화 유도
                 _isPathCompleted = false;
+                _pathInitializationAttempted = false;
+                _invalidPathReported = false;
+                _targetIndex = 0;
+                _travelDirection = 1;
+                _waypoints = null;
             }
         }
 
@@ -40,7 +48,10 @@ namespace MyDefense.Battle
         {
             if (!_isInitialized)
             {
-                InitializePath();
+                if (!_pathInitializationAttempted)
+                {
+                    InitializePath();
+                }
                 if (!_isInitialized) return; // 경로 획득 실패 시 보류
             }
 
@@ -53,17 +64,44 @@ namespace MyDefense.Battle
         {
             if (PathManager.Instance == null) return;
 
-            _waypoints = PathManager.Instance.GetPath(_laneType);
-            if (_waypoints == null || _waypoints.Count == 0)
+            _pathInitializationAttempted = true;
+            TryInitializePath(PathManager.Instance.GetPath(_laneType));
+        }
+
+        private bool TryInitializePath(List<Transform> waypoints)
+        {
+            _waypoints = waypoints;
+            if (_waypoints == null || _waypoints.Count < 2)
             {
-                Debug.LogWarning($"[BattleMonsterMovement] {_laneType} 의 경로가 비어 있습니다.");
-                return;
+                ReportInvalidPathOnce(_waypoints?.Count ?? 0, "at least two waypoints are required");
+                _isPathCompleted = true;
+                return false;
             }
 
-            _targetIndex = 0;
+            for (int i = 0; i < _waypoints.Count; i++)
+            {
+                if (_waypoints[i] != null) continue;
+
+                ReportInvalidPathOnce(_waypoints.Count, $"waypoint at index {i} is null");
+                _isPathCompleted = true;
+                return false;
+            }
+
             transform.position = _waypoints[0].position;
+            _targetIndex = 1;
+            _travelDirection = 1;
             _isInitialized = true;
             _isPathCompleted = false;
+            _invalidPathReported = false;
+            return true;
+        }
+
+        private void ReportInvalidPathOnce(int waypointCount, string reason)
+        {
+            if (_invalidPathReported) return;
+
+            _invalidPathReported = true;
+            Debug.LogError($"[BattleMonsterMovement] Cannot move on {_laneType}: invalid path ({waypointCount} waypoints; {reason}). Movement stopped.");
         }
 
         private void Move()
@@ -75,7 +113,10 @@ namespace MyDefense.Battle
 
             // 2. 방향 계산 및 이동
             Vector3 dir = targetWaypoint.position - transform.position;
-            transform.Translate(dir.normalized * _speed * Time.deltaTime, Space.World);
+            transform.position = Vector3.MoveTowards(
+                transform.position,
+                targetWaypoint.position,
+                Mathf.Max(0f, _speed) * Time.deltaTime);
 
             // 3. 방향 전환 (목표 노드를 바라보기)
             if (dir != Vector3.zero)
@@ -85,7 +126,7 @@ namespace MyDefense.Battle
             }
 
             // 4. 도착 판정 (거리가 0.15보다 가까워지면 다음 목표로)
-            if (Vector3.Distance(transform.position, targetWaypoint.position) < 0.15f)
+            if ((transform.position - targetWaypoint.position).sqrMagnitude < 0.0225f)
             {
                 GetNextWaypoint();
             }
@@ -93,34 +134,36 @@ namespace MyDefense.Battle
 
         private void GetNextWaypoint()
         {
-            _targetIndex++;
+            if (_waypoints == null || _waypoints.Count < 2) return;
 
-            // 마지막 노드 도달 시 처리
-            if (_targetIndex >= _waypoints.Count)
+            if (_laneType != LaneType.BossSharedLane)
             {
-                // V1 기획에 따른 일반 몬스터와 보스 이동 방식 분리
-                if (_laneType == LaneType.BossSharedLane)
-                {
-                    OnBossPathCompleted();
-                }
-                else
-                {
-                    // 일반 몬스터는 개인 레인을 무한 순환하도록 함 (첫 노드로 이동 타겟 초기화)
-                    _targetIndex = 0;
-                }
+                _targetIndex = (_targetIndex + 1) % _waypoints.Count;
+                return;
+            }
+
+            if (_travelDirection > 0 && _targetIndex >= _waypoints.Count - 1)
+            {
+                OnBossPathCompleted();
+            }
+            else if (_travelDirection < 0 && _targetIndex <= 0)
+            {
+                _travelDirection = 1;
+                _targetIndex = 1;
+            }
+            else
+            {
+                _targetIndex += _travelDirection;
             }
         }
 
         /// <summary>
-        /// 보스가 공용 레인의 마지막 노드에 도착했을 때의 확장 지점입니다.
-        /// 보스가 임의 삭제되지 않고 대기하도록 정지 상태로 전환합니다.
+        /// 보스가 공용 레인의 마지막 노드에 도착하면 역방향 순찰로 전환합니다.
         /// </summary>
         protected virtual void OnBossPathCompleted()
         {
-            _isPathCompleted = true;
-            _speed = 0f;
-            Debug.Log($"👹 [보스 공용 레인 완주] 보스가 최종 경로에 도착하여 대기 상태로 전환합니다. (보스 타이머 및 매치 영향도 확장 가능)");
+            _travelDirection = -1;
+            _targetIndex = _waypoints.Count - 2;
         }
     }
 }
-

@@ -470,9 +470,9 @@ GameObject:
   - component: {fileID: 1895062756649679604}
   - component: {fileID: 2956413157648541959}
   - component: {fileID: 1743122330085143534}
-  - component: {fileID: 541132301580848016}
   - component: {fileID: -5900148494275695505}
   - component: {fileID: 7362284352776375731}
+  - component: {fileID: 4201090289808750039}
   m_Layer: 0
   m_Name: Monster
   m_TagString: Monster
@@ -574,19 +574,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &541132301580848016
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7463564369751362190}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5292a86c917d8e84bb9f33da7e24dcd8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MonsterMovement
-  speed: 3
 --- !u!114 &-5900148494275695505
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -615,9 +602,25 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MyDefense.Battle.MonsterHealthView
   _monsterStat: {fileID: -5900148494275695505}
+  _monsterRenderer: {fileID: 0}
+  _healthCanvasRoot: {fileID: 0}
   _hpText: {fileID: 8116012277181631512}
   _hpSlider: {fileID: 3960489935288063998}
-  _uiContainer: {fileID: 6244552640078770817}
+  _worldYOffset: 0.25
+--- !u!114 &4201090289808750039
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7463564369751362190}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e964098de14912f498852cabafe85304, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MyDefense.Battle.BattleMonsterMovement
+  _laneType: 0
+  _speed: 5
 --- !u!1 &8188314502259905187
 GameObject:
   m_ObjectHideFlags: 0

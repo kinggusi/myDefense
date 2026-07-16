@@ -96,3 +96,15 @@ task balanceToolTest(type: Test) {
     classpath = sourceSets.balanceToolTest.runtimeClasspath
     useJUnitPlatform()
 }
+
+task convertBattleBalance(type: JavaExec) {
+    group = 'balance'
+    description = 'Converts Battle-only Excel data to Unity Resources JSON'
+    classpath = sourceSets.balanceTool.runtimeClasspath
+    mainClass = 'com.denfense.server.balance.tool.battle.BattleBalanceExcelConverter'
+
+    def excelPath = project.hasProperty('battleExcelPath') ? project.property('battleExcelPath') : "${project.projectDir}/../balance/source/battle-balance.xlsx"
+    def outputPath = project.hasProperty('battleOutputPath') ? project.property('battleOutputPath') : "${project.projectDir}/../Client/Assets/Resources/Balance/Battle"
+
+    args = [excelPath, outputPath]
+}

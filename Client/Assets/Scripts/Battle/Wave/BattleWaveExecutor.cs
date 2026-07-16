@@ -1,7 +1,10 @@
 using UnityEngine;
+using System;
 using System.Collections;
 using System.Collections.Generic;
-using TMPro;
+using MyDefense.Battle.Balance;
+using MyDefense.Shared.Contracts;
+using Object = UnityEngine.Object;
 
 namespace MyDefense.Battle
 {
@@ -20,6 +23,8 @@ namespace MyDefense.Battle
         [Header("Wave Configuration")]
         [SerializeField] private GameObject _monsterPrefab;
         [SerializeField] private Transform _spawnPoint;
+        // Legacy serialized values retained only to preserve the existing Battle scene.
+        // Production wave execution is driven by WaveSpec/WaveSpawnSpec.
         [SerializeField] private float _spawnInterval = 1.0f;
         [SerializeField] private int _monstersPerWave = 10;
 
@@ -27,8 +32,7 @@ namespace MyDefense.Battle
         [SerializeField] private float _bossTimeLimit = 30f;
         [SerializeField] private float _bossSpeed = 2f;
 
-        [Header("Monster Count UI Configuration")]
-        [SerializeField] private TMP_Text _monsterCountText;
+        [Header("Monster Limit Configuration")]
         [SerializeField] private int _totalMonsterGoal = 100;
 
         [Header("Runtime Info")]
@@ -42,27 +46,76 @@ namespace MyDefense.Battle
         [SerializeField] private float _interWaveDelay = 3f;
         [SerializeField] private float _healthGrowthPerRound = 0.10f;
         [SerializeField] private float _bossHpMultiplier = 10f;
+        [SerializeField] private LaneType _localPlayerLane = LaneType.Player1Lane;
 
         private GameObject _currentBossInstance = null;
         private Coroutine _bossTimerCoroutine = null;
         private Coroutine _waveLoopCoroutine = null;
-        private int _spawnedMonsterCount;
+        private Coroutine _activeWaveCoroutine = null;
+        private bool _isCurrentWaveBoss;
+        private bool _regularWaveSpawnCompleted;
+        private bool _regularWaveCompletionReported;
+        private int _player1AliveMonsterCount;
+        private int _player2AliveMonsterCount;
+        private PlayerBattleState _player1BattleState = PlayerBattleState.ACTIVE;
+        private PlayerBattleState _player2BattleState = PlayerBattleState.ACTIVE;
+        private MatchState _matchState = MatchState.RUNNING;
         private bool _isFaulted = false;
         private BossStatusState _bossState = BossStatusState.None;
         private GameManager _gameManagerCached = null;
         private bool _isGameOverLogged = false;
+        private bool _allPlayersEliminatedReported = false;
+        private IBattleBalanceProvider _battleBalanceProvider;
+        private IMonsterDefinitionProvider _monsterDefinitionProvider;
+        private IBattleMonsterPrefabResolver _monsterPrefabResolver;
+        private WaveSpecData _currentWaveSpec;
+        private IReadOnlyList<WaveSpawnSpecData> _currentWaveSpawns = Array.AsReadOnly(Array.Empty<WaveSpawnSpecData>());
+        private bool _balanceInitializationAttempted;
+        private bool _catalogExhausted;
+        private bool _catalogExhaustedReported;
+        private float _activeBossTimeLimitSeconds;
 
-        public int SpawnedMonsterCount => _spawnedMonsterCount;
+        public LaneType LocalPlayerLane => _localPlayerLane;
+
+        public void SetLocalPlayerLane(LaneType lane)
+        {
+            if (lane == LaneType.BossSharedLane)
+            {
+                Debug.LogWarning("[BattleWaveExecutor] SetLocalPlayerLane: BossSharedLane is not allowed!");
+                return;
+            }
+            _localPlayerLane = lane;
+        }
+
+        public int Player1AliveMonsterCount => _player1AliveMonsterCount;
+        public int Player2AliveMonsterCount => _player2AliveMonsterCount;
+        public PlayerBattleState Player1BattleState => _player1BattleState;
+        public PlayerBattleState Player2BattleState => _player2BattleState;
+        public MatchState MatchState => _matchState;
+        public bool Player1LimitReached => _player1BattleState == PlayerBattleState.ELIMINATED;
+        public bool Player2LimitReached => _player2BattleState == PlayerBattleState.ELIMINATED;
+        public bool AreAllPlayersEliminated => Player1LimitReached && Player2LimitReached;
+        public int MonsterLimit => _totalMonsterGoal;
+        public int SpawnedMonsterCount => _player1AliveMonsterCount + _player2AliveMonsterCount;
         public int TotalMonsterGoal => _totalMonsterGoal;
 
         public event System.Action OnBossTimeout;
         public event System.Action<float> OnBossTimerTick;
         public event System.Action OnBossDefeated;
+        public event System.Action OnAllPlayersEliminated;
         public event System.Action<int> OnRoundChanged;
+        public event System.Action<LaneType, int, int> OnPlayerMonsterCountChanged;
+        public event System.Action<LaneType> OnPlayerMonsterLimitReached;
+        public event System.Action<LaneType, PlayerBattleState> OnPlayerBattleStateChanged;
+        public event System.Action<MatchState> OnMatchStateChanged;
+        public event System.Action<int> OnRegularWaveCompleted;
+        public event System.Action OnCatalogExhausted;
 
         public int CurrentRound => _currentRound;
         public bool IsBossActive => _isBossActive;
         public bool IsWaveRunning => _isWaveRunning;
+        public bool IsCatalogExhausted => _catalogExhausted;
+        public string BattleBalanceContentHash => _battleBalanceProvider?.ContentHash;
 
         private void Awake()
         {
@@ -73,58 +126,358 @@ namespace MyDefense.Battle
             else
             {
                 Destroy(gameObject);
+                return;
             }
             _gameManagerCached = Object.FindFirstObjectByType<GameManager>();
         }
 
-        private void OnDisable()
+        private void OnEnable()
         {
-            if (_waveLoopCoroutine != null)
+            if (Instance == null)
             {
-                StopCoroutine(_waveLoopCoroutine);
-                _waveLoopCoroutine = null;
-            }
-            if (_bossTimerCoroutine != null)
-            {
-                StopCoroutine(_bossTimerCoroutine);
-                _bossTimerCoroutine = null;
+                Instance = this;
             }
         }
 
-        private void OnDestroy()
+        private void OnDisable()
         {
+            StopSessionCoroutines();
             if (Instance == this)
             {
                 Instance = null;
             }
         }
 
-        private void UpdateMonsterCountUI()
+        private void OnDestroy()
         {
-            if (_monsterCountText != null)
+            StopSessionCoroutines();
+            ReleaseCurrentBoss();
+            if (Instance == this)
             {
-                _monsterCountText.text = $"{_spawnedMonsterCount} / {_totalMonsterGoal}";
+                Instance = null;
             }
         }
 
-        private void RegisterMonsterSpawned()
+        private bool EnsureBalanceInitialized()
         {
-            _spawnedMonsterCount++;
-            UpdateMonsterCountUI();
+            if (_balanceInitializationAttempted)
+            {
+                return !_isFaulted
+                    && _battleBalanceProvider != null
+                    && _battleBalanceProvider.IsValid
+                    && _battleBalanceProvider.Catalog != null
+                    && _monsterDefinitionProvider != null
+                    && _monsterPrefabResolver != null;
+            }
+
+            _balanceInitializationAttempted = true;
+            if (_battleBalanceProvider == null)
+            {
+                TemporaryBattleMonsterDefinitionProvider temporaryProvider;
+                string adapterError;
+                if (!TemporaryBattleMonsterDefinitionProvider.TryCreate(
+                        _monsterPrefab,
+                        out temporaryProvider,
+                        out adapterError))
+                {
+                    FaultExecution("Battle balance initialization failed: " + adapterError);
+                    return false;
+                }
+
+                _monsterDefinitionProvider = temporaryProvider;
+                _monsterPrefabResolver = new ExplicitBattleMonsterPrefabResolver(
+                    TemporaryBattleMonsterDefinitionProvider.ExistingMonsterPrefabKey,
+                    _monsterPrefab);
+                _battleBalanceProvider = new ResourcesBattleBalanceProvider(
+                    _monsterDefinitionProvider,
+                    EmptyBattleAlienIdProvider.Instance);
+            }
+
+            var dependencyErrors = new List<string>();
+            if (_monsterDefinitionProvider == null)
+                dependencyErrors.Add("Monster definition provider is required for wave execution.");
+            if (_monsterPrefabResolver == null)
+                dependencyErrors.Add("Monster prefab resolver is required for wave execution.");
+            if (_battleBalanceProvider == null)
+            {
+                dependencyErrors.Add("Battle balance provider is required for wave execution.");
+            }
+            else
+            {
+                for (int index = 0; index < _battleBalanceProvider.ValidationErrors.Count; index++)
+                    dependencyErrors.Add(_battleBalanceProvider.ValidationErrors[index]);
+                if (_battleBalanceProvider.Catalog == null && dependencyErrors.Count == 0)
+                    dependencyErrors.Add("Battle balance provider returned no catalog.");
+            }
+
+            if (dependencyErrors.Count > 0)
+            {
+                FaultExecution(
+                    "Battle balance initialization failed:" + Environment.NewLine
+                    + " - " + string.Join(Environment.NewLine + " - ", dependencyErrors));
+                return false;
+            }
+
+            Debug.Log(
+                $"[BattleWaveExecutor] Battle balance initialized: version={_battleBalanceProvider.BalanceVersion}, "
+                + $"bundleHash={_battleBalanceProvider.ContentHash}.");
+            return true;
         }
 
-        public void RegisterMonsterKilled()
+        private void ConfigureBalanceDependenciesForTests(
+            IBattleBalanceProvider balanceProvider,
+            IMonsterDefinitionProvider monsterDefinitions,
+            IBattleMonsterPrefabResolver prefabResolver)
         {
-            if (_spawnedMonsterCount > 0)
+            _battleBalanceProvider = balanceProvider;
+            _monsterDefinitionProvider = monsterDefinitions;
+            _monsterPrefabResolver = prefabResolver;
+            _balanceInitializationAttempted = false;
+            _isFaulted = false;
+        }
+
+        private void FaultExecution(string reason)
+        {
+            if (_isFaulted) return;
+
+            _isFaulted = true;
+            _isWaveRunning = false;
+            _isBossActive = false;
+            _activeWaveCoroutine = null;
+            StopBossTimer();
+            if (_waveLoopCoroutine != null)
             {
-                _spawnedMonsterCount--;
-                UpdateMonsterCountUI();
+                StopCoroutine(_waveLoopCoroutine);
+                _waveLoopCoroutine = null;
             }
+
+            Debug.LogError("[BattleWaveExecutor] " + reason);
+        }
+
+        private bool CanSpawnInLane(LaneType lane)
+        {
+            if (_matchState != MatchState.RUNNING) return false;
+
+            return lane switch
+            {
+                LaneType.Player1Lane => _player1BattleState == PlayerBattleState.ACTIVE,
+                LaneType.Player2Lane => _player2BattleState == PlayerBattleState.ACTIVE,
+                _ => false
+            };
+        }
+
+        private void EliminatePlayer(LaneType lane)
+        {
+            if (lane == LaneType.Player1Lane)
+            {
+                if (_player1BattleState != PlayerBattleState.ACTIVE) return;
+                _player1BattleState = PlayerBattleState.ELIMINATED;
+                OnPlayerBattleStateChanged?.Invoke(lane, _player1BattleState);
+            }
+            else if (lane == LaneType.Player2Lane)
+            {
+                if (_player2BattleState != PlayerBattleState.ACTIVE) return;
+                _player2BattleState = PlayerBattleState.ELIMINATED;
+                OnPlayerBattleStateChanged?.Invoke(lane, _player2BattleState);
+            }
+            else
+            {
+                return;
+            }
+
+            OnPlayerMonsterLimitReached?.Invoke(lane);
+            Debug.Log($"[BattleWaveExecutor] Player {lane} reached monster limit. Spawn suspended for this lane.");
+
+            if (AreAllPlayersEliminated)
+            {
+                ReportAllPlayersEliminated();
+                TryTransitionMatchState(MatchState.FAILED);
+            }
+        }
+
+        private void ReportAllPlayersEliminated()
+        {
+            if (_allPlayersEliminatedReported) return;
+
+            _allPlayersEliminatedReported = true;
+            OnAllPlayersEliminated?.Invoke();
+            Debug.Log("[BattleWaveExecutor] All players eliminated. Halting wave execution.");
+        }
+
+        private bool TryTransitionMatchState(MatchState nextState)
+        {
+            if (_matchState != MatchState.RUNNING || nextState == MatchState.RUNNING)
+            {
+                return false;
+            }
+
+            _matchState = nextState;
+            _isWaveRunning = false;
+
+            if (_waveLoopCoroutine != null)
+            {
+                StopCoroutine(_waveLoopCoroutine);
+                _waveLoopCoroutine = null;
+            }
+
+            OnMatchStateChanged?.Invoke(_matchState);
+            return true;
+        }
+
+        private void StopSessionCoroutines()
+        {
+            if (_waveLoopCoroutine != null)
+            {
+                StopCoroutine(_waveLoopCoroutine);
+                _waveLoopCoroutine = null;
+            }
+
+            if (_activeWaveCoroutine != null)
+            {
+                StopCoroutine(_activeWaveCoroutine);
+                _activeWaveCoroutine = null;
+            }
+
+            StopBossTimer();
+            _isWaveRunning = false;
+            _isCurrentWaveBoss = false;
+            _regularWaveSpawnCompleted = false;
+            _regularWaveCompletionReported = false;
+        }
+
+        private void StopBossTimer()
+        {
+            if (_bossTimerCoroutine == null) return;
+
+            StopCoroutine(_bossTimerCoroutine);
+            _bossTimerCoroutine = null;
+        }
+
+        private void ReleaseCurrentBoss()
+        {
+            if (_currentBossInstance == null)
+            {
+                _currentBossInstance = null;
+                return;
+            }
+
+            if (Application.isPlaying)
+            {
+                Destroy(_currentBossInstance);
+            }
+            else
+            {
+                DestroyImmediate(_currentBossInstance);
+            }
+
+            _currentBossInstance = null;
+        }
+
+        private void RegisterMonsterSpawned(LaneType lane)
+        {
+            if (!CanSpawnInLane(lane)) return;
+
+            if (lane == LaneType.Player1Lane)
+            {
+                _player1AliveMonsterCount++;
+                OnPlayerMonsterCountChanged?.Invoke(lane, _player1AliveMonsterCount, _totalMonsterGoal);
+
+                if (_player1AliveMonsterCount >= _totalMonsterGoal)
+                {
+                    EliminatePlayer(lane);
+                }
+            }
+            else if (lane == LaneType.Player2Lane)
+            {
+                _player2AliveMonsterCount++;
+                OnPlayerMonsterCountChanged?.Invoke(lane, _player2AliveMonsterCount, _totalMonsterGoal);
+
+                if (_player2AliveMonsterCount >= _totalMonsterGoal)
+                {
+                    EliminatePlayer(lane);
+                }
+            }
+
+        }
+
+        public void RegisterMonsterKilled(LaneType lane)
+        {
+            if (lane == LaneType.BossSharedLane) return;
+
+            bool countChanged = false;
+            if (lane == LaneType.Player1Lane)
+            {
+                if (_player1AliveMonsterCount > 0)
+                {
+                    _player1AliveMonsterCount--;
+                    countChanged = true;
+                    OnPlayerMonsterCountChanged?.Invoke(lane, _player1AliveMonsterCount, _totalMonsterGoal);
+                }
+            }
+            else if (lane == LaneType.Player2Lane)
+            {
+                if (_player2AliveMonsterCount > 0)
+                {
+                    _player2AliveMonsterCount--;
+                    countChanged = true;
+                    OnPlayerMonsterCountChanged?.Invoke(lane, _player2AliveMonsterCount, _totalMonsterGoal);
+                }
+            }
+
+            if (countChanged) TryCompleteRegularWave();
+        }
+
+        public void InitializeSession()
+        {
+            StopSessionCoroutines();
+            ReleaseCurrentBoss();
+            _currentRound = 0;
+            _isWaveRunning = false;
+            _isBossActive = false;
+            _bossState = BossStatusState.None;
+            _isCurrentWaveBoss = false;
+            _regularWaveSpawnCompleted = false;
+            _regularWaveCompletionReported = false;
+            _player1AliveMonsterCount = 0;
+            _player2AliveMonsterCount = 0;
+            _player1BattleState = PlayerBattleState.ACTIVE;
+            _player2BattleState = PlayerBattleState.ACTIVE;
+            _matchState = MatchState.RUNNING;
+            _isFaulted = _balanceInitializationAttempted
+                && (_battleBalanceProvider == null
+                    || !_battleBalanceProvider.IsValid
+                    || _battleBalanceProvider.Catalog == null
+                    || _monsterDefinitionProvider == null
+                    || _monsterPrefabResolver == null);
+            _isGameOverLogged = false;
+            _allPlayersEliminatedReported = false;
+            _currentWaveSpec = null;
+            _currentWaveSpawns = Array.AsReadOnly(Array.Empty<WaveSpawnSpecData>());
+            _catalogExhausted = false;
+            _catalogExhaustedReported = false;
+            _activeBossTimeLimitSeconds = 0f;
+            PublishSessionState();
+            Debug.Log("[BattleWaveExecutor] Battle session initialized.");
+        }
+
+        private void PublishSessionState()
+        {
+            OnRoundChanged?.Invoke(_currentRound);
+            OnPlayerMonsterCountChanged?.Invoke(LaneType.Player1Lane, _player1AliveMonsterCount, _totalMonsterGoal);
+            OnPlayerMonsterCountChanged?.Invoke(LaneType.Player2Lane, _player2AliveMonsterCount, _totalMonsterGoal);
+            OnPlayerBattleStateChanged?.Invoke(LaneType.Player1Lane, _player1BattleState);
+            OnPlayerBattleStateChanged?.Invoke(LaneType.Player2Lane, _player2BattleState);
+            OnMatchStateChanged?.Invoke(_matchState);
         }
 
         private void Start()
         {
-            UpdateMonsterCountUI();
+            InitializeSession();
+
+            if (!EnsureBalanceInitialized())
+            {
+                return;
+            }
 
             if (_autoStartOnPlay)
             {
@@ -160,7 +513,7 @@ namespace MyDefense.Battle
                     Debug.Log("[BattleWaveExecutor] GameManager.IsGameOver detected. Halting operations.");
                     _isGameOverLogged = true;
                 }
-                _isWaveRunning = false;
+                TryTransitionMatchState(MatchState.FAILED);
                 return true;
             }
             return false;
@@ -171,196 +524,502 @@ namespace MyDefense.Battle
             while (true)
             {
                 if (CheckGameOverState()) yield break;
+                if (_matchState != MatchState.RUNNING) yield break;
                 if (_isFaulted) yield break;
-                if (_bossState == BossStatusState.TimedOut) yield break;
 
                 while (_isWaveRunning || _isBossActive)
                 {
+                    if (_matchState != MatchState.RUNNING) yield break;
                     yield return new WaitForSeconds(0.5f);
                 }
 
                 if (CheckGameOverState()) yield break;
+                if (_matchState != MatchState.RUNNING) yield break;
                 if (_isFaulted) yield break;
-                if (_bossState == BossStatusState.TimedOut) yield break;
 
                 StartNextWave();
+
+                if (_catalogExhausted || _isFaulted) yield break;
 
                 yield return new WaitForSeconds(0.5f);
 
                 while (_isWaveRunning || _isBossActive)
                 {
-                    if (_bossState == BossStatusState.TimedOut) yield break;
+                    if (_matchState != MatchState.RUNNING) yield break;
                     yield return new WaitForSeconds(0.5f);
                 }
 
                 if (CheckGameOverState()) yield break;
+                if (_matchState != MatchState.RUNNING) yield break;
                 if (_isFaulted) yield break;
-                if (_bossState == BossStatusState.TimedOut) yield break;
 
-                yield return new WaitForSeconds(_interWaveDelay);
+                float nextWaveDelay = _currentWaveSpec != null
+                    ? _currentWaveSpec.NextWaveDelaySeconds
+                    : 0f;
+                if (nextWaveDelay > 0f)
+                    yield return new WaitForSeconds(nextWaveDelay);
+                else
+                    yield return null;
             }
         }
 
         [ContextMenu("Start Next Wave")]
         public void StartNextWave()
         {
-            if (CheckGameOverState()) return;
+            if (!EnsureBalanceInitialized()) return;
+            if (!TryBeginNextWave()) return;
+
+            if (_isCurrentWaveBoss)
+            {
+                _activeWaveCoroutine = StartCoroutine(SpawnBossRoutine());
+            }
+            else
+            {
+                _activeWaveCoroutine = StartCoroutine(SpawnRegularWaveRoutine());
+            }
+        }
+
+        private bool TryBeginNextWave()
+        {
+            if (!EnsureBalanceInitialized()) return false;
+            if (_matchState != MatchState.RUNNING) return false;
+            if (CheckGameOverState()) return false;
+
+            if (AreAllPlayersEliminated)
+            {
+                ReportAllPlayersEliminated();
+                TryTransitionMatchState(MatchState.FAILED);
+                return false;
+            }
 
             if (_isBossActive)
             {
                 Debug.LogWarning("[BattleWaveExecutor] Cannot start next wave: Boss is active!");
-                return;
+                return false;
             }
 
             if (_isWaveRunning)
             {
                 Debug.LogWarning("[BattleWaveExecutor] Cannot start next wave: Wave is already running.");
-                return;
+                return false;
             }
 
-            _currentRound++;
-            _isWaveRunning = true;
+            if (HasAliveRegularMonsters())
+            {
+                Debug.LogWarning("[BattleWaveExecutor] Cannot start next wave: Regular monsters are still alive.");
+                return false;
+            }
+
+            WaveSpecData nextWave;
+            if (!_battleBalanceProvider.Catalog.Waves.TryGetNextEnabledWave(_currentRound, out nextWave))
+            {
+                ReportCatalogExhausted();
+                return false;
+            }
+
+            IReadOnlyList<WaveSpawnSpecData> spawns = _battleBalanceProvider.Catalog.Waves.GetSpawns(nextWave.WaveId);
+            if (spawns.Count == 0)
+            {
+                FaultExecution($"Wave '{nextWave.WaveId}' has no spawn rows.");
+                return false;
+            }
+
+            for (int index = 0; index < spawns.Count; index++)
+            {
+                WaveSpawnSpecData spawn = spawns[index];
+                if (!string.Equals(spawn.WaveId, nextWave.WaveId, StringComparison.Ordinal))
+                {
+                    FaultExecution(
+                        $"Wave '{nextWave.WaveId}' contains an unknown waveId spawn row '{spawn.WaveId}'.");
+                    return false;
+                }
+
+                bool policyMatches = nextWave.WaveType == WaveType.REGULAR
+                    ? spawn.LanePolicy == BattleLanePolicy.EACH_ACTIVE_PLAYER_LANE
+                    : spawn.LanePolicy == BattleLanePolicy.BOSS_SHARED;
+                if (!policyMatches)
+                {
+                    FaultExecution(
+                        $"Wave '{nextWave.WaveId}' has invalid lane policy '{spawn.LanePolicy}' "
+                        + $"for wave type '{nextWave.WaveType}'.");
+                    return false;
+                }
+            }
+
+            _currentWaveSpec = nextWave;
+            _currentWaveSpawns = spawns;
+            _currentRound = nextWave.RoundNumber;
+            BeginWaveExecution(nextWave.WaveType == WaveType.BOSS);
 
             OnRoundChanged?.Invoke(_currentRound);
 
-            Debug.Log($"[BattleWaveExecutor] Round {_currentRound} started!");
+            Debug.Log(
+                $"[BattleWaveExecutor] Round {_currentRound} ({nextWave.WaveType}) started from wave '{nextWave.WaveId}'.");
+            return true;
+        }
 
-            if (_currentRound % 10 == 0)
-            {
-                StartCoroutine(SpawnBossRoutine());
-            }
-            else
-            {
-                StartCoroutine(SpawnRegularWaveRoutine());
-            }
+        private void ReportCatalogExhausted()
+        {
+            _catalogExhausted = true;
+            _isWaveRunning = false;
+            if (_catalogExhaustedReported) return;
+
+            _catalogExhaustedReported = true;
+            Debug.Log($"[BattleWaveExecutor] Battle wave catalog exhausted after round {_currentRound}.");
+            OnCatalogExhausted?.Invoke();
+        }
+
+        private void BeginWaveExecution(bool isBossWave)
+        {
+            _isCurrentWaveBoss = isBossWave;
+            _regularWaveSpawnCompleted = false;
+            _regularWaveCompletionReported = false;
+            _isWaveRunning = true;
+        }
+
+        private bool HasAliveRegularMonsters()
+        {
+            return _player1AliveMonsterCount > 0 || _player2AliveMonsterCount > 0;
+        }
+
+        private void MarkRegularWaveSpawnCompleted()
+        {
+            _regularWaveSpawnCompleted = true;
+            _activeWaveCoroutine = null;
+            Debug.Log($"[BattleWaveExecutor] Round {_currentRound} regular wave spawn completed. Waiting for remaining monsters.");
+            TryCompleteRegularWave();
+        }
+
+        private bool TryCompleteRegularWave()
+        {
+            if (_matchState != MatchState.RUNNING) return false;
+            if (_isCurrentWaveBoss || _isBossActive) return false;
+            if (!_isWaveRunning || !_regularWaveSpawnCompleted) return false;
+            if (HasAliveRegularMonsters()) return false;
+            if (_regularWaveCompletionReported) return false;
+
+            _regularWaveCompletionReported = true;
+            _isWaveRunning = false;
+            Debug.Log($"[BattleWaveExecutor] Round {_currentRound} regular wave completed.");
+            OnRegularWaveCompleted?.Invoke(_currentRound);
+            return true;
         }
 
         private IEnumerator SpawnRegularWaveRoutine()
         {
-            bool testToggle = false;
-
-            for (int i = 0; i < _monstersPerWave; i++)
+            if (_currentWaveSpec == null || _currentWaveSpec.WaveType != WaveType.REGULAR)
             {
-                if (CheckGameOverState())
-                {
-                    _isWaveRunning = false;
-                    yield break;
-                }
-
-                if (_monsterPrefab == null || _spawnPoint == null)
-                {
-                    Debug.LogError("[BattleWaveExecutor] Aborting wave: prefab or spawnPoint is null!");
-                    _isFaulted = true;
-                    _isWaveRunning = false;
-                    yield break;
-                }
-
-                SpawnMonster(testToggle ? LaneType.Player1Lane : LaneType.Player2Lane, 5f, 1f);
-                testToggle = !testToggle;
-                yield return new WaitForSeconds(_spawnInterval);
+                FaultExecution("Regular wave routine started without a REGULAR WaveSpec.");
+                yield break;
             }
 
-            _isWaveRunning = false;
-            Debug.Log($"[BattleWaveExecutor] Round {_currentRound} regular wave spawn completed.");
+            for (int rowIndex = 0; rowIndex < _currentWaveSpawns.Count; rowIndex++)
+            {
+                WaveSpawnSpecData spawn = _currentWaveSpawns[rowIndex];
+                if (spawn.LanePolicy != BattleLanePolicy.EACH_ACTIVE_PLAYER_LANE)
+                {
+                    FaultExecution(
+                        $"Regular wave '{_currentWaveSpec.WaveId}' cannot execute lane policy '{spawn.LanePolicy}'.");
+                    yield break;
+                }
+
+                BattleMonsterDefinition definition;
+                if (!_monsterDefinitionProvider.TryGet(spawn.MonsterId, out definition))
+                {
+                    FaultExecution(
+                        $"Wave '{_currentWaveSpec.WaveId}' references unknown monsterId '{spawn.MonsterId}'.");
+                    yield break;
+                }
+
+                if (spawn.SpawnDelaySeconds > 0f)
+                    yield return new WaitForSeconds(spawn.SpawnDelaySeconds);
+
+                int player1Remaining = CanSpawnInLane(LaneType.Player1Lane) ? spawn.SpawnCount : 0;
+                int player2Remaining = CanSpawnInLane(LaneType.Player2Lane) ? spawn.SpawnCount : 0;
+                while (player1Remaining > 0 || player2Remaining > 0)
+                {
+                    if (!CanContinueWaveExecution()) yield break;
+
+                    if (player1Remaining > 0)
+                    {
+                        if (CanSpawnInLane(LaneType.Player1Lane))
+                        {
+                            if (!SpawnConfiguredMonster(LaneType.Player1Lane, definition, spawn, 1f, out _))
+                                yield break;
+                            player1Remaining--;
+                        }
+                        else
+                        {
+                            player1Remaining = 0;
+                        }
+                    }
+
+                    if (player2Remaining > 0)
+                    {
+                        if (CanSpawnInLane(LaneType.Player2Lane))
+                        {
+                            if (!SpawnConfiguredMonster(LaneType.Player2Lane, definition, spawn, 1f, out _))
+                                yield break;
+                            player2Remaining--;
+                        }
+                        else
+                        {
+                            player2Remaining = 0;
+                        }
+                    }
+
+                    if (player1Remaining > 0 || player2Remaining > 0)
+                    {
+                        if (spawn.SpawnIntervalSeconds > 0f)
+                            yield return new WaitForSeconds(spawn.SpawnIntervalSeconds);
+                        else
+                            yield return null;
+                    }
+                }
+            }
+
+            if (!_isFaulted) MarkRegularWaveSpawnCompleted();
         }
 
         private IEnumerator SpawnBossRoutine()
         {
-            _isBossActive = true;
-            _bossState = BossStatusState.Active;
-            Debug.Log($"[BattleWaveExecutor] Boss round {_currentRound} entered! Boss spawned!");
-
-            if (_monsterPrefab == null || _spawnPoint == null)
+            if (_currentWaveSpec == null || _currentWaveSpec.WaveType != WaveType.BOSS)
             {
-                Debug.LogError("[BattleWaveExecutor] Aborting boss spawn: prefab or spawnPoint is null!");
-                _isFaulted = true;
-                _isBossActive = false;
-                _isWaveRunning = false;
+                FaultExecution("Boss wave routine started without a BOSS WaveSpec.");
                 yield break;
             }
 
-            Vector3 finalSpawnPos = _spawnPoint.position;
-            _currentBossInstance = Instantiate(_monsterPrefab, finalSpawnPos, Quaternion.identity);
-
-            if (_currentBossInstance == null)
+            if (_currentWaveSpawns.Count != 1
+                || _currentWaveSpawns[0].LanePolicy != BattleLanePolicy.BOSS_SHARED
+                || _currentWaveSpawns[0].SpawnCount != 1)
             {
-                Debug.LogError("[BattleWaveExecutor] Boss instantiation failed!");
-                _isFaulted = true;
-                _isBossActive = false;
-                _isWaveRunning = false;
+                FaultExecution(
+                    $"Boss wave '{_currentWaveSpec.WaveId}' must contain exactly one BOSS_SHARED spawn.");
                 yield break;
             }
 
-            RegisterMonsterSpawned();
-
-            MonsterStat stat = _currentBossInstance.GetComponent<MonsterStat>();
-            if (stat != null)
+            WaveSpawnSpecData spawn = _currentWaveSpawns[0];
+            BattleMonsterDefinition definition;
+            if (!_monsterDefinitionProvider.TryGet(spawn.MonsterId, out definition))
             {
-                float baseMaxHp = stat.hp;
-                float regularMaxHp = baseMaxHp * (1f + (_currentRound - 1) * _healthGrowthPerRound);
-                float bossMaxHp = regularMaxHp * _bossHpMultiplier;
-                stat.InitializeHp(bossMaxHp);
+                FaultExecution(
+                    $"Boss wave '{_currentWaveSpec.WaveId}' references unknown monsterId '{spawn.MonsterId}'.");
+                yield break;
             }
 
-            MonsterMovement oldMove = _currentBossInstance.GetComponent<MonsterMovement>();
-            if (oldMove != null) oldMove.enabled = false;
+            if (spawn.SpawnDelaySeconds > 0f)
+                yield return new WaitForSeconds(spawn.SpawnDelaySeconds);
 
-            BattleMonsterMovement newMove = _currentBossInstance.GetComponent<BattleMonsterMovement>();
-            if (newMove == null) newMove = _currentBossInstance.AddComponent<BattleMonsterMovement>();
+            if (!CanContinueWaveExecution()) yield break;
 
-            newMove.Lane = LaneType.BossSharedLane;
-            newMove.Speed = _bossSpeed;
-            _currentBossInstance.transform.localScale = Vector3.one * 2.0f;
+            GameObject boss;
+            if (!SpawnConfiguredMonster(LaneType.BossSharedLane, definition, spawn, 2f, out boss))
+                yield break;
 
-            if (_bossTimerCoroutine != null) StopCoroutine(_bossTimerCoroutine);
+            ActivateBoss(boss);
+            _activeBossTimeLimitSeconds = _currentWaveSpec.BossTimeLimitSeconds;
+            Debug.Log(
+                $"[BattleWaveExecutor] Boss round {_currentRound} entered from wave '{_currentWaveSpec.WaveId}'.");
+
+            StopBossTimer();
             _bossTimerCoroutine = StartCoroutine(BossTimerRoutine());
-
             yield return null;
-            _isWaveRunning = false;
+            _activeWaveCoroutine = null;
+        }
+
+        private bool CanContinueWaveExecution()
+        {
+            if (_isFaulted || _matchState != MatchState.RUNNING)
+            {
+                _isWaveRunning = false;
+                _activeWaveCoroutine = null;
+                return false;
+            }
+
+            if (CheckGameOverState())
+            {
+                _isWaveRunning = false;
+                _activeWaveCoroutine = null;
+                return false;
+            }
+
+            return true;
+        }
+
+        private void ActivateBoss(GameObject bossInstance)
+        {
+            _currentBossInstance = bossInstance;
+            _isBossActive = bossInstance != null;
+            _bossState = _isBossActive ? BossStatusState.Active : BossStatusState.None;
         }
 
         private IEnumerator BossTimerRoutine()
         {
-            float timeLeft = _bossTimeLimit;
+            float timeLeft = _activeBossTimeLimitSeconds;
 
-            while (timeLeft > 0)
+            while (timeLeft > 0f)
             {
+                if (_bossState != BossStatusState.Active || _matchState != MatchState.RUNNING)
+                {
+                    _bossTimerCoroutine = null;
+                    yield break;
+                }
+
                 OnBossTimerTick?.Invoke(timeLeft);
                 yield return new WaitForSeconds(1.0f);
                 timeLeft -= 1.0f;
 
-                if (_bossState != BossStatusState.Active) yield break;
+                if (_currentBossInstance == null)
+                {
+                    _bossTimerCoroutine = null;
+                    HandleBossDefeated();
+                    yield break;
+                }
+            }
+
+            TryResolveBossTimeout();
+        }
+
+        private bool TryResolveBossTimeout()
+        {
+            if (_bossState != BossStatusState.Active || _matchState != MatchState.RUNNING)
+            {
+                _bossTimerCoroutine = null;
+                return false;
+            }
+
+            if (_currentBossInstance == null)
+            {
+                HandleBossDefeated();
+                return false;
+            }
+
+            _bossState = BossStatusState.TimedOut;
+            _isBossActive = false;
+            _bossTimerCoroutine = null;
+
+            if (!TryTransitionMatchState(MatchState.FAILED))
+            {
+                return false;
             }
 
             OnBossTimerTick?.Invoke(0f);
-            _bossState = BossStatusState.TimedOut;
-            Debug.LogError($"[BattleWaveExecutor] Boss limit {_bossTimeLimit}s exceeded! Wave loop halted.");
-
+            Debug.Log(
+                $"[BattleWaveExecutor] Boss limit {_activeBossTimeLimitSeconds}s exceeded. "
+                + "Match failed and wave loop halted.");
             OnBossTimeout?.Invoke();
+            return true;
         }
 
-        private void HandleBossDefeated()
+        private bool HandleBossDefeated()
         {
-            _isBossActive = false;
-            _bossState = BossStatusState.Defeated;
-
-            if (_bossTimerCoroutine != null)
+            if (_bossState != BossStatusState.Active)
             {
-                StopCoroutine(_bossTimerCoroutine);
-                _bossTimerCoroutine = null;
+                return false;
             }
+
+            _bossState = BossStatusState.Defeated;
+            _isBossActive = false;
+            _isWaveRunning = false;
+            _currentBossInstance = null;
+
+            StopBossTimer();
 
             Debug.Log("[BattleWaveExecutor] Boss defeated! Next round criteria cleared.");
             OnBossDefeated?.Invoke();
+            return true;
         }
 
-        private void SpawnMonster(LaneType lane, float speed, float scale)
+        private bool SpawnConfiguredMonster(
+            LaneType lane,
+            BattleMonsterDefinition definition,
+            WaveSpawnSpecData spawn,
+            float scale,
+            out GameObject spawnedInstance)
         {
+            spawnedInstance = null;
+            if (definition == null)
+            {
+                FaultExecution("Cannot spawn a null MonsterDefinition.");
+                return false;
+            }
+
+            if (_spawnPoint == null)
+            {
+                FaultExecution("Cannot spawn monster: the existing spawn point reference is missing.");
+                return false;
+            }
+
+            GameObject prefab;
+            if (_monsterPrefabResolver == null
+                || !_monsterPrefabResolver.TryResolve(definition.PrefabKey, out prefab)
+                || prefab == null)
+            {
+                FaultExecution(
+                    $"Cannot resolve prefabKey '{definition.PrefabKey}' for monsterId '{definition.MonsterId}'.");
+                return false;
+            }
+
+            int movementCount = prefab.GetComponents<BattleMonsterMovement>().Length;
+            if (movementCount != 1)
+            {
+                FaultExecution(
+                    $"Prefab '{prefab.name}' for monsterId '{definition.MonsterId}' must contain exactly one "
+                    + $"BattleMonsterMovement, but found {movementCount}.");
+                return false;
+            }
+
+            if (prefab.GetComponent<MonsterStat>() == null)
+            {
+                FaultExecution(
+                    $"Prefab '{prefab.name}' for monsterId '{definition.MonsterId}' must contain MonsterStat.");
+                return false;
+            }
+
+            spawnedInstance = Instantiate(prefab, _spawnPoint.position, Quaternion.identity);
+            if (spawnedInstance == null)
+            {
+                FaultExecution(
+                    $"Instantiation failed for monsterId '{definition.MonsterId}' and prefabKey '{definition.PrefabKey}'.");
+                return false;
+            }
+
+            float resolvedMoveSpeed = definition.MoveSpeed * spawn.MoveSpeedMultiplier;
+            if (!TryConfigureSpawnedMovement(spawnedInstance, lane, resolvedMoveSpeed))
+            {
+                spawnedInstance = null;
+                return false;
+            }
+
+            MonsterStat stat = spawnedInstance.GetComponent<MonsterStat>();
+            float resolvedMaxHp = definition.BaseMaxHp * spawn.HpMultiplier;
+            stat.InitializeHp(resolvedMaxHp);
+            stat.InitializeBattleContext(lane, definition.CountsTowardLaneLimit);
+            spawnedInstance.transform.localScale = Vector3.one * scale;
+
+            if (definition.CountsTowardLaneLimit)
+                RegisterMonsterSpawned(lane);
+
+            if (_isFaulted)
+            {
+                DestroySpawnedInstance(spawnedInstance);
+                spawnedInstance = null;
+                return false;
+            }
+
+            return true;
+        }
+
+        // Retained for existing reflection-based state tests. Production routines use
+        // SpawnConfiguredMonster and never read legacy growth/count/interval fields.
+        private bool SpawnMonster(LaneType lane, float speed, float scale)
+        {
+            if (!CanSpawnInLane(lane)) return false;
+
             if (_monsterPrefab == null || _spawnPoint == null)
             {
-                Debug.LogError("[BattleWaveExecutor] SpawnMonster failed: prefab or spawnPoint is null!");
-                _isFaulted = true;
-                return;
+                FaultExecution("SpawnMonster failed: prefab or spawnPoint is null.");
+                return false;
             }
 
             Vector3 finalSpawnPos = _spawnPoint.position;
@@ -368,29 +1027,54 @@ namespace MyDefense.Battle
 
             if (go == null)
             {
-                Debug.LogError("[BattleWaveExecutor] Monster instantiation failed!");
-                _isFaulted = true;
-                return;
+                FaultExecution("Monster instantiation failed.");
+                return false;
             }
 
-            RegisterMonsterSpawned();
+            if (!TryConfigureSpawnedMovement(go, lane, speed)) return false;
 
-            MonsterMovement oldMove = go.GetComponent<MonsterMovement>();
-            if (oldMove != null) oldMove.enabled = false;
-
-            BattleMonsterMovement newMove = go.GetComponent<BattleMonsterMovement>();
-            if (newMove == null) newMove = go.AddComponent<BattleMonsterMovement>();
-
-            newMove.Lane = lane;
-            newMove.Speed = speed;
             go.transform.localScale = Vector3.one * scale;
 
             MonsterStat stat = go.GetComponent<MonsterStat>();
             if (stat != null)
             {
-                float baseMaxHp = stat.hp;
-                float scaledMaxHp = baseMaxHp * (1f + (_currentRound - 1) * _healthGrowthPerRound);
-                stat.InitializeHp(scaledMaxHp);
+                stat.InitializeHp(stat.hp);
+                stat.InitializeBattleContext(lane, true);
+            }
+
+            RegisterMonsterSpawned(lane);
+            return true;
+        }
+
+        private bool TryConfigureSpawnedMovement(GameObject instance, LaneType lane, float speed)
+        {
+            BattleMonsterMovement[] movements = instance.GetComponents<BattleMonsterMovement>();
+            if (movements.Length != 1)
+            {
+                string error =
+                    $"Spawned instance '{instance.name}' must contain exactly one BattleMonsterMovement, "
+                    + $"but found {movements.Length}. Spawn rejected.";
+                DestroySpawnedInstance(instance);
+                FaultExecution(error);
+                return false;
+            }
+
+            movements[0].Lane = lane;
+            movements[0].Speed = speed;
+            return true;
+        }
+
+        private void DestroySpawnedInstance(GameObject instance)
+        {
+            if (instance == null) return;
+
+            if (Application.isPlaying)
+            {
+                Destroy(instance);
+            }
+            else
+            {
+                DestroyImmediate(instance);
             }
         }
     }
