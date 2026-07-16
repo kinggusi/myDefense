@@ -26,7 +26,13 @@ class BattleBalanceRegistryIntegrationTest {
         assertThat(monsters.getById("NORMAL_MONSTER").baseHp()).isEqualByComparingTo("30.00");
         assertThat(monsters.getAll()).hasSize(3);
         assertThat(waves.getWave("COOP_STANDARD", 10).isBossWave()).isTrue();
+        assertThat(waves.getSpawns("WAVE_10_BOSS")).singleElement().satisfies(spawn -> {
+            assertThat(spawn.lanePolicy()).isEqualTo("BOSS_SHARED");
+            assertThat(spawn.spawnCountPerField()).isEqualTo(1);
+            assertThat(spawn.monsterId()).isEqualTo("WAVE_BOSS");
+        });
         assertThat(waves.getSpawns("WAVE_05")).hasSize(2)
+                .allSatisfy(spawn -> assertThat(spawn.lanePolicy()).isEqualTo("EACH_FIELD"))
                 .extracting(spawn -> spawn.order()).containsExactly(1, 2);
 
         assertThat(rules.getFieldLimit("COOP_STANDARD").maxAliveMonsterCountPerField()).isEqualTo(100);

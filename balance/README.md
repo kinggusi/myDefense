@@ -32,7 +32,7 @@ cd server
 
 - `MonsterSpec`: Monster ID, 타입, 기본 HP, 이동 속도, 처치 Gold
 - `WaveSpec`: 모드별 Wave 순서, HP 배율, 간격, Boss 여부와 Spawn Group
-- `WaveSpawn`: Spawn Group별 Monster 구성과 필드별 Spawn 수
+- `WaveSpawn`: Spawn Group별 Monster 구성, 수량과 `EACH_FIELD`/`BOSS_SHARED` Lane 정책
 - `FieldLimitBalance`: 필드별 생존 Monster 한도와 UI 경고 구간
 - `SummonBalance`: Kidnap 비용 증가 및 결과 Pool 식별자
 - `MergeRule`: 등급별 Merge 재료 수와 결과 방식
@@ -47,7 +47,7 @@ cd server
 
 - Monster: Normal HP 30/속도 5/Gold 20, Elite HP 60/속도 4/Gold 40, Wave Boss HP 300/속도 2/Gold 200
 - Wave: 10 Wave, Wave당 HP 배율 +0.10, Wave 간격 3초, 10 Wave Boss, Boss 제한 30초
-- Spawn: 기본 필드당 10마리, 5·8 Wave는 Normal 8 + Elite 2, Boss는 필드당 1마리
+- Spawn: 기본 필드당 10마리, 5·8 Wave는 Normal 8 + Elite 2, Boss는 팀 공용 Lane에 1마리
 - Field limit: 최대 100, warning 80, danger 90, 플레이어 2명
 - Kidnap: 기본 50 Gold, 성공당 +10, `maxUses=-1`은 무제한
 - MYTHIC 선택: 후보 3, 무료 Reroll 1, 유료 Reroll 1, 비용 100, 제한 8초, 시간 초과 시 첫 후보
@@ -58,7 +58,11 @@ cd server
 - 한 플레이어만 `ELIMINATED`이면 Match는 `RUNNING`을 유지하고, 모든 플레이어가 `ELIMINATED`일 때 최종 `FAILED`
 - 필드별 생존 Monster 수는 독립적으로 관리하며 두 필드 수를 합산하지 않음
 - Wave Clear: 모든 Spawn 완료 **AND** 해당 Wave 생존 Monster 수가 0
-- 모든 Spawn은 `lanePolicy=EACH_FIELD`
+- 일반 Wave는 `lanePolicy=EACH_FIELD`이며 ACTIVE 플레이어의 개인 필드마다 Spawn하고 탈락 플레이어 필드에는 신규 Spawn하지 않음
+- `EACH_FIELD`에서 `spawnCountPerField`는 각 개인 필드에 생성할 수량
+- Boss Wave는 `lanePolicy=BOSS_SHARED`이며 플레이어 수와 무관하게 팀 공용 Boss Lane에 정확히 1마리만 Spawn
+- `BOSS_SHARED`에서 `spawnCountPerField`는 공용 Lane의 총 수량이며 현재 반드시 `1`
+- 공용 Boss는 두 플레이어가 모두 공격할 수 있고, 처치 및 제한 시간 초과 결과 처리는 Battle Runtime 책임
 - 같은 등급이면서 같은 `alienId`인 Alien 두 개만 Merge 가능하며 `sameSpeciesRequired=true`
 - NORMAL→EPIC→UNIQUE→LEGEND는 다음 등급 전체 Pool에서 무작위
 - LEGEND Merge는 즉시 결과를 만들지 않고 `MYTHIC_CHOICE` transaction을 시작

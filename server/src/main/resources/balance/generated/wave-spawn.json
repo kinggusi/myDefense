@@ -106,7 +106,7 @@
       "spawnCountPerField" : 1,
       "startDelaySeconds" : 0.00,
       "spawnIntervalSeconds" : 1.00,
-      "lanePolicy" : "EACH_FIELD"
+      "lanePolicy" : "BOSS_SHARED"
     }
   ]
 }

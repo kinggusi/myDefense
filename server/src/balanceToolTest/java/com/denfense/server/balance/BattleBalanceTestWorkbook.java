@@ -26,7 +26,7 @@ final class BattleBalanceTestWorkbook {
                 new String[]{"spawnGroupId", "order", "monsterId", "spawnCountPerField", "startDelaySeconds", "spawnIntervalSeconds", "lanePolicy"},
                 new Object[][]{
                         {"WAVE_01", 1, "NORMAL_MONSTER", 10, 0, 1, "EACH_FIELD"},
-                        {"WAVE_02_BOSS", 1, "WAVE_BOSS", 1, 0, 1, "EACH_FIELD"}
+                        {"WAVE_02_BOSS", 1, "WAVE_BOSS", 1, 0, 1, "BOSS_SHARED"}
                 });
         addRows(workbook, "FieldLimitBalance",
                 new String[]{"modeId", "playerCount", "maxAliveMonsterCountPerField", "warningThreshold", "dangerThreshold"},
