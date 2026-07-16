@@ -10,16 +10,7 @@ public class CreateExcelTemplate {
     public static void main(String[] args) throws Exception {
         Workbook workbook = new XSSFWorkbook();
         
-        // 1. Config
-        Sheet config = workbook.createSheet("Config");
-        Row h1 = config.createRow(0);
-        h1.createCell(0).setCellValue("key");
-        h1.createCell(1).setCellValue("value");
-        Row r1 = config.createRow(1);
-        r1.createCell(0).setCellValue("maxLevel");
-        r1.createCell(1).setCellValue(50);
-        
-        // 2. GameReward
+        // 1. GameReward
         Sheet reward = workbook.createSheet("GameReward");
         Row h2 = reward.createRow(0);
         h2.createCell(0).setCellValue("baseRewardGold");
@@ -30,7 +21,7 @@ public class CreateExcelTemplate {
         r2.createCell(1).setCellValue(10);
         r2.createCell(2).setCellValue(1000);
         
-        // 3. AlienUpgradeCost
+        // 2. AlienUpgradeCost
         Sheet upgrade = workbook.createSheet("AlienUpgradeCost");
         Row h3 = upgrade.createRow(0);
         h3.createCell(0).setCellValue("currentLevel");

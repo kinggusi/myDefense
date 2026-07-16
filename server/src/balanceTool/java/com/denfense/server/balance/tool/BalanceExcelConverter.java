@@ -1,10 +1,8 @@
 package com.denfense.server.balance.tool;
 
 import com.denfense.server.service.balance.BalanceDataValidator;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collections;
 
 public class BalanceExcelConverter {
 
@@ -64,6 +62,11 @@ public class BalanceExcelConverter {
                 throw e;
             }
 
+            Path generatedDirectory = requireSharedGeneratedDirectory(
+                    rewardPath, upgradeCostPath, levelStatPath, specPath, shopPath, poolPath);
+            BalanceManifestGenerator manifestGenerator = new BalanceManifestGenerator();
+            manifestGenerator.generate(generatedDirectory);
+
             System.out.println("Conversion successful.");
             System.out.println("Reward JSON: " + rewardPath.toAbsolutePath());
             System.out.println("Upgrade cost JSON: " + upgradeCostPath.toAbsolutePath());
@@ -71,11 +74,22 @@ public class BalanceExcelConverter {
             System.out.println("Spec JSON: " + specPath.toAbsolutePath());
             System.out.println("Shop JSON: " + shopPath.toAbsolutePath());
             System.out.println("Pool JSON: " + poolPath.toAbsolutePath());
+            System.out.println("Manifest JSON: " + generatedDirectory.resolve("balance-manifest.json").toAbsolutePath());
 
         } catch (Exception e) {
             System.err.println("Conversion failed:");
             e.printStackTrace();
             System.exit(1);
         }
+    }
+
+    private static Path requireSharedGeneratedDirectory(Path... paths) {
+        Path directory = paths[0].toAbsolutePath().normalize().getParent();
+        for (Path path : paths) {
+            if (!directory.equals(path.toAbsolutePath().normalize().getParent())) {
+                throw new IllegalArgumentException("All generated balance JSON files must share one directory.");
+            }
+        }
+        return directory;
     }
 }

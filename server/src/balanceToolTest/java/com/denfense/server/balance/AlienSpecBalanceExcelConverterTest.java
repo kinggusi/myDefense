@@ -42,14 +42,6 @@ public class AlienSpecBalanceExcelConverterTest {
     }
 
     private void createBaseSheets() {
-        Sheet config = workbook.createSheet("Config");
-        Row headerConfig = config.createRow(0);
-        headerConfig.createCell(0).setCellValue("key");
-        headerConfig.createCell(1).setCellValue("value");
-        Row rowConfig = config.createRow(1);
-        rowConfig.createCell(0).setCellValue("maxLevel");
-        rowConfig.createCell(1).setCellValue(3);
-
         Sheet reward = workbook.createSheet("GameReward");
         Row headerReward = reward.createRow(0);
         headerReward.createCell(0).setCellValue("baseRewardGold");

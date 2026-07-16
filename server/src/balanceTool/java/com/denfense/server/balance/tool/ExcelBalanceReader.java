@@ -58,51 +58,6 @@ public class ExcelBalanceReader {
         }
     }
 
-    private int readConfigSheet(Workbook workbook) {
-        Sheet sheet = getSheetOrThrow(workbook, "Config");
-        
-        // Config header check
-        Row headerRow = sheet.getRow(0);
-        if (headerRow == null) {
-            throw new BalanceConversionException("[Config] 헤더가 없습니다.");
-        }
-        
-        List<String> headers = readHeaders(sheet.getSheetName(), headerRow, Arrays.asList("key", "value"));
-        
-        int keyIndex = headers.indexOf("key");
-        int valueIndex = headers.indexOf("value");
-        
-        Integer maxLevel = null;
-        Set<String> seenKeys = new HashSet<>();
-        
-        for (int i = 1; i <= sheet.getLastRowNum(); i++) {
-            Row row = sheet.getRow(i);
-            if (row == null) continue;
-            
-            Cell keyCell = row.getCell(keyIndex);
-            if (keyCell == null || keyCell.getCellType() == CellType.BLANK) continue; // 빈 행 무시(Key가 없으면)? 아니면 빈 셀 거부? "빈 셀 즉시 실패"
-            
-            String key = readStringCell(sheet.getSheetName(), i, "key", keyCell);
-            if (!seenKeys.add(key)) {
-                throw new BalanceConversionException(String.format("[%s] %d행 'key' 열: %s - 중복된 키입니다.", sheet.getSheetName(), i + 1, key));
-            }
-            
-            Cell valueCell = row.getCell(valueIndex);
-            
-            if ("maxLevel".equals(key)) {
-                maxLevel = readIntCell(sheet.getSheetName(), i, "value", valueCell);
-            } else {
-                throw new BalanceConversionException(String.format("[%s] %d행 'key' 열: %s - 알 수 없는 키입니다.", sheet.getSheetName(), i + 1, key));
-            }
-        }
-        
-        if (maxLevel == null) {
-            throw new BalanceConversionException("[Config] 필수 키 'maxLevel'이 누락되었습니다.");
-        }
-        
-        return maxLevel;
-    }
-
     private GameRewardBalance readGameRewardSheet(Workbook workbook) {
         Sheet sheet = getSheetOrThrow(workbook, "GameReward");
         
@@ -152,49 +107,6 @@ public class ExcelBalanceReader {
         }
         
         return reward;
-    }
-
-    private List<AlienUpgradeCostBalance> readAlienUpgradeSheet(Workbook workbook, int maxLevel) {
-        Sheet sheet = getSheetOrThrow(workbook, "AlienUpgrade");
-        
-        Row headerRow = sheet.getRow(0);
-        if (headerRow == null) {
-            throw new BalanceConversionException("[AlienUpgrade] 헤더가 없습니다.");
-        }
-        
-        List<String> expectedHeaders = Arrays.asList("currentLevel", "requiredPieces", "requiredGold", "requiredGrowthCell");
-        List<String> headers = readHeaders(sheet.getSheetName(), headerRow, expectedHeaders);
-        
-        int levelIndex = headers.indexOf("currentLevel");
-        int piecesIndex = headers.indexOf("requiredPieces");
-        int goldIndex = headers.indexOf("requiredGold");
-        int cellIndex = headers.indexOf("requiredGrowthCell");
-        
-        List<AlienUpgradeCostBalance> costs = new ArrayList<>();
-        
-        for (int i = 1; i <= sheet.getLastRowNum(); i++) {
-            Row row = sheet.getRow(i);
-            if (row == null) continue;
-            
-            boolean hasData = false;
-            for (int col = 0; col < headers.size(); col++) {
-                Cell cell = row.getCell(col);
-                if (cell != null && cell.getCellType() != CellType.BLANK) {
-                    hasData = true;
-                    break;
-                }
-            }
-            if (!hasData) continue;
-            
-            int clvl = readIntCell(sheet.getSheetName(), i, "currentLevel", row.getCell(levelIndex));
-            int pieces = readIntCell(sheet.getSheetName(), i, "requiredPieces", row.getCell(piecesIndex));
-            int gold = readIntCell(sheet.getSheetName(), i, "requiredGold", row.getCell(goldIndex));
-            int gcell = readIntCell(sheet.getSheetName(), i, "requiredGrowthCell", row.getCell(cellIndex));
-            
-            costs.add(new AlienUpgradeCostBalance(clvl, clvl + 1, pieces, gold, gcell));
-        }
-        
-        return costs;
     }
 
     private List<AlienUpgradeCostBalance> readAlienUpgradeCostSheet(Workbook workbook) {

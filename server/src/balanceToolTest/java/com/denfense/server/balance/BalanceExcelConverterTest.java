@@ -42,14 +42,6 @@ class BalanceExcelConverterTest {
     }
 
     private void createValidWorkbook() {
-        Sheet config = workbook.createSheet("Config");
-        Row headerConfig = config.createRow(0);
-        headerConfig.createCell(0).setCellValue("key");
-        headerConfig.createCell(1).setCellValue("value");
-        Row rowConfig = config.createRow(1);
-        rowConfig.createCell(0).setCellValue("maxLevel");
-        rowConfig.createCell(1).setCellValue(3);
-
         Sheet reward = workbook.createSheet("GameReward");
         Row headerReward = reward.createRow(0);
         headerReward.createCell(0).setCellValue("baseRewardGold");
@@ -300,10 +292,10 @@ class BalanceExcelConverterTest {
     }
 
     @Test
-    @DisplayName("4. AlienUpgrade 시트 없음")
+    @DisplayName("4. AlienUpgradeCost 시트 없음")
     void missingSheet() throws IOException {
         createValidWorkbook();
-        workbook.removeSheetAt(2); // Remove AlienUpgrade
+        workbook.removeSheetAt(workbook.getSheetIndex("AlienUpgradeCost"));
         saveAndClose();
 
         ExcelBalanceReader reader = new ExcelBalanceReader(tempExcel.getAbsolutePath());
@@ -363,7 +355,7 @@ class BalanceExcelConverterTest {
     @DisplayName("18. 병합 셀 거부")
     void mergedRegion() throws IOException {
         createValidWorkbook();
-        workbook.getSheet("Config").addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 0, 0, 1));
+        workbook.getSheet("GameReward").addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 0, 0, 1));
         saveAndClose();
 
         ExcelBalanceReader reader = new ExcelBalanceReader(tempExcel.getAbsolutePath());

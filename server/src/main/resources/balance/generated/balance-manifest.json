@@ -1,0 +1,30 @@
+{
+  "schemaVersion" : 1,
+  "balanceVersion" : "1-20e530afb079c3c0",
+  "contentHash" : "20e530afb079c3c0a5c317d3f933170cb37064a628145da4e10447dc97b66d0f",
+  "files" : [ {
+    "name" : "alien-level-stat.json",
+    "sha256" : "62d5880e09c6b780e2c4894d6e357b13337fdcf1982d30b6738bf82190f209f6",
+    "size" : 7194
+  }, {
+    "name" : "alien-spec.json",
+    "sha256" : "76d7ed0322a7bb38e8216a4d6b6332fcd8f245ec699534da00c5894cb0f6acc4",
+    "size" : 13904
+  }, {
+    "name" : "alien-upgrade-cost.json",
+    "sha256" : "2cd5377e7cb18fd67089ceedb19c23fe0673f6b568cc66c689441666c73720b3",
+    "size" : 6956
+  }, {
+    "name" : "gacha-pools.json",
+    "sha256" : "489a87c0a1c4f14748e77ae63a21ea99b833344d3bbe1310d4684e13eef51916",
+    "size" : 1235
+  }, {
+    "name" : "game-reward.json",
+    "sha256" : "fd50622b132fed2316df84407a743e14f231592e7516f059192b31f3ecdb88e6",
+    "size" : 77
+  }, {
+    "name" : "shop-products.json",
+    "sha256" : "2a17d5f64c3c443de189b0f2c62c4efd4a6e29d429bd0a64047e0fa37ce92cd1",
+    "size" : 505
+  } ]
+}
