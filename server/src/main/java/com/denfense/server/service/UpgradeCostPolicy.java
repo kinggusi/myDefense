@@ -1,9 +1,7 @@
 package com.denfense.server.service;
 
-import com.denfense.server.exception.BusinessException;
-import com.denfense.server.exception.ErrorCode;
 import com.denfense.server.service.balance.AlienUpgradeCostBalance;
-import com.denfense.server.service.balance.BalanceRegistry;
+import com.denfense.server.service.balance.AlienUpgradeBalanceRegistry;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -11,11 +9,11 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class UpgradeCostPolicy {
     
-    private final BalanceRegistry registry;
+    private final AlienUpgradeBalanceRegistry registry;
     
     // 호환성을 위해 Registry의 최대 레벨 반환
     public int getMaxLevel() {
-        return registry.getMaxAlienLevel();
+        return registry.getMaxLevel();
     }
     
     public UpgradeCost calculate(int currentLevel) {

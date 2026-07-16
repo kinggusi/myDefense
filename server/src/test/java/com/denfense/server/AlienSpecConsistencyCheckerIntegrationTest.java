@@ -44,7 +44,7 @@ public class AlienSpecConsistencyCheckerIntegrationTest {
         // DataInit already populated the DB and checker ran during context start
         // We will just verify the current DB state vs registry
         long count = alienSpecRepository.count();
-        assertThat(count).isEqualTo(32);
+        assertThat(count).isEqualTo(48);
 
         // Run checker explicitly with FAIL to ensure everything matches
         properties.setConsistencyMode(AlienSpecConsistencyMode.FAIL);

@@ -15,8 +15,8 @@ import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.util.Collections;
-import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 public class BalanceJsonWriter {
 
@@ -71,6 +71,56 @@ public class BalanceJsonWriter {
             }
         } catch (IOException e) {
             throw new BalanceConversionException("파일 교체 중 오류 발생: " + targetPath, e);
+        }
+    }
+
+    public void replaceFilesAtomically(Map<Path, Path> stagedToTarget) {
+        Map<Path, Path> backups = new LinkedHashMap<>();
+        java.util.List<Path> installed = new java.util.ArrayList<>();
+        try {
+            for (Path target : stagedToTarget.values()) {
+                Files.createDirectories(target.getParent());
+                if (Files.exists(target)) {
+                    Path backup = Files.createTempFile(target.getParent(), target.getFileName() + ".", ".backup");
+                    Files.move(target, backup, StandardCopyOption.REPLACE_EXISTING);
+                    backups.put(target, backup);
+                }
+            }
+            for (Map.Entry<Path, Path> entry : stagedToTarget.entrySet()) {
+                moveReplacing(entry.getKey(), entry.getValue());
+                installed.add(entry.getValue());
+            }
+        } catch (Exception failure) {
+            for (Path target : installed) {
+                try {
+                    Files.deleteIfExists(target);
+                } catch (IOException rollbackFailure) {
+                    failure.addSuppressed(rollbackFailure);
+                }
+            }
+            for (Map.Entry<Path, Path> backup : backups.entrySet()) {
+                try {
+                    moveReplacing(backup.getValue(), backup.getKey());
+                } catch (IOException rollbackFailure) {
+                    failure.addSuppressed(rollbackFailure);
+                }
+            }
+            throw new BalanceConversionException("Generated balance files could not be replaced atomically.", failure);
+        } finally {
+            for (Path backup : backups.values()) {
+                try {
+                    Files.deleteIfExists(backup);
+                } catch (IOException ignored) {
+                }
+            }
+        }
+    }
+
+    private void moveReplacing(Path source, Path target) throws IOException {
+        try {
+            Files.move(source, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+        } catch (AtomicMoveNotSupportedException e) {
+            Files.move(source, target, StandardCopyOption.REPLACE_EXISTING);
         }
     }
 }

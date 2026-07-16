@@ -1,0 +1,11 @@
+{
+  "fieldLimits" : [
+    {
+      "modeId" : "COOP_STANDARD",
+      "playerCount" : 2,
+      "maxAliveMonsterCountPerField" : 100,
+      "warningThreshold" : 80,
+      "dangerThreshold" : 90
+    }
+  ]
+}

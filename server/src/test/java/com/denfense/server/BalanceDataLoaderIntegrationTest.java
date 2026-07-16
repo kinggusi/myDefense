@@ -42,7 +42,7 @@ class BalanceDataLoaderIntegrationTest {
         GameRewardBalance rewardBalance = registry.getGameRewardBalance();
         assertThat(rewardBalance.baseRewardGold()).isEqualTo(100);
         
-        assertThat(registry.getMaxAlienLevel()).isEqualTo(50);
+        assertThat(upgradeCostPolicy.getMaxLevel()).isEqualTo(50);
         
         // 2. MvpGameRewardPolicy 연동 확인
         GameReward reward = rewardPolicy.calculate(new GameRewardContext(1)); // clearedWave=1
@@ -57,7 +57,7 @@ class BalanceDataLoaderIntegrationTest {
         UpgradeCost cost10 = upgradeCostPolicy.calculate(10);
         assertThat(cost10.getRequiredPieces()).isEqualTo(50);
         assertThat(cost10.getRequiredGold()).isEqualTo(1000);
-        assertThat(cost10.getRequiredGrowthCell()).isEqualTo(2);
+        assertThat(cost10.getRequiredGrowthCell()).isEqualTo(10);
     }
 
     @Test

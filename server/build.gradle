@@ -81,12 +81,21 @@ task convertBalance(type: JavaExec) {
 
     def excelPath = project.hasProperty('excelPath') ? project.property('excelPath') : "${project.projectDir}/../balance/source/balance-data.xlsx"
     def rewardPath = project.hasProperty('rewardPath') ? project.property('rewardPath') : "${project.projectDir}/src/main/resources/balance/generated/game-reward.json"
-    def upgradePath = project.hasProperty('upgradePath') ? project.property('upgradePath') : "${project.projectDir}/src/main/resources/balance/generated/alien-upgrade.json"
+    def upgradePath = project.hasProperty('upgradePath') ? project.property('upgradePath') : "${project.projectDir}/src/main/resources/balance/generated/alien-upgrade-cost.json"
+    def levelStatPath = project.hasProperty('levelStatPath') ? project.property('levelStatPath') : "${project.projectDir}/src/main/resources/balance/generated/alien-level-stat.json"
     def specPath = project.hasProperty('specPath') ? project.property('specPath') : "${project.projectDir}/src/main/resources/balance/generated/alien-spec.json"
     def shopPath = project.hasProperty('shopPath') ? project.property('shopPath') : "${project.projectDir}/src/main/resources/balance/generated/shop-products.json"
     def poolPath = project.hasProperty('poolPath') ? project.property('poolPath') : "${project.projectDir}/src/main/resources/balance/generated/gacha-pools.json"
+    def monsterPath = project.hasProperty('monsterPath') ? project.property('monsterPath') : "${project.projectDir}/src/main/resources/balance/generated/monster-spec.json"
+    def wavePath = project.hasProperty('wavePath') ? project.property('wavePath') : "${project.projectDir}/src/main/resources/balance/generated/wave-spec.json"
+    def waveSpawnPath = project.hasProperty('waveSpawnPath') ? project.property('waveSpawnPath') : "${project.projectDir}/src/main/resources/balance/generated/wave-spawn.json"
+    def fieldLimitPath = project.hasProperty('fieldLimitPath') ? project.property('fieldLimitPath') : "${project.projectDir}/src/main/resources/balance/generated/field-limit.json"
+    def summonPath = project.hasProperty('summonPath') ? project.property('summonPath') : "${project.projectDir}/src/main/resources/balance/generated/summon-balance.json"
+    def mergeRulePath = project.hasProperty('mergeRulePath') ? project.property('mergeRulePath') : "${project.projectDir}/src/main/resources/balance/generated/merge-rules.json"
+    def mythicChoicePath = project.hasProperty('mythicChoicePath') ? project.property('mythicChoicePath') : "${project.projectDir}/src/main/resources/balance/generated/mythic-choice-balance.json"
 
-    args = [excelPath, rewardPath, upgradePath, specPath, shopPath, poolPath]
+    args = [excelPath, rewardPath, upgradePath, levelStatPath, specPath, shopPath, poolPath,
+            monsterPath, wavePath, waveSpawnPath, fieldLimitPath, summonPath, mergeRulePath, mythicChoicePath]
 }
 
 task balanceToolTest(type: Test) {
