@@ -172,21 +172,21 @@ public class AlienSpecBalanceExcelConverterTest {
     }
 
     @Test
-    @DisplayName("1. 정상 AlienSpec 32건 변환 및 2. alienId 오름차순 검증")
-    void valid32Specs() throws IOException {
+    @DisplayName("1. 정상 AlienSpec 48건 변환 및 2. alienId 오름차순 검증")
+    void valid48Specs() throws IOException {
         createBaseSheets();
         Sheet spec = createAlienSpecSheet();
-        for (int i = 1; i <= 32; i++) {
+        for (int i = 1; i <= 48; i++) {
             addSpecRow(spec, i, i, "Name" + i, "Desc" + i, "NORMAL", 10, 10, 1.0, 1.0, null, false);
         }
         
         ExcelBalanceReader.BalanceData data = readData();
         List<AlienSpecBalance> specs = data.alienSpecs();
-        assertThat(specs).hasSize(32);
+        assertThat(specs).hasSize(48);
         
         validator.validateAlienSpec(specs);
         
-        for (int i = 0; i < 32; i++) {
+        for (int i = 0; i < 48; i++) {
             assertThat(specs.get(i).alienId()).isEqualTo(i + 1);
         }
     }

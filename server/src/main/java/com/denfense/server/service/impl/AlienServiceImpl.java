@@ -38,9 +38,6 @@ public class AlienServiceImpl implements AlienService {
         User user = userRepository.findByUsernameForUpdate(username)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
         AlienSpec spec = findSpec(alienId);
-        if (spec.isLocked()) {
-            throw new BusinessException(ErrorCode.ALIEN_SPEC_LOCKED);
-        }
         UserAlien userAlien = userAlienRepository.findByUserAndAlienSpecForUpdate(user, spec)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_ALIEN_NOT_FOUND));
 
@@ -58,7 +55,7 @@ public class AlienServiceImpl implements AlienService {
         user.spendGrowthCell(usedCost.getRequiredGrowthCell());
         userAlien.upgradeAlien(usedPieces);
 
-        UpgradeAvailability next = availability(user, spec, userAlien);
+        UpgradeAvailability next = availability(user, userAlien);
         AlienCurrentStat currentStat = alienStatCalculator.calculate(spec, userAlien.getLevel());
 
         return AlienUpgradeResponseDto.builder()
@@ -97,7 +94,7 @@ public class AlienServiceImpl implements AlienService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
         AlienSpec spec = findSpec(alienId);
         UserAlien userAlien = userAlienRepository.findByUserAndAlienSpec(user, spec).orElse(null);
-        UpgradeAvailability availability = availability(user, spec, userAlien);
+        UpgradeAvailability availability = availability(user, userAlien);
         AlienCurrentStat currentStat = userAlien == null ? null : alienStatCalculator.calculate(spec, userAlien.getLevel());
 
         return AlienUpgradeStatusResponseDto.builder()
@@ -135,7 +132,7 @@ public class AlienServiceImpl implements AlienService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.ALIEN_SPEC_NOT_FOUND));
     }
 
-    private UpgradeAvailability availability(User user, AlienSpec spec, UserAlien userAlien) {
+    private UpgradeAvailability availability(User user, UserAlien userAlien) {
         int maxLevel = upgradeCostPolicy.getMaxLevel();
         if (userAlien == null) {
             return UpgradeAvailability.blocked(AlienUpgradeBlockReason.NOT_OWNED, false);
@@ -147,9 +144,7 @@ public class AlienServiceImpl implements AlienService {
         UpgradeCost cost = upgradeCostPolicy.calculate(userAlien.getLevel());
         int requiredUniversalPiece = Math.max(0, cost.getRequiredPieces() - userAlien.getPieces());
         AlienUpgradeBlockReason reason = AlienUpgradeBlockReason.NONE;
-        if (spec.isLocked()) {
-            reason = AlienUpgradeBlockReason.SPEC_LOCKED;
-        } else if ((long) userAlien.getPieces() + user.getUniversalPiece() < cost.getRequiredPieces()) {
+        if ((long) userAlien.getPieces() + user.getUniversalPiece() < cost.getRequiredPieces()) {
             reason = AlienUpgradeBlockReason.INSUFFICIENT_PIECES;
         } else if (user.getGold() < cost.getRequiredGold()) {
             reason = AlienUpgradeBlockReason.INSUFFICIENT_GOLD;

@@ -46,6 +46,9 @@ cd server
 - `description`: 빈 셀 입력 시 빈 문자열(`""`)로 저장됩니다.
 - `evolutionTargetId`: 빈 셀 입력 시 `null`로 저장되며, 존재하지 않는 대상이나 순환 참조 입력 시 실패합니다.
 - `isLocked`: 반드시 Excel `BOOLEAN` 셀(`TRUE`/`FALSE`) 타입이어야 합니다 (문자열 금지).
+- MYTHIC 5~20(ID 33~48)은 출시 예정 컬렉션 표시용 placeholder이며, 기존 MYTHIC과 동일한 임시 Base Stat을 사용합니다.
+- `isLocked`는 출시 상태를 나타내는 정보성 필드입니다. 소유 Alien의 강화 또는 사용 가능 여부를 차단하는 정책에는 사용하지 않습니다.
+- 현재 GachaPool에는 출시된 MYTHIC 1~4(ID 29~32)만 포함하며, MYTHIC 5~20은 출시 준비 후 순차 추가합니다.
 
 ### ShopProduct 시트
 - 필수 헤더: `productId`, `name`, `currencyType`, `price`, `drawCount`, `gachaPoolId`, `active`

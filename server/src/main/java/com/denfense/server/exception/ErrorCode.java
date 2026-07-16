@@ -24,7 +24,6 @@ public enum ErrorCode {
     PURCHASE_REQUEST_CONFLICT(HttpStatus.CONFLICT, "동일한 구매 요청 ID를 다른 상품에 사용할 수 없습니다."),
     PURCHASE_ALREADY_PROCESSING(HttpStatus.CONFLICT, "이미 처리 중인 구매 요청입니다."),
     ALIEN_SPEC_NOT_FOUND(HttpStatus.NOT_FOUND, "추첨된 Alien 정보를 찾을 수 없습니다."),
-    ALIEN_SPEC_LOCKED(HttpStatus.CONFLICT, "잠금 상태인 Alien은 강화할 수 없습니다."),
     PURCHASE_RESPONSE_RESTORE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "저장된 가챠 구매 응답을 복원하지 못했습니다."),
     USER_ALIEN_NOT_FOUND(HttpStatus.NOT_FOUND, "보유하지 않은 왹져입니다."),
     MAX_ALIEN_LEVEL_REACHED(HttpStatus.CONFLICT, "왹져가 최대 레벨에 도달했습니다."),

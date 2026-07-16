@@ -77,7 +77,7 @@ class AlienUpgradeStatusApiIntegrationTest {
     }
 
     @Test
-    void returnsNotOwnedAndSpecLockedStates() throws Exception {
+    void lockedMetadataDoesNotBlockOwnedUpgradeStatus() throws Exception {
         mockMvc.perform(get("/api/aliens/101/upgrade-status").param("username", user.getUsername()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.owned").value(false))
@@ -92,7 +92,9 @@ class AlienUpgradeStatusApiIntegrationTest {
         mockMvc.perform(get("/api/aliens/101/upgrade-status").param("username", user.getUsername()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.owned").value(true))
-                .andExpect(jsonPath("$.cannotUpgradeReason").value("SPEC_LOCKED"));
+                .andExpect(jsonPath("$.specLocked").value(true))
+                .andExpect(jsonPath("$.canUpgrade").value(true))
+                .andExpect(jsonPath("$.cannotUpgradeReason").value("NONE"));
     }
 
     @Test
@@ -180,24 +182,18 @@ class AlienUpgradeStatusApiIntegrationTest {
     }
 
     @Test
-    void lockedUpgradeAndMissingSpecReturnStableErrorsWithoutMutation() throws Exception {
+    void lockedMetadataAllowsUpgradeAndMissingSpecReturnsStableError() throws Exception {
         UserAlien lockedOwned = new UserAlien(user, lockedSpec);
         lockedOwned.setPieces(100);
         lockedOwned = userAlienRepository.save(lockedOwned);
-        int beforeGold = user.getGold();
-        int beforeUniversalPiece = user.getUniversalPiece();
-        int beforeGrowthCell = user.getGrowthCell();
-
         mockMvc.perform(post("/api/aliens/101/upgrade").param("username", user.getUsername()))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.code").value("ALIEN_SPEC_LOCKED"));
-        UserAlien unchanged = userAlienRepository.findById(lockedOwned.getId()).orElseThrow();
-        assertThat(unchanged.getLevel()).isEqualTo(1);
-        assertThat(unchanged.getPieces()).isEqualTo(100);
-        User unchangedUser = userRepository.findById(user.getId()).orElseThrow();
-        assertThat(unchangedUser.getGold()).isEqualTo(beforeGold);
-        assertThat(unchangedUser.getUniversalPiece()).isEqualTo(beforeUniversalPiece);
-        assertThat(unchangedUser.getGrowthCell()).isEqualTo(beforeGrowthCell);
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.afterLevel").value(2))
+                .andExpect(jsonPath("$.usedPieces").value(5))
+                .andExpect(jsonPath("$.cannotUpgradeReason").value("NONE"));
+        UserAlien upgraded = userAlienRepository.findById(lockedOwned.getId()).orElseThrow();
+        assertThat(upgraded.getLevel()).isEqualTo(2);
+        assertThat(upgraded.getPieces()).isEqualTo(95);
 
         mockMvc.perform(post("/api/aliens/999/upgrade").param("username", user.getUsername()))
                 .andExpect(status().isNotFound())

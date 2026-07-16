@@ -65,17 +65,17 @@ public class AlienSpecJsonSeedIntegrationTest {
     }
 
     // =========================================================
-    // 1. 빈 DB → 32건, ID 1~32, 모든 필드 JSON과 일치
+    // 1. 빈 DB → 48건, ID 1~48, 모든 필드 JSON과 일치
     // =========================================================
     @Test
-    @DisplayName("빈 DB에서 Seed → 32건 삽입, 전체 필드 JSON 일치")
-    void emptyDb_seedInserts32_allFieldsMatch() {
+    @DisplayName("빈 DB에서 Seed → 48건 삽입, 전체 필드 JSON 일치")
+    void emptyDb_seedInserts48_allFieldsMatch() {
         // 기동 시 이미 Seed가 실행됨 (seed-enabled=true)
         List<AlienSpec> all = alienSpecRepository.findAll();
-        assertThat(all).hasSize(32);
+        assertThat(all).hasSize(48);
 
         List<AlienSpecBalance> jsonSpecs = balanceRegistry.getAllAlienSpecs();
-        assertThat(jsonSpecs).hasSize(32);
+        assertThat(jsonSpecs).hasSize(48);
 
         Map<Long, AlienSpec> dbMap = all.stream()
                 .collect(Collectors.toMap(AlienSpec::getId, s -> s));
@@ -102,12 +102,12 @@ public class AlienSpecJsonSeedIntegrationTest {
     @DisplayName("부분 DB에서 Seed → 누락분만 INSERT, 기존 행 값 유지")
     @Transactional
     void partialDb_seedOnlyMissing() {
-        // 기동 시 32건 들어감, ID 1을 삭제 후 재 seed
+        // 기동 시 48건 들어감, ID 1을 삭제 후 재 seed
         alienSpecRepository.deleteById(1L);
         entityManager.flush();
         entityManager.clear();
 
-        assertThat(alienSpecRepository.count()).isEqualTo(31);
+        assertThat(alienSpecRepository.count()).isEqualTo(47);
 
         // 기존 ID 2의 값을 기록
         AlienSpec before2 = alienSpecRepository.findById(2L).orElseThrow();
@@ -119,8 +119,8 @@ public class AlienSpecJsonSeedIntegrationTest {
         entityManager.clear();
 
         assertThat(result.insertedCount()).isEqualTo(1);
-        assertThat(result.skippedCount()).isEqualTo(31);
-        assertThat(alienSpecRepository.count()).isEqualTo(32);
+        assertThat(result.skippedCount()).isEqualTo(47);
+        assertThat(alienSpecRepository.count()).isEqualTo(48);
 
         // 기존 ID 2 값 유지
         AlienSpec after2 = alienSpecRepository.findById(2L).orElseThrow();
@@ -134,7 +134,7 @@ public class AlienSpecJsonSeedIntegrationTest {
     @DisplayName("기존 값 불일치 → Seed 후에도 기존 값 그대로, Checker FAIL 감지")
     @Transactional
     void existingMismatch_seedDoesNotUpdate_checkerDetects() {
-        // 기동 시 32건 들어감, ID 1의 baseAtk를 수동 변경
+        // 기동 시 48건 들어감, ID 1의 baseAtk를 수동 변경
         AlienSpec spec1 = alienSpecRepository.findById(1L).orElseThrow();
         spec1.setBaseAtk(9999);
         entityManager.flush();
@@ -166,12 +166,12 @@ public class AlienSpecJsonSeedIntegrationTest {
     void doubleSeed_secondInsertZero() {
         // 기동 시 이미 1회 Seed됨
         long countBefore = alienSpecRepository.count();
-        assertThat(countBefore).isEqualTo(32);
+        assertThat(countBefore).isEqualTo(48);
 
         AlienSpecSeedResult result = seedService.seed();
 
         assertThat(result.insertedCount()).isZero();
-        assertThat(result.skippedCount()).isEqualTo(32);
+        assertThat(result.skippedCount()).isEqualTo(48);
         assertThat(alienSpecRepository.count()).isEqualTo(countBefore);
 
         // 모든 필드 동일한지 확인
@@ -222,7 +222,7 @@ public class AlienSpecJsonSeedIntegrationTest {
         assertThat(found99.getBaseAtk()).isEqualTo(777);
         assertThat(found99.getBaseMp()).isEqualTo(888);
 
-        // row count 변화 없음 (이미 32 + 1 = 33건)
+        // row count 변화 없음 (이미 48 + 1 = 49건)
         assertThat(alienSpecRepository.count()).isEqualTo(countBefore);
     }
 
@@ -233,7 +233,7 @@ public class AlienSpecJsonSeedIntegrationTest {
     @DisplayName("EntityManager 직접 테스트: persist/flush가 중복 PK를 UPDATE하지 않고 예외 처리함을 검증")
     @Transactional
     void duplicatePk_exceptionOnFlush() {
-        // Seed가 이미 ID 1~32를 삽입함 (다른 트랜잭션에서 커밋됨)
+        // Seed가 이미 ID 1~48을 삽입함 (다른 트랜잭션에서 커밋됨)
         assertThat(alienSpecRepository.existsById(1L)).isTrue();
 
         // 동일 ID로 새 엔티티 persist 시도 → INSERT 충돌
@@ -252,7 +252,7 @@ public class AlienSpecJsonSeedIntegrationTest {
     // 7. DataInit 유지 → MonsterSpec 15건, User 1건
     // =========================================================
     @Test
-    @DisplayName("DataInit 유지 → MonsterSpec 15건, User 1건, AlienSpec 32건은 Seed 결과")
+    @DisplayName("DataInit 유지 → MonsterSpec 15건, User 1건, AlienSpec 48건은 Seed 결과")
     void dataInitKept_monsterAndUser() {
         List<MonsterSpec> monsters = monsterSpecRepository.findAll();
         assertThat(monsters).hasSize(15);
@@ -262,7 +262,7 @@ public class AlienSpecJsonSeedIntegrationTest {
         assertThat(users.get(0).getGold()).isEqualTo(100000);
         assertThat(users.get(0).getDiamond()).isEqualTo(1000000);
 
-        assertThat(alienSpecRepository.count()).isEqualTo(32);
+        assertThat(alienSpecRepository.count()).isEqualTo(48);
     }
 
     // =========================================================
@@ -273,8 +273,8 @@ public class AlienSpecJsonSeedIntegrationTest {
     void executionOrder_verifiedByAnnotation() throws Exception {
         // 서버 기동 시 이미 순서대로 실행됨
         // Runner/DataInit의 @Order 값으로 순서 보장
-        // 결과적으로 32건 AlienSpec + 15건 MonsterSpec + 1건 User가 존재
-        assertThat(alienSpecRepository.count()).isEqualTo(32);
+        // 결과적으로 48건 AlienSpec + 15건 MonsterSpec + 1건 User가 존재
+        assertThat(alienSpecRepository.count()).isEqualTo(48);
         assertThat(monsterSpecRepository.count()).isEqualTo(15);
         assertThat(userRepository.count()).isEqualTo(1);
     }
@@ -285,11 +285,10 @@ public class AlienSpecJsonSeedIntegrationTest {
     @Test
     @DisplayName("빈 DB 기동 후 Seed + Checker → 정상 일치 통과")
     void seedThenChecker_passes() throws Exception {
-        // 기동 시 Seed(32건) + Checker(일치) 모두 완료
+        // 기동 시 Seed(48건) + Checker(일치) 모두 완료
         // FAIL 모드에서 명시적 재실행하여 검증
         properties.setConsistencyMode(AlienSpecConsistencyMode.FAIL);
         checker.run(); // 예외 없으면 통과
     }
 
 }
-

@@ -282,6 +282,7 @@ class BalanceExcelConverterTest {
             .findFirst().orElseThrow();
         assertThat(mythicEntry.weight()).isEqualTo(50);
         assertThat(mythicEntry.alienIds()).containsExactly(29L, 30L, 31L, 32L);
+        assertThat(mythicEntry.alienIds()).noneMatch(id -> id >= 33 && id <= 48);
     }
 
     private void assertStat(

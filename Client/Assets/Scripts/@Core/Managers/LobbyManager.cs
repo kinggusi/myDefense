@@ -1,6 +1,10 @@
 using UnityEngine;
 using TMPro;
+using System;
 using System.Collections.Generic;
+using System.Linq;
+using AlienUpgrade.Core;
+using UnityEngine.UI;
 
 public class LobbyManager : MonoBehaviour
 {
@@ -23,6 +27,10 @@ public class LobbyManager : MonoBehaviour
     [Header("내 유닛 목록 UI")]
     public Transform unitGridContent; // 카드가 생성될 부모 (Grid_Content)
     public GameObject unitCardPrefab; // 만들어둔 Level_Block 프리팹
+    [Header("Alien 상세 화면")]
+    public AlienDetailController alienDetailController;
+
+
 
     void Start()
     {
@@ -43,7 +51,7 @@ public class LobbyManager : MonoBehaviour
     }
 
     // 서버에서 데이터를 가져오는 핵심 함수
-    public void LoadLobbyData() 
+    public void LoadLobbyData(Action<bool> onCompleted = null)
     {
         Debug.Log("서버에 유저 정보를 요청합니다...");
 
@@ -63,9 +71,11 @@ public class LobbyManager : MonoBehaviour
                 SpawnMyUnits(data.aliens);
 
                 Debug.Log($"{data.user.username}님 로비 로드 성공!");
+                onCompleted?.Invoke(true);
             }, 
             (error) => {
                 Debug.LogError("서버 연결 실패: " + error);
+                onCompleted?.Invoke(false);
             }
         );
     }
@@ -87,26 +97,122 @@ public class LobbyManager : MonoBehaviour
     }
 
     // 서버에서 받은 리스트만큼 카드 생성
-    void SpawnMyUnits(List<AlienInventoryDto> aliens)
+void SpawnMyUnits(List<AlienInventoryDto> aliens)
     {
-        // 1. 기존 카드 청소
-        foreach (Transform child in unitGridContent) Destroy(child.gameObject);
-
-        // 2. 서버 데이터만큼 반복 생성
-        foreach (var alien in aliens)
+        foreach (Transform child in unitGridContent)
         {
-            // 프리팹 복사본 생성 (Instantiate)
-            GameObject card = Instantiate(unitCardPrefab, unitGridContent);
-            
-            // 생성된 카드의 '뇌(UnitCardUI)'를 가져옵니다. (GetComponent)
-            UnitCardUI cardScript = card.GetComponent<UnitCardUI>();
-            
-            if (cardScript != null)
+            Destroy(child.gameObject);
+        }
+
+        if (aliens == null)
+        {
+            return;
+        }
+
+        Dictionary<long, AlienInventoryDto> aliensById = aliens.ToDictionary(alien => alien.id);
+        AlienCollectionItem[] collectionItems = aliens.Select(alien => new AlienCollectionItem
+        {
+            AlienId = alien.id,
+            Grade = alien.grade,
+            Level = alien.level,
+            Pieces = alien.pieces,
+            Owned = alien.owned
+        }).ToArray();
+
+        IReadOnlyList<long> ownedAlienIds = AlienCollectionOrdering.OwnedAlienIds(collectionItems);
+        foreach (long alienId in ownedAlienIds)
+        {
+            CreateUnitCard(aliensById[alienId]);
+        }
+
+        IReadOnlyList<long> lockedMythicIds = AlienCollectionOrdering.LockedMythicAlienIds(collectionItems);
+        if (lockedMythicIds.Count == 0)
+        {
+            return;
+        }
+
+        CreateLockedMythicSectionHeader(ownedAlienIds.Count);
+        foreach (long alienId in lockedMythicIds)
+        {
+            CreateUnitCard(aliensById[alienId]);
+        }
+    }
+
+    private void CreateUnitCard(AlienInventoryDto alien)
+    {
+        GameObject card = Instantiate(unitCardPrefab, unitGridContent);
+        card.name = "UnitCard_" + alien.id;
+        UnitCardUI cardScript = card.GetComponent<UnitCardUI>();
+
+        if (cardScript != null)
+        {
+            cardScript.SetData(alien, alienId =>
             {
-                // 서버에서 온 데이터(alien)를 뇌에 전달! 
-                // 뇌가 알아서 UI 텍스트들을 바꿉니다.
-                cardScript.SetData(alien);
+                if (alienDetailController != null)
+                {
+                    alienDetailController.Open(alienId);
+                }
+            });
+        }
+    }
+
+    private void CreateLockedMythicSectionHeader(int precedingCardCount)
+    {
+        GridLayoutGroup grid = unitGridContent.GetComponent<GridLayoutGroup>();
+        int columnCount = CalculateGridColumnCount(grid);
+        int remainder = precedingCardCount % columnCount;
+        if (remainder != 0)
+        {
+            for (int i = remainder; i < columnCount; i++)
+            {
+                CreateGridSpacer("SectionRowSpacer");
             }
         }
+
+        int titleColumn = columnCount / 2;
+        for (int column = 0; column < columnCount; column++)
+        {
+            if (column == titleColumn)
+            {
+                CreateSectionTitle();
+            }
+            else
+            {
+                CreateGridSpacer("SectionTitleSpacer");
+            }
+        }
+    }
+
+    private int CalculateGridColumnCount(GridLayoutGroup grid)
+    {
+        if (grid == null || !(unitGridContent is RectTransform contentRect))
+        {
+            return 1;
+        }
+
+        float availableWidth = contentRect.rect.width - grid.padding.horizontal;
+        float cellAndSpacing = grid.cellSize.x + grid.spacing.x;
+        return Mathf.Max(1, Mathf.FloorToInt((availableWidth + grid.spacing.x) / cellAndSpacing));
+    }
+
+    private void CreateSectionTitle()
+    {
+        GameObject titleObject = new GameObject("LockedMythicSectionTitle", typeof(RectTransform), typeof(Text));
+        titleObject.transform.SetParent(unitGridContent, false);
+
+        Text title = titleObject.GetComponent<Text>();
+        title.text = "미해금 신화";
+        title.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        title.fontSize = 34;
+        title.fontStyle = FontStyle.Bold;
+        title.alignment = TextAnchor.MiddleCenter;
+        title.color = Color.white;
+        title.raycastTarget = false;
+    }
+
+    private void CreateGridSpacer(string objectName)
+    {
+        GameObject spacer = new GameObject(objectName, typeof(RectTransform));
+        spacer.transform.SetParent(unitGridContent, false);
     }
 }
