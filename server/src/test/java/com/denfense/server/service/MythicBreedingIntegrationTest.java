@@ -25,8 +25,10 @@ class MythicBreedingIntegrationTest {
     @Autowired AlienSpecRepository specs;
     @Autowired MythicBreedingSlotRepository slots;
     @Autowired MythicBreedingParentRepository parents;
+    @Autowired BattlePlayerSettlementRepository battlePlayers;
+    @Autowired BattleSettlementRepository battles;
 
-    @BeforeEach void clean() { parents.deleteAll(); slots.deleteAll(); aliens.deleteAll(); users.deleteAll(); }
+    @BeforeEach void clean() { battlePlayers.deleteAllInBatch(); battles.deleteAllInBatch(); parents.deleteAllInBatch(); slots.deleteAllInBatch(); aliens.deleteAllInBatch(); users.deleteAllInBatch(); }
 
     @Test void initializesUnlocksAndUnlockRetryDoesNotChargeTwice() {
         User u=user("breed-unlock",1000); MythicBreedingDtos.SlotsResponse initial=service.slots(u.getUsername());
