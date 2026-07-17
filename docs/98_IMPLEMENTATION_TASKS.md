@@ -40,7 +40,7 @@ Task를 선택한 뒤 사용자에게 다음 네 가지만 짧게 보고한다.
 
 #### 3. 계획 보고서 단계
 
-별도 구현 Thread 또는 Subagent에 먼저 계획 보고서만 요청한다. 이 단계에서는 파일을 수정하지 않는다.
+PM Codex가 별도 구현 Thread 또는 Subagent를 생성하고 먼저 계획 보고서만 요청한다. 사용자는 구현 Subagent를 직접 만들거나 보고서를 옮기지 않는다. 이 단계에서는 파일을 수정하지 않는다.
 
 계획 보고서 필수 항목:
 
@@ -79,23 +79,56 @@ PM 검토를 통과한 뒤에만 같은 구현 Thread에 구현을 지시한다.
 5. 미해결 경고와 위험
 6. 후속 Task 또는 Shared 요청
 
-#### 6. PM 결과 검토와 수정 반복
+Unity Scene, Prefab, UI 또는 상호작용을 변경하는 Task는 추가로 다음을 보고한다.
 
-PM Codex는 보고서만 믿지 않고 실제 Diff와 관련 코드를 확인한다. 문제가 있으면 같은 구현 Thread에 수정 지시를 보내고 아래 순환을 반복한다.
+1. Unity MCP 호출 가능 여부와 연결된 프로젝트
+2. 사용한 Task 전용 테스트 Scene 또는 자동 테스트
+3. Feature Test Hub 등록 여부
+4. Missing Script/Reference 확인 결과
+5. 테스트 Scene의 Production Build 제외 여부
+
+#### 6. 독립 리뷰 단계
+
+구현 Thread는 자기 구현을 최종 승인할 수 없다. PM Codex는 구현 완료 후 별도의 읽기 전용 리뷰 Thread 또는 Subagent를 생성한다.
+
+독립 리뷰 필수 항목:
+
+1. 실제 Diff와 Task 범위 일치 여부
+2. 도메인 소유권과 Shared 경계
+3. 정책 및 네트워크 권한 위반
+4. 테스트 누락과 회귀 위험
+5. Unity Scene/Prefab 안전, Missing Reference, Build 포함 여부
+6. `PASS`, `WARNING`, `FAIL` 판정과 필수 수정 사항
+
+독립 리뷰 Subagent는 파일을 수정하지 않는다. 수정은 원래 구현 Subagent만 수행한다.
+
+#### 7. PM 결과 검토와 수정 반복
+
+PM Codex는 구현 및 독립 리뷰 보고서만 믿지 않고 실제 Diff와 관련 코드를 확인한다. 문제가 있으면 같은 구현 Thread에 수정 지시를 보내고 아래 순환을 반복한다.
 
 ```text
-계획 보고서 → PM 검토 → 구현 → 결과 보고서 → PM 코드 검토
-     ↑                                      ↓
-     └──────────── 수정 필요 시 재지시 ────────┘
+계획 보고서 → PM 검토 → 구현 → 자체 테스트 → 독립 리뷰 → PM 코드 검토
+     ↑                                                    ↓
+     └──────────────── 수정 필요 시 재지시 ─────────────────┘
 ```
 
-검토 통과 후에만 Task 상태를 `부분 완료` 또는 `완료`로 갱신한다. 커밋과 Push는 `AGENTS.md`에 따라 사용자의 명시적 승인 후 수행한다.
+#### 8. Unity 사람 검증 단계
 
-#### 7. Thread 도구가 없는 환경
+Unity UI, Scene, 입력, 연출 또는 2인 네트워크 상호작용 Task는 AI 검토 통과 후에도 바로 완료하지 않는다.
+
+1. PM Codex가 `docs/04_TEST_STRATEGY.md` 형식으로 검증 체크리스트를 만든다.
+2. Task 상태를 `검증 대기`로 변경한다.
+3. jjangash와 kinggusi가 Feature Test Hub 또는 지정 Scene에서 각각 테스트한다.
+4. 두 사람의 `PASS`가 기록돼야 `완료`로 변경한다.
+5. 한 명이라도 `FAIL`이면 원래 구현 Subagent에 수정 지시하고 독립 리뷰부터 반복한다.
+
+커밋과 Push는 `AGENTS.md`에 따라 사용자의 명시적 승인 후 수행한다. 다른 담당자의 사람 검증에 원격 브랜치가 필요하면 검증용 Push 승인을 먼저 받는다.
+
+#### 9. Thread 도구가 없는 환경
 
 별도 Thread를 만들거나 읽을 수 없는 Codex 환경에서는 동일한 절차를 유지하되, 다음 단계에 전달할 완성된 Prompt를 출력한다. 이 경우에만 사용자가 Prompt를 복사한다.
 
-#### 8. 사용자 단축 명령
+#### 10. 사용자 단축 명령
 
 | 사용자 명령 | Codex 동작 |
 |---|---|
@@ -115,6 +148,7 @@ PM Codex는 보고서만 믿지 않고 실제 Diff와 관련 코드를 확인한
 ### 상태 표기
 
 - `완료`: 현재 코드에 구현과 검증 기반이 존재한다.
+- `검증 대기`: AI 구현·독립 리뷰는 통과했으나 필수 사람 검증이 남았다.
 - `부분 완료`: 타입이나 로컬 기반은 있으나 Fusion 통합 또는 최종 정책 반영이 남았다.
 - `대기`: 본 구현이 필요하다.
 - `정책 선행`: 구현 전 정책 확정이 필요하다.
@@ -261,6 +295,20 @@ P0-1-1~4 → P0-1-5 → P0-1-6
 | P0-10-6 | jjangash | 부분 완료 | 기존 Settlement 서버의 검증·멱등 저장 완성 | P0-10-5 |
 | P0-10-7 | jjangash | 대기 | 이탈·관전·미복귀 보상 자격 판정 | P0-10-6 |
 
+### P0-11 Unity Feature Test Hub
+
+모든 기능을 하나의 거대한 Scene에 합치지 않는다. Task별 테스트 Scene은 격리하고, 중앙 Hub가 목록·실행·검증 기록을 연결한다. 상세 기준은 `docs/04_TEST_STRATEGY.md`를 따른다.
+
+| Task ID | 담당 | 상태 | Codex 작업 | 선행 |
+|---|---|---|---|---|
+| P0-11-1 | kinggusi | 대기 | 기존 1차 Scene·테스트 Scene·Editor 테스트를 조사하고 Task 연결 가능 여부 목록 작성 | 없음 |
+| P0-11-2 | jjangash | 대기 | Feature Test Case 메타데이터, Catalog, Task ID·담당·Scene 경로·체크리스트 계약 구현 | P0-11-1 |
+| P0-11-3 | kinggusi | 대기 | Unity MCP 또는 Editor API로 중앙 `FeatureTestHub` Scene과 격리 Scene 실행 UI 구현 | P0-11-2 |
+| P0-11-4 | kinggusi | 대기 | 기존 `TestGameScene`과 Battle 검증 Scene을 정리하고 Catalog에 등록 | P0-11-3 |
+| P0-11-5 | jjangash | 대기 | Catalog 경로·중복 Task ID·Missing Scene·Production Build 포함을 검사하는 Editor 테스트 구현 | P0-11-3 |
+| P0-11-6 | jjangash | 대기 | Fusion 2클라이언트 기능 검증 실행 절차와 테스트 데이터 초기화 방식 구현 | P0-2-4, P0-11-3 |
+| P0-11-7 | jjangash | 대기 | Hub에서 jjangash·kinggusi 공동 Smoke Test를 수행하고 검증 기록 확정 | P0-11-4~6 |
+
 ---
 
 ## 2. P1 — Mutation·강화·보상
@@ -352,6 +400,12 @@ P0-1-1~4 → P0-1-5 → P0-1-6
 4. jjangash: `P0-1-4`
 5. kinggusi: `P0-1-5`
 6. jjangash: `P0-1-6`
+
+### 상시 QA 기반 작업
+
+- kinggusi: `P0-11-1 → P0-11-4`
+- jjangash: `P0-11-2, P0-11-5 → P0-11-7`
+- `P0-11`은 제품 기능 구현을 대체하지 않으며, Scene/Prefab 편집과 충돌하지 않는 시점에 순차 진행한다.
 
 ### 2차: 첫 병렬 작업
 
@@ -471,7 +525,7 @@ Shared 변경이 필요하면:
 각 Task 완료 후 해당 행의 상태를 갱신한다.
 
 ```text
-대기 → 부분 완료 → 완료
+대기 → 부분 완료 → 검증 대기 → 완료
 ```
 
 완료로 변경할 조건:
@@ -480,6 +534,9 @@ Shared 변경이 필요하면:
 2. 관련 자동 테스트 성공
 3. Shared 변경이면 양쪽 컴파일 성공
 4. Unity 작업이면 Missing Script/Reference 확인
-5. 후속 Task가 사용할 공개 API 또는 인수인계 기록 작성
+5. 코드 변경은 독립 읽기 전용 리뷰에서 필수 수정 사항 없음
+6. Unity 기능이면 Task 전용 자동 테스트 또는 테스트 Scene과 Feature Test Hub 등록
+7. Unity UI·Scene·입력·연출·2인 상호작용이면 jjangash와 kinggusi 모두 PASS
+8. 후속 Task가 사용할 공개 API 또는 인수인계 기록 작성
 
 Task 상태만 바꾸는 커밋은 구현 커밋에 함께 포함할 수 있다.
