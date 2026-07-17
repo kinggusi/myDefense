@@ -473,6 +473,7 @@ GameObject:
   - component: {fileID: -5900148494275695505}
   - component: {fileID: 7362284352776375731}
   - component: {fileID: 4201090289808750039}
+  - component: {fileID: 9030318921090463371}
   m_Layer: 0
   m_Name: Monster
   m_TagString: Monster
@@ -621,6 +622,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MyDefense.Battle.BattleMonsterMovement
   _laneType: 0
   _speed: 5
+--- !u!114 &9030318921090463371
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7463564369751362190}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 34e6fde965d7aa544b120fff8abd029e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MyDefense.Battle.Runtime.BattleMonsterRuntimeContext
 --- !u!1 &8188314502259905187
 GameObject:
   m_ObjectHideFlags: 0

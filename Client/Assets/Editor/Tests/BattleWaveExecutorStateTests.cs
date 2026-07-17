@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Text.RegularExpressions;
 using MyDefense.Battle;
 using MyDefense.Battle.Balance;
+using MyDefense.Battle.Runtime;
 using MyDefense.Shared.Contracts;
 using NUnit.Framework;
 using UnityEditor;
@@ -22,6 +23,7 @@ public class BattleWaveExecutorStateTests
     private GameObject _executorObject;
     private BattleWaveExecutor _executor;
     private GameObject _bossObject;
+    private int _sessionNumber;
 
     [SetUp]
     public void SetUp()
@@ -34,7 +36,7 @@ public class BattleWaveExecutorStateTests
             monsters,
             new StateTestPrefabResolver());
         SetField("_totalMonsterGoal", 1);
-        _executor.InitializeSession();
+        InitializeRuntimeSession();
     }
 
     [TearDown]
@@ -174,7 +176,7 @@ public class BattleWaveExecutorStateTests
     {
         ActivateBoss();
 
-        _executor.InitializeSession();
+        InitializeRuntimeSession();
 
         Assert.That(_bossObject == null, Is.True);
         Assert.That(GetField("_currentBossInstance"), Is.Null);
@@ -481,6 +483,20 @@ public class BattleWaveExecutorStateTests
         IBattleMonsterPrefabResolver resolver)
     {
         Invoke("ConfigureBalanceDependenciesForTests", provider, monsters, resolver);
+    }
+
+    private void InitializeRuntimeSession()
+    {
+        _sessionNumber++;
+        _executor.InitializeSession(
+            new BattleSessionContext(
+                "state-fixture-session-" + _sessionNumber,
+                "fixture-canonical-v1",
+                "fixture-canonical-hash",
+                "fixture-battle-v1",
+                "fixture-battle-hash",
+                _sessionNumber),
+            new BattlePlayerIdentityMap("fixture-player-alpha", "fixture-player-beta"));
     }
 
     private static Scene GetBattleScene(out bool openedByTest)
