@@ -1,0 +1,73 @@
+{
+  "pools" : [
+    {
+      "active" : true,
+      "gradeEntries" : [
+        {
+          "alienIds" : [
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28
+          ],
+          "grade" : "NORMAL",
+          "weight" : 6000
+        },
+        {
+          "alienIds" : [
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21
+          ],
+          "grade" : "EPIC",
+          "weight" : 2800
+        },
+        {
+          "alienIds" : [
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ],
+          "grade" : "UNIQUE",
+          "weight" : 900
+        },
+        {
+          "alienIds" : [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "grade" : "LEGEND",
+          "weight" : 250
+        },
+        {
+          "alienIds" : [
+            29,
+            30,
+            31,
+            32
+          ],
+          "grade" : "MYTHIC",
+          "weight" : 50
+        }
+      ],
+      "name" : "일반 왹져 소환",
+      "poolId" : "STANDARD_ALIEN_POOL"
+    }
+  ]
+}

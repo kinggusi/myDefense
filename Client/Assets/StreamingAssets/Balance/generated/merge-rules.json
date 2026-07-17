@@ -1,0 +1,44 @@
+{
+  "mergeRules" : [
+    {
+      "sourceGrade" : "NORMAL",
+      "requiredCount" : 2,
+      "sameSpeciesRequired" : true,
+      "resultType" : "RANDOM_NEXT_GRADE",
+      "resultGrade" : "EPIC",
+      "enabled" : true
+    },
+    {
+      "sourceGrade" : "EPIC",
+      "requiredCount" : 2,
+      "sameSpeciesRequired" : true,
+      "resultType" : "RANDOM_NEXT_GRADE",
+      "resultGrade" : "UNIQUE",
+      "enabled" : true
+    },
+    {
+      "sourceGrade" : "UNIQUE",
+      "requiredCount" : 2,
+      "sameSpeciesRequired" : true,
+      "resultType" : "RANDOM_NEXT_GRADE",
+      "resultGrade" : "LEGEND",
+      "enabled" : true
+    },
+    {
+      "sourceGrade" : "LEGEND",
+      "requiredCount" : 2,
+      "sameSpeciesRequired" : true,
+      "resultType" : "MYTHIC_CHOICE",
+      "resultGrade" : "MYTHIC",
+      "enabled" : true
+    },
+    {
+      "sourceGrade" : "MYTHIC",
+      "requiredCount" : 2,
+      "sameSpeciesRequired" : true,
+      "resultType" : "DISABLED",
+      "resultGrade" : "MYTHIC",
+      "enabled" : true
+    }
+  ]
+}

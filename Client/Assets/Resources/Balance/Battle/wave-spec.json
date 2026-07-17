@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "balanceVersion": "battle-v1",
+  "contentHash": "4932b9030fdd8edafe13610144069143aeaf42c899085d06da898a0b33ee26c9",
+  "items": [
+    {"waveId":"WAVE_001","roundNumber":1,"waveType":"REGULAR","nextWaveDelaySeconds":3,"bossTimeLimitSeconds":0,"enabled":true},
+    {"waveId":"WAVE_002","roundNumber":2,"waveType":"REGULAR","nextWaveDelaySeconds":3,"bossTimeLimitSeconds":0,"enabled":true},
+    {"waveId":"WAVE_003","roundNumber":3,"waveType":"REGULAR","nextWaveDelaySeconds":3,"bossTimeLimitSeconds":0,"enabled":true},
+    {"waveId":"WAVE_004","roundNumber":4,"waveType":"REGULAR","nextWaveDelaySeconds":3,"bossTimeLimitSeconds":0,"enabled":true},
+    {"waveId":"WAVE_005","roundNumber":5,"waveType":"REGULAR","nextWaveDelaySeconds":3,"bossTimeLimitSeconds":0,"enabled":true},
+    {"waveId":"WAVE_006","roundNumber":6,"waveType":"REGULAR","nextWaveDelaySeconds":3,"bossTimeLimitSeconds":0,"enabled":true},
+    {"waveId":"WAVE_007","roundNumber":7,"waveType":"REGULAR","nextWaveDelaySeconds":3,"bossTimeLimitSeconds":0,"enabled":true},
+    {"waveId":"WAVE_008","roundNumber":8,"waveType":"REGULAR","nextWaveDelaySeconds":3,"bossTimeLimitSeconds":0,"enabled":true},
+    {"waveId":"WAVE_009","roundNumber":9,"waveType":"REGULAR","nextWaveDelaySeconds":3,"bossTimeLimitSeconds":0,"enabled":true},
+    {"waveId":"WAVE_010","roundNumber":10,"waveType":"BOSS","nextWaveDelaySeconds":3,"bossTimeLimitSeconds":30,"enabled":true},
+    {"waveId":"WAVE_011","roundNumber":11,"waveType":"REGULAR","nextWaveDelaySeconds":3,"bossTimeLimitSeconds":0,"enabled":true},
+    {"waveId":"WAVE_012","roundNumber":12,"waveType":"REGULAR","nextWaveDelaySeconds":3,"bossTimeLimitSeconds":0,"enabled":true},
+    {"waveId":"WAVE_013","roundNumber":13,"waveType":"REGULAR","nextWaveDelaySeconds":3,"bossTimeLimitSeconds":0,"enabled":true},
+    {"waveId":"WAVE_014","roundNumber":14,"waveType":"REGULAR","nextWaveDelaySeconds":3,"bossTimeLimitSeconds":0,"enabled":true},
+    {"waveId":"WAVE_015","roundNumber":15,"waveType":"REGULAR","nextWaveDelaySeconds":3,"bossTimeLimitSeconds":0,"enabled":true},
+    {"waveId":"WAVE_016","roundNumber":16,"waveType":"REGULAR","nextWaveDelaySeconds":3,"bossTimeLimitSeconds":0,"enabled":true},
+    {"waveId":"WAVE_017","roundNumber":17,"waveType":"REGULAR","nextWaveDelaySeconds":3,"bossTimeLimitSeconds":0,"enabled":true},
+    {"waveId":"WAVE_018","roundNumber":18,"waveType":"REGULAR","nextWaveDelaySeconds":3,"bossTimeLimitSeconds":0,"enabled":true},
+    {"waveId":"WAVE_019","roundNumber":19,"waveType":"REGULAR","nextWaveDelaySeconds":3,"bossTimeLimitSeconds":0,"enabled":true},
+    {"waveId":"WAVE_020","roundNumber":20,"waveType":"BOSS","nextWaveDelaySeconds":3,"bossTimeLimitSeconds":30,"enabled":true}
+  ]
+}
