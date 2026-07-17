@@ -17,7 +17,8 @@
 7. `docs/ai/Ownership.md`
 8. Relevant role document: `docs/ai/User.md` or `docs/ai/Battle.md`
 9. `docs/ai/Shared.md`
-10. For review: `docs/ai/Review.md`
+10. For Unity implementation or validation: `docs/04_TEST_STRATEGY.md`
+11. For review: `docs/ai/Review.md`
 
 ## Task Orchestration
 - `docs/98_IMPLEMENTATION_TASKS.md` is the single source of truth for implementation task priority, ownership, dependencies, and status.
@@ -27,7 +28,10 @@
 - Do not skip a higher-priority eligible task unless it is blocked or the user explicitly selects another task.
 - Separate planning, implementation, and review. Do not edit files during the planning-report phase.
 - When thread orchestration tools are available, the PM thread should create or steer the implementation thread and review its reports directly so the user does not need to copy reports between threads.
+- The PM thread creates the implementation and independent-review subagents. Users do not create or relay between those subagents.
+- The implementation subagent must not approve its own work. An independent read-only reviewer inspects the diff, tests, and risks before PM acceptance.
 - Keep write-heavy implementation sequential. Parallel agents are allowed for independent read-only review, test analysis, or investigation.
+- Unity UI or interaction tasks require the human validation gates defined in `docs/04_TEST_STRATEGY.md`. AI validation alone cannot mark those tasks complete.
 
 ## Terminology
 - Use `Alien`, `Unit`, or `Wakjeo`.
@@ -89,6 +93,9 @@
 - Prefer Unity MCP when available.
 - Otherwise use `EditorSceneManager`, `AssetDatabase`, and `PrefabUtility`.
 - If an asset cannot be found, report a warning instead of inventing a reference.
+- Before Unity Scene or Prefab work, verify that the intended Unity Editor and project are connected and record whether Unity MCP is callable in the current implementation thread.
+- Keep Task-specific validation Scenes isolated and register them in the Feature Test Hub; do not combine every feature into one stateful test Scene.
+- Test-only Scenes and fixtures must not be included in production Build Settings.
 
 ## Git Safety
 - Never edit `main` or `dev` directly.
