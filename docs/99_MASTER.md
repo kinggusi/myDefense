@@ -139,7 +139,19 @@ Normal~Legendary의 7종별 역할 배분은 별도 밸런스 확정이 필요�
 - `CLEARED`
 - `FAILED`
 
-연결 상태는 전투 상태와 별도로 관리해야 한다. 일시적인 연결 종료를 `ELIMINATED`나 최종 이탈로 처리하지 않는다.
+`PlayerConnectionState`:
+
+- `CONNECTED`
+- `DISCONNECTED`
+
+상태 전이는 `ACTIVE → ELIMINATED → SPECTATING`, `CONNECTED ↔ DISCONNECTED`, `RUNNING → CLEARED 또는 FAILED`를 사용한다.
+
+- `ELIMINATED`는 개인 필드 Monster 100마리 도달로 탈락이 확정된 상태다.
+- `SPECTATING`은 탈락 후 조작이 차단된 채 매치에 남아 관전하는 상태다.
+- `ELIMINATED`와 `SPECTATING`에서는 모두 전투 조작과 해당 필드 신규 Monster Spawn을 허용하지 않는다.
+- 연결 상태는 전투 상태 및 매치 상태와 별도로 관리한다.
+- 일시적인 연결 종료를 `ELIMINATED`, `FAILED` 또는 최종 이탈로 처리하지 않는다.
+- 명시적 이탈과 매치 종료 시점까지 미복귀한 참가자의 보상 자격은 Settlement에서 별도로 판정한다.
 
 ---
 
@@ -768,7 +780,7 @@ Settlement는 최소 다음을 기록한다.
 - 인게임 강화
 - 플레이어별 inGameGold
 - Wave와 Boss Timer
-- PlayerBattleState와 MatchState
+- PlayerBattleState, PlayerConnectionState와 MatchState
 - Kill·Support Kill·Boss Kill 장부
 - Settlement 전송
 
@@ -851,7 +863,7 @@ Excel/CSV
 
 - DTO, Enum, Interface
 - DamagePayload, IDamageable, ITargetProvider, HitEvent
-- PlayerBattleState, MatchState
+- PlayerBattleState, PlayerConnectionState, MatchState
 - GridPosition
 - Network Contract
 - Settlement 요청 계약
@@ -892,7 +904,7 @@ Codex에 전달할 수 있는 담당자별 세부 Task, 선행 관계, 현재 �
 ### P0 — 2인 매치 성립
 
 1. Fusion 2인 Battle Session
-2. PlayerBattleState와 MatchState
+2. PlayerBattleState, PlayerConnectionState와 MatchState
 3. Networked Wave, Monster, Boss, TickTimer
 4. State Authority 기반 Kidnap·Merge·Gold
 5. Legendary 후보 선택·리롤 Network Contract

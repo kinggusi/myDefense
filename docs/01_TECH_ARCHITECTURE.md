@@ -65,7 +65,14 @@ Fusion에서 관리:
 - Alien 위치와 소유권
 - Kidnap, Merge, Mutation
 - Wave, Boss TickTimer
-- PlayerBattleState, MatchState
+- PlayerBattleState, PlayerConnectionState, MatchState
+
+세 상태는 독립적으로 관리한다.
+
+- `PlayerBattleState`: `ACTIVE → ELIMINATED → SPECTATING`
+- `PlayerConnectionState`: `CONNECTED ↔ DISCONNECTED`
+- `MatchState`: `RUNNING → CLEARED` 또는 `RUNNING → FAILED`
+- 명시적 이탈과 매치 종료 시점까지 미복귀한 참가자의 보상 자격은 Settlement 계약에서 별도로 관리한다.
 
 규칙:
 - 지속 상태: `[Networked]`
@@ -141,5 +148,5 @@ Common JSON
 - 순차 빈칸 배치
 - 고정 비용 제거
 - Prefix 단일 필드 분리
-- PlayerState와 MatchState 분리
+- PlayerBattleState, PlayerConnectionState와 MatchState 분리
 - 실시간 전투 HTTP 로직을 단계적으로 Fusion으로 이전

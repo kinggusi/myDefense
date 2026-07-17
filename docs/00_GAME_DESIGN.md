@@ -46,6 +46,20 @@
 - CLEARED
 - FAILED
 
+### PlayerConnectionState
+- CONNECTED
+- DISCONNECTED
+
+상태 전이는 다음과 같이 구분한다.
+
+- 전투 상태: `ACTIVE → ELIMINATED → SPECTATING`
+- 연결 상태: `CONNECTED ↔ DISCONNECTED`
+- 매치 상태: `RUNNING → CLEARED` 또는 `RUNNING → FAILED`
+- `ELIMINATED`는 개인 필드 몬스터 100마리 도달로 탈락이 확정된 상태다.
+- `SPECTATING`은 탈락 후 조작이 차단된 채 매치에 남아 관전하는 상태다.
+- 일시적인 연결 종료는 전투 상태나 매치 상태를 변경하지 않는다.
+- 명시적 이탈과 매치 종료 시점까지 미복귀한 참가자의 보상 자격은 Settlement에서 별도로 판정한다.
+
 ## 6. 왹져 구성
 총 48종:
 - Normal 7
@@ -227,4 +241,4 @@ Excel/CSV
 ## 19. 미정 사항
 - 일반 몬스터 라운드별 스폰 수
 - 꽝형 상세 보상 규칙
-- 탈락 플레이어의 관전 유지 판정과 일시적인 네트워크 단절 처리
+- 재접속 UI, 기술적 재시도 시간과 장기 연결 종료 처리

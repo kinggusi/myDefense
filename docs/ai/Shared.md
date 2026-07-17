@@ -9,9 +9,19 @@ User/System과 Battle이 함께 사용하는 계약만 둡니다.
 - ITargetProvider
 - HitEvent
 - PlayerBattleState
+- PlayerConnectionState
 - MatchState
 - GridPosition
 - 공통 DTO, Enum, Network contract
+
+## Battle State
+- PlayerBattleState: `ACTIVE → ELIMINATED → SPECTATING`
+- PlayerConnectionState: `CONNECTED ↔ DISCONNECTED`
+- MatchState: `RUNNING → CLEARED` 또는 `RUNNING → FAILED`
+- `ELIMINATED`는 탈락 확정, `SPECTATING`은 조작 차단 후 관전 상태다.
+- `ELIMINATED`와 `SPECTATING`은 모두 전투 조작 및 해당 필드 신규 Monster Spawn이 불가능하다.
+- 일시적인 연결 종료는 PlayerBattleState나 MatchState를 변경하지 않는다.
+- 명시적 이탈과 매치 종료 미복귀에 따른 보상 자격은 Settlement 계약에서 별도로 판정한다.
 
 ## Grid
 - 4 x 6
