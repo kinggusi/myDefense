@@ -157,7 +157,7 @@ class BattleBalanceExcelContractTest {
                 firstSpawn.spawnIntervalSeconds(), "RANDOM_FIELD");
         assertThatThrownBy(() -> validator.validateWaveSpawns(
                 new WaveSpawnBalanceDocument(List.of(invalidLane)), new MonsterSpecBalanceDocument(data.monsters())))
-                .hasMessageContaining("EACH_FIELD");
+                .hasMessageContaining("Unsupported lanePolicy");
 
         SummonBalance invalidSummon = new SummonBalance("COOP_STANDARD", "KIDNAP", 50, 10, 0,
                 "STANDARD_SUMMON_POOL", true);
@@ -173,6 +173,52 @@ class BattleBalanceExcelContractTest {
         assertThatThrownBy(() -> validator.validateWaves(
                 new WaveSpecBalanceDocument(invalidWaves), new WaveSpawnBalanceDocument(data.waveSpawns())))
                 .hasMessageContaining("must be zero");
+    }
+
+    @Test
+    void lanePoliciesEnforceBossSharedContract() {
+        ExcelBalanceReader.BalanceData data = readCanonical();
+        WaveSpawnBalance boss = data.waveSpawns().stream()
+                .filter(spawn -> spawn.spawnGroupId().equals("WAVE_10_BOSS"))
+                .findFirst()
+                .orElseThrow();
+        WaveSpawnBalance normal = data.waveSpawns().get(0);
+
+        WaveSpawnBalance bossAsEachField = new WaveSpawnBalance(boss.spawnGroupId(), boss.order(), boss.monsterId(),
+                boss.spawnCountPerField(), boss.startDelaySeconds(), boss.spawnIntervalSeconds(), "EACH_FIELD");
+        assertThatThrownBy(() -> validator.validateWaveSpawns(
+                new WaveSpawnBalanceDocument(List.of(bossAsEachField)), new MonsterSpecBalanceDocument(data.monsters())))
+                .hasMessageContaining("EACH_FIELD cannot spawn WAVE_BOSS");
+
+        WaveSpawnBalance normalAsBossShared = new WaveSpawnBalance(normal.spawnGroupId(), normal.order(), normal.monsterId(),
+                normal.spawnCountPerField(), normal.startDelaySeconds(), normal.spawnIntervalSeconds(), "BOSS_SHARED");
+        assertThatThrownBy(() -> validator.validateWaveSpawns(
+                new WaveSpawnBalanceDocument(List.of(normalAsBossShared)), new MonsterSpecBalanceDocument(data.monsters())))
+                .hasMessageContaining("BOSS_SHARED requires WAVE_BOSS");
+
+        WaveSpawnBalance zeroBoss = new WaveSpawnBalance(boss.spawnGroupId(), boss.order(), boss.monsterId(), 0,
+                boss.startDelaySeconds(), boss.spawnIntervalSeconds(), boss.lanePolicy());
+        assertThatThrownBy(() -> validator.validateWaveSpawns(
+                new WaveSpawnBalanceDocument(List.of(zeroBoss)), new MonsterSpecBalanceDocument(data.monsters())))
+                .hasMessageContaining("Invalid WaveSpawn numeric value");
+
+        WaveSpawnBalance twoBosses = new WaveSpawnBalance(boss.spawnGroupId(), boss.order(), boss.monsterId(), 2,
+                boss.startDelaySeconds(), boss.spawnIntervalSeconds(), boss.lanePolicy());
+        assertThatThrownBy(() -> validator.validateWaveSpawns(
+                new WaveSpawnBalanceDocument(List.of(twoBosses)), new MonsterSpecBalanceDocument(data.monsters())))
+                .hasMessageContaining("BOSS_SHARED spawn count must be exactly one");
+
+        WaveSpawnBalance duplicateBoss = new WaveSpawnBalance(boss.spawnGroupId(), 2, boss.monsterId(), 1,
+                boss.startDelaySeconds(), boss.spawnIntervalSeconds(), boss.lanePolicy());
+        assertThatThrownBy(() -> validator.validateWaveSpawns(
+                new WaveSpawnBalanceDocument(List.of(boss, duplicateBoss)), new MonsterSpecBalanceDocument(data.monsters())))
+                .hasMessageContaining("Boss SpawnGroup must contain exactly one");
+
+        WaveSpawnBalance mixedBoss = new WaveSpawnBalance(normal.spawnGroupId(), 3, boss.monsterId(), 1,
+                boss.startDelaySeconds(), boss.spawnIntervalSeconds(), boss.lanePolicy());
+        assertThatThrownBy(() -> validator.validateWaveSpawns(
+                new WaveSpawnBalanceDocument(List.of(normal, mixedBoss)), new MonsterSpecBalanceDocument(data.monsters())))
+                .hasMessageContaining("without mixed lanes");
     }
 
     @Test

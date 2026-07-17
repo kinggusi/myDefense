@@ -13,6 +13,10 @@ import java.util.stream.Collectors;
 @Component
 public class BalanceDataValidator {
 
+    private static final String EACH_FIELD = "EACH_FIELD";
+    private static final String BOSS_SHARED = "BOSS_SHARED";
+    private static final Set<String> ALLOWED_LANE_POLICIES = Set.of(EACH_FIELD, BOSS_SHARED);
+
     public void validateGameReward(GameRewardBalance balance) {
         if (balance == null) {
             throw new IllegalStateException("GameRewardBalance가 null입니다.");
@@ -344,9 +348,8 @@ public class BalanceDataValidator {
         if (spawnDocument == null || spawnDocument.spawns() == null || spawnDocument.spawns().isEmpty()) {
             throw new IllegalStateException("WaveSpawn data is empty.");
         }
-        Set<String> spawnGroups = spawnDocument.spawns().stream()
-                .map(WaveSpawnBalance::spawnGroupId)
-                .collect(Collectors.toSet());
+        Map<String, List<WaveSpawnBalance>> spawnsByGroup = spawnDocument.spawns().stream()
+                .collect(Collectors.groupingBy(WaveSpawnBalance::spawnGroupId));
         Set<String> keys = new HashSet<>();
         Map<String, List<WaveSpecBalance>> byMode = waveDocument.waves().stream()
                 .collect(Collectors.groupingBy(WaveSpecBalance::modeId));
@@ -367,8 +370,18 @@ public class BalanceDataValidator {
             } else if (wave.bossTimeLimitSeconds() == null || wave.bossTimeLimitSeconds().signum() != 0) {
                 throw new IllegalStateException("Normal wave bossTimeLimitSeconds must be zero: " + wave.modeId() + "/" + wave.wave());
             }
-            if (!spawnGroups.contains(wave.spawnGroupId())) {
+            List<WaveSpawnBalance> groupSpawns = spawnsByGroup.get(wave.spawnGroupId());
+            if (groupSpawns == null) {
                 throw new IllegalStateException("Wave references missing spawnGroupId: " + wave.spawnGroupId());
+            }
+            if (wave.isBossWave()) {
+                if (groupSpawns.size() != 1
+                        || !BOSS_SHARED.equals(groupSpawns.get(0).lanePolicy())
+                        || groupSpawns.get(0).spawnCountPerField() != 1) {
+                    throw new IllegalStateException("Boss wave requires exactly one BOSS_SHARED spawn: " + wave.spawnGroupId());
+                }
+            } else if (groupSpawns.stream().anyMatch(spawn -> !EACH_FIELD.equals(spawn.lanePolicy()))) {
+                throw new IllegalStateException("Normal wave requires only EACH_FIELD spawns: " + wave.spawnGroupId());
             }
         }
         for (Map.Entry<String, List<WaveSpecBalance>> entry : byMode.entrySet()) {
@@ -382,15 +395,24 @@ public class BalanceDataValidator {
                 throw new IllegalStateException("At least one boss wave is required for mode: " + entry.getKey());
             }
         }
+
+        Set<String> bossSpawnGroups = waveDocument.waves().stream()
+                .filter(WaveSpecBalance::isBossWave)
+                .map(WaveSpecBalance::spawnGroupId)
+                .collect(Collectors.toSet());
+        for (WaveSpawnBalance spawn : spawnDocument.spawns()) {
+            if (BOSS_SHARED.equals(spawn.lanePolicy()) && !bossSpawnGroups.contains(spawn.spawnGroupId())) {
+                throw new IllegalStateException("BOSS_SHARED spawn must belong to a boss wave: " + spawn.spawnGroupId());
+            }
+        }
     }
 
     public void validateWaveSpawns(WaveSpawnBalanceDocument document, MonsterSpecBalanceDocument monsters) {
         if (document == null || document.spawns() == null || document.spawns().isEmpty()) {
             throw new IllegalStateException("WaveSpawn data is empty.");
         }
-        Set<String> monsterIds = monsters.monsters().stream()
-                .map(MonsterSpecBalance::monsterId)
-                .collect(Collectors.toSet());
+        Map<String, String> monsterTypes = monsters.monsters().stream()
+                .collect(Collectors.toMap(MonsterSpecBalance::monsterId, MonsterSpecBalance::monsterType));
         Set<String> keys = new HashSet<>();
         for (WaveSpawnBalance spawn : document.spawns()) {
             requireText(spawn.spawnGroupId(), "spawnGroupId");
@@ -398,7 +420,8 @@ public class BalanceDataValidator {
             if (!keys.add(spawn.spawnGroupId() + "\0" + spawn.order())) {
                 throw new IllegalStateException("Duplicate spawnGroupId+order: " + spawn.spawnGroupId() + "/" + spawn.order());
             }
-            if (!monsterIds.contains(spawn.monsterId())) {
+            String monsterType = monsterTypes.get(spawn.monsterId());
+            if (monsterType == null) {
                 throw new IllegalStateException("WaveSpawn references missing monsterId: " + spawn.monsterId());
             }
             if (spawn.order() <= 0 || spawn.spawnCountPerField() <= 0
@@ -406,8 +429,32 @@ public class BalanceDataValidator {
                     || !positive(spawn.spawnIntervalSeconds())) {
                 throw new IllegalStateException("Invalid WaveSpawn numeric value: " + spawn.spawnGroupId() + "/" + spawn.order());
             }
-            if (!"EACH_FIELD".equals(spawn.lanePolicy())) {
-                throw new IllegalStateException("Only EACH_FIELD lanePolicy is supported: " + spawn.lanePolicy());
+            if (!ALLOWED_LANE_POLICIES.contains(spawn.lanePolicy())) {
+                throw new IllegalStateException("Unsupported lanePolicy: " + spawn.lanePolicy());
+            }
+            if (EACH_FIELD.equals(spawn.lanePolicy()) && "WAVE_BOSS".equals(monsterType)) {
+                throw new IllegalStateException("EACH_FIELD cannot spawn WAVE_BOSS: " + spawn.spawnGroupId());
+            }
+            if (BOSS_SHARED.equals(spawn.lanePolicy())) {
+                if (!"WAVE_BOSS".equals(monsterType)) {
+                    throw new IllegalStateException("BOSS_SHARED requires WAVE_BOSS: " + spawn.spawnGroupId());
+                }
+                if (spawn.spawnCountPerField() != 1) {
+                    throw new IllegalStateException("BOSS_SHARED spawn count must be exactly one: " + spawn.spawnGroupId());
+                }
+            }
+        }
+
+
+        Map<String, List<WaveSpawnBalance>> spawnsByGroup = document.spawns().stream()
+                .collect(Collectors.groupingBy(WaveSpawnBalance::spawnGroupId));
+        for (Map.Entry<String, List<WaveSpawnBalance>> entry : spawnsByGroup.entrySet()) {
+            long bossSharedCount = entry.getValue().stream()
+                    .filter(spawn -> BOSS_SHARED.equals(spawn.lanePolicy()))
+                    .count();
+            if (bossSharedCount > 0 && (bossSharedCount != 1 || entry.getValue().size() != 1)) {
+                throw new IllegalStateException("Boss SpawnGroup must contain exactly one BOSS_SHARED row without mixed lanes: "
+                        + entry.getKey());
             }
         }
     }
