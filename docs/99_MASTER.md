@@ -871,6 +871,8 @@ Shared 계약 변경 시 양쪽 담당자에게 알리고 양쪽 컴파일을 �
 
 ## 26. 구현 우선순위
 
+Codex에 전달할 수 있는 담당자별 세부 Task, 선행 관계, 현재 상태는 `docs/98_IMPLEMENTATION_TASKS.md`를 기준으로 관리한다.
+
 ### P0 — 2인 매치 성립
 
 1. Fusion 2인 Battle Session
