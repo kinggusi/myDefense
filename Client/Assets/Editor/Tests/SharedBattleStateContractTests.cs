@@ -131,5 +131,54 @@ namespace MyDefense.Shared.Tests
             StringAssert.Contains("\"currentWaveSpecId\":\"WAVE_12\"", json);
             StringAssert.Contains("\"alienSpecId\":22", json);
         }
+
+        [Test]
+        public void LegendaryChoiceState_ValidatesMaterialsCandidatesAndSelection()
+        {
+            var state = new LegendaryChoiceState
+            {
+                choiceId = "choice-1",
+                battleSessionId = "session-1",
+                materialAlienIdA = 101,
+                materialAlienIdB = 102,
+                candidateAlienIds = new[] { 201L, 202L, 203L },
+                selectionTimeoutSeconds = 8,
+                remainingSeconds = 8,
+                phase = LegendaryChoicePhase.OPEN,
+                autoSelectPolicy = "FIRST",
+                battleContinuesDuringSelection = true
+            };
+
+            Assert.DoesNotThrow(() => LegendaryChoiceStateValidator.Validate(state));
+            state.phase = LegendaryChoicePhase.SELECTED;
+            state.selectedAlienId = 202;
+            Assert.DoesNotThrow(() => LegendaryChoiceStateValidator.Validate(state));
+            state.candidateAlienIds[2] = 202;
+            Assert.Throws<ArgumentException>(() => LegendaryChoiceStateValidator.Validate(state));
+        }
+
+        [Test]
+        public void LegendaryChoiceStateJson_UsesStringPhaseAndNullableSelection()
+        {
+            var state = new LegendaryChoiceState
+            {
+                choiceId = "choice-1",
+                battleSessionId = "session-1",
+                materialAlienIdA = 101,
+                materialAlienIdB = 102,
+                candidateAlienIds = new[] { 201L, 202L, 203L },
+                selectionTimeoutSeconds = 8,
+                remainingSeconds = 8,
+                phase = LegendaryChoicePhase.OPEN,
+                autoSelectPolicy = "FIRST",
+                battleContinuesDuringSelection = true
+            };
+
+            var json = LegendaryChoiceStateJson.Serialize(state);
+
+            StringAssert.Contains("\"phase\":\"OPEN\"", json);
+            StringAssert.Contains("\"selectedAlienId\":null", json);
+            StringAssert.Contains("\"candidateAlienIds\":[201,202,203]", json);
+        }
     }
 }
