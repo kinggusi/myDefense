@@ -1,0 +1,1 @@
+package com.denfense.server.repository; import com.denfense.server.domain.*; import org.springframework.data.jpa.repository.JpaRepository; public interface BattlePlayerSettlementRepository extends JpaRepository<BattlePlayerSettlement,Long>{}
