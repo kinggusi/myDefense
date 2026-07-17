@@ -10,13 +10,24 @@
 ## Read Before Work
 1. `AGENTS.md`
 2. `docs/99_MASTER.md`
-3. `docs/00_GAME_DESIGN.md`
-4. `docs/01_TECH_ARCHITECTURE.md`
-5. `docs/02_PROJECT_ROADMAP.md`
-6. `docs/ai/Ownership.md`
-7. Relevant role document: `docs/ai/User.md` or `docs/ai/Battle.md`
-8. `docs/ai/Shared.md`
-9. For review: `docs/ai/Review.md`
+3. `docs/98_IMPLEMENTATION_TASKS.md`
+4. `docs/00_GAME_DESIGN.md`
+5. `docs/01_TECH_ARCHITECTURE.md`
+6. `docs/02_PROJECT_ROADMAP.md`
+7. `docs/ai/Ownership.md`
+8. Relevant role document: `docs/ai/User.md` or `docs/ai/Battle.md`
+9. `docs/ai/Shared.md`
+10. For review: `docs/ai/Review.md`
+
+## Task Orchestration
+- `docs/98_IMPLEMENTATION_TASKS.md` is the single source of truth for implementation task priority, ownership, dependencies, and status.
+- When the user says `작업하자`, follow the PM orchestration workflow in section `0. PM 자동 오케스트레이션` of that document.
+- Resolve the working role in this order: explicit user instruction, current branch prefix (`feature/user-*` or `feature/battle-*`), then the relevant role document.
+- If the role is still ambiguous, ask once whether this thread owns User/System or Battle work.
+- Do not skip a higher-priority eligible task unless it is blocked or the user explicitly selects another task.
+- Separate planning, implementation, and review. Do not edit files during the planning-report phase.
+- When thread orchestration tools are available, the PM thread should create or steer the implementation thread and review its reports directly so the user does not need to copy reports between threads.
+- Keep write-heavy implementation sequential. Parallel agents are allowed for independent read-only review, test analysis, or investigation.
 
 ## Terminology
 - Use `Alien`, `Unit`, or `Wakjeo`.
