@@ -1,9 +1,9 @@
 package com.denfense.server.service.balance;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.core.io.Resource;
@@ -18,9 +18,26 @@ import org.springframework.core.annotation.Order;
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
 @Order(1)
 public class BalanceDataLoader implements ApplicationRunner {
+
+    @Autowired
+    public BalanceDataLoader(ResourceLoader resourceLoader, ObjectMapper mapper, BalanceDataValidator validator,
+                              BalanceRegistry registry, AlienUpgradeBalanceRegistry upgrade,
+                              MonsterBalanceRegistry monsters, WaveBalanceRegistry waves,
+                              BattleRuleBalanceRegistry battleRules, MythicBreedingBalanceRegistry breeding) {
+        this.resourceLoader=resourceLoader; this.baseObjectMapper=mapper; this.validator=validator; this.registry=registry;
+        this.alienUpgradeRegistry=upgrade; this.monsterBalanceRegistry=monsters; this.waveBalanceRegistry=waves;
+        this.battleRuleBalanceRegistry=battleRules; this.mythicBreedingBalanceRegistry=breeding;
+    }
+
+    public BalanceDataLoader(ResourceLoader resourceLoader, ObjectMapper mapper, BalanceDataValidator validator,
+                              BalanceRegistry registry, AlienUpgradeBalanceRegistry upgrade,
+                              MonsterBalanceRegistry monsters, WaveBalanceRegistry waves,
+                              BattleRuleBalanceRegistry battleRules) {
+        this(resourceLoader, mapper, validator, registry, upgrade, monsters, waves, battleRules,
+                new MythicBreedingBalanceRegistry());
+    }
 
     private final ResourceLoader resourceLoader;
     private final ObjectMapper baseObjectMapper;
@@ -30,6 +47,7 @@ public class BalanceDataLoader implements ApplicationRunner {
     private final MonsterBalanceRegistry monsterBalanceRegistry;
     private final WaveBalanceRegistry waveBalanceRegistry;
     private final BattleRuleBalanceRegistry battleRuleBalanceRegistry;
+    private final MythicBreedingBalanceRegistry mythicBreedingBalanceRegistry;
 
     @Value("${balance.reward.path:classpath:balance/generated/game-reward.json}")
     private String rewardFilePath;
@@ -69,6 +87,11 @@ public class BalanceDataLoader implements ApplicationRunner {
 
     @Value("${balance.mythic-choice.path:classpath:balance/generated/mythic-choice-balance.json}")
     private String mythicChoiceFilePath;
+
+    @Value("${balance.mythic-breeding-config.path:classpath:balance/generated/mythic-breeding-config.json}")
+    private String mythicBreedingConfigFilePath;
+    @Value("${balance.mythic-breeding-results.path:classpath:balance/generated/mythic-breeding-results.json}")
+    private String mythicBreedingResultsFilePath;
 
     public void setRewardFilePath(String rewardFilePath) {
         this.rewardFilePath = rewardFilePath;
@@ -166,9 +189,12 @@ public class BalanceDataLoader implements ApplicationRunner {
             SummonBalanceDocument summonDoc = readDocument(strictMapper, summonFilePath, SummonBalanceDocument.class);
             MergeRuleBalanceDocument mergeRuleDoc = readDocument(strictMapper, mergeRuleFilePath, MergeRuleBalanceDocument.class);
             MythicChoiceBalanceDocument mythicChoiceDoc = readDocument(strictMapper, mythicChoiceFilePath, MythicChoiceBalanceDocument.class);
+            MythicBreedingConfigBalance breedingConfig = readDocument(strictMapper, mythicBreedingConfigFilePath, MythicBreedingConfigBalance.class);
+            MythicBreedingResultDocument breedingResults = readDocument(strictMapper, mythicBreedingResultsFilePath, MythicBreedingResultDocument.class);
 
             validator.validateBattleBalance(monsterDoc, waveDoc, spawnDoc, fieldLimitDoc, summonDoc,
                     mergeRuleDoc, mythicChoiceDoc, specs);
+            validateBreedingBalance(breedingConfig, breedingResults, specs, poolDoc, mythicChoiceDoc);
 
             alienUpgradeRegistry.init(upgradeCosts, levelStats);
             registry.init(rewardBalance, specs, productDoc.products(), poolDoc.pools());
@@ -176,12 +202,33 @@ public class BalanceDataLoader implements ApplicationRunner {
             waveBalanceRegistry.init(waveDoc.waves(), spawnDoc.spawns());
             battleRuleBalanceRegistry.init(fieldLimitDoc.fieldLimits(), summonDoc.summons(),
                     mergeRuleDoc.mergeRules(), mythicChoiceDoc.mythicChoices(), specs);
+            mythicBreedingBalanceRegistry.init(breedingConfig, breedingResults.results());
 
             log.info("Balance 데이터 로딩 완료. MaxLevel: {}", maxLevel);
         } catch (Exception e) {
             log.error("Balance 데이터 로딩 실패! 서버 시작을 중단합니다.", e);
             throw e;
         }
+    }
+
+    private void validateBreedingBalance(MythicBreedingConfigBalance config, MythicBreedingResultDocument document,
+                                         List<AlienSpecBalance> specs, GachaPoolBalanceDocument pools,
+                                         MythicChoiceBalanceDocument choices) {
+        if (config.durationSeconds() != 86400 || config.slotCount() != 3 || config.slot2GemPrice() <= 0 || config.slot3GemPrice() <= 0)
+            throw new IllegalStateException("Invalid mythic breeding config");
+        if (document.results().size() != 20 || document.results().stream().map(MythicBreedingResultBalance::alienId).distinct().count() != 20)
+            throw new IllegalStateException("Mythic breeding must define 20 unique results");
+        var specById = specs.stream().collect(java.util.stream.Collectors.toMap(AlienSpecBalance::alienId, java.util.function.Function.identity()));
+        long standard = document.results().stream().filter(r -> "STANDARD".equals(r.acquisitionType())).count();
+        long exclusiveCount = document.results().stream().filter(r -> "BREEDING_EXCLUSIVE".equals(r.acquisitionType())).count();
+        if (standard != 18 || exclusiveCount != 2 || document.results().stream().anyMatch(r -> r.weight() <= 0 || specById.get(r.alienId()) == null || !"MYTHIC".equals(specById.get(r.alienId()).grade())))
+            throw new IllegalStateException("Invalid mythic breeding result contract");
+        var gachaIds = pools.pools().stream().flatMap(p -> p.gradeEntries().stream()).flatMap(e -> e.alienIds().stream()).collect(java.util.stream.Collectors.toSet());
+        if (document.results().stream().filter(r -> "BREEDING_EXCLUSIVE".equals(r.acquisitionType())).anyMatch(r -> gachaIds.contains(r.alienId())))
+            throw new IllegalStateException("Breeding-exclusive Mythics cannot be in gacha pool");
+        var exclusiveIds = document.results().stream().filter(r -> "BREEDING_EXCLUSIVE".equals(r.acquisitionType())).map(MythicBreedingResultBalance::alienId).collect(java.util.stream.Collectors.toSet());
+        if (!exclusiveIds.equals(new java.util.HashSet<>(choices.excludedAlienIds())) || choices.excludedAlienIds().stream().anyMatch(id -> !specById.containsKey(id)))
+            throw new IllegalStateException("Battle Mythic Choice pool must explicitly exclude breeding-exclusive results");
     }
 
     private <T> T readDocument(ObjectMapper mapper, String path, Class<T> type) throws Exception {

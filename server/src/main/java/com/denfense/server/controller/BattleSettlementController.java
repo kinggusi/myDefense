@@ -1,0 +1,2 @@
+package com.denfense.server.controller; import com.denfense.server.dto.battle.BattleSettlementDtos; import com.denfense.server.service.BattleSettlementService; import lombok.RequiredArgsConstructor; import org.springframework.web.bind.annotation.*;
+@RestController @RequiredArgsConstructor @RequestMapping("/api/battle/settlements") public class BattleSettlementController {private final BattleSettlementService service; @PostMapping public BattleSettlementDtos.Response settle(@RequestBody BattleSettlementDtos.Request r){return service.settle(r);}}

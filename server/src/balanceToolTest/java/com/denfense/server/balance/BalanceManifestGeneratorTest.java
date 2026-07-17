@@ -32,7 +32,7 @@ class BalanceManifestGeneratorTest {
         byte[] secondBytes = Files.readAllBytes(tempDir.resolve(BalanceManifestSupport.MANIFEST_FILE_NAME));
 
         assertThat(first.files()).extracting(BalanceManifestFileEntry::name).isSorted();
-        assertThat(first.files()).hasSize(13);
+        assertThat(first.files()).hasSize(15);
         assertThat(first).isEqualTo(second);
         assertThat(secondBytes).isEqualTo(firstBytes);
         assertThat(new String(firstBytes)).doesNotContain("timestamp", "generatedAt", "buildTime");

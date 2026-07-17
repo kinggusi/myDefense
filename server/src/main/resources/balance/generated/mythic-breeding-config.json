@@ -1,0 +1,8 @@
+{
+  "durationSeconds": 86400,
+  "slotCount": 3,
+  "slot2UnlockLevel": 15,
+  "slot2GemPrice": 500,
+  "slot3GemPrice": 1000,
+  "duplicateRewardPieces": 50
+}

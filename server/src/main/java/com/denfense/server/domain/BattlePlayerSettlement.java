@@ -1,0 +1,6 @@
+package com.denfense.server.domain;
+import jakarta.persistence.*; import lombok.*;
+@Entity @Getter @NoArgsConstructor(access=AccessLevel.PROTECTED) @Table(name="battle_player_settlements",uniqueConstraints={@UniqueConstraint(name="uk_battle_player_user",columnNames={"battle_settlement_id","user_id"}),@UniqueConstraint(name="uk_battle_player_slot",columnNames={"battle_settlement_id","player_slot"})})
+public class BattlePlayerSettlement { @Id @GeneratedValue(strategy=GenerationType.IDENTITY) private Long id; @ManyToOne(fetch=FetchType.LAZY,optional=false) @JoinColumn(name="battle_settlement_id",nullable=false) private BattleSettlement battleSettlement; @ManyToOne(fetch=FetchType.LAZY,optional=false) @JoinColumn(name="user_id",nullable=false) private User user; private int playerSlot; private boolean eliminated; private Integer eliminatedWave; private int kills,supportKills,bossKills,initialInGameGold,inGameGoldEarned,inGameGoldSpent,finalInGameGold;
+ public BattlePlayerSettlement(BattleSettlement s,User u,int slot,boolean e,Integer ew,int k,int sk,int bk,int initial,int earned,int spent,int fin){battleSettlement=s;user=u;playerSlot=slot;eliminated=e;eliminatedWave=ew;kills=k;supportKills=sk;bossKills=bk;initialInGameGold=initial;inGameGoldEarned=earned;inGameGoldSpent=spent;finalInGameGold=fin;}
+}

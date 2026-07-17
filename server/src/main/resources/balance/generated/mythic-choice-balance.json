@@ -1,4 +1,5 @@
 {
+  "excludedAlienIds" : [ 47, 48 ],
   "mythicChoices" : [
     {
       "modeId" : "COOP_STANDARD",
