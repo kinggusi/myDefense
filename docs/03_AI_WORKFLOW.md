@@ -1,10 +1,10 @@
 # AI 협업 워크플로우
 
 ## 역할
-### 사용자
+### jjangash
 - 기획, 게임 규칙, 데이터, Spring, User/System Unity 로직
 
-### 동료
+### kinggusi
 - 전투 맵, Scene/Prefab, Monster/Boss/Wave, Physics/Projectile/Effect
 
 ### Gemini Pro

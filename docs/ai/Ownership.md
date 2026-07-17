@@ -1,7 +1,7 @@
 # Ownership
 
 ## User/System Owner
-담당자: 사용자
+담당자: jjangash
 
 ### Unity
 - Lobby, Shop, Collection
@@ -18,7 +18,7 @@
 - Persistent Battle Result
 
 ## Battle Owner
-담당자: 동료
+담당자: kinggusi
 
 ### Unity
 - Battle Map, Scene, Prefab
