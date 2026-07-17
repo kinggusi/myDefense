@@ -3,12 +3,16 @@ package com.denfense.server.balance.tool;
 import com.denfense.server.balance.*;
 import com.denfense.server.service.balance.BalanceDataValidator;
 import com.denfense.server.service.balance.BalanceManifestSupport;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 public class BalanceExcelConverter {
@@ -34,14 +38,20 @@ public class BalanceExcelConverter {
         try {
             ExcelBalanceReader.BalanceData data = new ExcelBalanceReader(excelPath).read();
             validate(data);
+            List<Long> excludedAlienIds = readCanonicalMythicChoiceExcludedAlienIds();
 
             stagingDirectory = Files.createTempDirectory(generatedDirectory.getParent(), "balance-generation-");
             BalanceJsonWriter writer = new BalanceJsonWriter();
-            Map<Path, Object> stagedDocuments = documents(stagingDirectory, data);
+            Map<Path, Object> stagedDocuments = documents(stagingDirectory, data, excludedAlienIds);
             for (Map.Entry<Path, Object> entry : stagedDocuments.entrySet()) {
                 Path temp = writer.writeTempJson(entry.getKey(), entry.getValue());
                 writer.replaceFile(temp, entry.getKey());
             }
+
+            // Breeding balance is currently maintained as canonical JSON (Excel integration is a
+            // follow-up). Preserve those resources in the conversion staging set so the manifest
+            // remains complete and deterministic instead of failing on missing required files.
+            copyCanonicalJsonResources(stagingDirectory);
 
             new BalanceManifestGenerator().generate(stagingDirectory);
 
@@ -91,7 +101,11 @@ public class BalanceExcelConverter {
                 data.alienSpecs());
     }
 
-    private static Map<Path, Object> documents(Path directory, ExcelBalanceReader.BalanceData data) {
+    private static Map<Path, Object> documents(
+            Path directory,
+            ExcelBalanceReader.BalanceData data,
+            List<Long> excludedAlienIds
+    ) {
         Map<Path, Object> documents = new LinkedHashMap<>();
         documents.put(directory.resolve("game-reward.json"), data.gameReward());
         documents.put(directory.resolve("alien-upgrade-cost.json"), data.alienUpgradeCosts());
@@ -105,8 +119,21 @@ public class BalanceExcelConverter {
         documents.put(directory.resolve("field-limit.json"), new FieldLimitBalanceDocument(data.fieldLimits()));
         documents.put(directory.resolve("summon-balance.json"), new SummonBalanceDocument(data.summons()));
         documents.put(directory.resolve("merge-rules.json"), new MergeRuleBalanceDocument(data.mergeRules()));
-        documents.put(directory.resolve("mythic-choice-balance.json"), new MythicChoiceBalanceDocument(data.mythicChoices()));
+        documents.put(directory.resolve("mythic-choice-balance.json"),
+                new MythicChoiceBalanceDocument(data.mythicChoices(), excludedAlienIds));
         return documents;
+    }
+
+    private static List<Long> readCanonicalMythicChoiceExcludedAlienIds() throws IOException {
+        try (InputStream resource = BalanceExcelConverter.class
+                .getResourceAsStream("/balance/generated/mythic-choice-balance.json")) {
+            if (resource == null) {
+                throw new IllegalStateException("Canonical balance resource is missing: mythic-choice-balance.json");
+            }
+            MythicChoiceBalanceDocument document = new ObjectMapper()
+                    .readValue(resource, MythicChoiceBalanceDocument.class);
+            return document.excludedAlienIds();
+        }
     }
 
     private static Path requireSharedGeneratedDirectory(Path... paths) {
@@ -117,6 +144,19 @@ public class BalanceExcelConverter {
             }
         }
         return directory;
+    }
+
+    private static void copyCanonicalJsonResources(Path stagingDirectory) throws IOException {
+        for (String fileName : List.of("mythic-breeding-config.json", "mythic-breeding-results.json")) {
+            String resourceName = "/balance/generated/" + fileName;
+            Path target = stagingDirectory.resolve(fileName);
+            try (InputStream resource = BalanceExcelConverter.class.getResourceAsStream(resourceName)) {
+                if (resource == null) {
+                    throw new IllegalStateException("Canonical balance resource is missing: " + fileName);
+                }
+                Files.copy(resource, target, StandardCopyOption.REPLACE_EXISTING);
+            }
+        }
     }
 
     private static void deleteDirectoryQuietly(Path directory) {

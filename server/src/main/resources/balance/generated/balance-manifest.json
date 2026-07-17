@@ -1,7 +1,7 @@
 {
   "schemaVersion" : 1,
-  "balanceVersion" : "1-0dd997234f6a8ba1",
-  "contentHash" : "0dd997234f6a8ba11ab041e45285b8c6a9c263d6d17aac43997eeb030e71bad6",
+  "balanceVersion" : "1-51c8431934ce3b76",
+  "contentHash" : "51c8431934ce3b76c268ddc1bd73ddd34a4d52f6a132357848281e8c6b5841cb",
   "files" : [ {
     "name" : "alien-level-stat.json",
     "sha256" : "62d5880e09c6b780e2c4894d6e357b13337fdcf1982d30b6738bf82190f209f6",
@@ -44,8 +44,8 @@
     "size" : 1582
   }, {
     "name" : "mythic-choice-balance.json",
-    "sha256" : "06f77552d6a7d950c9a7089dff3235ae6c2ebdec9b2c635ed29bc1d32e206741",
-    "size" : 415
+    "sha256" : "c3c08720c9d09bba4523e979fc3e9e9159aabd849b63711afe76ae555b7580aa",
+    "size" : 425
   }, {
     "name" : "shop-products.json",
     "sha256" : "2a17d5f64c3c443de189b0f2c62c4efd4a6e29d429bd0a64047e0fa37ce92cd1",
