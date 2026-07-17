@@ -1,0 +1,24 @@
+{
+  "results": [
+    {"alienId":29,"acquisitionType":"STANDARD","weight":100,"enabled":true},
+    {"alienId":30,"acquisitionType":"STANDARD","weight":100,"enabled":true},
+    {"alienId":31,"acquisitionType":"STANDARD","weight":100,"enabled":true},
+    {"alienId":32,"acquisitionType":"STANDARD","weight":100,"enabled":true},
+    {"alienId":33,"acquisitionType":"STANDARD","weight":100,"enabled":true},
+    {"alienId":34,"acquisitionType":"STANDARD","weight":100,"enabled":true},
+    {"alienId":35,"acquisitionType":"STANDARD","weight":100,"enabled":true},
+    {"alienId":36,"acquisitionType":"STANDARD","weight":100,"enabled":true},
+    {"alienId":37,"acquisitionType":"STANDARD","weight":100,"enabled":true},
+    {"alienId":38,"acquisitionType":"STANDARD","weight":100,"enabled":true},
+    {"alienId":39,"acquisitionType":"STANDARD","weight":100,"enabled":true},
+    {"alienId":40,"acquisitionType":"STANDARD","weight":100,"enabled":true},
+    {"alienId":41,"acquisitionType":"STANDARD","weight":100,"enabled":true},
+    {"alienId":42,"acquisitionType":"STANDARD","weight":100,"enabled":true},
+    {"alienId":43,"acquisitionType":"STANDARD","weight":100,"enabled":true},
+    {"alienId":44,"acquisitionType":"STANDARD","weight":100,"enabled":true},
+    {"alienId":45,"acquisitionType":"STANDARD","weight":100,"enabled":true},
+    {"alienId":46,"acquisitionType":"STANDARD","weight":100,"enabled":true},
+    {"alienId":47,"acquisitionType":"BREEDING_EXCLUSIVE","weight":100,"enabled":true},
+    {"alienId":48,"acquisitionType":"BREEDING_EXCLUSIVE","weight":100,"enabled":true}
+  ]
+}

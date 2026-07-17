@@ -21,6 +21,8 @@ public final class BalanceManifestSupport {
             "merge-rules.json",
             "monster-spec.json",
             "mythic-choice-balance.json",
+            "mythic-breeding-config.json",
+            "mythic-breeding-results.json",
             "shop-products.json",
             "summon-balance.json",
             "wave-spawn.json",
