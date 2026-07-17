@@ -12,4 +12,5 @@ public class GameResponseDto {
     private BoardObject alien;
     private int remainingGold;
     private boolean isGameOver;
+    private int currentKidnapCost;
 }

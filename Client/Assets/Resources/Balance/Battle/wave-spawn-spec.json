@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "balanceVersion": "battle-v1",
+  "contentHash": "b7dc29125ec5bca784c0c694433404c7503520be7fe8e2a4fd571611b9fb87a6",
+  "items": [
+    {"waveId":"WAVE_001","spawnOrder":1,"lanePolicy":"EACH_ACTIVE_PLAYER_LANE","monsterId":"MONSTER_NORMAL_DEFAULT","spawnCount":10,"spawnDelaySeconds":0,"spawnIntervalSeconds":1,"hpMultiplier":1,"moveSpeedMultiplier":1},
+    {"waveId":"WAVE_002","spawnOrder":1,"lanePolicy":"EACH_ACTIVE_PLAYER_LANE","monsterId":"MONSTER_NORMAL_DEFAULT","spawnCount":10,"spawnDelaySeconds":0,"spawnIntervalSeconds":1,"hpMultiplier":1.1,"moveSpeedMultiplier":1},
+    {"waveId":"WAVE_003","spawnOrder":1,"lanePolicy":"EACH_ACTIVE_PLAYER_LANE","monsterId":"MONSTER_NORMAL_DEFAULT","spawnCount":10,"spawnDelaySeconds":0,"spawnIntervalSeconds":1,"hpMultiplier":1.2,"moveSpeedMultiplier":1},
+    {"waveId":"WAVE_004","spawnOrder":1,"lanePolicy":"EACH_ACTIVE_PLAYER_LANE","monsterId":"MONSTER_NORMAL_DEFAULT","spawnCount":10,"spawnDelaySeconds":0,"spawnIntervalSeconds":1,"hpMultiplier":1.3,"moveSpeedMultiplier":1},
+    {"waveId":"WAVE_005","spawnOrder":1,"lanePolicy":"EACH_ACTIVE_PLAYER_LANE","monsterId":"MONSTER_NORMAL_DEFAULT","spawnCount":10,"spawnDelaySeconds":0,"spawnIntervalSeconds":1,"hpMultiplier":1.4,"moveSpeedMultiplier":1},
+    {"waveId":"WAVE_006","spawnOrder":1,"lanePolicy":"EACH_ACTIVE_PLAYER_LANE","monsterId":"MONSTER_NORMAL_DEFAULT","spawnCount":10,"spawnDelaySeconds":0,"spawnIntervalSeconds":1,"hpMultiplier":1.5,"moveSpeedMultiplier":1},
+    {"waveId":"WAVE_007","spawnOrder":1,"lanePolicy":"EACH_ACTIVE_PLAYER_LANE","monsterId":"MONSTER_NORMAL_DEFAULT","spawnCount":10,"spawnDelaySeconds":0,"spawnIntervalSeconds":1,"hpMultiplier":1.6,"moveSpeedMultiplier":1},
+    {"waveId":"WAVE_008","spawnOrder":1,"lanePolicy":"EACH_ACTIVE_PLAYER_LANE","monsterId":"MONSTER_NORMAL_DEFAULT","spawnCount":10,"spawnDelaySeconds":0,"spawnIntervalSeconds":1,"hpMultiplier":1.7,"moveSpeedMultiplier":1},
+    {"waveId":"WAVE_009","spawnOrder":1,"lanePolicy":"EACH_ACTIVE_PLAYER_LANE","monsterId":"MONSTER_NORMAL_DEFAULT","spawnCount":10,"spawnDelaySeconds":0,"spawnIntervalSeconds":1,"hpMultiplier":1.8,"moveSpeedMultiplier":1},
+    {"waveId":"WAVE_010","spawnOrder":1,"lanePolicy":"BOSS_SHARED","monsterId":"MONSTER_BOSS_DEFAULT","spawnCount":1,"spawnDelaySeconds":0,"spawnIntervalSeconds":0,"hpMultiplier":19,"moveSpeedMultiplier":1},
+    {"waveId":"WAVE_011","spawnOrder":1,"lanePolicy":"EACH_ACTIVE_PLAYER_LANE","monsterId":"MONSTER_NORMAL_DEFAULT","spawnCount":10,"spawnDelaySeconds":0,"spawnIntervalSeconds":1,"hpMultiplier":2,"moveSpeedMultiplier":1},
+    {"waveId":"WAVE_012","spawnOrder":1,"lanePolicy":"EACH_ACTIVE_PLAYER_LANE","monsterId":"MONSTER_NORMAL_DEFAULT","spawnCount":10,"spawnDelaySeconds":0,"spawnIntervalSeconds":1,"hpMultiplier":2.1,"moveSpeedMultiplier":1},
+    {"waveId":"WAVE_013","spawnOrder":1,"lanePolicy":"EACH_ACTIVE_PLAYER_LANE","monsterId":"MONSTER_NORMAL_DEFAULT","spawnCount":10,"spawnDelaySeconds":0,"spawnIntervalSeconds":1,"hpMultiplier":2.2,"moveSpeedMultiplier":1},
+    {"waveId":"WAVE_014","spawnOrder":1,"lanePolicy":"EACH_ACTIVE_PLAYER_LANE","monsterId":"MONSTER_NORMAL_DEFAULT","spawnCount":10,"spawnDelaySeconds":0,"spawnIntervalSeconds":1,"hpMultiplier":2.3,"moveSpeedMultiplier":1},
+    {"waveId":"WAVE_015","spawnOrder":1,"lanePolicy":"EACH_ACTIVE_PLAYER_LANE","monsterId":"MONSTER_NORMAL_DEFAULT","spawnCount":10,"spawnDelaySeconds":0,"spawnIntervalSeconds":1,"hpMultiplier":2.4,"moveSpeedMultiplier":1},
+    {"waveId":"WAVE_016","spawnOrder":1,"lanePolicy":"EACH_ACTIVE_PLAYER_LANE","monsterId":"MONSTER_NORMAL_DEFAULT","spawnCount":10,"spawnDelaySeconds":0,"spawnIntervalSeconds":1,"hpMultiplier":2.5,"moveSpeedMultiplier":1},
+    {"waveId":"WAVE_017","spawnOrder":1,"lanePolicy":"EACH_ACTIVE_PLAYER_LANE","monsterId":"MONSTER_NORMAL_DEFAULT","spawnCount":10,"spawnDelaySeconds":0,"spawnIntervalSeconds":1,"hpMultiplier":2.6,"moveSpeedMultiplier":1},
+    {"waveId":"WAVE_018","spawnOrder":1,"lanePolicy":"EACH_ACTIVE_PLAYER_LANE","monsterId":"MONSTER_NORMAL_DEFAULT","spawnCount":10,"spawnDelaySeconds":0,"spawnIntervalSeconds":1,"hpMultiplier":2.7,"moveSpeedMultiplier":1},
+    {"waveId":"WAVE_019","spawnOrder":1,"lanePolicy":"EACH_ACTIVE_PLAYER_LANE","monsterId":"MONSTER_NORMAL_DEFAULT","spawnCount":10,"spawnDelaySeconds":0,"spawnIntervalSeconds":1,"hpMultiplier":2.8,"moveSpeedMultiplier":1},
+    {"waveId":"WAVE_020","spawnOrder":1,"lanePolicy":"BOSS_SHARED","monsterId":"MONSTER_BOSS_DEFAULT","spawnCount":1,"spawnDelaySeconds":0,"spawnIntervalSeconds":0,"hpMultiplier":29,"moveSpeedMultiplier":1}
+  ]
+}

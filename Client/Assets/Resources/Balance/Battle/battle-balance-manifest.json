@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "balanceVersion": "battle-v1",
+  "bundleHash": "ab535ca2986ca84b196567cefa30c2e20c8f3e277efa131df9766a24c98633bf",
+  "files": [
+    {"resourcePath":"Balance/Battle/alien-skill-links","contentHash":"e5191ca7829d5de41391f57b51b832aab030c30145fb8c7c4031f3cb1b07c4f4"},
+    {"resourcePath":"Balance/Battle/boss-pattern-spec","contentHash":"e5191ca7829d5de41391f57b51b832aab030c30145fb8c7c4031f3cb1b07c4f4"},
+    {"resourcePath":"Balance/Battle/projectile-spec","contentHash":"e5191ca7829d5de41391f57b51b832aab030c30145fb8c7c4031f3cb1b07c4f4"},
+    {"resourcePath":"Balance/Battle/skill-effect-spec","contentHash":"e5191ca7829d5de41391f57b51b832aab030c30145fb8c7c4031f3cb1b07c4f4"},
+    {"resourcePath":"Balance/Battle/skill-spec","contentHash":"e5191ca7829d5de41391f57b51b832aab030c30145fb8c7c4031f3cb1b07c4f4"},
+    {"resourcePath":"Balance/Battle/wave-spawn-spec","contentHash":"b7dc29125ec5bca784c0c694433404c7503520be7fe8e2a4fd571611b9fb87a6"},
+    {"resourcePath":"Balance/Battle/wave-spec","contentHash":"4932b9030fdd8edafe13610144069143aeaf42c899085d06da898a0b33ee26c9"}
+  ]
+}

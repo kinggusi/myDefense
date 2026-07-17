@@ -1,0 +1,16 @@
+{
+  "mythicChoices" : [
+    {
+      "modeId" : "COOP_STANDARD",
+      "candidateCount" : 3,
+      "freeRerollCount" : 1,
+      "paidRerollLimit" : 1,
+      "paidRerollCost" : 100,
+      "excludePreviousCandidates" : true,
+      "selectionTimeoutSeconds" : 8.00,
+      "autoSelectPolicy" : "FIRST",
+      "battleContinuesDuringSelection" : true,
+      "enabled" : true
+    }
+  ]
+}

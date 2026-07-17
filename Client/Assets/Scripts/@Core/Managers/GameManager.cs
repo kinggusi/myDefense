@@ -16,6 +16,7 @@ public class GameManager : MonoBehaviour
     public Text goldText;    // 하단 중앙에 있는 1200 적힌 골드 텍스트를 연결해주세요!
     public Text waveText;    // 상단 웨이브/몬스터 정보 텍스트를 연결해주세요!
     public Text oppText;     // 상단 파트너 정보 텍스트를 연결해주세요!
+    public Text summonCostText; // 신규: 소환 비용 동기화 텍스트
 
     [Header("테스트 정보")]
     private long userId = 1;       // 내 ID
@@ -40,6 +41,7 @@ public class GameManager : MonoBehaviour
 
     void Start()
     {
+        UpdateKidnapCostUI(0);
         GameStart();
     }
 
@@ -99,6 +101,7 @@ public class GameManager : MonoBehaviour
 
                     // 4. remainingGold 갱신 (서버 성공 시 UI 골드는 무조건 동기화하여 갱신)
                     UpdateGoldUI(res.remainingGold);
+                    UpdateKidnapCostUI(res.currentKidnapCost);
 
                     if (!isLocallySpawned)
                     {
@@ -407,6 +410,21 @@ public class GameManager : MonoBehaviour
         if (goldText != null)
         {
             goldText.text = $"💰 {currentGold:N0}"; // N0 포맷으로 1,000 단위 콤마 찍기
+        }
+    }
+
+    public void UpdateKidnapCostUI(int cost)
+    {
+        if (summonCostText != null)
+        {
+            if (cost <= 0)
+            {
+                summonCostText.text = "왹져 소환 (불러오는 중)";
+            }
+            else
+            {
+                summonCostText.text = $"왹져 소환 ({cost:N0}골드)";
+            }
         }
     }
 
@@ -816,6 +834,7 @@ public class GameManager : MonoBehaviour
 
             // 6. Gold 와 게임종료(isGameOver) 상태 동기화 반영
             UpdateGoldUI(res.remainingGold);
+            UpdateKidnapCostUI(res.currentKidnapCost);
             isGameOver = res.isGameOver;
 
             if (isGameOver)

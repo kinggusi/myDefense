@@ -40,5 +40,7 @@
 *.xml text eol=lf
 *.yml text eol=lf
 *.md text eol=lf
+server/src/main/resources/balance/generated/*.json text eol=lf
+Client/Assets/StreamingAssets/Balance/generated/*.json text eol=lf
 gradlew text eol=lf
 *.bat text eol=crlf
