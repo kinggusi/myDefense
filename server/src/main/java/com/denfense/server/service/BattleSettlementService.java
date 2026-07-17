@@ -26,7 +26,7 @@ public class BattleSettlementService {
  }
  private BattleSettlementDtos.Response response(BattleSettlement s,boolean done){return new BattleSettlementDtos.Response(s.getBattleSessionId(),s.getStatus().name(),done,List.of());}
  private void validate(BattleSettlementDtos.Request r){
-  if(r==null||blank(r.requestId())||blank(r.battleSessionId())||blank(r.balanceVersion())||blank(r.contentHash())||blank(r.summaryHash())||r.result()==null||r.players()==null||r.players().size()!=2||r.monsterKills()==null||r.startedAt()==null||r.finishedAt()==null||r.startedAt().isAfter(r.finishedAt())||r.finalWave()<0)throw new BusinessException(ErrorCode.BATTLE_SUMMARY_INVALID);
+  if(r==null||blank(r.requestId())||blank(r.battleSessionId())||blank(r.balanceVersion())||blank(r.contentHash())||blank(r.summaryHash())||!validResult(r.result())||r.players()==null||r.players().size()!=2||r.monsterKills()==null||r.startedAt()==null||r.finishedAt()==null||r.startedAt().isAfter(r.finishedAt())||r.finalWave()<0)throw new BusinessException(ErrorCode.BATTLE_SUMMARY_INVALID);
   if(!versions.getBalanceVersion().equals(r.balanceVersion()))throw new BusinessException(ErrorCode.BATTLE_BALANCE_VERSION_MISMATCH);if(!versions.getContentHash().equals(r.contentHash()))throw new BusinessException(ErrorCode.BATTLE_CONTENT_HASH_MISMATCH);
   Set<String> ids=new HashSet<>();Set<Integer> slots=new HashSet<>();int total=0;
   for(var p:r.players()){if(blank(p.playerId())||!ids.add(p.playerId())||!slots.add(p.playerSlot())||p.playerSlot()<1||p.playerSlot()>2||p.kills()<0||p.supportKills()<0||p.bossKills()<0||p.initialInGameGold()<0||p.inGameGoldEarned()<0||p.inGameGoldSpent()<0||p.finalInGameGold()<0||p.initialInGameGold()+p.inGameGoldEarned()-p.inGameGoldSpent()!=p.finalInGameGold()||(p.eliminated()&&p.eliminatedWave()==null)||(!p.eliminated()&&p.eliminatedWave()!=null)||(p.eliminatedWave()!=null&&(p.eliminatedWave()<=0||p.eliminatedWave()>r.finalWave())))throw new BusinessException(ErrorCode.BATTLE_SUMMARY_INVALID);total+=p.kills();}
@@ -35,4 +35,5 @@ public class BattleSettlementService {
   if(total!=monsterTotal)throw new BusinessException(ErrorCode.BATTLE_SUMMARY_INVALID);
  }
  private boolean blank(String s){return s==null||s.trim().isEmpty();}
+ private boolean validResult(String result){try{BattleResult.valueOf(result);return true;}catch(IllegalArgumentException|NullPointerException ex){return false;}}
 }

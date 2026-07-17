@@ -704,6 +704,16 @@ Settlement는 최소 다음을 기록한다.
 - Monster 종류별 처치 수와 골드
 - 요약 무결성 값
 
+Unity의 런타임 전투 장부 `BattleSummary`와 서버 전송 DTO `BattleSettlementSummary`는 역할이 다르므로 분리한다.
+
+- `BattleSummary`: Fusion 매치 중 Wave, Lane, Kill, Gold를 누적하는 내부 장부
+- `BattleSettlementSummary`: 매치 종료 후 `POST /api/battle/settlements`로 보내는 공통 계약
+- 최상위 필드: `requestId`, `battleSessionId`, `balanceVersion`, `contentHash`, `result`, `finalWave`, `startedAt`, `finishedAt`, `players`, `monsterKills`, `summaryHash`
+- 참가자 필드: `playerId`, `playerSlot`, `eliminated`, `eliminatedWave`, `kills`, `supportKills`, `bossKills`, `initialInGameGold`, `inGameGoldEarned`, `inGameGoldSpent`, `finalInGameGold`
+- Monster 필드: `monsterSpecId`, `totalKills`, `bossKills`, `totalKillGold`
+- `eliminatedWave`는 탈락하지 않은 참가자에게 JSON `null`, 탈락한 참가자에게 양의 정수로 전송한다.
+- `startedAt`, `finishedAt`은 Spring `LocalDateTime`이 읽을 수 있는 ISO-8601 local date-time 문자열이다.
+
 ### 21.2 결과 분류 — 권장 정리
 
 - `CLEARED`: 80 Wave 정상 클리어
@@ -711,7 +721,7 @@ Settlement는 최소 다음을 기록한다.
 - `PLAYER_ABANDONED`: 명시적 이탈 또는 매치 종료까지 미복귀
 - `SERVER_ABORTED`: 서버·세션 장애로 정상 정산 불가
 
-현재 서버 Enum의 `VICTORY`, `DEFEAT`, `ABORTED`와 최종 명칭을 맞추는 작업이 필요하다.
+런타임 상태는 `MatchState`의 `CLEARED`, `FAILED`로 관리하고, Settlement 전송 결과는 서버 `BattleResult`와 동일한 `VICTORY`, `DEFEAT`, `ABORTED`를 사용한다. `PLAYER_ABANDONED`, `SERVER_ABORTED` 같은 세부 종료 원인은 별도 사유 필드가 추가되기 전까지 Settlement 결과값으로 직접 보내지 않는다.
 
 ### 21.3 협동 보상 자격 — 확정
 

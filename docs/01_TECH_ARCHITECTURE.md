@@ -42,6 +42,9 @@ Spring Boot
 - DTO, Enum, Interface
 - DamagePayload, IDamageable, ITargetProvider, HitEvent
 - Network contracts
+- `BattleSettlementSummary` Unity/Spring 전송 계약
+
+`BattleSummary`는 Unity 런타임 누적 장부이고 `BattleSettlementSummary`는 Spring 전송 DTO다. 전송 결과는 `VICTORY`, `DEFEAT`, `ABORTED`를 사용하며, nullable `eliminatedWave`를 포함한 JSON 필드는 Spring `BattleSettlementDtos`와 1:1로 유지한다.
 
 ## 3. Damage Flow
 ```text
