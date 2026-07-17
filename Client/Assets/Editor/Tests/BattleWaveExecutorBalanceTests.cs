@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Text.RegularExpressions;
 using MyDefense.Battle;
 using MyDefense.Battle.Balance;
+using MyDefense.Battle.Runtime;
 using MyDefense.Shared.Contracts;
 using NUnit.Framework;
 using UnityEditor;
@@ -27,6 +28,7 @@ namespace MyDefense.Battle.Tests
         private IMonsterDefinitionProvider _monsterDefinitions;
         private IBattleMonsterPrefabResolver _prefabResolver;
         private readonly List<GameObject> _spawnedObjects = new List<GameObject>();
+        private int _sessionNumber;
 
         [SetUp]
         public void SetUp()
@@ -53,7 +55,7 @@ namespace MyDefense.Battle.Tests
             SetField("_spawnPoint", _spawnPointObject.transform);
             SetField("_totalMonsterGoal", 100);
             Configure(new ResourcesBattleBalanceProvider(_monsterDefinitions, EmptyBattleAlienIdProvider.Instance));
-            _executor.InitializeSession();
+            InitializeRuntimeSession();
         }
 
         [TearDown]
@@ -100,7 +102,7 @@ namespace MyDefense.Battle.Tests
                 monsters: monsters,
                 aliens: BattleBalanceTestFixture.Aliens());
             Configure(provider, monsters, new RejectingPrefabResolver());
-            _executor.InitializeSession();
+            InitializeRuntimeSession();
             SetField("_currentRound", 1);
 
             Assert.That(Invoke<bool>("TryBeginNextWave"), Is.True);
@@ -271,7 +273,7 @@ namespace MyDefense.Battle.Tests
         public void InvalidProvider_ReportsAllErrorsOnceAndFaultsExecutor()
         {
             Configure(new InvalidBalanceProvider("validation one", "validation two"));
-            _executor.InitializeSession();
+            InitializeRuntimeSession();
             LogAssert.Expect(LogType.Error, new Regex("validation one[\\s\\S]*validation two"));
 
             Assert.That(Invoke<bool>("EnsureBalanceInitialized"), Is.False);
@@ -287,7 +289,7 @@ namespace MyDefense.Battle.Tests
                 new ResourcesBattleBalanceProvider(_monsterDefinitions, EmptyBattleAlienIdProvider.Instance),
                 _monsterDefinitions,
                 new RejectingPrefabResolver());
-            _executor.InitializeSession();
+            InitializeRuntimeSession();
             BeginActualRoundOne();
             LogAssert.Expect(LogType.Error, new Regex("Cannot resolve prefabKey"));
 
@@ -303,7 +305,7 @@ namespace MyDefense.Battle.Tests
                 new ResourcesBattleBalanceProvider(_monsterDefinitions, EmptyBattleAlienIdProvider.Instance),
                 new RejectingMonsterProvider(),
                 _prefabResolver);
-            _executor.InitializeSession();
+            InitializeRuntimeSession();
             BeginActualRoundOne();
             LogAssert.Expect(LogType.Error, new Regex("unknown monsterId 'MONSTER_NORMAL_DEFAULT'"));
 
@@ -333,7 +335,7 @@ namespace MyDefense.Battle.Tests
                 provider,
                 monsters,
                 new ExplicitBattleMonsterPrefabResolver("Monster", _monsterPrefab));
-            _executor.InitializeSession();
+            InitializeRuntimeSession();
             Assert.That(Invoke<bool>("TryBeginNextWave"), Is.True);
             LogAssert.Expect(LogType.Error, new Regex("Cannot resolve prefabKey 'Missing'"));
 
@@ -354,7 +356,7 @@ namespace MyDefense.Battle.Tests
                 new ResourcesBattleBalanceProvider(_monsterDefinitions, EmptyBattleAlienIdProvider.Instance),
                 _monsterDefinitions,
                 new ExplicitBattleMonsterPrefabResolver("Monster", invalid));
-            _executor.InitializeSession();
+            InitializeRuntimeSession();
             BeginActualRoundOne();
             LogAssert.Expect(LogType.Error, new Regex("exactly one BattleMonsterMovement"));
 
@@ -373,7 +375,7 @@ namespace MyDefense.Battle.Tests
                 new ResourcesBattleBalanceProvider(_monsterDefinitions, EmptyBattleAlienIdProvider.Instance),
                 _monsterDefinitions,
                 new ExplicitBattleMonsterPrefabResolver("Monster", invalid));
-            _executor.InitializeSession();
+            InitializeRuntimeSession();
             BeginActualRoundOne();
             LogAssert.Expect(LogType.Error, new Regex("must contain MonsterStat"));
 
@@ -398,6 +400,20 @@ namespace MyDefense.Battle.Tests
                 provider,
                 monsters ?? _monsterDefinitions,
                 resolver ?? _prefabResolver);
+        }
+
+        private void InitializeRuntimeSession()
+        {
+            _sessionNumber++;
+            _executor.InitializeSession(
+                new BattleSessionContext(
+                    "executor-fixture-session-" + _sessionNumber,
+                    "fixture-canonical-v1",
+                    "fixture-canonical-hash",
+                    "fixture-battle-v1",
+                    "fixture-battle-hash",
+                    _sessionNumber),
+                new BattlePlayerIdentityMap("fixture-player-alpha", "fixture-player-beta"));
         }
 
         private void AssertFaultedAndStopped()

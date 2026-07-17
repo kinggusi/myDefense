@@ -4,6 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 using MyDefense.Battle.Balance;
 using MyDefense.Battle.Balance.Canonical;
+using MyDefense.Battle.Runtime;
 using MyDefense.Shared.Contracts;
 using Object = UnityEngine.Object;
 
@@ -77,6 +78,9 @@ namespace MyDefense.Battle
         private float _activeBossTimeLimitSeconds;
         private int _monsterWarningThreshold = 80;
         private int _monsterDangerThreshold = 90;
+        private BattleSessionContext _runtimeSession;
+        private IBattlePlayerIdentityProvider _playerIdentityProvider;
+        private BattleSpawnSequenceIssuer _spawnSequenceIssuer;
 
         public LaneType LocalPlayerLane => _localPlayerLane;
 
@@ -125,6 +129,7 @@ namespace MyDefense.Battle
         public string CanonicalContentHash => (_battleBalanceProvider as ICanonicalCompositeBattleBalanceProvider)?.CanonicalContentHash;
         public string BattleContentVersion => (_battleBalanceProvider as ICanonicalCompositeBattleBalanceProvider)?.BattleContentVersion;
         public string BattleContentHash => (_battleBalanceProvider as ICanonicalCompositeBattleBalanceProvider)?.BattleContentHash;
+        public BattleSessionContext RuntimeSession => _runtimeSession;
 
         private void Awake()
         {
@@ -161,6 +166,9 @@ namespace MyDefense.Battle
         {
             StopSessionCoroutines();
             ReleaseCurrentBoss();
+            _runtimeSession = null;
+            _playerIdentityProvider = null;
+            _spawnSequenceIssuer = null;
             if (Instance == this)
             {
                 Instance = null;
@@ -254,6 +262,59 @@ namespace MyDefense.Battle
             _monsterPrefabResolver = prefabResolver;
             _balanceInitializationAttempted = false;
             _isFaulted = false;
+        }
+
+        private bool EnsureRuntimeSessionReady()
+        {
+            if (_runtimeSession == null || _spawnSequenceIssuer == null || _playerIdentityProvider == null)
+            {
+                FaultExecution(
+                    "Battle runtime session must be injected before a wave can start. "
+                    + "Use InitializeSession(BattleSessionContext, IBattlePlayerIdentityProvider).");
+                return false;
+            }
+
+            string player1Id;
+            string player2Id;
+            if (!_playerIdentityProvider.TryGetPlayerId(LaneType.Player1Lane, out player1Id)
+                || string.IsNullOrWhiteSpace(player1Id)
+                || !_playerIdentityProvider.TryGetPlayerId(LaneType.Player2Lane, out player2Id)
+                || string.IsNullOrWhiteSpace(player2Id)
+                || string.Equals(player1Id, player2Id, StringComparison.Ordinal))
+            {
+                FaultExecution("Battle player identity provider must resolve two distinct, non-empty player IDs.");
+                return false;
+            }
+
+            if (_battleBalanceProvider is ICanonicalCompositeBattleBalanceProvider canonical
+                && (!string.Equals(_runtimeSession.CanonicalBalanceVersion, canonical.CanonicalBalanceVersion, StringComparison.Ordinal)
+                    || !string.Equals(_runtimeSession.CanonicalContentHash, canonical.CanonicalContentHash, StringComparison.Ordinal)
+                    || !string.Equals(_runtimeSession.BattleContentVersion, canonical.BattleContentVersion, StringComparison.Ordinal)
+                    || !string.Equals(_runtimeSession.BattleContentHash, canonical.BattleContentHash, StringComparison.Ordinal)))
+            {
+                FaultExecution("Injected Battle session balance version/hash does not match the loaded canonical bundle.");
+                return false;
+            }
+
+            return true;
+        }
+
+        private static void ValidatePlayerIdentityProvider(IBattlePlayerIdentityProvider playerIdentityProvider)
+        {
+            if (playerIdentityProvider == null) throw new ArgumentNullException(nameof(playerIdentityProvider));
+
+            string player1Id;
+            string player2Id;
+            if (!playerIdentityProvider.TryGetPlayerId(LaneType.Player1Lane, out player1Id)
+                || string.IsNullOrWhiteSpace(player1Id)
+                || !playerIdentityProvider.TryGetPlayerId(LaneType.Player2Lane, out player2Id)
+                || string.IsNullOrWhiteSpace(player2Id)
+                || string.Equals(player1Id, player2Id, StringComparison.Ordinal))
+            {
+                throw new ArgumentException(
+                    "Player identity provider must resolve two distinct, non-empty player IDs.",
+                    nameof(playerIdentityProvider));
+            }
         }
 
         private void FaultExecution(string reason)
@@ -449,6 +510,37 @@ namespace MyDefense.Battle
 
         public void InitializeSession()
         {
+            if (_runtimeSession != null)
+            {
+                throw new InvalidOperationException(
+                    "Reinitializing a runtime Battle session requires a new BattleSessionContext.");
+            }
+
+            _playerIdentityProvider = null;
+            _spawnSequenceIssuer = null;
+            ResetSessionState();
+        }
+
+        public void InitializeSession(
+            BattleSessionContext sessionContext,
+            IBattlePlayerIdentityProvider playerIdentityProvider)
+        {
+            if (sessionContext == null) throw new ArgumentNullException(nameof(sessionContext));
+            ValidatePlayerIdentityProvider(playerIdentityProvider);
+            if (_runtimeSession != null
+                && string.Equals(_runtimeSession.BattleSessionId, sessionContext.BattleSessionId, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException("Session reinitialization requires a new battleSessionId.");
+            }
+
+            _runtimeSession = sessionContext;
+            _playerIdentityProvider = playerIdentityProvider;
+            _spawnSequenceIssuer = new BattleSpawnSequenceIssuer();
+            ResetSessionState();
+        }
+
+        private void ResetSessionState()
+        {
             StopSessionCoroutines();
             ReleaseCurrentBoss();
             _currentRound = 0;
@@ -492,7 +584,8 @@ namespace MyDefense.Battle
 
         private void Start()
         {
-            InitializeSession();
+            if (_runtimeSession == null)
+                InitializeSession();
 
             if (!EnsureBalanceInitialized())
             {
@@ -604,6 +697,7 @@ namespace MyDefense.Battle
             if (!EnsureBalanceInitialized()) return false;
             if (_matchState != MatchState.RUNNING) return false;
             if (CheckGameOverState()) return false;
+            if (!EnsureRuntimeSessionReady()) return false;
 
             if (AreAllPlayersEliminated)
             {
@@ -958,6 +1052,7 @@ namespace MyDefense.Battle
             out GameObject spawnedInstance)
         {
             spawnedInstance = null;
+            if (!EnsureRuntimeSessionReady()) return false;
             if (definition == null)
             {
                 FaultExecution("Cannot spawn a null MonsterDefinition.");
@@ -996,6 +1091,44 @@ namespace MyDefense.Battle
                 return false;
             }
 
+            int runtimeContextCount = prefab.GetComponents<BattleMonsterRuntimeContext>().Length;
+            if (runtimeContextCount != 1)
+            {
+                FaultExecution(
+                    $"Prefab '{prefab.name}' for monsterId '{definition.MonsterId}' must contain exactly one "
+                    + $"BattleMonsterRuntimeContext, but found {runtimeContextCount}.");
+                return false;
+            }
+
+            BattleMonsterLanePolicy runtimeLanePolicy;
+            string fieldOwnerPlayerId;
+            if (lane == LaneType.BossSharedLane)
+            {
+                runtimeLanePolicy = BattleMonsterLanePolicy.BOSS_SHARED;
+                fieldOwnerPlayerId = null;
+            }
+            else
+            {
+                runtimeLanePolicy = BattleMonsterLanePolicy.EACH_FIELD;
+                if (!_playerIdentityProvider.TryGetPlayerId(lane, out fieldOwnerPlayerId)
+                    || string.IsNullOrWhiteSpace(fieldOwnerPlayerId))
+                {
+                    FaultExecution($"Player identity provider cannot resolve owner for lane '{lane}'.");
+                    return false;
+                }
+            }
+
+            ulong spawnSequence;
+            try
+            {
+                spawnSequence = _spawnSequenceIssuer.IssueNext();
+            }
+            catch (OverflowException exception)
+            {
+                FaultExecution(exception.Message);
+                return false;
+            }
+
             spawnedInstance = Instantiate(prefab, _spawnPoint.position, Quaternion.identity);
             if (spawnedInstance == null)
             {
@@ -1005,6 +1138,28 @@ namespace MyDefense.Battle
             }
 
             float resolvedMoveSpeed = definition.MoveSpeed * spawn.MoveSpeedMultiplier;
+            float resolvedMaxHp = definition.BaseMaxHp * spawn.HpMultiplier;
+            BattleMonsterRuntimeContext runtimeContext = spawnedInstance.GetComponent<BattleMonsterRuntimeContext>();
+            try
+            {
+                runtimeContext.Initialize(new BattleMonsterRuntimeIdentity(
+                    _runtimeSession,
+                    spawnSequence,
+                    definition.MonsterId,
+                    runtimeLanePolicy,
+                    fieldOwnerPlayerId,
+                    _currentRound,
+                    spawnSequence));
+            }
+            catch (Exception exception)
+            {
+                DestroySpawnedInstance(spawnedInstance);
+                spawnedInstance = null;
+                FaultExecution(
+                    $"Runtime context initialization failed for monsterId '{definition.MonsterId}': {exception.Message}");
+                return false;
+            }
+
             if (!TryConfigureSpawnedMovement(spawnedInstance, lane, resolvedMoveSpeed))
             {
                 spawnedInstance = null;
@@ -1012,7 +1167,6 @@ namespace MyDefense.Battle
             }
 
             MonsterStat stat = spawnedInstance.GetComponent<MonsterStat>();
-            float resolvedMaxHp = definition.BaseMaxHp * spawn.HpMultiplier;
             stat.InitializeHp(resolvedMaxHp);
             stat.InitializeBattleContext(lane, definition.CountsTowardLaneLimit);
             spawnedInstance.transform.localScale = Vector3.one * scale;
