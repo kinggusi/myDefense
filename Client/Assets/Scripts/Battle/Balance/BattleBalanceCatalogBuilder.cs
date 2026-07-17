@@ -34,6 +34,33 @@ namespace MyDefense.Battle.Balance
                 return new BattleBalanceCatalogBuildResult(null, errors);
 
             ValidateManifest(manifest, documents, errors);
+            ValidateDocuments(documents, monsterDefinitions, alienIds, errors);
+            BattleBalanceCatalog catalog = errors.Count == 0 ? new BattleBalanceCatalog(documents) : null;
+            return new BattleBalanceCatalogBuildResult(catalog, errors);
+        }
+
+        public static BattleBalanceCatalogBuildResult BuildComposite(
+            BattleBalanceDocuments documents,
+            IMonsterDefinitionProvider monsterDefinitions,
+            IAlienIdProvider alienIds)
+        {
+            var errors = new List<string>();
+            if (documents == null) errors.Add("All composite Battle balance documents are required.");
+            if (monsterDefinitions == null) errors.Add("Monster definition provider is required.");
+            if (alienIds == null) errors.Add("Alien ID provider is required.");
+            if (errors.Count > 0) return new BattleBalanceCatalogBuildResult(null, errors);
+
+            ValidateDocuments(documents, monsterDefinitions, alienIds, errors);
+            BattleBalanceCatalog catalog = errors.Count == 0 ? new BattleBalanceCatalog(documents) : null;
+            return new BattleBalanceCatalogBuildResult(catalog, errors);
+        }
+
+        private static void ValidateDocuments(
+            BattleBalanceDocuments documents,
+            IMonsterDefinitionProvider monsterDefinitions,
+            IAlienIdProvider alienIds,
+            List<string> errors)
+        {
             ValidateWaves(documents.Waves.Items, errors);
 
             var wavesById = BuildUniqueMap(documents.Waves.Items, item => item.WaveId, "WaveSpec.waveId", errors);
@@ -46,9 +73,6 @@ namespace MyDefense.Battle.Balance
             ValidateAlienSkills(documents.AlienSkills.Items, skillsById, alienIds, errors);
             ValidateProjectiles(documents.Projectiles.Items, errors);
             ValidateSkillEffects(documents.SkillEffects.Items, skillsById, errors);
-
-            BattleBalanceCatalog catalog = errors.Count == 0 ? new BattleBalanceCatalog(documents) : null;
-            return new BattleBalanceCatalogBuildResult(catalog, errors);
         }
 
         private static void ValidateManifest(BattleBalanceManifestData manifest, BattleBalanceDocuments documents, List<string> errors)
@@ -209,7 +233,8 @@ namespace MyDefense.Battle.Balance
         {
             bool isNormal = string.Equals(definition.MonsterType, "NORMAL", StringComparison.Ordinal);
             bool isElite = string.Equals(definition.MonsterType, "ELITE", StringComparison.Ordinal);
-            bool isBoss = string.Equals(definition.MonsterType, "BOSS", StringComparison.Ordinal);
+            bool isBoss = string.Equals(definition.MonsterType, "BOSS", StringComparison.Ordinal)
+                || string.Equals(definition.MonsterType, "WAVE_BOSS", StringComparison.Ordinal);
             if (!isNormal && !isElite && !isBoss)
             {
                 errors.Add("WaveSpawnSpec " + spawnKey + " references MonsterDefinition with unsupported monsterType: " + Label(definition.MonsterType) + ".");

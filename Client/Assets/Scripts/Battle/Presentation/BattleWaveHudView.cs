@@ -120,7 +120,8 @@ namespace MyDefense.Battle
 
             if (limit < 0)
             {
-                limit = _subscribedExecutor != null ? _subscribedExecutor.MonsterLimit : 100;
+                if (_subscribedExecutor == null) return;
+                limit = _subscribedExecutor.MonsterLimit;
             }
 
             bool eliminated = state == PlayerBattleState.ELIMINATED || count >= limit;
@@ -134,8 +135,8 @@ namespace MyDefense.Battle
         private Color GetCountColor(int count, int limit, bool eliminated)
         {
             if (eliminated || count >= limit) return _eliminatedColor;
-            if (count >= 90) return _dangerColor;
-            if (count >= 80) return _warningColor;
+            if (_subscribedExecutor != null && count >= _subscribedExecutor.MonsterDangerThreshold) return _dangerColor;
+            if (_subscribedExecutor != null && count >= _subscribedExecutor.MonsterWarningThreshold) return _warningColor;
             return _normalColor;
         }
 

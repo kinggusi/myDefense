@@ -1,0 +1,352 @@
+[
+  {
+    "atkMultiplier" : 1.00,
+    "atkSpeedMultiplier" : 1.00,
+    "level" : 1,
+    "mpMultiplier" : 1.00,
+    "rangeMultiplier" : 1.00
+  },
+  {
+    "atkMultiplier" : 1.05,
+    "atkSpeedMultiplier" : 1.00,
+    "level" : 2,
+    "mpMultiplier" : 1.03,
+    "rangeMultiplier" : 1.00
+  },
+  {
+    "atkMultiplier" : 1.10,
+    "atkSpeedMultiplier" : 1.00,
+    "level" : 3,
+    "mpMultiplier" : 1.06,
+    "rangeMultiplier" : 1.00
+  },
+  {
+    "atkMultiplier" : 1.15,
+    "atkSpeedMultiplier" : 1.00,
+    "level" : 4,
+    "mpMultiplier" : 1.09,
+    "rangeMultiplier" : 1.00
+  },
+  {
+    "atkMultiplier" : 1.20,
+    "atkSpeedMultiplier" : 1.00,
+    "level" : 5,
+    "mpMultiplier" : 1.12,
+    "rangeMultiplier" : 1.00
+  },
+  {
+    "atkMultiplier" : 1.25,
+    "atkSpeedMultiplier" : 1.00,
+    "level" : 6,
+    "mpMultiplier" : 1.15,
+    "rangeMultiplier" : 1.00
+  },
+  {
+    "atkMultiplier" : 1.30,
+    "atkSpeedMultiplier" : 1.00,
+    "level" : 7,
+    "mpMultiplier" : 1.18,
+    "rangeMultiplier" : 1.00
+  },
+  {
+    "atkMultiplier" : 1.35,
+    "atkSpeedMultiplier" : 1.00,
+    "level" : 8,
+    "mpMultiplier" : 1.21,
+    "rangeMultiplier" : 1.00
+  },
+  {
+    "atkMultiplier" : 1.40,
+    "atkSpeedMultiplier" : 1.00,
+    "level" : 9,
+    "mpMultiplier" : 1.24,
+    "rangeMultiplier" : 1.00
+  },
+  {
+    "atkMultiplier" : 1.45,
+    "atkSpeedMultiplier" : 1.02,
+    "level" : 10,
+    "mpMultiplier" : 1.27,
+    "rangeMultiplier" : 1.00
+  },
+  {
+    "atkMultiplier" : 1.50,
+    "atkSpeedMultiplier" : 1.02,
+    "level" : 11,
+    "mpMultiplier" : 1.30,
+    "rangeMultiplier" : 1.00
+  },
+  {
+    "atkMultiplier" : 1.55,
+    "atkSpeedMultiplier" : 1.02,
+    "level" : 12,
+    "mpMultiplier" : 1.33,
+    "rangeMultiplier" : 1.00
+  },
+  {
+    "atkMultiplier" : 1.60,
+    "atkSpeedMultiplier" : 1.02,
+    "level" : 13,
+    "mpMultiplier" : 1.36,
+    "rangeMultiplier" : 1.00
+  },
+  {
+    "atkMultiplier" : 1.65,
+    "atkSpeedMultiplier" : 1.02,
+    "level" : 14,
+    "mpMultiplier" : 1.39,
+    "rangeMultiplier" : 1.00
+  },
+  {
+    "atkMultiplier" : 1.70,
+    "atkSpeedMultiplier" : 1.02,
+    "level" : 15,
+    "mpMultiplier" : 1.42,
+    "rangeMultiplier" : 1.00
+  },
+  {
+    "atkMultiplier" : 1.75,
+    "atkSpeedMultiplier" : 1.02,
+    "level" : 16,
+    "mpMultiplier" : 1.45,
+    "rangeMultiplier" : 1.00
+  },
+  {
+    "atkMultiplier" : 1.80,
+    "atkSpeedMultiplier" : 1.02,
+    "level" : 17,
+    "mpMultiplier" : 1.48,
+    "rangeMultiplier" : 1.00
+  },
+  {
+    "atkMultiplier" : 1.85,
+    "atkSpeedMultiplier" : 1.02,
+    "level" : 18,
+    "mpMultiplier" : 1.51,
+    "rangeMultiplier" : 1.00
+  },
+  {
+    "atkMultiplier" : 1.90,
+    "atkSpeedMultiplier" : 1.02,
+    "level" : 19,
+    "mpMultiplier" : 1.54,
+    "rangeMultiplier" : 1.00
+  },
+  {
+    "atkMultiplier" : 1.95,
+    "atkSpeedMultiplier" : 1.04,
+    "level" : 20,
+    "mpMultiplier" : 1.57,
+    "rangeMultiplier" : 1.00
+  },
+  {
+    "atkMultiplier" : 2.00,
+    "atkSpeedMultiplier" : 1.04,
+    "level" : 21,
+    "mpMultiplier" : 1.60,
+    "rangeMultiplier" : 1.00
+  },
+  {
+    "atkMultiplier" : 2.05,
+    "atkSpeedMultiplier" : 1.04,
+    "level" : 22,
+    "mpMultiplier" : 1.63,
+    "rangeMultiplier" : 1.00
+  },
+  {
+    "atkMultiplier" : 2.10,
+    "atkSpeedMultiplier" : 1.04,
+    "level" : 23,
+    "mpMultiplier" : 1.66,
+    "rangeMultiplier" : 1.00
+  },
+  {
+    "atkMultiplier" : 2.15,
+    "atkSpeedMultiplier" : 1.04,
+    "level" : 24,
+    "mpMultiplier" : 1.69,
+    "rangeMultiplier" : 1.00
+  },
+  {
+    "atkMultiplier" : 2.20,
+    "atkSpeedMultiplier" : 1.04,
+    "level" : 25,
+    "mpMultiplier" : 1.72,
+    "rangeMultiplier" : 1.00
+  },
+  {
+    "atkMultiplier" : 2.25,
+    "atkSpeedMultiplier" : 1.04,
+    "level" : 26,
+    "mpMultiplier" : 1.75,
+    "rangeMultiplier" : 1.00
+  },
+  {
+    "atkMultiplier" : 2.30,
+    "atkSpeedMultiplier" : 1.04,
+    "level" : 27,
+    "mpMultiplier" : 1.78,
+    "rangeMultiplier" : 1.00
+  },
+  {
+    "atkMultiplier" : 2.35,
+    "atkSpeedMultiplier" : 1.04,
+    "level" : 28,
+    "mpMultiplier" : 1.81,
+    "rangeMultiplier" : 1.00
+  },
+  {
+    "atkMultiplier" : 2.40,
+    "atkSpeedMultiplier" : 1.04,
+    "level" : 29,
+    "mpMultiplier" : 1.84,
+    "rangeMultiplier" : 1.00
+  },
+  {
+    "atkMultiplier" : 2.45,
+    "atkSpeedMultiplier" : 1.06,
+    "level" : 30,
+    "mpMultiplier" : 1.87,
+    "rangeMultiplier" : 1.00
+  },
+  {
+    "atkMultiplier" : 2.50,
+    "atkSpeedMultiplier" : 1.06,
+    "level" : 31,
+    "mpMultiplier" : 1.90,
+    "rangeMultiplier" : 1.00
+  },
+  {
+    "atkMultiplier" : 2.55,
+    "atkSpeedMultiplier" : 1.06,
+    "level" : 32,
+    "mpMultiplier" : 1.93,
+    "rangeMultiplier" : 1.00
+  },
+  {
+    "atkMultiplier" : 2.60,
+    "atkSpeedMultiplier" : 1.06,
+    "level" : 33,
+    "mpMultiplier" : 1.96,
+    "rangeMultiplier" : 1.00
+  },
+  {
+    "atkMultiplier" : 2.65,
+    "atkSpeedMultiplier" : 1.06,
+    "level" : 34,
+    "mpMultiplier" : 1.99,
+    "rangeMultiplier" : 1.00
+  },
+  {
+    "atkMultiplier" : 2.70,
+    "atkSpeedMultiplier" : 1.06,
+    "level" : 35,
+    "mpMultiplier" : 2.02,
+    "rangeMultiplier" : 1.00
+  },
+  {
+    "atkMultiplier" : 2.75,
+    "atkSpeedMultiplier" : 1.06,
+    "level" : 36,
+    "mpMultiplier" : 2.05,
+    "rangeMultiplier" : 1.00
+  },
+  {
+    "atkMultiplier" : 2.80,
+    "atkSpeedMultiplier" : 1.06,
+    "level" : 37,
+    "mpMultiplier" : 2.08,
+    "rangeMultiplier" : 1.00
+  },
+  {
+    "atkMultiplier" : 2.85,
+    "atkSpeedMultiplier" : 1.06,
+    "level" : 38,
+    "mpMultiplier" : 2.11,
+    "rangeMultiplier" : 1.00
+  },
+  {
+    "atkMultiplier" : 2.90,
+    "atkSpeedMultiplier" : 1.06,
+    "level" : 39,
+    "mpMultiplier" : 2.14,
+    "rangeMultiplier" : 1.00
+  },
+  {
+    "atkMultiplier" : 2.95,
+    "atkSpeedMultiplier" : 1.08,
+    "level" : 40,
+    "mpMultiplier" : 2.17,
+    "rangeMultiplier" : 1.00
+  },
+  {
+    "atkMultiplier" : 3.00,
+    "atkSpeedMultiplier" : 1.08,
+    "level" : 41,
+    "mpMultiplier" : 2.20,
+    "rangeMultiplier" : 1.00
+  },
+  {
+    "atkMultiplier" : 3.05,
+    "atkSpeedMultiplier" : 1.08,
+    "level" : 42,
+    "mpMultiplier" : 2.23,
+    "rangeMultiplier" : 1.00
+  },
+  {
+    "atkMultiplier" : 3.10,
+    "atkSpeedMultiplier" : 1.08,
+    "level" : 43,
+    "mpMultiplier" : 2.26,
+    "rangeMultiplier" : 1.00
+  },
+  {
+    "atkMultiplier" : 3.15,
+    "atkSpeedMultiplier" : 1.08,
+    "level" : 44,
+    "mpMultiplier" : 2.29,
+    "rangeMultiplier" : 1.00
+  },
+  {
+    "atkMultiplier" : 3.20,
+    "atkSpeedMultiplier" : 1.08,
+    "level" : 45,
+    "mpMultiplier" : 2.32,
+    "rangeMultiplier" : 1.00
+  },
+  {
+    "atkMultiplier" : 3.25,
+    "atkSpeedMultiplier" : 1.08,
+    "level" : 46,
+    "mpMultiplier" : 2.35,
+    "rangeMultiplier" : 1.00
+  },
+  {
+    "atkMultiplier" : 3.30,
+    "atkSpeedMultiplier" : 1.08,
+    "level" : 47,
+    "mpMultiplier" : 2.38,
+    "rangeMultiplier" : 1.00
+  },
+  {
+    "atkMultiplier" : 3.35,
+    "atkSpeedMultiplier" : 1.08,
+    "level" : 48,
+    "mpMultiplier" : 2.41,
+    "rangeMultiplier" : 1.00
+  },
+  {
+    "atkMultiplier" : 3.40,
+    "atkSpeedMultiplier" : 1.08,
+    "level" : 49,
+    "mpMultiplier" : 2.44,
+    "rangeMultiplier" : 1.00
+  },
+  {
+    "atkMultiplier" : 3.45,
+    "atkSpeedMultiplier" : 1.10,
+    "level" : 50,
+    "mpMultiplier" : 2.47,
+    "rangeMultiplier" : 1.00
+  }
+]

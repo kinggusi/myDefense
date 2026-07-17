@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using MyDefense.Battle.Balance;
+using MyDefense.Battle.Balance.Canonical;
 using MyDefense.Shared.Contracts;
 using Object = UnityEngine.Object;
 
@@ -74,6 +75,8 @@ namespace MyDefense.Battle
         private bool _catalogExhausted;
         private bool _catalogExhaustedReported;
         private float _activeBossTimeLimitSeconds;
+        private int _monsterWarningThreshold = 80;
+        private int _monsterDangerThreshold = 90;
 
         public LaneType LocalPlayerLane => _localPlayerLane;
 
@@ -96,6 +99,8 @@ namespace MyDefense.Battle
         public bool Player2LimitReached => _player2BattleState == PlayerBattleState.ELIMINATED;
         public bool AreAllPlayersEliminated => Player1LimitReached && Player2LimitReached;
         public int MonsterLimit => _totalMonsterGoal;
+        public int MonsterWarningThreshold => _monsterWarningThreshold;
+        public int MonsterDangerThreshold => _monsterDangerThreshold;
         public int SpawnedMonsterCount => _player1AliveMonsterCount + _player2AliveMonsterCount;
         public int TotalMonsterGoal => _totalMonsterGoal;
 
@@ -116,6 +121,10 @@ namespace MyDefense.Battle
         public bool IsWaveRunning => _isWaveRunning;
         public bool IsCatalogExhausted => _catalogExhausted;
         public string BattleBalanceContentHash => _battleBalanceProvider?.ContentHash;
+        public string CanonicalBalanceVersion => (_battleBalanceProvider as ICanonicalCompositeBattleBalanceProvider)?.CanonicalBalanceVersion;
+        public string CanonicalContentHash => (_battleBalanceProvider as ICanonicalCompositeBattleBalanceProvider)?.CanonicalContentHash;
+        public string BattleContentVersion => (_battleBalanceProvider as ICanonicalCompositeBattleBalanceProvider)?.BattleContentVersion;
+        public string BattleContentHash => (_battleBalanceProvider as ICanonicalCompositeBattleBalanceProvider)?.BattleContentHash;
 
         private void Awake()
         {
@@ -173,24 +182,15 @@ namespace MyDefense.Battle
             _balanceInitializationAttempted = true;
             if (_battleBalanceProvider == null)
             {
-                TemporaryBattleMonsterDefinitionProvider temporaryProvider;
-                string adapterError;
-                if (!TemporaryBattleMonsterDefinitionProvider.TryCreate(
-                        _monsterPrefab,
-                        out temporaryProvider,
-                        out adapterError))
-                {
-                    FaultExecution("Battle balance initialization failed: " + adapterError);
-                    return false;
-                }
-
-                _monsterDefinitionProvider = temporaryProvider;
+                CanonicalCompositeBattleBalanceProvider canonicalProvider =
+                    CanonicalCompositeBattleBalanceProvider.LoadProduction(
+                        new ExistingMonsterPrefabRuntimeMapping(),
+                        EmptyBattleAlienIdProvider.Instance);
+                _battleBalanceProvider = canonicalProvider;
+                _monsterDefinitionProvider = canonicalProvider.MonsterDefinitions;
                 _monsterPrefabResolver = new ExplicitBattleMonsterPrefabResolver(
-                    TemporaryBattleMonsterDefinitionProvider.ExistingMonsterPrefabKey,
+                    ExistingMonsterPrefabRuntimeMapping.ExistingPrefabKey,
                     _monsterPrefab);
-                _battleBalanceProvider = new ResourcesBattleBalanceProvider(
-                    _monsterDefinitionProvider,
-                    EmptyBattleAlienIdProvider.Instance);
             }
 
             var dependencyErrors = new List<string>();
@@ -218,10 +218,30 @@ namespace MyDefense.Battle
                 return false;
             }
 
+            if (_battleBalanceProvider is ICanonicalCompositeBattleBalanceProvider composite)
+            {
+                ApplyCanonicalFieldLimit(composite.FieldLimit);
+            }
+
             Debug.Log(
                 $"[BattleWaveExecutor] Battle balance initialized: version={_battleBalanceProvider.BalanceVersion}, "
                 + $"bundleHash={_battleBalanceProvider.ContentHash}.");
             return true;
+        }
+
+        private void ApplyCanonicalFieldLimit(CanonicalFieldLimit fieldLimit)
+        {
+            if (fieldLimit == null)
+            {
+                FaultExecution("Canonical FieldLimit is required for Battle execution.");
+                return;
+            }
+
+            _totalMonsterGoal = fieldLimit.MaxAliveMonsterCountPerField;
+            _monsterWarningThreshold = fieldLimit.WarningThreshold;
+            _monsterDangerThreshold = fieldLimit.DangerThreshold;
+            OnPlayerMonsterCountChanged?.Invoke(LaneType.Player1Lane, _player1AliveMonsterCount, _totalMonsterGoal);
+            OnPlayerMonsterCountChanged?.Invoke(LaneType.Player2Lane, _player2AliveMonsterCount, _totalMonsterGoal);
         }
 
         private void ConfigureBalanceDependenciesForTests(

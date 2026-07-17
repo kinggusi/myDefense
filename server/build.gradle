@@ -117,3 +117,182 @@ task convertBattleBalance(type: JavaExec) {
 
     args = [excelPath, outputPath]
 }
+
+tasks.register('syncCanonicalBalanceToUnity') {
+    group = 'balance'
+    description = 'Verifies and atomically syncs canonical generated JSON to Unity StreamingAssets'
+
+    def sourceDirectory = file("${project.projectDir}/src/main/resources/balance/generated")
+    def targetDirectory = file("${project.projectDir}/../Client/Assets/StreamingAssets/Balance/generated")
+    inputs.dir(sourceDirectory)
+    outputs.dir(targetDirectory)
+    outputs.upToDateWhen { false }
+
+    doLast {
+        def sha256 = { byte[] bytes ->
+            java.security.MessageDigest.getInstance('SHA-256')
+                    .digest(bytes)
+                    .collect { String.format('%02x', it & 0xff) }
+                    .join()
+        }
+        def isSafeName = { String name ->
+            name != null && name != 'balance-manifest.json'
+                    && !name.contains('..')
+                    && name ==~ /[A-Za-z0-9][A-Za-z0-9._-]*\.json/
+        }
+        def manifestFile = new File(sourceDirectory, 'balance-manifest.json')
+        if (!manifestFile.isFile()) {
+            throw new GradleException("Canonical manifest not found: ${manifestFile}")
+        }
+
+        def manifest = new groovy.json.JsonSlurper().parse(manifestFile, 'UTF-8')
+        if (manifest.schemaVersion != 1) {
+            throw new GradleException("Unsupported canonical schemaVersion: ${manifest.schemaVersion}")
+        }
+        if (!(manifest.files instanceof List) || manifest.files.isEmpty()) {
+            throw new GradleException('Canonical manifest must contain files.')
+        }
+
+        def requiredRuntimeFiles = [
+                'monster-spec.json', 'wave-spec.json', 'wave-spawn.json', 'field-limit.json'
+        ] as Set
+        def names = new LinkedHashSet<String>()
+        def verifiedEntries = []
+        String previousName = null
+        manifest.files.each { entry ->
+            String name = entry.name as String
+            if (!isSafeName(name)) {
+                throw new GradleException("Unsafe canonical manifest file name: ${name}")
+            }
+            if (!names.add(name)) {
+                throw new GradleException("Duplicate canonical manifest file entry: ${name}")
+            }
+            if (previousName != null && previousName.compareTo(name) >= 0) {
+                throw new GradleException('Canonical manifest files must be sorted by name.')
+            }
+            previousName = name
+
+            File sourceFile = new File(sourceDirectory, name)
+            if (!sourceFile.isFile()) {
+                throw new GradleException("Canonical source file not found: ${name}")
+            }
+            byte[] bytes = sourceFile.bytes
+            String actualHash = sha256(bytes)
+            if ((entry.size as long) != bytes.length || (entry.sha256 as String) != actualHash) {
+                byte[] normalized = new String(bytes, java.nio.charset.StandardCharsets.UTF_8)
+                        .replace('\r\n', '\n')
+                        .getBytes(java.nio.charset.StandardCharsets.UTF_8)
+                String normalizedHash = sha256(normalized)
+                if ((entry.size as long) != normalized.length || (entry.sha256 as String) != normalizedHash) {
+                    throw new GradleException("Canonical source size/SHA-256 mismatch: ${name}")
+                }
+                logger.warn("Canonical checkout used CRLF; syncing manifest-defined LF bytes: ${name}")
+                bytes = normalized
+                actualHash = normalizedHash
+            }
+            verifiedEntries << [name: name, sha256: actualHash, size: bytes.length, bytes: bytes]
+        }
+        if (!names.containsAll(requiredRuntimeFiles)) {
+            throw new GradleException("Canonical manifest is missing Unity runtime files: ${requiredRuntimeFiles - names}")
+        }
+
+        String canonicalText = verifiedEntries.collect {
+            "${it.name}\u0000${it.sha256}\u0000${it.size}\n"
+        }.join()
+        String actualContentHash = sha256(canonicalText.getBytes(java.nio.charset.StandardCharsets.UTF_8))
+        if ((manifest.contentHash as String) != actualContentHash) {
+            throw new GradleException('Canonical manifest contentHash mismatch.')
+        }
+        String actualBalanceVersion = "1-${actualContentHash.substring(0, 16)}"
+        if ((manifest.balanceVersion as String) != actualBalanceVersion) {
+            throw new GradleException('Canonical manifest balanceVersion mismatch.')
+        }
+
+        File targetParent = targetDirectory.parentFile
+        targetParent.mkdirs()
+        File stagingDirectory = new File(targetParent, 'generated.sync-staging')
+        File backupDirectory = new File(targetParent, 'generated.sync-backup')
+        project.delete(stagingDirectory, backupDirectory)
+        stagingDirectory.mkdirs()
+        backupDirectory.mkdirs()
+
+        def managedNames = new ArrayList<String>(names)
+        managedNames.add('balance-manifest.json')
+        verifiedEntries.each { entry ->
+            java.nio.file.Files.write(new File(stagingDirectory, entry.name as String).toPath(), entry.bytes as byte[])
+        }
+        java.nio.file.Files.copy(
+                manifestFile.toPath(),
+                new File(stagingDirectory, 'balance-manifest.json').toPath(),
+                java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+
+        verifiedEntries.each { entry ->
+            File staged = new File(stagingDirectory, entry.name as String)
+            byte[] bytes = staged.bytes
+            if (bytes.length != (entry.size as int) || sha256(bytes) != (entry.sha256 as String)) {
+                throw new GradleException("Staged canonical file verification failed: ${entry.name}")
+            }
+        }
+        if (!java.util.Arrays.equals(manifestFile.bytes, new File(stagingDirectory, 'balance-manifest.json').bytes)) {
+            throw new GradleException('Staged canonical manifest is not byte-for-byte identical.')
+        }
+
+        targetDirectory.mkdirs()
+        def previouslyExisting = new HashSet<String>()
+        managedNames.each { name ->
+            File current = new File(targetDirectory, name)
+            if (current.isFile()) {
+                previouslyExisting.add(name)
+                java.nio.file.Files.copy(
+                        current.toPath(),
+                        new File(backupDirectory, name).toPath(),
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+            }
+        }
+
+        try {
+            managedNames.each { name ->
+                File staged = new File(stagingDirectory, name)
+                File temporary = new File(targetDirectory, name + '.sync-new')
+                java.nio.file.Files.copy(staged.toPath(), temporary.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+                try {
+                    java.nio.file.Files.move(
+                            temporary.toPath(),
+                            new File(targetDirectory, name).toPath(),
+                            java.nio.file.StandardCopyOption.ATOMIC_MOVE,
+                            java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+                } catch (java.nio.file.AtomicMoveNotSupportedException ignored) {
+                    java.nio.file.Files.move(
+                            temporary.toPath(),
+                            new File(targetDirectory, name).toPath(),
+                            java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+                }
+            }
+        } catch (Exception syncFailure) {
+            managedNames.each { name ->
+                File target = new File(targetDirectory, name)
+                File backup = new File(backupDirectory, name)
+                if (previouslyExisting.contains(name)) {
+                    java.nio.file.Files.copy(backup.toPath(), target.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+                } else {
+                    java.nio.file.Files.deleteIfExists(target.toPath())
+                }
+                java.nio.file.Files.deleteIfExists(new File(targetDirectory, name + '.sync-new').toPath())
+            }
+            throw syncFailure
+        } finally {
+            project.delete(stagingDirectory, backupDirectory)
+        }
+
+        verifiedEntries.each { entry ->
+            File targetFile = new File(targetDirectory, entry.name as String)
+            if (!java.util.Arrays.equals(entry.bytes as byte[], targetFile.bytes)) {
+                throw new GradleException("Unity canonical copy is not byte-for-byte identical to manifest bytes: ${entry.name}")
+            }
+        }
+        if (!java.util.Arrays.equals(manifestFile.bytes, new File(targetDirectory, 'balance-manifest.json').bytes)) {
+            throw new GradleException('Unity canonical manifest is not byte-for-byte identical.')
+        }
+        logger.lifecycle("Canonical balance synced to Unity: version=${manifest.balanceVersion}, contentHash=${manifest.contentHash}")
+    }
+}

@@ -118,6 +118,23 @@ namespace MyDefense.Battle.Tests
         }
 
         [Test]
+        public void CanonicalThresholds_DriveLimitWarningAndDangerDisplay()
+        {
+            SetExecutorField("_totalMonsterGoal", 10);
+            SetExecutorField("_monsterWarningThreshold", 4);
+            SetExecutorField("_monsterDangerThreshold", 7);
+            _executor.InitializeSession();
+
+            RegisterSpawn(LaneType.Player1Lane, 4);
+            RegisterSpawn(LaneType.Player2Lane, 7);
+
+            Assert.That(_player1Text.text, Is.EqualTo("P1 4 / 10"));
+            Assert.That(_player1Text.color, Is.EqualTo(_warningColor));
+            Assert.That(_player2Text.text, Is.EqualTo("P2 7 / 10"));
+            Assert.That(_player2Text.color, Is.EqualTo(_dangerColor));
+        }
+
+        [Test]
         public void EliminatedPlayer_UsesEliminatedLabelAndStyle()
         {
             RegisterSpawn(LaneType.Player1Lane, 100);

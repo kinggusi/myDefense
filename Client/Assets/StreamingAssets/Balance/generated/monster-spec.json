@@ -1,0 +1,31 @@
+{
+  "monsters" : [
+    {
+      "monsterId" : "ELITE_MONSTER",
+      "name" : "Elite Monster",
+      "monsterType" : "ELITE",
+      "baseHp" : 60.00,
+      "moveSpeed" : 4.00,
+      "killGold" : 40,
+      "enabled" : true
+    },
+    {
+      "monsterId" : "NORMAL_MONSTER",
+      "name" : "Normal Monster",
+      "monsterType" : "NORMAL",
+      "baseHp" : 30.00,
+      "moveSpeed" : 5.00,
+      "killGold" : 20,
+      "enabled" : true
+    },
+    {
+      "monsterId" : "WAVE_BOSS",
+      "name" : "Wave Boss",
+      "monsterType" : "WAVE_BOSS",
+      "baseHp" : 300.00,
+      "moveSpeed" : 2.00,
+      "killGold" : 200,
+      "enabled" : true
+    }
+  ]
+}

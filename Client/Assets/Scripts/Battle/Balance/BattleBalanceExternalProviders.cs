@@ -13,8 +13,16 @@ namespace MyDefense.Battle.Balance
         public float MoveSpeed { get; }
         public string PrefabKey { get; }
         public bool CountsTowardLaneLimit { get; }
+        public int KillGold { get; }
 
-        public BattleMonsterDefinition(string monsterId, string monsterType, float baseMaxHp, float moveSpeed, string prefabKey, bool countsTowardLaneLimit)
+        public BattleMonsterDefinition(
+            string monsterId,
+            string monsterType,
+            float baseMaxHp,
+            float moveSpeed,
+            string prefabKey,
+            bool countsTowardLaneLimit,
+            int killGold = 0)
         {
             MonsterId = monsterId;
             MonsterType = monsterType;
@@ -22,6 +30,7 @@ namespace MyDefense.Battle.Balance
             MoveSpeed = moveSpeed;
             PrefabKey = prefabKey;
             CountsTowardLaneLimit = countsTowardLaneLimit;
+            KillGold = killGold;
         }
     }
 
