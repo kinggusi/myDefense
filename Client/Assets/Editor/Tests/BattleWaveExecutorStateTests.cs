@@ -22,14 +22,18 @@ public class BattleWaveExecutorStateTests
 
     private GameObject _executorObject;
     private BattleWaveExecutor _executor;
+    private BattleWaveExecutor _previousExecutorInstance;
     private GameObject _bossObject;
     private int _sessionNumber;
 
     [SetUp]
     public void SetUp()
     {
+        _previousExecutorInstance = BattleWaveExecutor.Instance;
+        SetExecutorInstance(null);
         _executorObject = new GameObject("BattleWaveExecutor_Test");
         _executor = _executorObject.AddComponent<BattleWaveExecutor>();
+        SetExecutorInstance(_executor);
         IMonsterDefinitionProvider monsters = new StateTestMonsterProvider();
         ConfigureBalance(
             new ResourcesBattleBalanceProvider(monsters, EmptyBattleAlienIdProvider.Instance),
@@ -37,6 +41,7 @@ public class BattleWaveExecutorStateTests
             new StateTestPrefabResolver());
         SetField("_totalMonsterGoal", 1);
         InitializeRuntimeSession();
+        Assert.That(BattleWaveExecutor.Instance, Is.SameAs(_executor));
     }
 
     [TearDown]
@@ -51,6 +56,8 @@ public class BattleWaveExecutorStateTests
         {
             Object.DestroyImmediate(_executorObject);
         }
+
+        SetExecutorInstance(_previousExecutorInstance);
     }
 
     [Test]
@@ -428,6 +435,157 @@ public class BattleWaveExecutorStateTests
     }
 
     [Test]
+    public void Player1MonsterDeath_DecrementsOnlyPlayer1Lane()
+    {
+        SetField("_totalMonsterGoal", 100);
+        RegisterSpawn(LaneType.Player1Lane);
+        RegisterSpawn(LaneType.Player2Lane);
+        GameObject monsterObject = new GameObject("Player1Monster_Test");
+        try
+        {
+            MonsterStat stat = monsterObject.AddComponent<MonsterStat>();
+            stat.InitializeHp(1f);
+            stat.InitializeBattleContext(LaneType.Player1Lane, true);
+
+            ExpectEditModeDestroyError();
+            stat.TakeDamage(1f);
+
+            Assert.That(stat.IsDead, Is.True);
+            Assert.That(_executor.Player1AliveMonsterCount, Is.Zero);
+            Assert.That(_executor.Player2AliveMonsterCount, Is.EqualTo(1));
+        }
+        finally
+        {
+            Object.DestroyImmediate(monsterObject);
+        }
+    }
+
+    [Test]
+    public void Player2MonsterDeath_DecrementsOnlyPlayer2Lane()
+    {
+        SetField("_totalMonsterGoal", 100);
+        RegisterSpawn(LaneType.Player1Lane);
+        RegisterSpawn(LaneType.Player2Lane);
+        GameObject monsterObject = new GameObject("Player2Monster_Test");
+        try
+        {
+            MonsterStat stat = monsterObject.AddComponent<MonsterStat>();
+            stat.InitializeHp(1f);
+            stat.InitializeBattleContext(LaneType.Player2Lane, true);
+
+            ExpectEditModeDestroyError();
+            stat.TakeDamage(1f);
+
+            Assert.That(stat.IsDead, Is.True);
+            Assert.That(_executor.Player1AliveMonsterCount, Is.EqualTo(1));
+            Assert.That(_executor.Player2AliveMonsterCount, Is.Zero);
+        }
+        finally
+        {
+            Object.DestroyImmediate(monsterObject);
+        }
+    }
+
+    [Test]
+    public void BossSharedLaneMonsterDeath_DoesNotDecrementPlayerLaneCounts()
+    {
+        SetField("_totalMonsterGoal", 100);
+        RegisterSpawn(LaneType.Player1Lane);
+        RegisterSpawn(LaneType.Player2Lane);
+        GameObject monsterObject = new GameObject("BossSharedLaneMonster_Test");
+        try
+        {
+            MonsterStat stat = monsterObject.AddComponent<MonsterStat>();
+            stat.InitializeHp(1f);
+            stat.InitializeBattleContext(LaneType.BossSharedLane, false);
+
+            ExpectEditModeDestroyError();
+            stat.TakeDamage(1f);
+
+            Assert.That(_executor.Player1AliveMonsterCount, Is.EqualTo(1));
+            Assert.That(_executor.Player2AliveMonsterCount, Is.EqualTo(1));
+        }
+        finally
+        {
+            Object.DestroyImmediate(monsterObject);
+        }
+    }
+
+    [Test]
+    public void NonCountingPlayerLaneMonsterDeath_DoesNotDecrementPlayerLaneCounts()
+    {
+        SetField("_totalMonsterGoal", 100);
+        RegisterSpawn(LaneType.Player1Lane);
+        GameObject monsterObject = new GameObject("NonCountingPlayerLaneMonster_Test");
+        try
+        {
+            MonsterStat stat = monsterObject.AddComponent<MonsterStat>();
+            stat.InitializeHp(1f);
+            stat.InitializeBattleContext(LaneType.Player1Lane, false);
+
+            ExpectEditModeDestroyError();
+            stat.TakeDamage(1f);
+
+            Assert.That(_executor.Player1AliveMonsterCount, Is.EqualTo(1));
+            Assert.That(_executor.Player2AliveMonsterCount, Is.Zero);
+        }
+        finally
+        {
+            Object.DestroyImmediate(monsterObject);
+        }
+    }
+
+    [Test]
+    public void UninitializedBattleContextMonsterDeath_DoesNotDecrementPlayerLaneCounts()
+    {
+        SetField("_totalMonsterGoal", 100);
+        RegisterSpawn(LaneType.Player1Lane);
+        RegisterSpawn(LaneType.Player2Lane);
+        GameObject monsterObject = new GameObject("UninitializedBattleContextMonster_Test");
+        try
+        {
+            MonsterStat stat = monsterObject.AddComponent<MonsterStat>();
+            stat.InitializeHp(1f);
+
+            ExpectEditModeDestroyError();
+            stat.TakeDamage(1f);
+
+            Assert.That(_executor.Player1AliveMonsterCount, Is.EqualTo(1));
+            Assert.That(_executor.Player2AliveMonsterCount, Is.EqualTo(1));
+        }
+        finally
+        {
+            Object.DestroyImmediate(monsterObject);
+        }
+    }
+
+    [Test]
+    public void RepeatedDamageAfterDeath_DecrementsLaneCountOnlyOnce()
+    {
+        SetField("_totalMonsterGoal", 100);
+        RegisterSpawn(LaneType.Player1Lane);
+        RegisterSpawn(LaneType.Player1Lane);
+        GameObject monsterObject = new GameObject("RepeatedDamageMonster_Test");
+        try
+        {
+            MonsterStat stat = monsterObject.AddComponent<MonsterStat>();
+            stat.InitializeHp(1f);
+            stat.InitializeBattleContext(LaneType.Player1Lane, true);
+
+            ExpectEditModeDestroyError();
+            stat.TakeDamage(1f);
+            stat.TakeDamage(1f);
+
+            Assert.That(_executor.Player1AliveMonsterCount, Is.EqualTo(1));
+            Assert.That(_executor.Player2AliveMonsterCount, Is.Zero);
+        }
+        finally
+        {
+            Object.DestroyImmediate(monsterObject);
+        }
+    }
+
+    [Test]
     public void SpawnedBoss_UsesBossSharedLane()
     {
         GameObject prefab = new GameObject("BossPrefab_Test");
@@ -497,6 +655,22 @@ public class BattleWaveExecutorStateTests
                 "fixture-battle-hash",
                 _sessionNumber),
             new BattlePlayerIdentityMap("fixture-player-alpha", "fixture-player-beta"));
+    }
+
+    private static void ExpectEditModeDestroyError()
+    {
+        LogAssert.Expect(LogType.Error, new Regex("Destroy may not be called from edit mode"));
+    }
+
+    private static void SetExecutorInstance(BattleWaveExecutor instance)
+    {
+        PropertyInfo property = typeof(BattleWaveExecutor).GetProperty(
+            nameof(BattleWaveExecutor.Instance),
+            BindingFlags.Public | BindingFlags.Static);
+        Assert.That(property, Is.Not.Null, "Missing BattleWaveExecutor.Instance property.");
+        MethodInfo setter = property.GetSetMethod(true);
+        Assert.That(setter, Is.Not.Null, "Missing BattleWaveExecutor.Instance setter.");
+        setter.Invoke(null, new object[] { instance });
     }
 
     private static Scene GetBattleScene(out bool openedByTest)

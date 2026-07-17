@@ -24,6 +24,7 @@ namespace MyDefense.Battle.Tests
         private GameObject _executorObject;
         private GameObject _spawnPointObject;
         private BattleWaveExecutor _executor;
+        private BattleWaveExecutor _previousExecutorInstance;
         private GameObject _monsterPrefab;
         private IMonsterDefinitionProvider _monsterDefinitions;
         private IBattleMonsterPrefabResolver _prefabResolver;
@@ -34,6 +35,8 @@ namespace MyDefense.Battle.Tests
         public void SetUp()
         {
             _spawnedObjects.Clear();
+            _previousExecutorInstance = BattleWaveExecutor.Instance;
+            SetExecutorInstance(null);
             _monsterPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(MonsterPrefabPath);
             Assert.That(_monsterPrefab, Is.Not.Null);
 
@@ -50,12 +53,14 @@ namespace MyDefense.Battle.Tests
 
             _executorObject = new GameObject("BattleWaveExecutor_BalanceTest");
             _executor = _executorObject.AddComponent<BattleWaveExecutor>();
+            SetExecutorInstance(_executor);
             _spawnPointObject = new GameObject("BattleWaveExecutor_BalanceSpawnPoint");
             SetField("_monsterPrefab", _monsterPrefab);
             SetField("_spawnPoint", _spawnPointObject.transform);
             SetField("_totalMonsterGoal", 100);
             Configure(new ResourcesBattleBalanceProvider(_monsterDefinitions, EmptyBattleAlienIdProvider.Instance));
             InitializeRuntimeSession();
+            Assert.That(BattleWaveExecutor.Instance, Is.SameAs(_executor));
         }
 
         [TearDown]
@@ -69,6 +74,7 @@ namespace MyDefense.Battle.Tests
 
             if (_spawnPointObject != null) UnityEngine.Object.DestroyImmediate(_spawnPointObject);
             if (_executorObject != null) UnityEngine.Object.DestroyImmediate(_executorObject);
+            SetExecutorInstance(_previousExecutorInstance);
         }
 
         [Test]
@@ -165,6 +171,30 @@ namespace MyDefense.Battle.Tests
         }
 
         [Test]
+        public void SpawnConfiguredRegularMonster_DeathDecrementsOnlyAssignedLane()
+        {
+            BeginActualRoundOne();
+            WaveSpawnSpecData spawn = GetField<IReadOnlyList<WaveSpawnSpecData>>("_currentWaveSpawns").Single();
+            BattleMonsterDefinition definition;
+            Assert.That(_monsterDefinitions.TryGet(spawn.MonsterId, out definition), Is.True);
+
+            object[] arguments = { LaneType.Player2Lane, definition, spawn, 1f, null };
+            Assert.That(InvokeWithArguments<bool>("SpawnConfiguredMonster", arguments), Is.True);
+            GameObject monster = (GameObject)arguments[4];
+            _spawnedObjects.Add(monster);
+
+            Assert.That(_executor.Player1AliveMonsterCount, Is.Zero);
+            Assert.That(_executor.Player2AliveMonsterCount, Is.EqualTo(1));
+
+            RemoveRendererForEditModeDeath(monster);
+            ExpectEditModeDestroyError();
+            monster.GetComponent<MonsterStat>().TakeDamage(float.MaxValue);
+
+            Assert.That(_executor.Player1AliveMonsterCount, Is.Zero);
+            Assert.That(_executor.Player2AliveMonsterCount, Is.Zero);
+        }
+
+        [Test]
         public void EliminatedLane_SpawnsZeroWhileActiveLaneReceivesAllTen()
         {
             SetField("_player1BattleState", PlayerBattleState.ELIMINATED);
@@ -246,6 +276,13 @@ namespace MyDefense.Battle.Tests
             Assert.That(boss.GetComponent<BattleMonsterMovement>().Lane, Is.EqualTo(LaneType.BossSharedLane));
             Assert.That(boss.GetComponent<BattleMonsterMovement>().Speed, Is.EqualTo(2f));
             Assert.That(boss.GetComponent<MonsterStat>().MaxHp, Is.EqualTo(570f));
+            Assert.That(_executor.Player1AliveMonsterCount, Is.Zero);
+            Assert.That(_executor.Player2AliveMonsterCount, Is.Zero);
+
+            RemoveRendererForEditModeDeath(boss);
+            ExpectEditModeDestroyError();
+            boss.GetComponent<MonsterStat>().TakeDamage(float.MaxValue);
+
             Assert.That(_executor.Player1AliveMonsterCount, Is.Zero);
             Assert.That(_executor.Player2AliveMonsterCount, Is.Zero);
         }
@@ -414,6 +451,28 @@ namespace MyDefense.Battle.Tests
                     "fixture-battle-hash",
                     _sessionNumber),
                 new BattlePlayerIdentityMap("fixture-player-alpha", "fixture-player-beta"));
+        }
+
+        private static void RemoveRendererForEditModeDeath(GameObject instance)
+        {
+            Renderer renderer = instance.GetComponent<Renderer>();
+            if (renderer != null) UnityEngine.Object.DestroyImmediate(renderer);
+        }
+
+        private static void ExpectEditModeDestroyError()
+        {
+            LogAssert.Expect(LogType.Error, new Regex("Destroy may not be called from edit mode"));
+        }
+
+        private static void SetExecutorInstance(BattleWaveExecutor instance)
+        {
+            PropertyInfo property = typeof(BattleWaveExecutor).GetProperty(
+                nameof(BattleWaveExecutor.Instance),
+                BindingFlags.Public | BindingFlags.Static);
+            Assert.That(property, Is.Not.Null, "Missing BattleWaveExecutor.Instance property.");
+            MethodInfo setter = property.GetSetMethod(true);
+            Assert.That(setter, Is.Not.Null, "Missing BattleWaveExecutor.Instance setter.");
+            setter.Invoke(null, new object[] { instance });
         }
 
         private void AssertFaultedAndStopped()

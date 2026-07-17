@@ -1,4 +1,5 @@
 using UnityEngine;
+using MyDefense.Battle;
 using MyDefense.Shared.Contracts;
 using System.Collections;
 
@@ -17,6 +18,9 @@ public class MonsterStat : MonoBehaviour, IDamageable
     public long monsterSpecId = 1;
 
     private bool isDead = false;
+    private LaneType battleLane;
+    private bool countsTowardLaneLimit;
+    private bool battleContextInitialized;
 
     private void Awake()
     {
@@ -29,6 +33,13 @@ public class MonsterStat : MonoBehaviour, IDamageable
         maxHp = newMaxHp;
         hp = newMaxHp;
         OnHpInitialized?.Invoke(hp, maxHp);
+    }
+
+    public void InitializeBattleContext(LaneType lane, bool shouldCountTowardLaneLimit)
+    {
+        battleLane = lane;
+        countsTowardLaneLimit = shouldCountTowardLaneLimit;
+        battleContextInitialized = true;
     }
 
     public void ApplyDamage(DamagePayload payload)
@@ -50,11 +61,14 @@ public class MonsterStat : MonoBehaviour, IDamageable
 
     void Die()
     {
+        if (isDead) return;
         isDead = true;
 
-        if (MyDefense.Battle.BattleWaveExecutor.Instance != null)
+        if (battleContextInitialized
+            && countsTowardLaneLimit
+            && BattleWaveExecutor.Instance != null)
         {
-            MyDefense.Battle.BattleWaveExecutor.Instance.RegisterMonsterKilled();
+            BattleWaveExecutor.Instance.RegisterMonsterKilled(battleLane);
         }
 
         GameManager gm = UnityEngine.Object.FindFirstObjectByType<GameManager>();
