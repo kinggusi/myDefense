@@ -1,7 +1,7 @@
 {
   "schemaVersion" : 1,
-  "balanceVersion" : "1-d39e293e3783271f",
-  "contentHash" : "d39e293e3783271f9170220da8f2ac33c6a21c9e5837cdb9da2b4c4d2f34c27b",
+  "balanceVersion" : "1-5ba7976a923b7ea9",
+  "contentHash" : "5ba7976a923b7ea9e8fd34889b7f36871106f6f0f29cc70ac1f0bc95434705f4",
   "files" : [ {
     "name" : "alien-level-stat.json",
     "sha256" : "62d5880e09c6b780e2c4894d6e357b13337fdcf1982d30b6738bf82190f209f6",
@@ -48,8 +48,8 @@
     "size" : 249
   }, {
     "name" : "wave-spawn.json",
-    "sha256" : "737208c2732c44216164d4624daecd7dbf5a48ad68cfa2180ded3b5425337674",
-    "size" : 2919
+    "sha256" : "08343810f6efa56a50020e919f0085f8fb3d060ca927a735e0665d4b1f3f0478",
+    "size" : 2920
   }, {
     "name" : "wave-spec.json",
     "sha256" : "2e7fe453b66b3c23e7039ba6f73cfd803295bc34bc80387d636b26c3dd9d73b0",
