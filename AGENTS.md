@@ -9,13 +9,14 @@
 
 ## Read Before Work
 1. `AGENTS.md`
-2. `docs/00_GAME_DESIGN.md`
-3. `docs/01_TECH_ARCHITECTURE.md`
-4. `docs/02_PROJECT_ROADMAP.md`
-5. `docs/ai/Ownership.md`
-6. Relevant role document: `docs/ai/User.md` or `docs/ai/Battle.md`
-7. `docs/ai/Shared.md`
-8. For review: `docs/ai/Review.md`
+2. `docs/99_MASTER.md`
+3. `docs/00_GAME_DESIGN.md`
+4. `docs/01_TECH_ARCHITECTURE.md`
+5. `docs/02_PROJECT_ROADMAP.md`
+6. `docs/ai/Ownership.md`
+7. Relevant role document: `docs/ai/User.md` or `docs/ai/Battle.md`
+8. `docs/ai/Shared.md`
+9. For review: `docs/ai/Review.md`
 
 ## Terminology
 - Use `Alien`, `Unit`, or `Wakjeo`.
@@ -32,8 +33,9 @@
 - Kidnap is blocked when no empty slot exists.
 - Kidnap result is placed in the first empty slot using the shared ascending grid order.
 - Merge is allowed only for identical Alien species of the same grade.
-- Merge result is random from the whole next-grade pool.
-- Legendary-to-Mythic result uses only the current player's unlocked Mythic pool.
+- Normal-to-Legendary Merge result is random from the whole next-grade pool.
+- Legendary-to-Mythic Merge presents 3 distinct candidates from the current player's unlocked Mythic pool.
+- Legendary-to-Mythic candidates can be rerolled up to 3 times before one is selected.
 - Fixed evolution lineage and `evolutionTargetId` must not drive gameplay.
 - Pending Mutation DNA can exist before Mythic.
 - Active Mutation effects only apply to Mythic.
