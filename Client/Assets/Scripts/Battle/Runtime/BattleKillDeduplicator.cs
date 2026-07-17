@@ -12,6 +12,7 @@ namespace MyDefense.Battle.Runtime
         public string KillerPlayerId { get; }
         public string FieldOwnerPlayerId { get; }
         public BattleMonsterLanePolicy LanePolicy { get; }
+        public bool IsSupportKill { get; }
         public int SpawnWave { get; }
         public long KilledAtTick { get; }
 
@@ -21,6 +22,19 @@ namespace MyDefense.Battle.Runtime
             string killerPlayerId,
             string fieldOwnerPlayerId,
             BattleMonsterLanePolicy lanePolicy,
+            int spawnWave,
+            long killedAtTick)
+            : this(runtimeKey, monsterId, killerPlayerId, fieldOwnerPlayerId, lanePolicy, false, spawnWave, killedAtTick)
+        {
+        }
+
+        public BattleKillAuditRecord(
+            BattleRuntimeMonsterKey runtimeKey,
+            string monsterId,
+            string killerPlayerId,
+            string fieldOwnerPlayerId,
+            BattleMonsterLanePolicy lanePolicy,
+            bool isSupportKill,
             int spawnWave,
             long killedAtTick)
         {
@@ -44,6 +58,7 @@ namespace MyDefense.Battle.Runtime
             else
                 throw new ArgumentOutOfRangeException(nameof(lanePolicy));
 
+            IsSupportKill = isSupportKill;
             SpawnWave = spawnWave;
             KilledAtTick = killedAtTick;
         }

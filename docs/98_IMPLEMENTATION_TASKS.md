@@ -177,11 +177,13 @@ P0가 완료되어야 실제 2클라이언트 협동 매치를 처음부터 Sett
 | P0-1-3 | jjangash | 대기 | `LegendaryChoiceState` DTO 설계 | 재료 ID, 후보 3종, 리롤, 선택 상태 포함 |
 | P0-1-4 | jjangash | 완료 | 서버 Settlement DTO와 Unity `BattleSummary`를 대조해 공통 `BattleSettlementSummary` 계약 작성 | Unity와 Spring 필드가 1:1 대응 |
 | P0-1-5 | kinggusi | 대기 | P0-1-1~4 계약의 Battle 사용처를 읽기 전용으로 검토 | 누락 필드, 불필요 필드, 사용처 보고서 제출 |
-| P0-1-6 | jjangash | 대기 | kinggusi 검토 결과를 Shared 계약에 반영 | 양쪽 컴파일 및 계약 테스트 통과 |
+| P0-1-6 | jjangash | 완료 | kinggusi 검토 결과를 Shared 계약에 반영 | 양쪽 컴파일 및 계약 테스트 통과 |
 
 > P0-1-1은 Battle API 정합화(`MonsterStat.InitializeBattleContext`, Lane별 `RegisterMonsterKilled`)와 `SharedBattleStateContractTests`를 포함한 Unity EditMode 전체 회귀 테스트 242/242 통과를 확인해 `완료`로 승격했다.
 
 > P0-1-4는 Unity/Spring 필드명·타입 계약, nullable `eliminatedWave` 전용 JSON 직렬화, Settlement 결과값 검증, Spring JSON 역직렬화 테스트를 포함한다. Unity EditMode 252/252와 Spring 265/265 통과를 확인해 `완료`로 승격했다.
+>
+> P0-1-6은 Unity `BattleSummary`를 Settlement DTO로 변환하는 어댑터를 추가해 player slot/gold ledger/support·boss kills/monster killGold/time/result를 Spring 계약에 1:1 매핑하고, Settlement requestId 동시 충돌 시 session/hash 불일치를 `BATTLE_REQUEST_CONFLICT`로 분류하도록 보완했다. Unity 모델 테스트와 Spring Settlement 통합 테스트를 통과했다.
 
 진행 순서:
 

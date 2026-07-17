@@ -73,6 +73,44 @@ namespace MyDefense.Battle.Tests
             Assert.That(summary.Kills.ByLanePolicy.All(item => item.AwardedGold == 0), Is.True);
         }
 
+        [Test]
+        public void SettlementBuilderMapsBattleSummaryToSpringContract()
+        {
+            var session = new BattleSessionContext(
+                "settlement-session",
+                "canonical-v1",
+                "canonical-hash",
+                "battle-v1",
+                "battle-hash",
+                100);
+            var players = new[]
+            {
+                new BattlePlayerSummarySeed("player-alpha", 1, false, null, 100, 50, 20, 130),
+                new BattlePlayerSummarySeed("player-beta", 2, true, 9, 100, 20, 10, 110)
+            };
+            BattleSummary summary = BattleSummaryBuilder.Build(
+                session,
+                MatchState.CLEARED,
+                10,
+                players,
+                RecordsInReverseOrder(),
+                monsterId => monsterId == "BOSS" ? 200 : 20);
+
+            var transport = BattleSettlementSummaryBuilder.Build(
+                summary,
+                "request-1",
+                new DateTime(2026, 7, 18, 12, 0, 0, DateTimeKind.Utc),
+                new DateTime(2026, 7, 18, 12, 20, 0, DateTimeKind.Utc),
+                "summary-hash");
+
+            Assert.That(transport.result, Is.EqualTo(BattleSettlementResultValues.Victory));
+            Assert.That(transport.players.Select(player => player.playerSlot), Is.EqualTo(new[] { 1, 2 }));
+            Assert.That(transport.players[0].finalInGameGold, Is.EqualTo(130));
+            Assert.That(transport.monsterKills.Single(monster => monster.monsterSpecId == "BOSS").totalKillGold, Is.EqualTo(200));
+            Assert.That(transport.startedAt, Is.EqualTo("2026-07-18T12:00:00.000"));
+            Assert.That(transport.finishedAt, Is.EqualTo("2026-07-18T12:20:00.000"));
+        }
+
         private static BattleSummary BuildSummary(IEnumerable<BattleKillAuditRecord> records)
         {
             var session = new BattleSessionContext(
