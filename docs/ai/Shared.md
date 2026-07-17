@@ -14,6 +14,16 @@ User/System과 Battle이 함께 사용하는 계약만 둡니다.
 - GridPosition
 - 공통 DTO, Enum, Network contract
 
+## Battle Settlement Contract
+- Unity 런타임 누적 장부 `BattleSummary`와 서버 전송 계약 `BattleSettlementSummary`를 분리한다.
+- 전송 결과 문자열은 `VICTORY`, `DEFEAT`, `ABORTED`만 허용한다.
+- 최상위 필드: `requestId`, `battleSessionId`, `balanceVersion`, `contentHash`, `result`, `finalWave`, `startedAt`, `finishedAt`, `players`, `monsterKills`, `summaryHash`
+- 참가자 필드: `playerId`, `playerSlot`, `eliminated`, `eliminatedWave`, `kills`, `supportKills`, `bossKills`, `initialInGameGold`, `inGameGoldEarned`, `inGameGoldSpent`, `finalInGameGold`
+- Monster 필드: `monsterSpecId`, `totalKills`, `bossKills`, `totalKillGold`
+- `eliminatedWave`는 미탈락 시 JSON `null`, 탈락 시 양의 정수다.
+- 시간 필드는 ISO-8601 local date-time 문자열로 전송한다.
+- Unity `JsonUtility`는 nullable 정수를 지원하지 않으므로 `BattleSettlementSummaryJson`을 사용한다.
+
 ## Battle State
 - PlayerBattleState: `ACTIVE → ELIMINATED → SPECTATING`
 - PlayerConnectionState: `CONNECTED ↔ DISCONNECTED`
