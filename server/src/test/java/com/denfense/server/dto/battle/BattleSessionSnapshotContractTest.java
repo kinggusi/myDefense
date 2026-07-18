@@ -28,7 +28,7 @@ class BattleSessionSnapshotContractTest {
     void nullableEliminatedWaveAndAlienSpecIdDeserialize() throws Exception {
         String json = """
                 {"schemaVersion":1,"battleSessionId":"session-1","balanceVersion":"balance-v1","contentHash":"hash",
-                 "matchState":"RUNNING","currentWave":12,"currentWaveSpecId":"WAVE_12","waveType":"NORMAL","wavePhase":"SPAWNING",
+                 "matchState":"RUNNING","currentWave":12,"currentWaveSpecId":"WAVE_12","waveType":"REGULAR","wavePhase":"SPAWNING",
                  "waveTimeRemainingSeconds":8,"bossTimeRemainingSeconds":0,"capturedAtTick":900,
                  "players":[{"playerId":"p1","playerSlot":1,"battleState":"ACTIVE","connectionState":"CONNECTED","inGameGold":60,"currentKidnapCost":30,"eliminatedWave":null}],
                  "boardObjects":[{"objectId":7,"ownerPlayerSlot":1,"objectType":"ALIEN","gridX":2,"gridY":3,"alienSpecId":22,"grade":"MYTHIC","pendingMutationType":"NONE","activeMutationType":"NONE","mutationRerollCount":0,"mutationType":null}]}

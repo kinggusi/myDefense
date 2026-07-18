@@ -179,6 +179,10 @@ namespace MyDefense.Shared.Tests
             StringAssert.Contains("\"phase\":\"OPEN\"", json);
             StringAssert.Contains("\"selectedAlienId\":null", json);
             StringAssert.Contains("\"candidateAlienIds\":[201,202,203]", json);
+
+            state.autoSelectPolicy = "FIRST\nSAFE";
+            json = LegendaryChoiceStateJson.Serialize(state);
+            StringAssert.Contains("FIRST\\nSAFE", json);
         }
     }
 }

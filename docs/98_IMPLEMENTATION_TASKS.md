@@ -177,7 +177,7 @@ P0가 완료되어야 실제 2클라이언트 협동 매치를 처음부터 Sett
 | P0-1-3 | jjangash | 완료 | `LegendaryChoiceState` DTO 설계 | 재료 ID, 후보 3종, 리롤, 선택 상태 포함 |
 | P0-1-4 | jjangash | 완료 | 서버 Settlement DTO와 Unity `BattleSummary`를 대조해 공통 `BattleSettlementSummary` 계약 작성 | Unity와 Spring 필드가 1:1 대응 |
 | P0-1-5 | kinggusi | 완료 | P0-1-1~4 계약의 Battle 사용처를 읽기 전용으로 검토 | 누락 필드, 불필요 필드, 사용처 보고서 제출 |
-| P0-1-6 | jjangash | 대기 | kinggusi 검토 결과를 Shared 계약에 반영 | 양쪽 컴파일 및 계약 테스트 통과 |
+| P0-1-6 | jjangash | 완료 | kinggusi 검토 결과를 Shared 계약에 반영 | 양쪽 컴파일 및 계약 테스트 통과 |
 
 > P0-1-1은 Battle API 정합화(`MonsterStat.InitializeBattleContext`, Lane별 `RegisterMonsterKilled`)와 `SharedBattleStateContractTests`를 포함한 Unity EditMode 전체 회귀 테스트 242/242 통과를 확인해 `완료`로 승격했다.
 
