@@ -204,7 +204,7 @@ P0-1-1~4 → P0-1-5 → P0-1-6
 
 | Task ID | 담당 | 상태 | Codex 작업 | 선행 |
 |---|---|---|---|---|
-| P0-3-1 | kinggusi | 부분 완료 | 현재 `BattleWaveExecutor`를 Fusion State Authority 구조로 분리 | P0-1-6 |
+| P0-3-1 | kinggusi | 완료 | 현재 `BattleWaveExecutor`를 Fusion State Authority 구조로 분리 | P0-1-6 |
 | P0-3-2 | kinggusi | 대기 | 현재 Wave와 Wave 진행 상태를 `[Networked]`로 구현 | P0-3-1 |
 | P0-3-3 | kinggusi | 대기 | Monster를 `Runner.Spawn`으로 생성 | P0-3-2 |
 | P0-3-4 | kinggusi | 부분 완료 | 기존 Runtime Identity·HP·사망 기반을 Fusion Network 상태와 연결 | P0-3-3 |
