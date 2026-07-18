@@ -29,11 +29,15 @@ namespace MyDefense.Battle
         [Networked] public NetworkBool Player2DangerReached { get; private set; }
         [Networked] public NetworkBool Player1Eliminated { get; private set; }
         [Networked] public NetworkBool Player2Eliminated { get; private set; }
+        [Networked] public int Player1BattleStateValue { get; private set; }
+        [Networked] public int Player2BattleStateValue { get; private set; }
 
         public BattleWaveExecutor Executor => _executor;
         public bool IsAuthoritative => HasStateAuthority;
         public WaveType CurrentWaveType => (WaveType)CurrentWaveTypeValue;
         public MatchState MatchState => (MatchState)MatchStateValue;
+        public PlayerBattleState Player1BattleState => (PlayerBattleState)Player1BattleStateValue;
+        public PlayerBattleState Player2BattleState => (PlayerBattleState)Player2BattleStateValue;
 
         public override void Spawned()
         {
@@ -46,6 +50,7 @@ namespace MyDefense.Battle
             _executor.OnRoundChanged += HandleRoundChanged;
             _executor.OnMatchStateChanged += HandleMatchStateChanged;
             _executor.OnPlayerMonsterCountChanged += HandlePlayerMonsterCountChanged;
+            _executor.OnPlayerBattleStateChanged += HandlePlayerBattleStateChanged;
             _executor.OnPlayerMonsterWarningReached += HandlePlayerMonsterWarningReached;
             _executor.OnPlayerMonsterDangerReached += HandlePlayerMonsterDangerReached;
             _executor.OnPlayerMonsterLimitReached += HandlePlayerMonsterLimitReached;
@@ -54,6 +59,7 @@ namespace MyDefense.Battle
                 MatchStateValue = (int)MyDefense.Shared.Contracts.MatchState.RUNNING;
                 IsWaveRunning = false;
                 ResetFieldLimitEvents();
+                SyncPlayerBattleStates();
                 SyncAliveMonsterCounts();
             }
         }
@@ -68,6 +74,7 @@ namespace MyDefense.Battle
             _executor.OnRoundChanged -= HandleRoundChanged;
             _executor.OnMatchStateChanged -= HandleMatchStateChanged;
             _executor.OnPlayerMonsterCountChanged -= HandlePlayerMonsterCountChanged;
+            _executor.OnPlayerBattleStateChanged -= HandlePlayerBattleStateChanged;
             _executor.OnPlayerMonsterWarningReached -= HandlePlayerMonsterWarningReached;
             _executor.OnPlayerMonsterDangerReached -= HandlePlayerMonsterDangerReached;
             _executor.OnPlayerMonsterLimitReached -= HandlePlayerMonsterLimitReached;
@@ -82,6 +89,7 @@ namespace MyDefense.Battle
                 return false;
             _executor.InitializeSession(sessionContext, playerIdentityProvider);
             ResetFieldLimitEvents();
+            SyncPlayerBattleStates();
             SyncAliveMonsterCounts();
             return true;
         }
@@ -194,6 +202,24 @@ namespace MyDefense.Battle
                 Player2AliveMonsterCount = count;
         }
 
+        private void HandlePlayerBattleStateChanged(LaneType lane, PlayerBattleState state)
+        {
+            if (!HasStateAuthority)
+                return;
+            if (lane == LaneType.Player1Lane)
+            {
+                Player1BattleStateValue = (int)state;
+                if (state == PlayerBattleState.ELIMINATED)
+                    Player1Eliminated = true;
+            }
+            else if (lane == LaneType.Player2Lane)
+            {
+                Player2BattleStateValue = (int)state;
+                if (state == PlayerBattleState.ELIMINATED)
+                    Player2Eliminated = true;
+            }
+        }
+
         private void HandlePlayerMonsterWarningReached(LaneType lane, int _)
         {
             if (!HasStateAuthority)
@@ -244,6 +270,15 @@ namespace MyDefense.Battle
             Player1AliveMonsterCount = _executor.Player1AliveMonsterCount;
             Player2AliveMonsterCount = _executor.Player2AliveMonsterCount;
             PlayerMonsterLimit = _executor.MonsterLimit;
+        }
+
+        private void SyncPlayerBattleStates()
+        {
+            if (!HasStateAuthority || _executor == null)
+                return;
+
+            Player1BattleStateValue = (int)_executor.Player1BattleState;
+            Player2BattleStateValue = (int)_executor.Player2BattleState;
         }
     }
 }
