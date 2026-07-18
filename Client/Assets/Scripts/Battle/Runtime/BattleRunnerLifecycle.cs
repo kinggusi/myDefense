@@ -22,21 +22,29 @@ namespace MyDefense.Battle.Runtime
     {
         private NetworkRunner _runner;
         private GameObject _runnerObject;
+        private BattlePlayerIdentityCallbacks _identityCallbacks;
         private Task _lifecycleTask;
 
         public BattleRunnerLifecycleState State { get; private set; } = BattleRunnerLifecycleState.STOPPED;
         public NetworkRunner Runner => _runner;
+        public BattlePlayerRoster PlayerRoster { get; } = new();
         public string LastError { get; private set; }
 
         public Task StartHostAsync(string sessionName, NetworkSceneInfo scene = default)
         {
-            return StartAsync(GameMode.Host, sessionName, scene);
+            return StartHostAsync(sessionName, null, scene);
         }
+
+        public Task StartHostAsync(string sessionName, string userId, NetworkSceneInfo scene = default)
+            => StartAsync(GameMode.Host, sessionName, userId, scene);
 
         public Task StartClientAsync(string sessionName, NetworkSceneInfo scene = default)
         {
-            return StartAsync(GameMode.Client, sessionName, scene);
+            return StartClientAsync(sessionName, null, scene);
         }
+
+        public Task StartClientAsync(string sessionName, string userId, NetworkSceneInfo scene = default)
+            => StartAsync(GameMode.Client, sessionName, userId, scene);
 
         public async Task StopAsync(ShutdownReason reason = ShutdownReason.Ok)
         {
@@ -52,7 +60,7 @@ namespace MyDefense.Battle.Runtime
             await _lifecycleTask;
         }
 
-        private async Task StartAsync(GameMode mode, string sessionName, NetworkSceneInfo scene)
+        private async Task StartAsync(GameMode mode, string sessionName, string userId, NetworkSceneInfo scene)
         {
             if (string.IsNullOrWhiteSpace(sessionName))
                 throw new ArgumentException("A non-empty Fusion session name is required.", nameof(sessionName));
@@ -66,6 +74,8 @@ namespace MyDefense.Battle.Runtime
             _runnerObject = new GameObject("FusionRunner");
             _runnerObject.transform.SetParent(transform, false);
             _runner = _runnerObject.AddComponent<NetworkRunner>();
+            _identityCallbacks = new BattlePlayerIdentityCallbacks(PlayerRoster, userId);
+            _runner.AddCallbacks(_identityCallbacks);
             var sceneManager = _runnerObject.GetComponent<INetworkSceneManager>()
                 ?? _runnerObject.AddComponent<NetworkSceneManagerDefault>();
             var objectProvider = _runnerObject.GetComponent<INetworkObjectProvider>()
@@ -80,6 +90,7 @@ namespace MyDefense.Battle.Runtime
                     Scene = scene,
                     SceneManager = sceneManager,
                     ObjectProvider = objectProvider,
+                    ConnectionToken = string.IsNullOrWhiteSpace(userId) ? null : BattlePlayerIdentityToken.Encode(userId),
                     OnGameStarted = _ => { }
                 });
                 _lifecycleTask = startTask;
@@ -111,6 +122,8 @@ namespace MyDefense.Battle.Runtime
             var runnerObject = _runnerObject;
             _runner = null;
             _runnerObject = null;
+            _identityCallbacks = null;
+            PlayerRoster.Clear();
             if (runner != null && !runner.IsShutdown)
                 await runner.Shutdown(true, reason);
             else if (runnerObject != null)
