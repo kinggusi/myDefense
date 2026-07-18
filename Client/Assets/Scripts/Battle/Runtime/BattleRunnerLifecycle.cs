@@ -28,7 +28,25 @@ namespace MyDefense.Battle.Runtime
         public BattleRunnerLifecycleState State { get; private set; } = BattleRunnerLifecycleState.STOPPED;
         public NetworkRunner Runner => _runner;
         public BattlePlayerRoster PlayerRoster { get; } = new();
+        public BattleSessionContext SessionContext { get; private set; }
         public string LastError { get; private set; }
+
+        public BattleSessionContext CreateSessionContext(
+            string canonicalBalanceVersion,
+            string canonicalContentHash,
+            string battleContentVersion,
+            string battleContentHash,
+            long startedAtTick)
+        {
+            SessionContext = BattleSessionContext.FromRunner(
+                _runner,
+                canonicalBalanceVersion,
+                canonicalContentHash,
+                battleContentVersion,
+                battleContentHash,
+                startedAtTick);
+            return SessionContext;
+        }
 
         public Task StartHostAsync(string sessionName, NetworkSceneInfo scene = default)
         {
@@ -124,6 +142,7 @@ namespace MyDefense.Battle.Runtime
             _runnerObject = null;
             _identityCallbacks = null;
             PlayerRoster.Clear();
+            SessionContext = null;
             if (runner != null && !runner.IsShutdown)
                 await runner.Shutdown(true, reason);
             else if (runnerObject != null)

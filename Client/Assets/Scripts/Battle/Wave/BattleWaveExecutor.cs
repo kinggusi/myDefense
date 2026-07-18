@@ -392,6 +392,11 @@ namespace MyDefense.Battle
                 return false;
             }
 
+            if (_runtimeSession != null && !_runtimeSession.TryTransitionMatchState(nextState))
+            {
+                return false;
+            }
+
             _matchState = nextState;
             _isWaveRunning = false;
 
