@@ -1,6 +1,7 @@
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using Fusion;
 using MyDefense.Battle;
 using MyDefense.Battle.Balance;
 using MyDefense.Battle.Runtime;
@@ -364,6 +365,16 @@ public class BattleWaveExecutorStateTests
 
         Assert.That(prefab, Is.Not.Null);
         Assert.That(prefab.GetComponentsInChildren<BattleMonsterMovement>(true).Length, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void MonsterPrefab_HasFusionNetworkTransformAndObject()
+    {
+        GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(MonsterPrefabPath);
+
+        Assert.That(prefab, Is.Not.Null);
+        Assert.That(prefab.GetComponent<NetworkObject>(), Is.Not.Null);
+        Assert.That(prefab.GetComponent<NetworkTransform>(), Is.Not.Null);
     }
 
     [Test]

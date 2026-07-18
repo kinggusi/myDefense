@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using Fusion;
 
 namespace MyDefense.Battle
 {
@@ -16,6 +17,14 @@ namespace MyDefense.Battle
         private bool _isPathCompleted = false;
         private bool _pathInitializationAttempted = false;
         private bool _invalidPathReported = false;
+
+        private bool HasMovementAuthority()
+        {
+            NetworkObject networkObject = GetComponent<NetworkObject>();
+            return networkObject == null
+                || networkObject.Runner == null
+                || networkObject.HasStateAuthority;
+        }
 
         public float Speed
         {
@@ -41,11 +50,14 @@ namespace MyDefense.Battle
 
         private void Start()
         {
+            if (!HasMovementAuthority()) return;
             InitializePath();
         }
 
         private void Update()
         {
+            if (!HasMovementAuthority()) return;
+
             if (!_isInitialized)
             {
                 if (!_pathInitializationAttempted)
@@ -62,6 +74,7 @@ namespace MyDefense.Battle
 
         private void InitializePath()
         {
+            if (!HasMovementAuthority()) return;
             if (PathManager.Instance == null) return;
 
             _pathInitializationAttempted = true;
