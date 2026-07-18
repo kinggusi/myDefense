@@ -20,6 +20,9 @@ namespace MyDefense.Battle
         [Networked] public int CurrentWaveTypeValue { get; private set; }
         [Networked] public NetworkBool IsWaveRunning { get; private set; }
         [Networked] public int MatchStateValue { get; private set; }
+        [Networked] public int Player1AliveMonsterCount { get; private set; }
+        [Networked] public int Player2AliveMonsterCount { get; private set; }
+        [Networked] public int PlayerMonsterLimit { get; private set; }
 
         public BattleWaveExecutor Executor => _executor;
         public bool IsAuthoritative => HasStateAuthority;
@@ -36,10 +39,12 @@ namespace MyDefense.Battle
             _executor.OnBossDefeated += HandleWaveCompleted;
             _executor.OnRoundChanged += HandleRoundChanged;
             _executor.OnMatchStateChanged += HandleMatchStateChanged;
+            _executor.OnPlayerMonsterCountChanged += HandlePlayerMonsterCountChanged;
             if (HasStateAuthority)
             {
                 MatchStateValue = (int)MyDefense.Shared.Contracts.MatchState.RUNNING;
                 IsWaveRunning = false;
+                SyncAliveMonsterCounts();
             }
         }
 
@@ -52,6 +57,7 @@ namespace MyDefense.Battle
             _executor.OnBossDefeated -= HandleWaveCompleted;
             _executor.OnRoundChanged -= HandleRoundChanged;
             _executor.OnMatchStateChanged -= HandleMatchStateChanged;
+            _executor.OnPlayerMonsterCountChanged -= HandlePlayerMonsterCountChanged;
             _executor = null;
         }
 
@@ -62,6 +68,7 @@ namespace MyDefense.Battle
             if (!HasStateAuthority || _executor == null)
                 return false;
             _executor.InitializeSession(sessionContext, playerIdentityProvider);
+            SyncAliveMonsterCounts();
             return true;
         }
 
@@ -159,6 +166,28 @@ namespace MyDefense.Battle
                 return;
             MatchStateValue = (int)state;
             IsWaveRunning = state == MatchState.RUNNING && _executor != null && _executor.IsWaveRunning;
+        }
+
+        private void HandlePlayerMonsterCountChanged(LaneType lane, int count, int limit)
+        {
+            if (!HasStateAuthority)
+                return;
+
+            PlayerMonsterLimit = limit;
+            if (lane == LaneType.Player1Lane)
+                Player1AliveMonsterCount = count;
+            else if (lane == LaneType.Player2Lane)
+                Player2AliveMonsterCount = count;
+        }
+
+        private void SyncAliveMonsterCounts()
+        {
+            if (!HasStateAuthority || _executor == null)
+                return;
+
+            Player1AliveMonsterCount = _executor.Player1AliveMonsterCount;
+            Player2AliveMonsterCount = _executor.Player2AliveMonsterCount;
+            PlayerMonsterLimit = _executor.MonsterLimit;
         }
     }
 }
