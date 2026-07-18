@@ -193,7 +193,7 @@ P0-1-1~4 → P0-1-5 → P0-1-6
 
 | Task ID | 담당 | 상태 | Codex 작업 | 선행 |
 |---|---|---|---|---|
-| P0-2-1 | jjangash | 대기 | Fusion Runner 생성·종료 관리 구현 | P0-1-6 |
+| P0-2-1 | jjangash | 완료 | Fusion Runner 생성·종료 관리 구현 | P0-1-6 |
 | P0-2-2 | jjangash | 대기 | Player 1/2 참가, PlayerRef와 User ID 연결 | P0-2-1 |
 | P0-2-3 | jjangash | 부분 완료 | 기존 `BattleSessionContext`를 Fusion Battle Session ID 및 MatchState와 연결 | P0-2-2 |
 | P0-2-4 | jjangash | 대기 | 2인 준비 완료 후 전투 시작 처리 | P0-2-3 |
