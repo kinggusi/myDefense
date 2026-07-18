@@ -208,7 +208,7 @@ P0-1-1~4 → P0-1-5 → P0-1-6
 | P0-3-2 | kinggusi | 완료 | 현재 Wave와 Wave 진행 상태를 `[Networked]`로 구현 | P0-3-1 |
 | P0-3-3 | kinggusi | 완료 | Monster를 `Runner.Spawn`으로 생성 | P0-3-2 |
 | P0-3-4 | kinggusi | 완료 | 기존 Runtime Identity·HP·사망 기반을 Fusion Network 상태와 연결 | P0-3-3 |
-| P0-3-5 | kinggusi | 대기 | Boss NetworkObject Spawn 구현 | P0-3-3 |
+| P0-3-5 | kinggusi | 완료 | Boss NetworkObject Spawn 구현 | P0-3-3 |
 | P0-3-6 | kinggusi | 대기 | Monster·Boss NetworkTransform 적용 | P0-3-3 |
 | P0-3-7 | jjangash | 대기 | Wave 시작·종료 시 MatchState 검증 API 제공 | P0-2-3 |
 
