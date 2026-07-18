@@ -2,6 +2,7 @@ using UnityEngine;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Fusion;
 using MyDefense.Battle.Balance;
 using MyDefense.Battle.Balance.Canonical;
 using MyDefense.Battle.Runtime;
@@ -449,13 +450,12 @@ namespace MyDefense.Battle
                 return;
             }
 
-            if (Application.isPlaying)
+            if (!TryDespawnNetworked(_currentBossInstance))
             {
-                Destroy(_currentBossInstance);
-            }
-            else
-            {
-                DestroyImmediate(_currentBossInstance);
+                if (Application.isPlaying)
+                    Destroy(_currentBossInstance);
+                else
+                    DestroyImmediate(_currentBossInstance);
             }
 
             _currentBossInstance = null;
@@ -1136,7 +1136,25 @@ namespace MyDefense.Battle
                 return false;
             }
 
-            spawnedInstance = Instantiate(prefab, _spawnPoint.position, Quaternion.identity);
+            NetworkRunner runner = NetworkRunner.GetRunnerForGameObject(gameObject)
+                ?? Object.FindFirstObjectByType<NetworkRunner>();
+            if (runner != null && runner.IsRunning)
+            {
+                if (!runner.IsServer)
+                {
+                    FaultExecution("Only the Fusion State Authority may spawn networked monsters.");
+                    return false;
+                }
+
+                NetworkObject networkObject = runner.Spawn(prefab, _spawnPoint.position, Quaternion.identity);
+                spawnedInstance = networkObject != null ? networkObject.gameObject : null;
+            }
+            else
+            {
+                // EditMode and legacy offline tests have no active runner; retain
+                // local construction there while live sessions always use Runner.Spawn.
+                spawnedInstance = Instantiate(prefab, _spawnPoint.position, Quaternion.identity);
+            }
             if (spawnedInstance == null)
             {
                 FaultExecution(
@@ -1249,6 +1267,9 @@ namespace MyDefense.Battle
         {
             if (instance == null) return;
 
+            if (TryDespawnNetworked(instance))
+                return;
+
             if (Application.isPlaying)
             {
                 Destroy(instance);
@@ -1257,6 +1278,24 @@ namespace MyDefense.Battle
             {
                 DestroyImmediate(instance);
             }
+        }
+
+        private bool TryDespawnNetworked(GameObject instance)
+        {
+            if (instance == null)
+                return false;
+
+            NetworkObject networkObject = instance.GetComponent<NetworkObject>();
+            NetworkRunner runner = NetworkRunner.GetRunnerForGameObject(gameObject)
+                ?? Object.FindFirstObjectByType<NetworkRunner>();
+            if (runner == null || !runner.IsRunning || networkObject == null || !networkObject.IsValid)
+                return false;
+
+            if (!runner.IsServer)
+                return false;
+
+            runner.Despawn(networkObject);
+            return true;
         }
     }
 }
