@@ -14,6 +14,7 @@ public class MonsterStat : MonoBehaviour, IDamageable
 
     public event System.Action<float, float> OnHpChanged;
     public event System.Action<float, float> OnHpInitialized;
+    public event System.Action OnDied;
 
     public long monsterSpecId = 1;
 
@@ -50,6 +51,15 @@ public class MonsterStat : MonoBehaviour, IDamageable
 
     public void TakeDamage(float amount)
     {
+        BattleMonsterNetworkState networkState = GetComponent<BattleMonsterNetworkState>();
+        if (networkState != null
+            && networkState.Object != null
+            && networkState.Object.IsValid
+            && !networkState.HasStateAuthority)
+        {
+            return;
+        }
+
         if (isDead) return;
         hp -= amount;
         if (hp < 0f) hp = 0f;
@@ -59,10 +69,19 @@ public class MonsterStat : MonoBehaviour, IDamageable
         if (hp <= 0) Die();
     }
 
+    public void ApplyNetworkState(float currentHp, float networkMaxHp, bool dead)
+    {
+        maxHp = Mathf.Max(1f, networkMaxHp);
+        hp = Mathf.Clamp(currentHp, 0f, maxHp);
+        isDead = dead;
+        OnHpChanged?.Invoke(hp, maxHp);
+    }
+
     void Die()
     {
         if (isDead) return;
         isDead = true;
+        OnDied?.Invoke();
 
         if (battleContextInitialized
             && countsTowardLaneLimit

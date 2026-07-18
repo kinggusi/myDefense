@@ -1175,6 +1175,10 @@ namespace MyDefense.Battle
                     fieldOwnerPlayerId,
                     _currentRound,
                     spawnSequence));
+
+                BattleMonsterNetworkState networkState = spawnedInstance.GetComponent<BattleMonsterNetworkState>();
+                if (networkState != null)
+                    networkState.InitializeRuntimeIdentity(runtimeContext.Identity);
             }
             catch (Exception exception)
             {
