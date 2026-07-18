@@ -10,6 +10,7 @@ namespace MyDefense.Battle.Balance.Canonical
         string BattleContentVersion { get; }
         string BattleContentHash { get; }
         CanonicalFieldLimit FieldLimit { get; }
+        CanonicalSummonBalance Summon { get; }
         IMonsterDefinitionProvider MonsterDefinitions { get; }
     }
 
@@ -35,6 +36,7 @@ namespace MyDefense.Battle.Balance.Canonical
         public string BattleContentVersion { get; }
         public string BattleContentHash { get; }
         public CanonicalFieldLimit FieldLimit { get; }
+        public CanonicalSummonBalance Summon { get; }
         public IMonsterDefinitionProvider MonsterDefinitions { get; }
 
         private CanonicalCompositeBattleBalanceProvider(
@@ -51,9 +53,10 @@ namespace MyDefense.Battle.Balance.Canonical
             BattleContentHash = battleManifest?.BundleHash;
             MonsterDefinitions = canonical?.MonsterDefinitions;
             FieldLimit = fieldLimit;
+            Summon = canonical?.Summon;
             Catalog = catalog;
             ValidationErrors = Array.AsReadOnly(new List<string>(errors ?? Array.Empty<string>()).ToArray());
-            IsValid = canonical != null && catalog != null && fieldLimit != null && ValidationErrors.Count == 0;
+            IsValid = canonical != null && catalog != null && fieldLimit != null && Summon != null && ValidationErrors.Count == 0;
         }
 
         public static CanonicalCompositeBattleBalanceProvider LoadProduction(

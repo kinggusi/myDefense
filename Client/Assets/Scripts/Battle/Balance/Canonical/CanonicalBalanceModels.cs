@@ -13,6 +13,7 @@ namespace MyDefense.Battle.Balance.Canonical
         public const string WaveFileName = "wave-spec.json";
         public const string WaveSpawnFileName = "wave-spawn.json";
         public const string FieldLimitFileName = "field-limit.json";
+        public const string SummonFileName = "summon-balance.json";
     }
 
     public sealed class CanonicalManifestFileEntry
@@ -42,6 +43,38 @@ namespace MyDefense.Battle.Balance.Canonical
             BalanceVersion = balanceVersion;
             ContentHash = contentHash;
             Files = Array.AsReadOnly(new List<CanonicalManifestFileEntry>(files ?? Array.Empty<CanonicalManifestFileEntry>()).ToArray());
+        }
+    }
+
+    public sealed class CanonicalSummonBalance
+    {
+        public string ModeId { get; }
+        public string SummonType { get; }
+        public int BaseCost { get; }
+        public int CostIncreasePerUse { get; }
+        public int MaxUses { get; }
+        public string ResultPoolId { get; }
+        public bool Enabled { get; }
+
+        public CanonicalSummonBalance(string modeId, string summonType, int baseCost, int costIncreasePerUse, int maxUses, string resultPoolId, bool enabled)
+        {
+            ModeId = modeId;
+            SummonType = summonType;
+            BaseCost = baseCost;
+            CostIncreasePerUse = costIncreasePerUse;
+            MaxUses = maxUses;
+            ResultPoolId = resultPoolId;
+            Enabled = enabled;
+        }
+
+        public bool TryGetCost(int useCount, out int cost)
+        {
+            cost = 0;
+            if (!Enabled || useCount < 0 || (MaxUses >= 0 && useCount >= MaxUses)) return false;
+            long value = (long)BaseCost + (long)CostIncreasePerUse * useCount;
+            if (value <= 0 || value > int.MaxValue) return false;
+            cost = (int)value;
+            return true;
         }
     }
 
@@ -283,17 +316,19 @@ namespace MyDefense.Battle.Balance.Canonical
         public CanonicalWaveRegistry Waves { get; }
         public CanonicalWaveSpawnRegistry WaveSpawns { get; }
         public CanonicalFieldLimitRegistry FieldLimits { get; }
+        public CanonicalSummonBalance Summon { get; }
         public IMonsterDefinitionProvider MonsterDefinitions { get; }
         internal BattleBalanceDocument<WaveSpecData> RuntimeWaves { get; }
         internal BattleBalanceDocument<WaveSpawnSpecData> RuntimeSpawns { get; }
 
-        internal CanonicalBalanceBundle(CanonicalBalanceManifest manifest, CanonicalMonsterRegistry monsters, CanonicalWaveRegistry waves, CanonicalWaveSpawnRegistry waveSpawns, CanonicalFieldLimitRegistry fieldLimits, BattleBalanceDocument<WaveSpecData> runtimeWaves, BattleBalanceDocument<WaveSpawnSpecData> runtimeSpawns)
+        internal CanonicalBalanceBundle(CanonicalBalanceManifest manifest, CanonicalMonsterRegistry monsters, CanonicalWaveRegistry waves, CanonicalWaveSpawnRegistry waveSpawns, CanonicalFieldLimitRegistry fieldLimits, CanonicalSummonBalance summon, BattleBalanceDocument<WaveSpecData> runtimeWaves, BattleBalanceDocument<WaveSpawnSpecData> runtimeSpawns)
         {
             Manifest = manifest;
             Monsters = monsters;
             Waves = waves;
             WaveSpawns = waveSpawns;
             FieldLimits = fieldLimits;
+            Summon = summon;
             RuntimeWaves = runtimeWaves;
             RuntimeSpawns = runtimeSpawns;
             MonsterDefinitions = new CanonicalMonsterDefinitionProvider(monsters);

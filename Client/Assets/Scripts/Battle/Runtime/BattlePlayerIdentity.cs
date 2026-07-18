@@ -27,6 +27,7 @@ namespace MyDefense.Battle.Runtime
 
         public int Count => _byPlayer.Count;
         public IReadOnlyList<BattlePlayerIdentity> Players => _byPlayer.Values.OrderBy(identity => identity.PlayerSlot).ToList();
+        public event Action PlayersChanged;
 
         public bool TryAdd(PlayerRef playerRef, string userId, out BattlePlayerIdentity identity)
         {
@@ -41,6 +42,7 @@ namespace MyDefense.Battle.Runtime
             identity = new BattlePlayerIdentity(playerRef, userId, playerSlot);
             _byPlayer.Add(playerRef, identity);
             _byUser.Add(userId, identity);
+            PlayersChanged?.Invoke();
             return true;
         }
 
@@ -49,19 +51,28 @@ namespace MyDefense.Battle.Runtime
             if (!_byPlayer.Remove(playerRef, out BattlePlayerIdentity identity))
                 return false;
             _byUser.Remove(identity.UserId);
+            PlayersChanged?.Invoke();
             return true;
         }
 
         public void Clear()
         {
+            if (_byPlayer.Count == 0) return;
             _byPlayer.Clear();
             _byUser.Clear();
+            PlayersChanged?.Invoke();
         }
 
         public bool TryGet(PlayerRef playerRef, out BattlePlayerIdentity identity) => _byPlayer.TryGetValue(playerRef, out identity);
 
         public bool TryGetByUserId(string userId, out BattlePlayerIdentity identity)
             => _byUser.TryGetValue(userId ?? string.Empty, out identity);
+
+        public bool TryGetByUserIdForSlot(int playerSlot, out BattlePlayerIdentity identity)
+        {
+            identity = _byPlayer.Values.FirstOrDefault(player => player.PlayerSlot == playerSlot);
+            return identity != null;
+        }
     }
 
     public static class BattlePlayerIdentityToken

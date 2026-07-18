@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -80,7 +81,8 @@ namespace MyDefense.Battle.Balance.Canonical
             CanonicalBalanceContract.MonsterFileName,
             CanonicalBalanceContract.WaveFileName,
             CanonicalBalanceContract.WaveSpawnFileName,
-            CanonicalBalanceContract.FieldLimitFileName
+            CanonicalBalanceContract.FieldLimitFileName,
+            CanonicalBalanceContract.SummonFileName
         };
 
         public static CanonicalBalanceLoadResult Load(
@@ -157,12 +159,16 @@ namespace MyDefense.Battle.Balance.Canonical
             WaveDocumentJson waveDocument = ParseDocument<WaveDocumentJson>(fileBytes, CanonicalBalanceContract.WaveFileName, errors);
             WaveSpawnDocumentJson spawnDocument = ParseDocument<WaveSpawnDocumentJson>(fileBytes, CanonicalBalanceContract.WaveSpawnFileName, errors);
             FieldLimitDocumentJson fieldLimitDocument = ParseDocument<FieldLimitDocumentJson>(fileBytes, CanonicalBalanceContract.FieldLimitFileName, errors);
+            SummonDocumentJson summonDocument = names.Contains(CanonicalBalanceContract.SummonFileName)
+                ? ParseDocument<SummonDocumentJson>(fileBytes, CanonicalBalanceContract.SummonFileName, errors)
+                : null;
             if (errors.Count > 0) return Invalid(errors);
 
             List<CanonicalMonsterSpec> monsters = BuildMonsters(monsterDocument.monsters, runtimeMapping, errors);
             List<CanonicalWaveSpec> waves = BuildWaves(waveDocument.waves, errors);
             List<CanonicalWaveSpawn> spawns = BuildSpawns(spawnDocument.spawns, errors);
             List<CanonicalFieldLimit> fieldLimits = BuildFieldLimits(fieldLimitDocument.fieldLimits, errors);
+            CanonicalSummonBalance summon = BuildSummon(summonDocument?.summons, errors);
             ValidateRelationships(monsters, waves, spawns, errors);
             if (errors.Count > 0) return Invalid(errors);
 
@@ -204,7 +210,7 @@ namespace MyDefense.Battle.Balance.Canonical
             var runtimeWaveDocument = new BattleBalanceDocument<WaveSpecData>(manifest.SchemaVersion, manifest.BalanceVersion, manifest.ContentHash, runtimeWaves);
             var runtimeSpawnDocument = new BattleBalanceDocument<WaveSpawnSpecData>(manifest.SchemaVersion, manifest.BalanceVersion, manifest.ContentHash, runtimeSpawns);
             return new CanonicalBalanceLoadResult(
-                new CanonicalBalanceBundle(manifest, monsterRegistry, waveRegistry, spawnRegistry, fieldLimitRegistry, runtimeWaveDocument, runtimeSpawnDocument),
+                new CanonicalBalanceBundle(manifest, monsterRegistry, waveRegistry, spawnRegistry, fieldLimitRegistry, summon, runtimeWaveDocument, runtimeSpawnDocument),
                 errors);
         }
 
@@ -250,6 +256,29 @@ namespace MyDefense.Battle.Balance.Canonical
             }
             if (result.Count == 0) errors.Add("Canonical MonsterSpec must not be empty.");
             return result;
+        }
+
+        private static CanonicalSummonBalance BuildSummon(SummonJson[] source, List<string> errors)
+        {
+            if (source == null || source.Length == 0)
+            {
+                errors.Add("Canonical summon balance must contain a KIDNAP row.");
+                return null;
+            }
+            SummonJson raw = source.FirstOrDefault(item => item != null
+                && string.Equals(item.modeId, CanonicalBalanceContract.DefaultModeId, StringComparison.Ordinal)
+                && string.Equals(item.summonType, "KIDNAP", StringComparison.Ordinal));
+            if (raw == null)
+            {
+                errors.Add("Canonical summon balance is missing COOP_STANDARD KIDNAP.");
+                return null;
+            }
+            if (raw.baseCost <= 0 || raw.costIncreasePerUse < 0 || raw.maxUses < -1 || string.IsNullOrWhiteSpace(raw.resultPoolId))
+            {
+                errors.Add("Invalid canonical summon balance.");
+                return null;
+            }
+            return new CanonicalSummonBalance(raw.modeId, raw.summonType, raw.baseCost, raw.costIncreasePerUse, raw.maxUses, raw.resultPoolId, raw.enabled);
         }
 
         private static List<CanonicalWaveSpec> BuildWaves(WaveJson[] source, List<string> errors)
@@ -434,5 +463,7 @@ namespace MyDefense.Battle.Balance.Canonical
         [Serializable] private sealed class WaveSpawnJson { public string spawnGroupId; public int order; public string monsterId; public int spawnCountPerField; public float startDelaySeconds; public float spawnIntervalSeconds; public string lanePolicy; }
         [Serializable] private sealed class FieldLimitDocumentJson { public FieldLimitJson[] fieldLimits; }
         [Serializable] private sealed class FieldLimitJson { public string modeId; public int playerCount; public int maxAliveMonsterCountPerField; public int warningThreshold; public int dangerThreshold; }
+        [Serializable] private sealed class SummonDocumentJson { public SummonJson[] summons; }
+        [Serializable] private sealed class SummonJson { public string modeId; public string summonType; public int baseCost; public int costIncreasePerUse; public int maxUses; public string resultPoolId; public bool enabled; }
     }
 }

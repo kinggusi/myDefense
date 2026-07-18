@@ -231,7 +231,7 @@ P0-1-1~4 → P0-1-5 → P0-1-6
 |---|---|---|---|---|
 | P0-5-1 | jjangash | 대기 | 플레이어별 Networked inGameGold 구현 | P0-2-3 |
 | P0-5-2 | jjangash | 대기 | Monster 처치 시 양쪽 플레이어에게 각각 100% 골드 지급 | P0-5-1 |
-| P0-5-3 | jjangash | 대기 | State Authority Kidnap 요청·검증 RPC 구현 | P0-5-1 |
+| P0-5-3 | jjangash | 완료 | State Authority Kidnap 요청·검증 RPC 구현 | P0-5-1 |
 | P0-5-4 | jjangash | 부분 완료 | 기존 24칸·첫 빈칸·누적 비용 규칙을 Fusion 검증으로 이전 | P0-5-3 |
 | P0-5-5 | jjangash | 대기 | State Authority 일반 Merge 요청·검증 RPC 구현 | P0-5-1 |
 | P0-5-6 | jjangash | 부분 완료 | 기존 동일 종·동일 등급·다음 등급 풀 규칙을 Fusion으로 이전 | P0-5-5 |
@@ -544,3 +544,18 @@ Shared 변경이 필요하면:
 8. 후속 Task가 사용할 공개 API 또는 인수인계 기록 작성
 
 Task 상태만 바꾸는 커밋은 구현 커밋에 함께 포함할 수 있다.
+
+---
+
+## Battle 비주얼 개선 후속 기록
+
+현재 Battle 네트워크 검증은 기능·동기화 우선으로 진행한다. 이후 별도 비주얼 작업에서 다음 방향을 적용한다.
+
+- 2.5D 캐릭터형 Alien/Monster 표현으로 교체
+- 기존 Grid 기반 구조를 유지하면서 3D 맵 타일의 높낮이·재질·테두리·그림자 개선
+- 유닛 idle/attack 애니메이션과 공격 이펙트 추가
+- 카메라 원근감 및 조명으로 필드 깊이감 강화
+- 공용 Boss Lane 전용 연출 추가
+- Fusion NetworkObject는 상태·위치 동기화에 집중하고 모델/애니메이션은 로컬 표현으로 분리
+
+이 항목은 현재 네트워크 연결·필드 관점 구현 완료 후 진행하는 후속 작업이며, 이번 단계에서는 구현하지 않는다.

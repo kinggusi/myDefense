@@ -138,6 +138,41 @@ namespace MyDefense.Battle
         public string BattleContentHash => (_battleBalanceProvider as ICanonicalCompositeBattleBalanceProvider)?.BattleContentHash;
         public BattleSessionContext RuntimeSession => _runtimeSession;
 
+        public bool TryGetCanonicalSummonCost(int useCount, out int cost)
+        {
+            cost = 0;
+            if (!EnsureBalanceInitialized()
+                || _battleBalanceProvider is not ICanonicalCompositeBattleBalanceProvider canonical
+                || canonical.Summon == null)
+                return false;
+            return canonical.Summon.TryGetCost(useCount, out cost);
+        }
+
+        public bool TryGetCanonicalSessionMetadata(
+            out string canonicalBalanceVersion,
+            out string canonicalContentHash,
+            out string battleContentVersion,
+            out string battleContentHash)
+        {
+            canonicalBalanceVersion = null;
+            canonicalContentHash = null;
+            battleContentVersion = null;
+            battleContentHash = null;
+
+            if (!EnsureBalanceInitialized()
+                || _battleBalanceProvider is not ICanonicalCompositeBattleBalanceProvider canonical)
+                return false;
+
+            canonicalBalanceVersion = canonical.CanonicalBalanceVersion;
+            canonicalContentHash = canonical.CanonicalContentHash;
+            battleContentVersion = canonical.BattleContentVersion;
+            battleContentHash = canonical.BattleContentHash;
+            return !string.IsNullOrWhiteSpace(canonicalBalanceVersion)
+                && !string.IsNullOrWhiteSpace(canonicalContentHash)
+                && !string.IsNullOrWhiteSpace(battleContentVersion)
+                && !string.IsNullOrWhiteSpace(battleContentHash);
+        }
+
         private void Awake()
         {
             if (Instance == null)
@@ -616,8 +651,53 @@ namespace MyDefense.Battle
 
         private void Start()
         {
+            NetworkObject networkObject = GetComponent<NetworkObject>();
+            if (networkObject != null && networkObject.Runner == null)
+            {
+                StartCoroutine(StartWhenNetworkSpawnedRoutine());
+                return;
+            }
+
+            StartConfiguredWaves();
+        }
+
+        private IEnumerator StartWhenNetworkSpawnedRoutine()
+        {
+            NetworkObject networkObject = GetComponent<NetworkObject>();
+            while (networkObject != null && networkObject.Runner == null)
+                yield return null;
+
+            if (!HasWaveAuthority())
+                yield break;
+
+            StartConfiguredWaves();
+        }
+
+        private void StartConfiguredWaves()
+        {
+            // Once this object is networked, only the Fusion State Authority may
+            // start the wave loop.  Keep the offline/editor path available for
+            // existing tests and local tooling where no runner is attached.
+            if (!HasWaveAuthority())
+                return;
+
             if (_runtimeSession == null)
+            {
+                NetworkObject networkObject = GetComponent<NetworkObject>();
+                BattleSceneSessionAdapter sessionAdapter = GetComponent<BattleSceneSessionAdapter>();
+                if (networkObject != null
+                    && networkObject.Runner != null
+                    && sessionAdapter != null
+                    && !sessionAdapter.IsInitialized)
+                {
+                    // A networked Battle Scene receives its canonical session
+                    // from BattleSceneSessionAdapter after the roster is ready.
+                    // Do not create an empty local session before that injection.
+                    return;
+                }
+
                 InitializeSession();
+            }
 
             if (!EnsureBalanceInitialized())
             {
@@ -711,6 +791,7 @@ namespace MyDefense.Battle
         [ContextMenu("Start Next Wave")]
         public void StartNextWave()
         {
+            if (!HasWaveAuthority()) return;
             if (!EnsureBalanceInitialized()) return;
             if (!TryBeginNextWave()) return;
 
@@ -722,6 +803,14 @@ namespace MyDefense.Battle
             {
                 _activeWaveCoroutine = StartCoroutine(SpawnRegularWaveRoutine());
             }
+        }
+
+        private bool HasWaveAuthority()
+        {
+            NetworkObject networkObject = GetComponent<NetworkObject>();
+            return networkObject == null
+                || networkObject.Runner == null
+                || networkObject.HasStateAuthority;
         }
 
         private bool TryBeginNextWave()

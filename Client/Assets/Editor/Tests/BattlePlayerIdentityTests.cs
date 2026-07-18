@@ -66,5 +66,20 @@ namespace MyDefense.Battle.Tests
             Assert.That(roster.Count, Is.Zero);
             Assert.That(roster.TryGetByUserId("user-a", out _), Is.False);
         }
+
+        [Test]
+        public void PlayersChangedFiresOnlyForSuccessfulRosterChanges()
+        {
+            var roster = new BattlePlayerRoster();
+            int changes = 0;
+            roster.PlayersChanged += () => changes++;
+
+            Assert.That(roster.TryAdd(PlayerRef.FromIndex(0), "user-a", out _), Is.True);
+            Assert.That(roster.TryAdd(PlayerRef.FromIndex(0), "user-a", out _), Is.False);
+            Assert.That(roster.Remove(PlayerRef.FromIndex(0)), Is.True);
+            roster.Clear();
+
+            Assert.That(changes, Is.EqualTo(2));
+        }
     }
 }

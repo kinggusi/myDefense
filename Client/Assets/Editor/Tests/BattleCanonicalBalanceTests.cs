@@ -38,6 +38,11 @@ namespace MyDefense.Battle.Tests
             Assert.That(limit.DangerThreshold, Is.EqualTo(90));
             Assert.That(result.Bundle.Waves.All.Count, Is.EqualTo(10));
             Assert.That(result.Bundle.WaveSpawns.GetByGroup("WAVE_10_BOSS").Single().LanePolicy, Is.EqualTo(CanonicalLanePolicy.BOSS_SHARED));
+            Assert.That(result.Bundle.Summon, Is.Not.Null);
+            Assert.That(result.Bundle.Summon.TryGetCost(0, out int firstCost), Is.True);
+            Assert.That(firstCost, Is.EqualTo(50));
+            Assert.That(result.Bundle.Summon.TryGetCost(1, out int secondCost), Is.True);
+            Assert.That(secondCost, Is.EqualTo(60));
         }
 
         [Test]
@@ -136,6 +141,17 @@ namespace MyDefense.Battle.Tests
             CanonicalBalanceLoadResult result = Load(files);
 
             AssertInvalidContaining(result, "file is missing");
+        }
+
+        [Test]
+        public void MissingSummonBalance_IsRejected()
+        {
+            Dictionary<string, byte[]> files = LoadProductionFiles();
+            files.Remove(CanonicalBalanceContract.SummonFileName);
+
+            CanonicalBalanceLoadResult result = Load(files);
+
+            AssertInvalidContaining(result, "summon-balance.json");
         }
 
         [Test]

@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Fusion;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace MyDefense.Battle.Runtime
 {
@@ -32,6 +33,7 @@ namespace MyDefense.Battle.Runtime
         public BattleSessionContext SessionContext { get; private set; }
         public bool IsBattleStarted => MatchStart.State == BattleStartState.STARTED;
         public string LastError { get; private set; }
+        public event Action<BattleSessionContext> SessionContextCreated;
 
         private void Awake()
         {
@@ -62,6 +64,7 @@ namespace MyDefense.Battle.Runtime
                 battleContentVersion,
                 battleContentHash,
                 startedAtTick);
+            SessionContextCreated?.Invoke(SessionContext);
             return SessionContext;
         }
 
@@ -107,7 +110,8 @@ namespace MyDefense.Battle.Runtime
             State = BattleRunnerLifecycleState.STARTING;
             LastError = null;
             _runnerObject = new GameObject("FusionRunner");
-            _runnerObject.transform.SetParent(transform, false);
+            // Fusion keeps the runner alive across network scene changes.
+            // It must remain a root object for DontDestroyOnLoad to work.
             _runner = _runnerObject.AddComponent<NetworkRunner>();
             _identityCallbacks = new BattlePlayerIdentityCallbacks(PlayerRoster, userId);
             _runner.AddCallbacks(_identityCallbacks);
@@ -118,6 +122,9 @@ namespace MyDefense.Battle.Runtime
 
             try
             {
+                if (scene.SceneCount == 0)
+                    scene = CreateActiveSceneInfo();
+
                 Task<StartGameResult> startTask = _runner.StartGame(new StartGameArgs
                 {
                     GameMode = mode,
@@ -134,6 +141,8 @@ namespace MyDefense.Battle.Runtime
                 if (result.Ok)
                 {
                     State = BattleRunnerLifecycleState.RUNNING;
+                    string role = mode == GameMode.Host ? "호스트 생성!" : "클라이언트 생성!";
+                    Debug.Log($"[Fusion] {role} Session={sessionName} UserId={userId}");
                     return;
                 }
 
@@ -148,6 +157,21 @@ namespace MyDefense.Battle.Runtime
                 State = BattleRunnerLifecycleState.FAULTED;
                 await StopInternalAsync(ShutdownReason.Error);
             }
+        }
+
+        private static NetworkSceneInfo CreateActiveSceneInfo()
+        {
+            Scene activeScene = SceneManager.GetActiveScene();
+            if (!activeScene.IsValid() || activeScene.buildIndex < 0)
+                return default;
+
+            NetworkSceneInfo sceneInfo = default;
+            sceneInfo.AddSceneRef(
+                SceneRef.FromIndex(activeScene.buildIndex),
+                LoadSceneMode.Single,
+                LocalPhysicsMode.None,
+                activeOnLoad: true);
+            return sceneInfo;
         }
 
         private async Task StopInternalAsync(ShutdownReason reason)

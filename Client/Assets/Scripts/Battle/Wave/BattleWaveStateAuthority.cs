@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using Fusion;
+using UnityEngine;
 using MyDefense.Battle.Balance;
 using MyDefense.Battle.Runtime;
 using MyDefense.Shared.Contracts;
@@ -11,8 +13,11 @@ namespace MyDefense.Battle
     /// Networked wave fields are introduced by P0-3-2; this component owns
     /// which peer is allowed to invoke the executor in the meantime.
     /// </summary>
+    [RequireComponent(typeof(NetworkObject))]
+    [RequireComponent(typeof(BattleWaveExecutor))]
     public sealed class BattleWaveStateAuthority : NetworkBehaviour
     {
+        private const int DefaultInitialInGameGold = 500;
         private BattleWaveExecutor _executor;
 
         [Networked] public int CurrentWave { get; private set; }
@@ -31,6 +36,16 @@ namespace MyDefense.Battle
         [Networked] public NetworkBool Player2Eliminated { get; private set; }
         [Networked] public int Player1BattleStateValue { get; private set; }
         [Networked] public int Player2BattleStateValue { get; private set; }
+        [Networked] public int Player1InGameGold { get; private set; }
+        [Networked] public int Player2InGameGold { get; private set; }
+        [Networked] public int Player1KidnapCount { get; private set; }
+        [Networked] public int Player2KidnapCount { get; private set; }
+        [Networked] public PlayerRef Player1Ref { get; private set; }
+        [Networked] public PlayerRef Player2Ref { get; private set; }
+        [Networked, Capacity(24)] private NetworkArray<NetworkBool> Player1BoardOccupied => default;
+        [Networked, Capacity(24)] private NetworkArray<NetworkBool> Player2BoardOccupied => default;
+
+        public event Action<int, int> KidnapApplied;
 
         public BattleWaveExecutor Executor => _executor;
         public bool IsAuthoritative => HasStateAuthority;
@@ -38,6 +53,17 @@ namespace MyDefense.Battle
         public MatchState MatchState => (MatchState)MatchStateValue;
         public PlayerBattleState Player1BattleState => (PlayerBattleState)Player1BattleStateValue;
         public PlayerBattleState Player2BattleState => (PlayerBattleState)Player2BattleStateValue;
+
+        public int GetNetworkedPlayerSlot(PlayerRef playerRef)
+        {
+            if (!playerRef.IsRealPlayer)
+                return 0;
+            if (playerRef == Player1Ref)
+                return 1;
+            if (playerRef == Player2Ref)
+                return 2;
+            return 0;
+        }
 
         public bool IsPlayerActionAllowed(LaneType lane)
         {
@@ -71,7 +97,88 @@ namespace MyDefense.Battle
                 ResetFieldLimitEvents();
                 SyncPlayerBattleStates();
                 SyncAliveMonsterCounts();
+                InitializeInGameGold(DefaultInitialInGameGold, DefaultInitialInGameGold);
+                Player1KidnapCount = 0;
+                Player2KidnapCount = 0;
             }
+        }
+
+        public override void FixedUpdateNetwork()
+        {
+            if (!HasStateAuthority)
+                return;
+
+            BattleRunnerLifecycle lifecycle = FindFirstObjectByType<BattleRunnerLifecycle>();
+            if (lifecycle == null || lifecycle.Runner == null)
+                return;
+
+            if (lifecycle.PlayerRoster.TryGetByUserIdForSlot(1, out BattlePlayerIdentity player1))
+                Player1Ref = player1.PlayerRef;
+            if (lifecycle.PlayerRoster.TryGetByUserIdForSlot(2, out BattlePlayerIdentity player2))
+                Player2Ref = player2.PlayerRef;
+        }
+
+        public void RequestKidnap()
+        {
+            if (Object != null && Object.IsValid)
+                RPC_RequestKidnap();
+        }
+
+        [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+        private void RPC_RequestKidnap(RpcInfo info = default)
+        {
+            if (!HasStateAuthority || _executor == null)
+                return;
+
+            BattleRunnerLifecycle lifecycle = FindFirstObjectByType<BattleRunnerLifecycle>();
+            if (lifecycle == null)
+                return;
+            PlayerRef source = info.Source.IsRealPlayer ? info.Source : Runner.LocalPlayer;
+            if (!lifecycle.PlayerRoster.TryGet(source, out BattlePlayerIdentity identity))
+                return;
+
+            if (identity.PlayerSlot != 1 && identity.PlayerSlot != 2)
+                return;
+            LaneType lane = identity.PlayerSlot == 1 ? LaneType.Player1Lane : LaneType.Player2Lane;
+            int useCount = identity.PlayerSlot == 1 ? Player1KidnapCount : Player2KidnapCount;
+            if (!IsPlayerActionAllowed(lane) || !_executor.TryGetCanonicalSummonCost(useCount, out int cost))
+                return;
+            if (!TrySpendGold(lane, cost, out int remainingGold))
+            {
+                Debug.Log($"[Fusion] Kidnap rejected: insufficient gold for slot {identity.PlayerSlot}.");
+                return;
+            }
+
+            if (identity.PlayerSlot == 1) Player1KidnapCount++;
+            else Player2KidnapCount++;
+            NetworkArray<NetworkBool> board = identity.PlayerSlot == 1 ? Player1BoardOccupied : Player2BoardOccupied;
+            int slotIndex = -1;
+            for (int index = 0; index < 24; index++)
+            {
+                if (!board[index])
+                {
+                    slotIndex = index;
+                    board.Set(index, true);
+                    break;
+                }
+            }
+            if (slotIndex < 0)
+            {
+                // Never charge a full board. Roll back the already-applied spend.
+                if (identity.PlayerSlot == 1) Player1InGameGold += cost;
+                else Player2InGameGold += cost;
+                if (identity.PlayerSlot == 1) Player1KidnapCount--;
+                else Player2KidnapCount--;
+                return;
+            }
+            RPC_KidnapApplied(identity.PlayerSlot, slotIndex);
+            Debug.Log($"[Fusion] Kidnap request authorized: slot={identity.PlayerSlot}, cost={cost}, remaining={remainingGold}.");
+        }
+
+        [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+        private void RPC_KidnapApplied(int playerSlot, int slotIndex)
+        {
+            KidnapApplied?.Invoke(playerSlot, slotIndex);
         }
 
         public override void Despawned(NetworkRunner runner, bool hasState)
@@ -145,6 +252,77 @@ namespace MyDefense.Battle
         public bool ValidateMatchState(MatchState expected)
         {
             return MatchState == expected;
+        }
+
+        public int GetInGameGold(LaneType lane)
+        {
+            return lane switch
+            {
+                LaneType.Player1Lane => Player1InGameGold,
+                LaneType.Player2Lane => Player2InGameGold,
+                _ => 0
+            };
+        }
+
+        public bool InitializeInGameGold(int player1Gold, int player2Gold)
+        {
+            if (!HasStateAuthority || player1Gold < 0 || player2Gold < 0)
+                return false;
+
+            Player1InGameGold = player1Gold;
+            Player2InGameGold = player2Gold;
+            return true;
+        }
+
+        public bool TrySpendGold(LaneType lane, int amount, out int remainingGold)
+        {
+            remainingGold = GetInGameGold(lane);
+            if (!HasStateAuthority || amount <= 0)
+                return false;
+
+            if (lane == LaneType.Player1Lane)
+            {
+                if (Player1InGameGold < amount) return false;
+                Player1InGameGold -= amount;
+                remainingGold = Player1InGameGold;
+                return true;
+            }
+
+            if (lane == LaneType.Player2Lane)
+            {
+                if (Player2InGameGold < amount) return false;
+                Player2InGameGold -= amount;
+                remainingGold = Player2InGameGold;
+                return true;
+            }
+
+            return false;
+        }
+
+        public bool TryAwardGold(LaneType lane, int amount)
+        {
+            if (!HasStateAuthority || amount < 0)
+                return false;
+
+            if (lane == LaneType.Player1Lane)
+            {
+                Player1InGameGold = AddGoldSafely(Player1InGameGold, amount);
+                return true;
+            }
+
+            if (lane == LaneType.Player2Lane)
+            {
+                Player2InGameGold = AddGoldSafely(Player2InGameGold, amount);
+                return true;
+            }
+
+            return false;
+        }
+
+        private static int AddGoldSafely(int current, int amount)
+        {
+            long total = (long)current + amount;
+            return total > int.MaxValue ? int.MaxValue : (int)total;
         }
 
         public bool TryStartNextWave()

@@ -670,14 +670,13 @@ GameObject:
   m_Component:
   - component: {fileID: 293221408}
   - component: {fileID: 293221407}
-  - component: {fileID: 293221409}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &293221407
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -714,24 +713,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &293221409
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 293221406}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
-  SortKey: 594085147
-  ObjectInterest: 1
-  Flags: 262145
-  NestedObjects: []
-  NetworkedBehaviours: []
-  ForceRemoteRenderTimeframe: 0
 --- !u!1 &301661576
 GameObject:
   m_ObjectHideFlags: 0
@@ -2379,6 +2360,13 @@ GameObject:
   m_Component:
   - component: {fileID: 722039117}
   - component: {fileID: 722039116}
+  - component: {fileID: 722039119}
+  - component: {fileID: 722039118}
+  - component: {fileID: 722039121}
+  - component: {fileID: 722039120}
+  - component: {fileID: 722039122}
+  - component: {fileID: 722039123}
+  - component: {fileID: 722039124}
   m_Layer: 0
   m_Name: BattleWaveExecutor
   m_TagString: Untagged
@@ -2429,6 +2417,136 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &722039118
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 722039115}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 593c1d93a38bea44b9a5ffed78bbbf32, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::MyDefense.Battle.Runtime.BattleRunnerLifecycle
+--- !u!114 &722039119
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 722039115}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e63abed07748edf4d9cd1b048c7d4a73, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::MyDefense.Battle.Runtime.BattleSceneSessionAdapter
+  _runnerLifecycle: {fileID: 722039118}
+  _waveExecutor: {fileID: 722039116}
+  _stateAuthority: {fileID: 722039120}
+  _pathManager: {fileID: 273106438}
+--- !u!114 &722039120
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 722039115}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 11275b2d77a83cd4cb9627239633f72d, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::MyDefense.Battle.BattleWaveStateAuthority
+  _CurrentWave: 0
+  _CurrentWaveId:
+    _length: 0
+    _data:
+      Data: 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+  _CurrentWaveTypeValue: 0
+  _IsWaveRunning:
+    _value: 0
+  _MatchStateValue: 0
+  _Player1AliveMonsterCount: 0
+  _Player2AliveMonsterCount: 0
+  _PlayerMonsterLimit: 0
+  _Player1WarningReached:
+    _value: 0
+  _Player2WarningReached:
+    _value: 0
+  _Player1DangerReached:
+    _value: 0
+  _Player2DangerReached:
+    _value: 0
+  _Player1Eliminated:
+    _value: 0
+  _Player2Eliminated:
+    _value: 0
+  _Player1BattleStateValue: 0
+  _Player2BattleStateValue: 0
+  _Player1InGameGold: 0
+  _Player2InGameGold: 0
+  _Player1KidnapCount: 0
+  _Player2KidnapCount: 0
+--- !u!114 &722039121
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 722039115}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+  SortKey: 1584634451
+  ObjectInterest: 1
+  Flags: 262145
+  NestedObjects: []
+  NetworkedBehaviours:
+  - {fileID: 722039120}
+  ForceRemoteRenderTimeframe: 0
+--- !u!114 &722039122
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 722039115}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 04de7ede16b1a2b49b87c02dba95a2ec, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::MyDefense.Battle.Tests.FusionConnectionTestPanel
+  _sessionName: MyDefense-Dev
+  _userId: dev-user
+--- !u!114 &722039123
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 722039115}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4864ffb5d0f2a1b4a9631253032c017e, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::MyDefense.Battle.Presentation.BattleFieldPerspective
+  _player1Field: {fileID: 0}
+  _player2Field: {fileID: 0}
+  _runnerLifecycle: {fileID: 0}
+--- !u!114 &722039124
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 722039115}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 870b47090234ad841a8b57d342055cc3, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::MyDefense.Battle.Presentation.FusionKidnapBoardView
 --- !u!1 &722481580
 GameObject:
   m_ObjectHideFlags: 0
