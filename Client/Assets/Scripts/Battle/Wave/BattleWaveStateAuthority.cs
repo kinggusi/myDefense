@@ -65,9 +65,53 @@ namespace MyDefense.Battle
             return true;
         }
 
+        public bool ValidateWaveStart(out string reason)
+        {
+            if (!HasStateAuthority)
+                return FailValidation("Only State Authority may start a wave.", out reason);
+            if (_executor == null)
+                return FailValidation("BattleWaveExecutor is unavailable.", out reason);
+            if (MatchState != MatchState.RUNNING)
+                return FailValidation("MatchState must be RUNNING to start a wave.", out reason);
+            if (IsWaveRunning)
+                return FailValidation("A wave is already running.", out reason);
+            if (_executor.IsBossActive)
+                return FailValidation("The current Boss is still active.", out reason);
+            if (_executor.SpawnedMonsterCount > 0)
+                return FailValidation("Alive monsters remain from the previous wave.", out reason);
+            if (_executor.AreAllPlayersEliminated)
+                return FailValidation("All players are eliminated.", out reason);
+
+            reason = string.Empty;
+            return true;
+        }
+
+        public bool ValidateWaveEnd(out string reason)
+        {
+            if (!HasStateAuthority)
+                return FailValidation("Only State Authority may validate wave completion.", out reason);
+            if (_executor == null)
+                return FailValidation("BattleWaveExecutor is unavailable.", out reason);
+            if (CurrentWave <= 0)
+                return FailValidation("No wave has started.", out reason);
+            if (MatchState != MatchState.RUNNING)
+                return FailValidation("MatchState is already terminal.", out reason);
+            if (IsWaveRunning || _executor.IsBossActive)
+                return FailValidation("The current wave is still running.", out reason);
+
+            reason = string.Empty;
+            return true;
+        }
+
+        public bool ValidateMatchState(MatchState expected)
+        {
+            return MatchState == expected;
+        }
+
         public bool TryStartNextWave()
         {
-            if (!HasStateAuthority || _executor == null)
+            string reason;
+            if (!ValidateWaveStart(out reason))
                 return false;
             _executor.StartNextWave();
             CurrentWave = _executor.CurrentRound;
@@ -75,6 +119,12 @@ namespace MyDefense.Battle
             CurrentWaveTypeValue = _executor.IsCurrentWaveBoss ? (int)WaveType.BOSS : (int)WaveType.REGULAR;
             IsWaveRunning = _executor.IsWaveRunning;
             return true;
+        }
+
+        private static bool FailValidation(string message, out string reason)
+        {
+            reason = message;
+            return false;
         }
 
         private void HandleRegularWaveCompleted(int _)
