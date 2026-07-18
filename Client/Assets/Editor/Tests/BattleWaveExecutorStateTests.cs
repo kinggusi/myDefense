@@ -119,6 +119,34 @@ public class BattleWaveExecutorStateTests
     }
 
     [Test]
+    public void EliminatedLane_RejectsNewMonsterSpawnBeforeInstantiation()
+    {
+        SetField("_totalMonsterGoal", 1);
+        GameObject validPrefab = new GameObject("EliminatedLaneSpawnPrefab_Test");
+        validPrefab.AddComponent<BattleMonsterMovement>();
+        GameObject spawnPoint = new GameObject("EliminatedLaneSpawnPoint_Test");
+        try
+        {
+            SetField("_monsterPrefab", validPrefab);
+            SetField("_spawnPoint", spawnPoint.transform);
+            RegisterSpawn(LaneType.Player1Lane);
+
+            int countAtElimination = _executor.Player1AliveMonsterCount;
+            bool spawned = Invoke<bool>("SpawnMonster", LaneType.Player1Lane, 5f, 1f);
+
+            Assert.That(spawned, Is.False);
+            Assert.That(_executor.Player1AliveMonsterCount, Is.EqualTo(countAtElimination));
+            Assert.That(Object.FindObjectsByType<BattleMonsterMovement>(FindObjectsInactive.Include, FindObjectsSortMode.None)
+                .Count(x => x.gameObject != validPrefab), Is.Zero);
+        }
+        finally
+        {
+            Object.DestroyImmediate(validPrefab);
+            Object.DestroyImmediate(spawnPoint);
+        }
+    }
+
+    [Test]
     public void BossTimeout_FailsMatchAndRaisesTimeoutOnce()
     {
         ActivateBoss();

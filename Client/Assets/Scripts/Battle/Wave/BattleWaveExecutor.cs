@@ -1091,6 +1091,8 @@ namespace MyDefense.Battle
             out GameObject spawnedInstance)
         {
             spawnedInstance = null;
+            if (lane != LaneType.BossSharedLane && !CanSpawnInLane(lane))
+                return false;
             if (!EnsureRuntimeSessionReady()) return false;
             if (definition == null)
             {
