@@ -217,7 +217,7 @@ P0-1-1~4 → P0-1-5 → P0-1-6
 | Task ID | 담당 | 상태 | Codex 작업 | 선행 |
 |---|---|---|---|---|
 | P0-4-1 | kinggusi | 완료 | 개인 필드별 살아 있는 Monster 수를 authoritative하게 집계 | P0-3-4 |
-| P0-4-2 | kinggusi | 부분 완료 | 80/90 경고 이벤트와 100마리 탈락 이벤트 발생 | P0-4-1 |
+| P0-4-2 | kinggusi | 완료 | 80/90 경고 이벤트와 100마리 탈락 이벤트 발생 | P0-4-1 |
 | P0-4-3 | jjangash | 대기 | 탈락 이벤트를 받아 Networked PlayerBattleState 변경 | P0-4-2 |
 | P0-4-4 | jjangash | 대기 | 탈락 플레이어의 Kidnap·Merge·Mutation·강화 차단 | P0-4-3 |
 | P0-4-5 | kinggusi | 대기 | 탈락 필드 신규 Monster Spawn 중단 | P0-4-3 |

@@ -12,7 +12,9 @@ using MyDefense.Shared.Contracts;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
+using Assert = NUnit.Framework.Assert;
 using UnityEngine.TestTools;
+using LogType = UnityEngine.LogType;
 
 namespace MyDefense.Battle.Tests
 {
