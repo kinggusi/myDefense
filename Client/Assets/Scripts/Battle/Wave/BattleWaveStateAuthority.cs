@@ -23,6 +23,12 @@ namespace MyDefense.Battle
         [Networked] public int Player1AliveMonsterCount { get; private set; }
         [Networked] public int Player2AliveMonsterCount { get; private set; }
         [Networked] public int PlayerMonsterLimit { get; private set; }
+        [Networked] public NetworkBool Player1WarningReached { get; private set; }
+        [Networked] public NetworkBool Player2WarningReached { get; private set; }
+        [Networked] public NetworkBool Player1DangerReached { get; private set; }
+        [Networked] public NetworkBool Player2DangerReached { get; private set; }
+        [Networked] public NetworkBool Player1Eliminated { get; private set; }
+        [Networked] public NetworkBool Player2Eliminated { get; private set; }
 
         public BattleWaveExecutor Executor => _executor;
         public bool IsAuthoritative => HasStateAuthority;
@@ -40,10 +46,14 @@ namespace MyDefense.Battle
             _executor.OnRoundChanged += HandleRoundChanged;
             _executor.OnMatchStateChanged += HandleMatchStateChanged;
             _executor.OnPlayerMonsterCountChanged += HandlePlayerMonsterCountChanged;
+            _executor.OnPlayerMonsterWarningReached += HandlePlayerMonsterWarningReached;
+            _executor.OnPlayerMonsterDangerReached += HandlePlayerMonsterDangerReached;
+            _executor.OnPlayerMonsterLimitReached += HandlePlayerMonsterLimitReached;
             if (HasStateAuthority)
             {
                 MatchStateValue = (int)MyDefense.Shared.Contracts.MatchState.RUNNING;
                 IsWaveRunning = false;
+                ResetFieldLimitEvents();
                 SyncAliveMonsterCounts();
             }
         }
@@ -58,6 +68,9 @@ namespace MyDefense.Battle
             _executor.OnRoundChanged -= HandleRoundChanged;
             _executor.OnMatchStateChanged -= HandleMatchStateChanged;
             _executor.OnPlayerMonsterCountChanged -= HandlePlayerMonsterCountChanged;
+            _executor.OnPlayerMonsterWarningReached -= HandlePlayerMonsterWarningReached;
+            _executor.OnPlayerMonsterDangerReached -= HandlePlayerMonsterDangerReached;
+            _executor.OnPlayerMonsterLimitReached -= HandlePlayerMonsterLimitReached;
             _executor = null;
         }
 
@@ -68,6 +81,7 @@ namespace MyDefense.Battle
             if (!HasStateAuthority || _executor == null)
                 return false;
             _executor.InitializeSession(sessionContext, playerIdentityProvider);
+            ResetFieldLimitEvents();
             SyncAliveMonsterCounts();
             return true;
         }
@@ -178,6 +192,48 @@ namespace MyDefense.Battle
                 Player1AliveMonsterCount = count;
             else if (lane == LaneType.Player2Lane)
                 Player2AliveMonsterCount = count;
+        }
+
+        private void HandlePlayerMonsterWarningReached(LaneType lane, int _)
+        {
+            if (!HasStateAuthority)
+                return;
+            if (lane == LaneType.Player1Lane)
+                Player1WarningReached = true;
+            else if (lane == LaneType.Player2Lane)
+                Player2WarningReached = true;
+        }
+
+        private void HandlePlayerMonsterDangerReached(LaneType lane, int _)
+        {
+            if (!HasStateAuthority)
+                return;
+            if (lane == LaneType.Player1Lane)
+                Player1DangerReached = true;
+            else if (lane == LaneType.Player2Lane)
+                Player2DangerReached = true;
+        }
+
+        private void HandlePlayerMonsterLimitReached(LaneType lane)
+        {
+            if (!HasStateAuthority)
+                return;
+            if (lane == LaneType.Player1Lane)
+                Player1Eliminated = true;
+            else if (lane == LaneType.Player2Lane)
+                Player2Eliminated = true;
+        }
+
+        private void ResetFieldLimitEvents()
+        {
+            if (!HasStateAuthority)
+                return;
+            Player1WarningReached = false;
+            Player2WarningReached = false;
+            Player1DangerReached = false;
+            Player2DangerReached = false;
+            Player1Eliminated = false;
+            Player2Eliminated = false;
         }
 
         private void SyncAliveMonsterCounts()

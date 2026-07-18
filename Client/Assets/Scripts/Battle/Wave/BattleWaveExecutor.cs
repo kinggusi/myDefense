@@ -79,6 +79,8 @@ namespace MyDefense.Battle
         private float _activeBossTimeLimitSeconds;
         private int _monsterWarningThreshold = 80;
         private int _monsterDangerThreshold = 90;
+        private int _player1LastPublishedMonsterCount;
+        private int _player2LastPublishedMonsterCount;
         private BattleSessionContext _runtimeSession;
         private IBattlePlayerIdentityProvider _playerIdentityProvider;
         private BattleSpawnSequenceIssuer _spawnSequenceIssuer;
@@ -115,6 +117,8 @@ namespace MyDefense.Battle
         public event System.Action OnAllPlayersEliminated;
         public event System.Action<int> OnRoundChanged;
         public event System.Action<LaneType, int, int> OnPlayerMonsterCountChanged;
+        public event System.Action<LaneType, int> OnPlayerMonsterWarningReached;
+        public event System.Action<LaneType, int> OnPlayerMonsterDangerReached;
         public event System.Action<LaneType> OnPlayerMonsterLimitReached;
         public event System.Action<LaneType, PlayerBattleState> OnPlayerBattleStateChanged;
         public event System.Action<MatchState> OnMatchStateChanged;
@@ -251,8 +255,8 @@ namespace MyDefense.Battle
             _totalMonsterGoal = fieldLimit.MaxAliveMonsterCountPerField;
             _monsterWarningThreshold = fieldLimit.WarningThreshold;
             _monsterDangerThreshold = fieldLimit.DangerThreshold;
-            OnPlayerMonsterCountChanged?.Invoke(LaneType.Player1Lane, _player1AliveMonsterCount, _totalMonsterGoal);
-            OnPlayerMonsterCountChanged?.Invoke(LaneType.Player2Lane, _player2AliveMonsterCount, _totalMonsterGoal);
+            PublishPlayerMonsterCount(LaneType.Player1Lane, _player1AliveMonsterCount, false);
+            PublishPlayerMonsterCount(LaneType.Player2Lane, _player2AliveMonsterCount, false);
         }
 
         private void ConfigureBalanceDependenciesForTests(
@@ -468,7 +472,7 @@ namespace MyDefense.Battle
             if (lane == LaneType.Player1Lane)
             {
                 _player1AliveMonsterCount++;
-                OnPlayerMonsterCountChanged?.Invoke(lane, _player1AliveMonsterCount, _totalMonsterGoal);
+                PublishPlayerMonsterCount(lane, _player1AliveMonsterCount, true);
 
                 if (_player1AliveMonsterCount >= _totalMonsterGoal)
                 {
@@ -478,7 +482,7 @@ namespace MyDefense.Battle
             else if (lane == LaneType.Player2Lane)
             {
                 _player2AliveMonsterCount++;
-                OnPlayerMonsterCountChanged?.Invoke(lane, _player2AliveMonsterCount, _totalMonsterGoal);
+                PublishPlayerMonsterCount(lane, _player2AliveMonsterCount, true);
 
                 if (_player2AliveMonsterCount >= _totalMonsterGoal)
                 {
@@ -499,7 +503,7 @@ namespace MyDefense.Battle
                 {
                     _player1AliveMonsterCount--;
                     countChanged = true;
-                    OnPlayerMonsterCountChanged?.Invoke(lane, _player1AliveMonsterCount, _totalMonsterGoal);
+                    PublishPlayerMonsterCount(lane, _player1AliveMonsterCount, false);
                 }
             }
             else if (lane == LaneType.Player2Lane)
@@ -508,7 +512,7 @@ namespace MyDefense.Battle
                 {
                     _player2AliveMonsterCount--;
                     countChanged = true;
-                    OnPlayerMonsterCountChanged?.Invoke(lane, _player2AliveMonsterCount, _totalMonsterGoal);
+                    PublishPlayerMonsterCount(lane, _player2AliveMonsterCount, false);
                 }
             }
 
@@ -559,6 +563,8 @@ namespace MyDefense.Battle
             _regularWaveCompletionReported = false;
             _player1AliveMonsterCount = 0;
             _player2AliveMonsterCount = 0;
+            _player1LastPublishedMonsterCount = 0;
+            _player2LastPublishedMonsterCount = 0;
             _player1BattleState = PlayerBattleState.ACTIVE;
             _player2BattleState = PlayerBattleState.ACTIVE;
             _matchState = MatchState.RUNNING;
@@ -582,11 +588,30 @@ namespace MyDefense.Battle
         private void PublishSessionState()
         {
             OnRoundChanged?.Invoke(_currentRound);
-            OnPlayerMonsterCountChanged?.Invoke(LaneType.Player1Lane, _player1AliveMonsterCount, _totalMonsterGoal);
-            OnPlayerMonsterCountChanged?.Invoke(LaneType.Player2Lane, _player2AliveMonsterCount, _totalMonsterGoal);
+            PublishPlayerMonsterCount(LaneType.Player1Lane, _player1AliveMonsterCount, false);
+            PublishPlayerMonsterCount(LaneType.Player2Lane, _player2AliveMonsterCount, false);
             OnPlayerBattleStateChanged?.Invoke(LaneType.Player1Lane, _player1BattleState);
             OnPlayerBattleStateChanged?.Invoke(LaneType.Player2Lane, _player2BattleState);
             OnMatchStateChanged?.Invoke(_matchState);
+        }
+
+        private void PublishPlayerMonsterCount(LaneType lane, int count, bool evaluateThresholds)
+        {
+            int previousCount = lane == LaneType.Player1Lane
+                ? _player1LastPublishedMonsterCount
+                : _player2LastPublishedMonsterCount;
+
+            if (evaluateThresholds && previousCount < _monsterWarningThreshold && count >= _monsterWarningThreshold)
+                OnPlayerMonsterWarningReached?.Invoke(lane, count);
+            if (evaluateThresholds && previousCount < _monsterDangerThreshold && count >= _monsterDangerThreshold)
+                OnPlayerMonsterDangerReached?.Invoke(lane, count);
+
+            if (lane == LaneType.Player1Lane)
+                _player1LastPublishedMonsterCount = count;
+            else if (lane == LaneType.Player2Lane)
+                _player2LastPublishedMonsterCount = count;
+
+            OnPlayerMonsterCountChanged?.Invoke(lane, count, _totalMonsterGoal);
         }
 
         private void Start()

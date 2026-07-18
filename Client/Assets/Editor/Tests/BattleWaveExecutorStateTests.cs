@@ -12,6 +12,8 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
+using Assert = NUnit.Framework.Assert;
+using LogType = UnityEngine.LogType;
 
 namespace MyDefense.Battle.Tests
 {
@@ -365,6 +367,36 @@ public class BattleWaveExecutorStateTests
 
         Assert.That(prefab, Is.Not.Null);
         Assert.That(prefab.GetComponentsInChildren<BattleMonsterMovement>(true).Length, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void MonsterCountThresholds_RaiseWarningAndDangerOnceWhenCrossed()
+    {
+        SetField("_totalMonsterGoal", 100);
+        SetField("_monsterWarningThreshold", 2);
+        SetField("_monsterDangerThreshold", 3);
+        int warningEvents = 0;
+        int dangerEvents = 0;
+        _executor.OnPlayerMonsterWarningReached += (lane, count) =>
+        {
+            Assert.That(lane, Is.EqualTo(LaneType.Player1Lane));
+            Assert.That(count, Is.GreaterThanOrEqualTo(2));
+            warningEvents++;
+        };
+        _executor.OnPlayerMonsterDangerReached += (lane, count) =>
+        {
+            Assert.That(lane, Is.EqualTo(LaneType.Player1Lane));
+            Assert.That(count, Is.GreaterThanOrEqualTo(3));
+            dangerEvents++;
+        };
+
+        RegisterSpawn(LaneType.Player1Lane);
+        RegisterSpawn(LaneType.Player1Lane);
+        RegisterSpawn(LaneType.Player1Lane);
+        RegisterSpawn(LaneType.Player1Lane);
+
+        Assert.That(warningEvents, Is.EqualTo(1));
+        Assert.That(dangerEvents, Is.EqualTo(1));
     }
 
     [Test]
