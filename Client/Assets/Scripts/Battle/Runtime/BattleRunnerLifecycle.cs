@@ -28,8 +28,25 @@ namespace MyDefense.Battle.Runtime
         public BattleRunnerLifecycleState State { get; private set; } = BattleRunnerLifecycleState.STOPPED;
         public NetworkRunner Runner => _runner;
         public BattlePlayerRoster PlayerRoster { get; } = new();
+        public BattleMatchStartCoordinator MatchStart { get; private set; }
         public BattleSessionContext SessionContext { get; private set; }
+        public bool IsBattleStarted => MatchStart.State == BattleStartState.STARTED;
         public string LastError { get; private set; }
+
+        private void Awake()
+        {
+            MatchStart = new BattleMatchStartCoordinator(PlayerRoster);
+        }
+
+        public bool SetPlayerReady(PlayerRef playerRef, bool ready)
+            => MatchStart.SetReady(playerRef, ready);
+
+        public bool TryStartBattle()
+        {
+            if (_runner == null || !_runner.IsServer || SessionContext == null)
+                return false;
+            return MatchStart.TryStart();
+        }
 
         public BattleSessionContext CreateSessionContext(
             string canonicalBalanceVersion,
@@ -143,6 +160,7 @@ namespace MyDefense.Battle.Runtime
             _identityCallbacks = null;
             PlayerRoster.Clear();
             SessionContext = null;
+            MatchStart.Reset();
             if (runner != null && !runner.IsShutdown)
                 await runner.Shutdown(true, reason);
             else if (runnerObject != null)
