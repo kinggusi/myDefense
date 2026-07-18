@@ -121,6 +121,8 @@ namespace MyDefense.Battle
         public event System.Action OnCatalogExhausted;
 
         public int CurrentRound => _currentRound;
+        public string CurrentWaveId => _currentWaveSpec?.WaveId;
+        public bool IsCurrentWaveBoss => _isCurrentWaveBoss;
         public bool IsBossActive => _isBossActive;
         public bool IsWaveRunning => _isWaveRunning;
         public bool IsCatalogExhausted => _catalogExhausted;
