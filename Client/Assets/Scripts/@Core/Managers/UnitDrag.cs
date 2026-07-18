@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
+using MyDefense.Battle.Runtime;
 
 public class UnitDrag : MonoBehaviour, IPointerDownHandler, IDragHandler, IPointerUpHandler
 {
@@ -254,6 +255,11 @@ public class UnitDrag : MonoBehaviour, IPointerDownHandler, IDragHandler, IPoint
 
     void RequestMerge(GameObject targetUnit)
     {
+        if (!BattlePlayerActionGate.CanUseBattleAction("Merge"))
+        {
+            transform.position = startPos;
+            return;
+        }
         if (gameManager != null && (gameManager.IsSyncingBoard || gameManager.IsGameOver))
         {
             transform.position = startPos;

@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
+using MyDefense.Battle.Runtime;
 
 public class InjectorDrag : MonoBehaviour, IPointerDownHandler, IDragHandler, IPointerUpHandler
 {
@@ -113,6 +114,11 @@ public class InjectorDrag : MonoBehaviour, IPointerDownHandler, IDragHandler, IP
 
     void RequestUseInjector(GameObject targetAlien, long sourceId, long targetId)
     {
+        if (!BattlePlayerActionGate.CanUseBattleAction("Mutation"))
+        {
+            transform.position = startPos;
+            return;
+        }
         GameManager gm = FindObjectOfType<GameManager>();
         if (gm != null && (gm.IsSyncingBoard || gm.IsGameOver))
         {

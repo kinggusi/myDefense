@@ -1,5 +1,6 @@
 using System.Collections;
 using AlienUpgrade.Core;
+using MyDefense.Battle.Runtime;
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.UI;
@@ -155,6 +156,7 @@ public void Open(long alienId)
 
     public void Upgrade()
     {
+        if (!BattlePlayerActionGate.CanUseBattleAction("Upgrade")) return;
         if (upgradeSubmittedForCurrentOpen)
         {
             return;

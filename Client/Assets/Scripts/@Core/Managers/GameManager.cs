@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI; // UI 제어를 위해 추가
+using MyDefense.Battle.Runtime;
 
 public class GameManager : MonoBehaviour
 {
@@ -79,6 +80,7 @@ public class GameManager : MonoBehaviour
     // 2. 소환 버튼 누르면 실행
     public void OnClickSummon()
     {
+        if (!BattlePlayerActionGate.CanUseBattleAction("Kidnap")) return;
         // 🚨 디바운스(Debounce) & 동기화 중 & 게임 오버 상태 가드
         if (isSummoning || isSyncingBoard || isGameOver) return;
         isSummoning = true;
