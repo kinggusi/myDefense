@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using Fusion;
 using MyDefense.Battle;
 using MyDefense.Battle.Balance;
 using MyDefense.Battle.Runtime;
@@ -270,6 +271,8 @@ namespace MyDefense.Battle.Tests
             GameObject boss = (GameObject)arguments[4];
             _spawnedObjects.Add(boss);
 
+            Assert.That(boss.GetComponent<NetworkObject>(), Is.Not.Null);
+            Assert.That(boss.GetComponent<BattleMonsterNetworkState>(), Is.Not.Null);
             Assert.That(_executor.CurrentRound, Is.EqualTo(10));
             Assert.That(wave.WaveType, Is.EqualTo(WaveType.BOSS));
             Assert.That(wave.BossTimeLimitSeconds, Is.EqualTo(30f));

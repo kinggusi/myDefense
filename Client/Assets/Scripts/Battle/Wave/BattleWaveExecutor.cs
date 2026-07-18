@@ -937,6 +937,13 @@ namespace MyDefense.Battle
             if (!SpawnConfiguredMonster(LaneType.BossSharedLane, definition, spawn, 2f, out boss))
                 yield break;
 
+            if (boss.GetComponent<NetworkObject>() == null)
+            {
+                DestroySpawnedInstance(boss);
+                FaultExecution("Boss prefab must contain a Fusion NetworkObject.");
+                yield break;
+            }
+
             ActivateBoss(boss);
             _activeBossTimeLimitSeconds = _currentWaveSpec.BossTimeLimitSeconds;
             Debug.Log(
@@ -1175,6 +1182,10 @@ namespace MyDefense.Battle
                     fieldOwnerPlayerId,
                     _currentRound,
                     spawnSequence));
+
+                BattleMonsterNetworkState networkState = spawnedInstance.GetComponent<BattleMonsterNetworkState>();
+                if (networkState != null)
+                    networkState.InitializeRuntimeIdentity(runtimeContext.Identity);
             }
             catch (Exception exception)
             {
