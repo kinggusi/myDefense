@@ -39,6 +39,16 @@ namespace MyDefense.Battle
         public PlayerBattleState Player1BattleState => (PlayerBattleState)Player1BattleStateValue;
         public PlayerBattleState Player2BattleState => (PlayerBattleState)Player2BattleStateValue;
 
+        public bool IsPlayerActionAllowed(LaneType lane)
+        {
+            return lane switch
+            {
+                LaneType.Player1Lane => Player1BattleState != PlayerBattleState.ELIMINATED,
+                LaneType.Player2Lane => Player2BattleState != PlayerBattleState.ELIMINATED,
+                _ => false
+            };
+        }
+
         public override void Spawned()
         {
             _executor = GetComponent<BattleWaveExecutor>();
