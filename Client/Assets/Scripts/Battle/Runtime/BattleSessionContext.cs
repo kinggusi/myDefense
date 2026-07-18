@@ -1,4 +1,7 @@
 using System;
+using Fusion;
+using MyDefense.Shared.Contracts;
+using MatchStateContract = MyDefense.Shared.Contracts.MatchState;
 
 namespace MyDefense.Battle.Runtime
 {
@@ -10,6 +13,7 @@ namespace MyDefense.Battle.Runtime
         public string BattleContentVersion { get; }
         public string BattleContentHash { get; }
         public long StartedAtTick { get; }
+        public MatchStateContract MatchState { get; private set; } = MatchStateContract.RUNNING;
 
         public BattleSessionContext(
             string battleSessionId,
@@ -28,6 +32,37 @@ namespace MyDefense.Battle.Runtime
                 throw new ArgumentOutOfRangeException(nameof(startedAtTick), "Session start tick cannot be negative.");
 
             StartedAtTick = startedAtTick;
+        }
+
+        public static BattleSessionContext FromRunner(
+            NetworkRunner runner,
+            string canonicalBalanceVersion,
+            string canonicalContentHash,
+            string battleContentVersion,
+            string battleContentHash,
+            long startedAtTick)
+        {
+            if (runner == null) throw new ArgumentNullException(nameof(runner));
+            if (!runner.IsRunning || !runner.SessionInfo.IsValid || string.IsNullOrWhiteSpace(runner.SessionInfo.Name))
+                throw new InvalidOperationException("A running Fusion runner with a valid session is required.");
+
+            return new BattleSessionContext(
+                runner.SessionInfo.Name,
+                canonicalBalanceVersion,
+                canonicalContentHash,
+                battleContentVersion,
+                battleContentHash,
+                startedAtTick);
+        }
+
+        public bool TryTransitionMatchState(MatchStateContract nextState)
+        {
+            if (nextState == MatchStateContract.RUNNING)
+                return MatchState == MatchStateContract.RUNNING;
+            if (MatchState != MatchStateContract.RUNNING)
+                return false;
+            MatchState = nextState;
+            return true;
         }
 
         internal static string RequireText(string value, string parameterName)
