@@ -2364,9 +2364,10 @@ GameObject:
   - component: {fileID: 722039118}
   - component: {fileID: 722039121}
   - component: {fileID: 722039120}
-  - component: {fileID: 722039122}
   - component: {fileID: 722039123}
   - component: {fileID: 722039124}
+  - component: {fileID: 722039126}
+  - component: {fileID: 722039125}
   m_Layer: 0
   m_Name: BattleWaveExecutor
   m_TagString: Untagged
@@ -2427,7 +2428,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 593c1d93a38bea44b9a5ffed78bbbf32, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MyDefense.Battle.Runtime.BattleRunnerLifecycle
 --- !u!114 &722039119
 MonoBehaviour:
@@ -2439,7 +2440,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e63abed07748edf4d9cd1b048c7d4a73, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MyDefense.Battle.Runtime.BattleSceneSessionAdapter
   _runnerLifecycle: {fileID: 722039118}
   _waveExecutor: {fileID: 722039116}
@@ -2455,7 +2456,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 11275b2d77a83cd4cb9627239633f72d, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MyDefense.Battle.BattleWaveStateAuthority
   _CurrentWave: 0
   _CurrentWaveId:
@@ -2497,7 +2498,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
   SortKey: 1584634451
   ObjectInterest: 1
@@ -2506,20 +2507,6 @@ MonoBehaviour:
   NetworkedBehaviours:
   - {fileID: 722039120}
   ForceRemoteRenderTimeframe: 0
---- !u!114 &722039122
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 722039115}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 04de7ede16b1a2b49b87c02dba95a2ec, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::MyDefense.Battle.Tests.FusionConnectionTestPanel
-  _sessionName: MyDefense-Dev
-  _userId: dev-user
 --- !u!114 &722039123
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2530,11 +2517,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4864ffb5d0f2a1b4a9631253032c017e, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MyDefense.Battle.Presentation.BattleFieldPerspective
   _player1Field: {fileID: 0}
   _player2Field: {fileID: 0}
   _runnerLifecycle: {fileID: 0}
+  _stateAuthority: {fileID: 0}
 --- !u!114 &722039124
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2545,8 +2533,39 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 870b47090234ad841a8b57d342055cc3, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MyDefense.Battle.Presentation.FusionKidnapBoardView
+--- !u!114 &722039125
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 722039115}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7bf42a3f41839814887ec5e1369adf18, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MyDefense.Battle.Presentation.FusionBattleUiController
+  _kidnapButton: {fileID: 0}
+  _goldText: {fileID: 0}
+  _costText: {fileID: 0}
+  _runnerLifecycle: {fileID: 0}
+  _stateAuthority: {fileID: 0}
+--- !u!114 &722039126
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 722039115}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 37649ce11fde307489f16ec505ba5542, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MyDefense.Battle.BattleAutoSessionStarter
+  _startOnEnable: 1
+  _defaultSessionName: MyDefense-Dev
 --- !u!1 &722481580
 GameObject:
   m_ObjectHideFlags: 0
@@ -6895,19 +6914,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1924121962}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 293221407}
-        m_TargetAssemblyTypeName: GameManager, Assembly-CSharp
-        m_MethodName: OnClickSummon
-        m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
+      m_Calls: []
 --- !u!114 &1924121962
 MonoBehaviour:
   m_ObjectHideFlags: 0

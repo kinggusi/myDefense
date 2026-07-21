@@ -84,6 +84,18 @@ namespace MyDefense.Battle.Runtime
         public Task StartClientAsync(string sessionName, string userId, NetworkSceneInfo scene = default)
             => StartAsync(GameMode.Client, sessionName, userId, scene);
 
+        public async Task StartHostOrClientAsync(string sessionName, string userId, NetworkSceneInfo scene = default)
+        {
+            await StartHostAsync(sessionName, userId, scene);
+            if (State == BattleRunnerLifecycleState.RUNNING)
+                return;
+
+            string hostError = LastError;
+            await StartClientAsync(sessionName, userId, scene);
+            if (State != BattleRunnerLifecycleState.RUNNING && !string.IsNullOrWhiteSpace(hostError))
+                LastError = $"Host failed: {hostError}; Client failed: {LastError}";
+        }
+
         public async Task StopAsync(ShutdownReason reason = ShutdownReason.Ok)
         {
             if (_lifecycleTask != null && !_lifecycleTask.IsCompleted)

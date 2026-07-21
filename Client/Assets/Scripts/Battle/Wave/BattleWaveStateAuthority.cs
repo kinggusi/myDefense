@@ -46,13 +46,33 @@ namespace MyDefense.Battle
         [Networked, Capacity(24)] private NetworkArray<NetworkBool> Player2BoardOccupied => default;
 
         public event Action<int, int> KidnapApplied;
+        public event Action<int, int, int, bool> BoardChanged;
 
         public BattleWaveExecutor Executor => _executor;
+        public bool IsSpawnedForAccess { get; private set; }
         public bool IsAuthoritative => HasStateAuthority;
         public WaveType CurrentWaveType => (WaveType)CurrentWaveTypeValue;
         public MatchState MatchState => (MatchState)MatchStateValue;
         public PlayerBattleState Player1BattleState => (PlayerBattleState)Player1BattleStateValue;
         public PlayerBattleState Player2BattleState => (PlayerBattleState)Player2BattleStateValue;
+
+        public int GetKidnapCount(int playerSlot)
+        {
+            return playerSlot == 1 ? Player1KidnapCount : playerSlot == 2 ? Player2KidnapCount : 0;
+        }
+
+        public int GetInGameGoldForPlayerSlot(int playerSlot)
+        {
+            return playerSlot == 1 ? Player1InGameGold : playerSlot == 2 ? Player2InGameGold : 0;
+        }
+
+        public bool IsBoardOccupied(int playerSlot, int slotIndex)
+        {
+            if (!IsValidBoardIndex(slotIndex))
+                return false;
+            return playerSlot == 1 ? Player1BoardOccupied[slotIndex]
+                : playerSlot == 2 && Player2BoardOccupied[slotIndex];
+        }
 
         public int GetNetworkedPlayerSlot(PlayerRef playerRef)
         {
@@ -77,6 +97,7 @@ namespace MyDefense.Battle
 
         public override void Spawned()
         {
+            IsSpawnedForAccess = true;
             _executor = GetComponent<BattleWaveExecutor>();
             if (_executor == null)
                 throw new InvalidOperationException("BattleWaveStateAuthority requires BattleWaveExecutor on the same NetworkObject.");
@@ -100,6 +121,7 @@ namespace MyDefense.Battle
                 InitializeInGameGold(DefaultInitialInGameGold, DefaultInitialInGameGold);
                 Player1KidnapCount = 0;
                 Player2KidnapCount = 0;
+                ResetBoardOccupancy();
             }
         }
 
@@ -124,6 +146,119 @@ namespace MyDefense.Battle
                 RPC_RequestKidnap();
         }
 
+        public void RequestMove(int fromSlotIndex, int toSlotIndex)
+        {
+            if (!IsSpawnedForAccess || Object == null || !Object.IsValid)
+                return;
+
+            // A host is already the State Authority. Applying its local input
+            // directly avoids relying on a self-targeted RPC, while remote
+            // clients continue to use the authoritative RPC path below.
+            if (HasStateAuthority)
+            {
+                if (TryResolvePlayerSlot(Runner.LocalPlayer, out int playerSlot))
+                    ApplyMove(playerSlot, fromSlotIndex, toSlotIndex);
+                return;
+            }
+
+            RPC_RequestMove(fromSlotIndex, toSlotIndex);
+        }
+
+        public void RequestMerge(int sourceSlotIndex, int targetSlotIndex)
+        {
+            // Merge is intentionally gated until the networked board carries
+            // canonical alienId/grade metadata. Occupancy alone cannot prove
+            // the same-species rule and must never authorize a merge.
+            Debug.LogWarning("[Fusion] Merge request deferred: board identity metadata is not initialized.");
+        }
+
+        [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+        private void RPC_RequestMove(int fromSlotIndex, int toSlotIndex, RpcInfo info = default)
+        {
+            if (!TryResolvePlayerSlot(info.Source, out int playerSlot)
+                || !IsValidBoardIndex(fromSlotIndex) || !IsValidBoardIndex(toSlotIndex)
+                || fromSlotIndex == toSlotIndex)
+                return;
+
+            ApplyMove(playerSlot, fromSlotIndex, toSlotIndex);
+        }
+
+        private void ApplyMove(int playerSlot, int fromSlotIndex, int toSlotIndex)
+        {
+            if (!IsValidBoardIndex(fromSlotIndex) || !IsValidBoardIndex(toSlotIndex)
+                || fromSlotIndex == toSlotIndex
+                || !IsPlayerActionAllowed(playerSlot == 1 ? LaneType.Player1Lane : playerSlot == 2 ? LaneType.Player2Lane : (LaneType)(-1)))
+                return;
+
+            NetworkArray<NetworkBool> board = playerSlot == 1 ? Player1BoardOccupied : Player2BoardOccupied;
+            if (!board[fromSlotIndex] || board[toSlotIndex])
+                return;
+
+            board.Set(fromSlotIndex, false);
+            board.Set(toSlotIndex, true);
+            RPC_BoardChanged(playerSlot, fromSlotIndex, toSlotIndex, false);
+        }
+
+        [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+        private void RPC_BoardChanged(int playerSlot, int fromSlotIndex, int toSlotIndex, bool merged)
+        {
+            BoardChanged?.Invoke(playerSlot, fromSlotIndex, toSlotIndex, merged);
+        }
+
+        private bool TryResolvePlayerSlot(PlayerRef playerRef, out int playerSlot)
+        {
+            // The RPC source must be resolved from replicated Fusion identity
+            // first. The local roster can still be initializing on the host or
+            // on a late-joining peer when the move request arrives.
+            if (playerRef == Player1Ref)
+            {
+                playerSlot = 1;
+                return true;
+            }
+
+            if (playerRef == Player2Ref)
+            {
+                playerSlot = 2;
+                return true;
+            }
+
+            playerSlot = 0;
+            return false;
+        }
+
+        public static bool IsValidBoardIndex(int index) => index >= 0 && index < 24;
+
+        public static int FindFirstEmptyBoardSlot(IReadOnlyList<bool> occupied)
+        {
+            if (occupied == null || occupied.Count < 24)
+                return -1;
+
+            for (int index = 0; index < 24; index++)
+            {
+                if (!occupied[index])
+                    return index;
+            }
+
+            return -1;
+        }
+
+        private static int FindFirstEmptyBoardSlot(NetworkArray<NetworkBool> board)
+        {
+            bool[] occupied = new bool[24];
+            for (int index = 0; index < 24; index++)
+                occupied[index] = board[index];
+            return FindFirstEmptyBoardSlot(occupied);
+        }
+
+        private void ResetBoardOccupancy()
+        {
+            for (int index = 0; index < 24; index++)
+            {
+                Player1BoardOccupied.Set(index, false);
+                Player2BoardOccupied.Set(index, false);
+            }
+        }
+
         [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
         private void RPC_RequestKidnap(RpcInfo info = default)
         {
@@ -143,6 +278,15 @@ namespace MyDefense.Battle
             int useCount = identity.PlayerSlot == 1 ? Player1KidnapCount : Player2KidnapCount;
             if (!IsPlayerActionAllowed(lane) || !_executor.TryGetCanonicalSummonCost(useCount, out int cost))
                 return;
+
+            NetworkArray<NetworkBool> board = identity.PlayerSlot == 1 ? Player1BoardOccupied : Player2BoardOccupied;
+            int slotIndex = FindFirstEmptyBoardSlot(board);
+            if (slotIndex < 0)
+            {
+                Debug.Log($"[Fusion] Kidnap rejected: board is full for slot {identity.PlayerSlot}.");
+                return;
+            }
+
             if (!TrySpendGold(lane, cost, out int remainingGold))
             {
                 Debug.Log($"[Fusion] Kidnap rejected: insufficient gold for slot {identity.PlayerSlot}.");
@@ -151,26 +295,7 @@ namespace MyDefense.Battle
 
             if (identity.PlayerSlot == 1) Player1KidnapCount++;
             else Player2KidnapCount++;
-            NetworkArray<NetworkBool> board = identity.PlayerSlot == 1 ? Player1BoardOccupied : Player2BoardOccupied;
-            int slotIndex = -1;
-            for (int index = 0; index < 24; index++)
-            {
-                if (!board[index])
-                {
-                    slotIndex = index;
-                    board.Set(index, true);
-                    break;
-                }
-            }
-            if (slotIndex < 0)
-            {
-                // Never charge a full board. Roll back the already-applied spend.
-                if (identity.PlayerSlot == 1) Player1InGameGold += cost;
-                else Player2InGameGold += cost;
-                if (identity.PlayerSlot == 1) Player1KidnapCount--;
-                else Player2KidnapCount--;
-                return;
-            }
+            board.Set(slotIndex, true);
             RPC_KidnapApplied(identity.PlayerSlot, slotIndex);
             Debug.Log($"[Fusion] Kidnap request authorized: slot={identity.PlayerSlot}, cost={cost}, remaining={remainingGold}.");
         }
@@ -183,6 +308,7 @@ namespace MyDefense.Battle
 
         public override void Despawned(NetworkRunner runner, bool hasState)
         {
+            IsSpawnedForAccess = false;
             if (_executor == null)
                 return;
 

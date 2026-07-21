@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Linq;
 using Fusion;
 using MyDefense.Battle;
 using NUnit.Framework;
@@ -41,6 +42,34 @@ namespace MyDefense.Battle.Tests
         {
             Assert.That(typeof(BattleWaveStateAuthority).GetMethod(nameof(BattleWaveStateAuthority.Spawned)), Is.Not.Null);
             Assert.That(typeof(BattleWaveStateAuthority).GetField("_executor", BindingFlags.Instance | BindingFlags.NonPublic), Is.Not.Null);
+        }
+
+        [TestCase(0, true)]
+        [TestCase(23, true)]
+        [TestCase(-1, false)]
+        [TestCase(24, false)]
+        public void BoardSlotRangeIsExactlyTwentyFourSlots(int slotIndex, bool expected)
+        {
+            Assert.That(BattleWaveStateAuthority.IsValidBoardIndex(slotIndex), Is.EqualTo(expected));
+        }
+
+        [Test]
+        public void FirstEmptyBoardSlotUsesAscendingLogicalOrder()
+        {
+            bool[] occupied = Enumerable.Repeat(true, 24).ToArray();
+            occupied[0] = false;
+            occupied[7] = false;
+
+            Assert.That(BattleWaveStateAuthority.FindFirstEmptyBoardSlot(occupied), Is.EqualTo(0));
+        }
+
+        [Test]
+        public void FullBoardHasNoFirstEmptySlot()
+        {
+            bool[] occupied = Enumerable.Repeat(true, 24).ToArray();
+
+            Assert.That(BattleWaveStateAuthority.FindFirstEmptyBoardSlot(occupied), Is.EqualTo(-1));
+            Assert.That(BattleWaveStateAuthority.FindFirstEmptyBoardSlot(new bool[23]), Is.EqualTo(-1));
         }
     }
 }

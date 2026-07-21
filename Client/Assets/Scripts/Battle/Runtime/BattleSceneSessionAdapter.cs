@@ -151,10 +151,20 @@ namespace MyDefense.Battle.Runtime
 
             if (_stateAuthority != null)
             {
-                if (!_stateAuthority.IsAuthoritative)
-                    return false;
-                if (!_stateAuthority.InitializeSession(sessionContext, playerIdentityProvider))
-                    return false;
+                if (_stateAuthority.IsAuthoritative)
+                {
+                    if (!_stateAuthority.InitializeSession(sessionContext, playerIdentityProvider))
+                        return false;
+                }
+                else
+                {
+                    // The State Authority owns the replicated wave state, but
+                    // every peer still needs the same local session metadata
+                    // for presentation, validation and late callback binding.
+                    // Do not ask a client to initialize Networked properties;
+                    // only bind its scene-local executor context.
+                    _waveExecutor.InitializeSession(sessionContext, playerIdentityProvider);
+                }
             }
             else
             {
