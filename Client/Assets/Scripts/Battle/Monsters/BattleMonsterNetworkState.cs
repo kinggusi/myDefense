@@ -1,5 +1,7 @@
 using Fusion;
+using MyDefense.Battle.Balance;
 using MyDefense.Battle.Runtime;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace MyDefense.Battle
@@ -23,12 +25,17 @@ namespace MyDefense.Battle
         [Networked] public NetworkBool IsDead { get; private set; }
 
         private MonsterStat _monsterStat;
+        private BattleWaveStateAuthority _waveAuthority;
+        private bool _presentationMappingReported;
+        private bool _hasPresentationPosition;
+        private Vector3 _lastPresentationPosition;
 
         public BattleMonsterLanePolicy LanePolicy => (BattleMonsterLanePolicy)LanePolicyValue;
         public bool IsInitialized => RuntimeMonsterId != 0 && !string.IsNullOrEmpty(BattleSessionId.ToString());
 
         public override void Spawned()
         {
+            _hasPresentationPosition = false;
             _monsterStat = GetComponent<MonsterStat>();
             if (_monsterStat == null)
                 return;
@@ -43,6 +50,7 @@ namespace MyDefense.Battle
 
         public override void Despawned(NetworkRunner runner, bool hasState)
         {
+            _hasPresentationPosition = false;
             if (_monsterStat == null)
                 return;
 
@@ -58,6 +66,131 @@ namespace MyDefense.Battle
                 return;
 
             _monsterStat.ApplyNetworkState(CurrentHp, MaxHp, IsDead);
+        }
+
+        /// <summary>
+        /// NetworkTransform replicates the canonical world path.  Player 2's
+        /// local presentation swaps the two private lanes so that the local
+        /// player's monsters always enter from the lower (local) side and the
+        /// opponent's monsters enter from the upper side.  This is a view-only
+        /// remap; State Authority movement, lane ownership, and kill rewards
+        /// remain canonical and are never changed here.
+        /// </summary>
+        private void LateUpdate()
+        {
+            if (HasStateAuthority || LanePolicy != BattleMonsterLanePolicy.EACH_FIELD)
+                return;
+
+            if (_waveAuthority == null)
+                _waveAuthority = FindFirstObjectByType<BattleWaveStateAuthority>();
+            if (_waveAuthority == null || _waveAuthority.Runner == null ||
+                _waveAuthority.Object == null || !_waveAuthority.Object.IsValid ||
+                PathManager.Instance == null)
+                return;
+
+            int localSlot = _waveAuthority.GetNetworkedPlayerSlot(_waveAuthority.Runner.LocalPlayer);
+            if (localSlot != 2)
+                return;
+
+            string ownerId = FieldOwnerPlayerId.ToString();
+            string player1Id = _waveAuthority.Player1UserId.ToString();
+            string player2Id = _waveAuthority.Player2UserId.ToString();
+            LaneType sourceLane;
+            if (string.Equals(ownerId, player1Id, System.StringComparison.Ordinal))
+                sourceLane = LaneType.Player1Lane;
+            else if (string.Equals(ownerId, player2Id, System.StringComparison.Ordinal))
+                sourceLane = LaneType.Player2Lane;
+            else
+                return;
+
+            LaneType targetLane = sourceLane == LaneType.Player1Lane
+                ? LaneType.Player2Lane
+                : LaneType.Player1Lane;
+            List<Transform> sourcePath = PathManager.Instance.GetPath(sourceLane);
+            List<Transform> targetPath = PathManager.Instance.GetPath(targetLane);
+            if (sourcePath == null || targetPath == null || sourcePath.Count < 2 || targetPath.Count < 2)
+                return;
+
+            // NetworkTransform may leave the presentation value untouched on a
+            // render frame where no new snapshot was applied. Re-projecting that
+            // already remapped value against the canonical source path collapses
+            // multiple monsters onto the same waypoint and makes them appear to
+            // disappear. Only remap when Fusion has supplied a new canonical
+            // position since the previous presentation pass.
+            Vector3 canonicalPosition = transform.position;
+            if (_hasPresentationPosition &&
+                (canonicalPosition - _lastPresentationPosition).sqrMagnitude <= 0.000001f)
+                return;
+
+            float progress = ProjectProgress(canonicalPosition, sourcePath);
+            _lastPresentationPosition = EvaluateProgress(targetPath, progress);
+            _hasPresentationPosition = true;
+            transform.position = _lastPresentationPosition;
+            if (!_presentationMappingReported)
+            {
+                _presentationMappingReported = true;
+                Debug.Log($"[BattleMonsterNetworkState] Local lane presentation remapped: owner={ownerId}, source={sourceLane}, target={targetLane}.");
+            }
+        }
+
+        private static float ProjectProgress(Vector3 position, List<Transform> path)
+        {
+            float totalLength = PathLength(path);
+            if (totalLength <= 0.0001f)
+                return 0f;
+
+            float walked = 0f;
+            float bestDistance = float.MaxValue;
+            float bestProgress = 0f;
+            for (int i = 0; i < path.Count - 1; i++)
+            {
+                Vector3 start = path[i].position;
+                Vector3 end = path[i + 1].position;
+                Vector3 segment = end - start;
+                float segmentLength = segment.magnitude;
+                if (segmentLength <= 0.0001f)
+                    continue;
+                float t = Mathf.Clamp01(Vector3.Dot(position - start, segment) / (segmentLength * segmentLength));
+                float distance = (position - Vector3.Lerp(start, end, t)).sqrMagnitude;
+                if (distance < bestDistance)
+                {
+                    bestDistance = distance;
+                    bestProgress = (walked + segmentLength * t) / totalLength;
+                }
+                walked += segmentLength;
+            }
+            return Mathf.Clamp01(bestProgress);
+        }
+
+        private static Vector3 EvaluateProgress(List<Transform> path, float progress)
+        {
+            float totalLength = PathLength(path);
+            if (totalLength <= 0.0001f)
+                return path[0].position;
+
+            float targetDistance = Mathf.Clamp01(progress) * totalLength;
+            float walked = 0f;
+            for (int i = 0; i < path.Count - 1; i++)
+            {
+                Vector3 start = path[i].position;
+                Vector3 end = path[i + 1].position;
+                float segmentLength = Vector3.Distance(start, end);
+                if (targetDistance <= walked + segmentLength || i == path.Count - 2)
+                {
+                    float t = segmentLength <= 0.0001f ? 0f : (targetDistance - walked) / segmentLength;
+                    return Vector3.Lerp(start, end, Mathf.Clamp01(t));
+                }
+                walked += segmentLength;
+            }
+            return path[path.Count - 1].position;
+        }
+
+        private static float PathLength(List<Transform> path)
+        {
+            float length = 0f;
+            for (int i = 0; i < path.Count - 1; i++)
+                length += Vector3.Distance(path[i].position, path[i + 1].position);
+            return length;
         }
 
         public bool InitializeRuntimeIdentity(BattleMonsterRuntimeIdentity identity)
@@ -105,8 +238,15 @@ namespace MyDefense.Battle
 
         private void HandleDied()
         {
-            if (HasStateAuthority)
-                IsDead = true;
+            if (!HasStateAuthority)
+                return;
+
+            IsDead = true;
+            BattleWaveStateAuthority authority = FindFirstObjectByType<BattleWaveStateAuthority>();
+            if (authority == null)
+                return;
+
+            authority.TryAwardMonsterKill(this);
         }
     }
 }

@@ -3,6 +3,7 @@ package com.denfense.server.service.balance;
 import org.springframework.stereotype.Component;
 
 import com.denfense.server.balance.AlienSpecBalance;
+import com.denfense.server.balance.BattleRewardBalance;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -14,6 +15,7 @@ public class BalanceRegistry {
 
     private boolean initialized = false;
     private GameRewardBalance gameRewardBalance;
+    private BattleRewardBalance battleRewardBalance;
     private Map<Long, AlienSpecBalance> alienSpecMap = Collections.emptyMap();
 
     private Map<String, com.denfense.server.balance.ShopProductBalance> shopProductMap = Collections.emptyMap();
@@ -32,6 +34,17 @@ public class BalanceRegistry {
         this.shopProductMap = products.stream().collect(Collectors.toUnmodifiableMap(com.denfense.server.balance.ShopProductBalance::productId, Function.identity()));
         this.gachaPoolMap = pools.stream().collect(Collectors.toUnmodifiableMap(com.denfense.server.balance.GachaPoolBalance::poolId, Function.identity()));
         this.initialized = true;
+    }
+
+    public synchronized void initBattleReward(BattleRewardBalance balance) {
+        if (balance == null) throw new IllegalArgumentException("BattleReward balance is null.");
+        if (this.battleRewardBalance != null) throw new IllegalStateException("BattleReward balance already initialized.");
+        this.battleRewardBalance = balance;
+    }
+
+    public BattleRewardBalance getBattleRewardBalance() {
+        if (battleRewardBalance == null) throw new IllegalStateException("BattleReward balance is not loaded.");
+        return battleRewardBalance;
     }
 
     public GameRewardBalance getGameRewardBalance() {

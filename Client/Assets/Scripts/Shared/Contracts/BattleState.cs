@@ -11,6 +11,19 @@ namespace MyDefense.Shared.Contracts
     }
 
     /// <summary>
+    /// Authoritative mutation lifecycle carried by a Fusion board object.
+    /// SEALED preserves inherited DNA on a locked Mythic without activating it.
+    /// </summary>
+    public enum BattleMutationState
+    {
+        NONE = 0,
+        INJECTOR = 1,
+        PENDING = 2,
+        ACTIVE = 3,
+        SEALED = 4
+    }
+
+    /// <summary>
     /// Authoritative combat participation state for a player.
     /// The normal transition is ACTIVE -> ELIMINATED -> SPECTATING.
     /// </summary>
@@ -66,6 +79,8 @@ namespace MyDefense.Shared.Contracts
         public long capturedAtTick;
         public BattleSessionPlayerSnapshot[] players;
         public BattleBoardObjectSnapshot[] boardObjects;
+        public BattleMythicChoiceSnapshot[] mythicChoices;
+        public BattleMonsterStateSnapshot[] monsters;
     }
 
     [System.Serializable]
@@ -94,6 +109,34 @@ namespace MyDefense.Shared.Contracts
         public string activeMutationType;
         public int mutationRerollCount;
         public string mutationType;
+        public BattleMutationState mutationState;
+    }
+
+    [System.Serializable]
+    public sealed class BattleMonsterStateSnapshot
+    {
+        public ulong runtimeMonsterId;
+        public string monsterId;
+        public string lanePolicy;
+        public string fieldOwnerPlayerId;
+        public int spawnWave;
+        public float currentHp;
+        public float maxHp;
+        public bool dead;
+        public float x;
+        public float y;
+        public float z;
+    }
+
+    [System.Serializable]
+    public sealed class BattleMythicChoiceSnapshot
+    {
+        public int playerSlot;
+        public int targetBoardSlot;
+        public long[] candidateAlienIds;
+        public int freeRerollsRemaining;
+        public int paidRerollsRemaining;
+        public int remainingSeconds;
     }
 
     public static class BattleSessionSnapshotValidator
@@ -118,8 +161,8 @@ namespace MyDefense.Shared.Contracts
             {
                 if (player == null || (player.playerSlot != 1 && player.playerSlot != 2) || !slots.Add(player.playerSlot)
                     || string.IsNullOrWhiteSpace(player.playerId) || player.inGameGold < 0 || player.currentKidnapCost < 0
-                    || (player.battleState == PlayerBattleState.ELIMINATED && !player.eliminatedWave.HasValue)
-                    || (player.battleState != PlayerBattleState.ELIMINATED && player.eliminatedWave.HasValue)
+                    || ((player.battleState == PlayerBattleState.ELIMINATED || player.battleState == PlayerBattleState.SPECTATING) && !player.eliminatedWave.HasValue)
+                    || (player.battleState == PlayerBattleState.ACTIVE && player.eliminatedWave.HasValue)
                     || (player.eliminatedWave.HasValue && (player.eliminatedWave.Value <= 0 || player.eliminatedWave.Value > snapshot.currentWave)))
                     throw new System.ArgumentException("Invalid player snapshot.", nameof(snapshot));
             }
@@ -134,10 +177,37 @@ namespace MyDefense.Shared.Contracts
                     || (boardObject.ownerPlayerSlot != 1 && boardObject.ownerPlayerSlot != 2)
                     || boardObject.gridX < 0 || boardObject.gridX >= 4 || boardObject.gridY < 0 || boardObject.gridY >= 6
                     || boardObject.mutationRerollCount < 0
+                    || !System.Enum.IsDefined(typeof(BattleMutationState), boardObject.mutationState)
                     || (boardObject.alienSpecId.HasValue && boardObject.alienSpecId.Value <= 0)
                     || (boardObject.objectType == BattleBoardObjectType.ALIEN && (!boardObject.alienSpecId.HasValue || string.IsNullOrWhiteSpace(boardObject.grade)))
                     || (boardObject.objectType == BattleBoardObjectType.MUTATION_INJECTOR && string.IsNullOrWhiteSpace(boardObject.mutationType)))
                     throw new System.ArgumentException("Invalid board object snapshot.", nameof(snapshot));
+            }
+            if (snapshot.mythicChoices != null)
+            {
+                var choiceSlots = new System.Collections.Generic.HashSet<int>();
+                foreach (BattleMythicChoiceSnapshot choice in snapshot.mythicChoices)
+                {
+                    if (choice == null || (choice.playerSlot != 1 && choice.playerSlot != 2)
+                        || !choiceSlots.Add(choice.playerSlot) || choice.targetBoardSlot < 0 || choice.targetBoardSlot >= 24
+                        || choice.candidateAlienIds == null || choice.candidateAlienIds.Length != 3
+                        || choice.candidateAlienIds.Any(id => id <= 0) || choice.candidateAlienIds.Distinct().Count() != 3
+                        || choice.freeRerollsRemaining < 0 || choice.paidRerollsRemaining < 0 || choice.remainingSeconds < 0)
+                        throw new System.ArgumentException("Invalid Mythic choice snapshot.", nameof(snapshot));
+                }
+            }
+            if (snapshot.monsters != null)
+            {
+                var runtimeIds = new System.Collections.Generic.HashSet<ulong>();
+                foreach (BattleMonsterStateSnapshot monster in snapshot.monsters)
+                {
+                    if (monster == null || monster.runtimeMonsterId == 0 || !runtimeIds.Add(monster.runtimeMonsterId)
+                        || string.IsNullOrWhiteSpace(monster.monsterId)
+                        || (monster.lanePolicy != "EACH_FIELD" && monster.lanePolicy != "BOSS_SHARED")
+                        || monster.spawnWave <= 0 || monster.currentHp < 0f || monster.maxHp <= 0f
+                        || monster.currentHp > monster.maxHp)
+                        throw new System.ArgumentException("Invalid monster snapshot.", nameof(snapshot));
+                }
             }
         }
     }
@@ -191,7 +261,48 @@ namespace MyDefense.Shared.Contracts
                     .Append(",\"pendingMutationType\":").Append(String(board.pendingMutationType))
                     .Append(",\"activeMutationType\":").Append(String(board.activeMutationType))
                     .Append(",\"mutationRerollCount\":").Append(board.mutationRerollCount)
-                    .Append(",\"mutationType\":").Append(String(board.mutationType)).Append('}');
+                    .Append(",\"mutationType\":").Append(String(board.mutationType))
+                    .Append(",\"mutationState\":").Append(String(board.mutationState.ToString())).Append('}');
+            }
+            json.Append("],\"mythicChoices\":[");
+            if (snapshot.mythicChoices != null)
+            {
+                for (var i = 0; i < snapshot.mythicChoices.Length; i++)
+                {
+                    if (i > 0) json.Append(',');
+                    BattleMythicChoiceSnapshot choice = snapshot.mythicChoices[i];
+                    json.Append("{\"playerSlot\":").Append(choice.playerSlot)
+                        .Append(",\"targetBoardSlot\":").Append(choice.targetBoardSlot)
+                        .Append(",\"candidateAlienIds\":[");
+                    for (var candidate = 0; candidate < choice.candidateAlienIds.Length; candidate++)
+                    {
+                        if (candidate > 0) json.Append(',');
+                        json.Append(choice.candidateAlienIds[candidate]);
+                    }
+                    json.Append("],\"freeRerollsRemaining\":").Append(choice.freeRerollsRemaining)
+                        .Append(",\"paidRerollsRemaining\":").Append(choice.paidRerollsRemaining)
+                        .Append(",\"remainingSeconds\":").Append(choice.remainingSeconds).Append('}');
+                }
+            }
+            json.Append("],\"monsters\":[");
+            if (snapshot.monsters != null)
+            {
+                for (var i = 0; i < snapshot.monsters.Length; i++)
+                {
+                    if (i > 0) json.Append(',');
+                    BattleMonsterStateSnapshot monster = snapshot.monsters[i];
+                    json.Append("{\"runtimeMonsterId\":").Append(monster.runtimeMonsterId)
+                        .Append(",\"monsterId\":").Append(String(monster.monsterId))
+                        .Append(",\"lanePolicy\":").Append(String(monster.lanePolicy))
+                        .Append(",\"fieldOwnerPlayerId\":").Append(String(monster.fieldOwnerPlayerId))
+                        .Append(",\"spawnWave\":").Append(monster.spawnWave)
+                        .Append(",\"currentHp\":").Append(monster.currentHp.ToString(CultureInfo.InvariantCulture))
+                        .Append(",\"maxHp\":").Append(monster.maxHp.ToString(CultureInfo.InvariantCulture))
+                        .Append(",\"dead\":").Append(monster.dead ? "true" : "false")
+                        .Append(",\"x\":").Append(monster.x.ToString(CultureInfo.InvariantCulture))
+                        .Append(",\"y\":").Append(monster.y.ToString(CultureInfo.InvariantCulture))
+                        .Append(",\"z\":").Append(monster.z.ToString(CultureInfo.InvariantCulture)).Append('}');
+                }
             }
             return json.Append("]}").ToString();
         }

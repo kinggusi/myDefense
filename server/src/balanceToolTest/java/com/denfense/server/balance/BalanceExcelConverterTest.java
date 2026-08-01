@@ -52,6 +52,41 @@ class BalanceExcelConverterTest {
         rowReward.createCell(1).setCellValue(10);
         rowReward.createCell(2).setCellValue(1000);
 
+        Sheet battleReward = workbook.createSheet("BattleReward");
+        String[] battleHeaders = {"rewardType", "mapId", "wave", "gold", "universalPiece", "diamond",
+                "failureRewardBaseGold", "failureRewardCapPercent", "minimumRewardWave", "enabled"};
+        Row battleHeader = battleReward.createRow(0);
+        for (int i = 0; i < battleHeaders.length; i++) battleHeader.createCell(i).setCellValue(battleHeaders[i]);
+        Object[][] battleRows = {
+                {"CONFIG", "ALL", 0, 0, 0, 0, 10000, 80, 10, true},
+                {"CHECKPOINT", "ALL", 10, 500, 10, 0, 0, 0, 0, true},
+                {"CHECKPOINT", "ALL", 20, 750, 15, 0, 0, 0, 0, true},
+                {"CHECKPOINT", "ALL", 30, 1000, 20, 0, 0, 0, 0, true},
+                {"CHECKPOINT", "ALL", 40, 1500, 25, 0, 0, 0, 0, true},
+                {"CHECKPOINT", "ALL", 50, 2000, 30, 0, 0, 0, 0, true},
+                {"CHECKPOINT", "ALL", 60, 2500, 35, 0, 0, 0, 0, true},
+                {"CHECKPOINT", "ALL", 70, 3000, 40, 0, 0, 0, 0, true},
+                {"CHECKPOINT", "ALL", 80, 4000, 50, 0, 0, 0, 0, true},
+                {"MAP_FIRST_CLEAR", "NEPTUNE", 80, 0, 0, 3000, 0, 0, 0, true},
+                {"MAP_FIRST_CLEAR", "URANUS", 80, 0, 0, 4000, 0, 0, 0, true},
+                {"MAP_FIRST_CLEAR", "SATURN", 80, 0, 0, 5000, 0, 0, 0, true},
+                {"MAP_FIRST_CLEAR", "JUPITER", 80, 0, 0, 6000, 0, 0, 0, true},
+                {"MAP_FIRST_CLEAR", "MARS", 80, 0, 0, 7000, 0, 0, 0, true},
+                {"MAP_FIRST_CLEAR", "EARTH", 80, 0, 0, 8000, 0, 0, 0, true},
+                {"MAP_FIRST_CLEAR", "VENUS", 80, 0, 0, 9000, 0, 0, 0, true},
+                {"MAP_FIRST_CLEAR", "MERCURY", 80, 0, 0, 10000, 0, 0, 0, true},
+                {"MAP_FIRST_CLEAR", "SUN", 80, 0, 0, 11000, 0, 0, 0, true},
+        };
+        for (int rowIndex = 0; rowIndex < battleRows.length; rowIndex++) {
+            Row row = battleReward.createRow(rowIndex + 1);
+            for (int col = 0; col < battleRows[rowIndex].length; col++) {
+                Object value = battleRows[rowIndex][col];
+                if (value instanceof Number n) row.createCell(col).setCellValue(n.doubleValue());
+                else if (value instanceof Boolean b) row.createCell(col).setCellValue(b);
+                else row.createCell(col).setCellValue(String.valueOf(value));
+            }
+        }
+
         Sheet upgrade = workbook.createSheet("AlienUpgradeCost");
         Row headerUpgrade = upgrade.createRow(0);
         headerUpgrade.createCell(0).setCellValue("currentLevel");

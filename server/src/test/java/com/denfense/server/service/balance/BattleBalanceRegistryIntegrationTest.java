@@ -37,6 +37,11 @@ class BattleBalanceRegistryIntegrationTest {
 
         assertThat(rules.getFieldLimit("COOP_STANDARD").maxAliveMonsterCountPerField()).isEqualTo(100);
         assertThat(rules.getSummonBalance("COOP_STANDARD", "KIDNAP").maxUses()).isEqualTo(-1);
+        assertThat(rules.getSummonPool("STANDARD_SUMMON_POOL").entries()).singleElement().satisfies(entry -> {
+            assertThat(entry.grade()).isEqualTo("NORMAL");
+            assertThat(entry.weight()).isEqualTo(10000);
+            assertThat(entry.alienIds()).containsExactly(22L, 23L, 24L, 25L, 26L, 27L, 28L);
+        });
         assertThat(rules.getMergeRule("LEGEND").resultType()).isEqualTo("MYTHIC_CHOICE");
         assertThat(List.of("NORMAL", "EPIC", "UNIQUE", "LEGEND", "MYTHIC"))
                 .allSatisfy(grade -> assertThat(rules.getMergeRule(grade).sameSpeciesRequired()).isTrue());

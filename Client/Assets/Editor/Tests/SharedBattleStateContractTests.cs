@@ -115,7 +115,38 @@ namespace MyDefense.Shared.Tests
                         grade = "MYTHIC",
                         pendingMutationType = "NONE",
                         activeMutationType = "NONE",
-                        mutationRerollCount = 0
+                        mutationRerollCount = 0,
+                        mutationType = "DNA_A",
+                        mutationState = BattleMutationState.SEALED
+                    }
+                },
+                mythicChoices = new[]
+                {
+                    new BattleMythicChoiceSnapshot
+                    {
+                        playerSlot = 1,
+                        targetBoardSlot = 7,
+                        candidateAlienIds = new[] { 29L, 30L, 31L },
+                        freeRerollsRemaining = 1,
+                        paidRerollsRemaining = 1,
+                        remainingSeconds = 10
+                    }
+                },
+                monsters = new[]
+                {
+                    new BattleMonsterStateSnapshot
+                    {
+                        runtimeMonsterId = 1001,
+                        monsterId = "MONSTER_NORMAL_DEFAULT",
+                        lanePolicy = "EACH_FIELD",
+                        fieldOwnerPlayerId = "player-1",
+                        spawnWave = 12,
+                        currentHp = 50,
+                        maxHp = 100,
+                        dead = false,
+                        x = 1,
+                        y = 2,
+                        z = 3
                     }
                 }
             };
@@ -130,6 +161,51 @@ namespace MyDefense.Shared.Tests
             StringAssert.Contains("\"eliminatedWave\":null", json);
             StringAssert.Contains("\"currentWaveSpecId\":\"WAVE_12\"", json);
             StringAssert.Contains("\"alienSpecId\":22", json);
+            StringAssert.Contains("\"mutationState\":\"SEALED\"", json);
+            StringAssert.Contains("\"candidateAlienIds\":[29,30,31]", json);
+            StringAssert.Contains("\"runtimeMonsterId\":1001", json);
+        }
+
+        [Test]
+        public void BattleSessionSnapshot_RejectsDuplicateMonsterIdsAndInvalidChoiceCandidates()
+        {
+            var snapshot = CreateMinimalSnapshot();
+            snapshot.monsters = new[]
+            {
+                new BattleMonsterStateSnapshot { runtimeMonsterId = 7, monsterId = "MON", lanePolicy = "EACH_FIELD", spawnWave = 1, currentHp = 1, maxHp = 1 },
+                new BattleMonsterStateSnapshot { runtimeMonsterId = 7, monsterId = "MON", lanePolicy = "EACH_FIELD", spawnWave = 1, currentHp = 1, maxHp = 1 }
+            };
+            Assert.Throws<ArgumentException>(() => BattleSessionSnapshotValidator.Validate(snapshot));
+
+            snapshot = CreateMinimalSnapshot();
+            snapshot.mythicChoices = new[]
+            {
+                new BattleMythicChoiceSnapshot { playerSlot = 1, targetBoardSlot = 0, candidateAlienIds = new[] { 29L, 29L, 31L }, remainingSeconds = 1 }
+            };
+            Assert.Throws<ArgumentException>(() => BattleSessionSnapshotValidator.Validate(snapshot));
+        }
+
+        private static BattleSessionSnapshot CreateMinimalSnapshot()
+        {
+            return new BattleSessionSnapshot
+            {
+                battleSessionId = "session",
+                balanceVersion = "balance",
+                contentHash = "hash",
+                matchState = MatchState.RUNNING,
+                currentWave = 1,
+                currentWaveSpecId = "WAVE_001",
+                waveType = "REGULAR",
+                wavePhase = "ACTIVE",
+                players = new[]
+                {
+                    new BattleSessionPlayerSnapshot { playerId = "p1", playerSlot = 1, battleState = PlayerBattleState.ACTIVE, connectionState = PlayerConnectionState.CONNECTED },
+                    new BattleSessionPlayerSnapshot { playerId = "p2", playerSlot = 2, battleState = PlayerBattleState.ACTIVE, connectionState = PlayerConnectionState.CONNECTED }
+                },
+                boardObjects = Array.Empty<BattleBoardObjectSnapshot>(),
+                mythicChoices = Array.Empty<BattleMythicChoiceSnapshot>(),
+                monsters = Array.Empty<BattleMonsterStateSnapshot>()
+            };
         }
 
         [Test]

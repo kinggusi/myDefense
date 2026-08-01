@@ -12,7 +12,7 @@ namespace MyDefense.Battle.Tests
         [Test]
         public void ActualResources_LoadAsValidBattleCatalog()
         {
-            var provider = new ResourcesBattleBalanceProvider(new E2EMonsterProvider(), new EmptyAlienProvider());
+            var provider = new ResourcesBattleBalanceProvider(new E2EMonsterProvider(), new ProductionAlienProvider());
 
             Assert.That(provider.IsValid, Is.True, string.Join("\n", provider.ValidationErrors));
             Assert.That(provider.SchemaVersion, Is.EqualTo(1));
@@ -62,15 +62,16 @@ namespace MyDefense.Battle.Tests
         }
 
         [Test]
-        public void ActualResources_KeepUnimplementedContentAsEmptyItems()
+        public void ActualResources_ExposeCanonicalBasicAttackPipeline()
         {
             BattleBalanceCatalog catalog = ValidCatalog();
 
             Assert.That(catalog.BossPatterns.GetByWave("WAVE_010"), Is.Empty);
-            Assert.That(catalog.Skills.All, Is.Empty);
-            Assert.That(catalog.AlienSkills.GetByAlien(1), Is.Empty);
-            Assert.That(catalog.Projectiles.All, Is.Empty);
-            Assert.That(catalog.SkillEffects.GetBySkill("SKILL_NONE"), Is.Empty);
+            Assert.That(catalog.Skills.All.Select(item => item.SkillId), Is.EquivalentTo(new[] { "SKILL_BASIC" }));
+            Assert.That(catalog.AlienSkills.GetByAlien(1).Single().SkillId, Is.EqualTo("SKILL_BASIC"));
+            Assert.That(catalog.AlienSkills.GetByAlien(48).Single().SkillId, Is.EqualTo("SKILL_BASIC"));
+            Assert.That(catalog.Projectiles.All.Select(item => item.ProjectileId), Is.EquivalentTo(new[] { "PROJ_BASIC" }));
+            Assert.That(catalog.SkillEffects.GetBySkill("SKILL_BASIC"), Has.Count.EqualTo(1));
         }
 
         [Test]
@@ -98,7 +99,7 @@ namespace MyDefense.Battle.Tests
 
         private static BattleBalanceCatalog ValidCatalog()
         {
-            var provider = new ResourcesBattleBalanceProvider(new E2EMonsterProvider(), new EmptyAlienProvider());
+            var provider = new ResourcesBattleBalanceProvider(new E2EMonsterProvider(), new ProductionAlienProvider());
             Assert.That(provider.IsValid, Is.True, string.Join("\n", provider.ValidationErrors));
             return provider.Catalog;
         }
@@ -118,11 +119,11 @@ namespace MyDefense.Battle.Tests
             }
         }
 
-        private sealed class EmptyAlienProvider : IAlienIdProvider
+        private sealed class ProductionAlienProvider : IAlienIdProvider
         {
             public bool Contains(long alienId)
             {
-                return false;
+                return alienId >= 1 && alienId <= 48;
             }
         }
 

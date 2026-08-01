@@ -14,7 +14,7 @@ cd server
 .\gradlew test
 ```
 
-`convertBalance`는 Excel 전체를 검증한 뒤 13개 JSON과 manifest를 한 묶음으로 교체합니다.
+`convertBalance`는 Excel 전체를 검증한 뒤 16개 JSON과 manifest를 한 묶음으로 교체합니다.
 검증이나 파일 생성이 실패하면 기존 정상 generated 파일과 manifest를 유지합니다.
 
 ## Excel 시트
@@ -50,7 +50,7 @@ cd server
 - Spawn: 기본 필드당 10마리, 5·8 Wave는 Normal 8 + Elite 2, Boss는 팀 공용 Lane에 1마리
 - Field limit: 최대 100, warning 80, danger 90, 플레이어 2명
 - Kidnap: 기본 50 Gold, 성공당 +10, `maxUses=-1`은 무제한
-- MYTHIC 선택: 후보 3, 무료 Reroll 1, 유료 Reroll 1, 비용 100, 제한 8초, 시간 초과 시 첫 후보
+- MYTHIC 선택: 후보 3, 무료 Reroll 1, 유료 Reroll 1, 비용 100, 제한 10초, 리롤 성공 시 제한시간 10초 재설정, 시간 초과 시 첫 후보
 
 ## 전투 코드 계약
 
@@ -77,6 +77,33 @@ cd server
 `resultPoolId`, `entryOrder`, `resultType`, `grade`, `alienId`, `mutationType`, `weight`, `enabled`입니다.
 Skill/Mutation 실행 계약도 후속 작업입니다.
 
+Battle Kidnap uses a dedicated `STANDARD_SUMMON_POOL`; it must not reuse the lobby
+`STANDARD_ALIEN_POOL`. The pool currently contains NORMAL Aliens only and its entry
+weights total 10000. `alien-spec.json` remains the shared Alien catalog.
+
+### Mutation Injector balance
+
+The `MutationSpec`, `MutationConfig`, and `InjectorPool` sheets define the battle
+Mutation Injector contract. `BLANK` is valid for random Mythic activation but is
+not injector-enabled. Injector results use the seven non-BLANK mutation types with
+equal pool weight. The current canonical costs are 300 Gold for initial activation,
+600/1200/2400/4800 for the first four rerolls, and 4800 after the fourth reroll;
+injector replacement is free. The BalanceTool emits `mutation-spec.json`,
+`mutation-config.json`, and `injector-pool.json`, and includes them in the manifest.
+Battle Kidnap selection reserves 50 of 10000 weight for an Injector (0.5%); the
+remaining 9950 weight selects from `STANDARD_SUMMON_POOL` (99.5%).
+
+### BattleReward balance
+
+The `BattleReward` sheet and `battle-reward.json` define the 80-wave permanent
+reward contract. `CONFIG` stores `maxWave=80`, the failure reward base/cap, and
+the minimum reward wave. `CHECKPOINT` rows at waves 10, 20, 30, 40, 50, 60,
+70, and 80 grant the configured Gold and Universal Piece once per map and user.
+`MAP_FIRST_CLEAR` rows grant the planet's first Wave-80 Diamond reward once.
+The settlement server uses `finalWave` as the highest fully cleared wave; a
+failure during Wave 70 therefore submits 69, while a failure after clearing
+Wave 70 submits 70. Re-clears receive repeatable victory/failure Gold only.
+
 ## Generated JSON
 
 기존 6종:
@@ -87,6 +114,7 @@ Skill/Mutation 실행 계약도 후속 작업입니다.
 - `alien-spec.json`
 - `shop-products.json`
 - `gacha-pools.json`
+- `summon-pools.json`
 
 전투 계약 7종:
 
@@ -97,13 +125,14 @@ Skill/Mutation 실행 계약도 후속 작업입니다.
 - `summon-balance.json`
 - `merge-rules.json`
 - `mythic-choice-balance.json`
+- `battle-reward.json`
 
 전투 계약 JSON은 Unity parser 호환성을 위해 배열을 직접 root로 사용하지 않고 wrapper object를 사용합니다.
 모든 JSON은 UTF-8(BOM 없음), LF, 결정적 파일명·행 순서와 기존 pretty-print 규칙을 사용합니다.
 
 ## Manifest 규칙
 
-`balance-manifest.json`은 위 13개 JSON의 파일명, byte 크기, SHA-256과 전체 `contentHash`를 기록합니다.
+`balance-manifest.json`은 위 16개 JSON의 파일명, byte 크기, SHA-256과 전체 `contentHash`를 기록합니다.
 manifest 자신은 `files`에서 제외하고 timestamp, OS, 사용자나 빌드 환경 정보는 포함하지 않습니다.
 서버는 시작할 때 manifest와 실제 파일을 검증한 뒤에만 Registry를 초기화합니다.
 

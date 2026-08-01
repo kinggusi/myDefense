@@ -14,6 +14,10 @@ namespace MyDefense.Battle.Balance.Canonical
         public const string WaveSpawnFileName = "wave-spawn.json";
         public const string FieldLimitFileName = "field-limit.json";
         public const string SummonFileName = "summon-balance.json";
+        public const string SummonPoolFileName = "summon-pools.json";
+        public const string MutationSpecFileName = "mutation-spec.json";
+        public const string MutationConfigFileName = "mutation-config.json";
+        public const string InjectorPoolFileName = "injector-pool.json";
     }
 
     public sealed class CanonicalManifestFileEntry
@@ -75,6 +79,92 @@ namespace MyDefense.Battle.Balance.Canonical
             if (value <= 0 || value > int.MaxValue) return false;
             cost = (int)value;
             return true;
+        }
+    }
+
+    public sealed class CanonicalSummonPoolEntry
+    {
+        public string Grade { get; }
+        public int Weight { get; }
+        public IReadOnlyList<long> AlienIds { get; }
+
+        public CanonicalSummonPoolEntry(string grade, int weight, IEnumerable<long> alienIds)
+        {
+            Grade = grade;
+            Weight = weight;
+            AlienIds = Array.AsReadOnly(new List<long>(alienIds ?? Array.Empty<long>()).ToArray());
+        }
+    }
+
+    public sealed class CanonicalSummonPool
+    {
+        public string PoolId { get; }
+        public string Name { get; }
+        public bool Active { get; }
+        public IReadOnlyList<CanonicalSummonPoolEntry> Entries { get; }
+
+        public CanonicalSummonPool(string poolId, string name, bool active, IEnumerable<CanonicalSummonPoolEntry> entries)
+        {
+            PoolId = poolId;
+            Name = name;
+            Active = active;
+            Entries = Array.AsReadOnly(new List<CanonicalSummonPoolEntry>(entries ?? Array.Empty<CanonicalSummonPoolEntry>()).ToArray());
+        }
+    }
+
+    public sealed class CanonicalMutationSpec
+    {
+        public string MutationType { get; }
+        public bool Enabled { get; }
+        public bool InjectorEnabled { get; }
+        public bool RandomActivationEnabled { get; }
+        public int Weight { get; }
+        public float AttackMultiplier { get; }
+        public float MpMultiplier { get; }
+        public float AttackSpeedMultiplier { get; }
+        public float RangeMultiplier { get; }
+        public float GoldMultiplier { get; }
+
+        public CanonicalMutationSpec(string mutationType, bool enabled, bool injectorEnabled, bool randomActivationEnabled,
+            int weight, float attackMultiplier, float mpMultiplier, float attackSpeedMultiplier, float rangeMultiplier, float goldMultiplier)
+        {
+            MutationType = mutationType; Enabled = enabled; InjectorEnabled = injectorEnabled; RandomActivationEnabled = randomActivationEnabled;
+            Weight = weight; AttackMultiplier = attackMultiplier; MpMultiplier = mpMultiplier; AttackSpeedMultiplier = attackSpeedMultiplier;
+            RangeMultiplier = rangeMultiplier; GoldMultiplier = goldMultiplier;
+        }
+    }
+
+    public sealed class CanonicalMutationConfig
+    {
+        public string ModeId { get; }
+        public int InitialActivationCost { get; }
+        public int RerollCost1 { get; }
+        public int RerollCost2 { get; }
+        public int RerollCost3 { get; }
+        public int RerollCost4 { get; }
+        public int RerollCostAfterMax { get; }
+        public int InjectorReplaceCost { get; }
+
+        public CanonicalMutationConfig(string modeId, int initialActivationCost, int rerollCost1, int rerollCost2,
+            int rerollCost3, int rerollCost4, int rerollCostAfterMax, int injectorReplaceCost)
+        {
+            ModeId = modeId; InitialActivationCost = initialActivationCost; RerollCost1 = rerollCost1; RerollCost2 = rerollCost2;
+            RerollCost3 = rerollCost3; RerollCost4 = rerollCost4; RerollCostAfterMax = rerollCostAfterMax; InjectorReplaceCost = injectorReplaceCost;
+        }
+    }
+
+    public sealed class CanonicalInjectorPoolEntry
+    {
+        public string PoolId { get; }
+        public string PoolName { get; }
+        public bool Active { get; }
+        public string MutationType { get; }
+        public int Weight { get; }
+        public string ResultType { get; }
+
+        public CanonicalInjectorPoolEntry(string poolId, string poolName, bool active, string mutationType, int weight, string resultType)
+        {
+            PoolId = poolId; PoolName = poolName; Active = active; MutationType = mutationType; Weight = weight; ResultType = resultType;
         }
     }
 
@@ -317,11 +407,15 @@ namespace MyDefense.Battle.Balance.Canonical
         public CanonicalWaveSpawnRegistry WaveSpawns { get; }
         public CanonicalFieldLimitRegistry FieldLimits { get; }
         public CanonicalSummonBalance Summon { get; }
+        public IReadOnlyDictionary<string, CanonicalSummonPool> SummonPools { get; }
+        public IReadOnlyList<CanonicalMutationSpec> MutationSpecs { get; }
+        public CanonicalMutationConfig MutationConfig { get; }
+        public IReadOnlyList<CanonicalInjectorPoolEntry> InjectorPool { get; }
         public IMonsterDefinitionProvider MonsterDefinitions { get; }
         internal BattleBalanceDocument<WaveSpecData> RuntimeWaves { get; }
         internal BattleBalanceDocument<WaveSpawnSpecData> RuntimeSpawns { get; }
 
-        internal CanonicalBalanceBundle(CanonicalBalanceManifest manifest, CanonicalMonsterRegistry monsters, CanonicalWaveRegistry waves, CanonicalWaveSpawnRegistry waveSpawns, CanonicalFieldLimitRegistry fieldLimits, CanonicalSummonBalance summon, BattleBalanceDocument<WaveSpecData> runtimeWaves, BattleBalanceDocument<WaveSpawnSpecData> runtimeSpawns)
+        internal CanonicalBalanceBundle(CanonicalBalanceManifest manifest, CanonicalMonsterRegistry monsters, CanonicalWaveRegistry waves, CanonicalWaveSpawnRegistry waveSpawns, CanonicalFieldLimitRegistry fieldLimits, CanonicalSummonBalance summon, IReadOnlyDictionary<string, CanonicalSummonPool> summonPools, IReadOnlyList<CanonicalMutationSpec> mutationSpecs, CanonicalMutationConfig mutationConfig, IReadOnlyList<CanonicalInjectorPoolEntry> injectorPool, BattleBalanceDocument<WaveSpecData> runtimeWaves, BattleBalanceDocument<WaveSpawnSpecData> runtimeSpawns)
         {
             Manifest = manifest;
             Monsters = monsters;
@@ -329,6 +423,10 @@ namespace MyDefense.Battle.Balance.Canonical
             WaveSpawns = waveSpawns;
             FieldLimits = fieldLimits;
             Summon = summon;
+            SummonPools = summonPools ?? new Dictionary<string, CanonicalSummonPool>(StringComparer.Ordinal);
+            MutationSpecs = mutationSpecs ?? Array.Empty<CanonicalMutationSpec>();
+            MutationConfig = mutationConfig;
+            InjectorPool = injectorPool ?? Array.Empty<CanonicalInjectorPoolEntry>();
             RuntimeWaves = runtimeWaves;
             RuntimeSpawns = runtimeSpawns;
             MonsterDefinitions = new CanonicalMonsterDefinitionProvider(monsters);

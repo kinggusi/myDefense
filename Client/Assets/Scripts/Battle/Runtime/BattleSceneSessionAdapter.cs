@@ -23,12 +23,24 @@ namespace MyDefense.Battle.Runtime
         public BattleRunnerLifecycle RunnerLifecycle => _runnerLifecycle;
         public BattleWaveExecutor WaveExecutor => _waveExecutor;
 
+        public bool TryCaptureReconnectSnapshot(out MyDefense.Shared.Contracts.BattleSessionSnapshot snapshot)
+        {
+            snapshot = null;
+            if (!IsInitialized || SessionContext == null || _stateAuthority == null
+                || !_stateAuthority.IsAuthoritative || _waveExecutor == null)
+                return false;
+            snapshot = BattleReconnectSnapshotBuilder.Capture(SessionContext, _stateAuthority, _waveExecutor);
+            return true;
+        }
+
         private void OnEnable()
         {
             if (_runnerLifecycle != null)
             {
                 _runnerLifecycle.SessionContextCreated += OnSessionContextCreated;
                 _runnerLifecycle.PlayerRoster.PlayersChanged += OnPlayersChanged;
+                _runnerLifecycle.PlayerConnected += OnPlayerConnected;
+                _runnerLifecycle.PlayerDisconnected += OnPlayerDisconnected;
             }
         }
 
@@ -38,6 +50,8 @@ namespace MyDefense.Battle.Runtime
             {
                 _runnerLifecycle.SessionContextCreated -= OnSessionContextCreated;
                 _runnerLifecycle.PlayerRoster.PlayersChanged -= OnPlayersChanged;
+                _runnerLifecycle.PlayerConnected -= OnPlayerConnected;
+                _runnerLifecycle.PlayerDisconnected -= OnPlayerDisconnected;
             }
             ResetAdapter();
         }
@@ -52,6 +66,19 @@ namespace MyDefense.Battle.Runtime
             TryInitializeFromRunner();
         }
 
+        private void OnPlayerConnected(BattlePlayerIdentity identity)
+        {
+            if (_stateAuthority != null && _stateAuthority.IsAuthoritative)
+                _stateAuthority.SetPlayerConnectionState(identity.PlayerSlot, identity.UserId, identity.PlayerRef, true);
+            TryInitializeFromRunner();
+        }
+
+        private void OnPlayerDisconnected(BattlePlayerIdentity identity)
+        {
+            if (_stateAuthority != null && _stateAuthority.IsAuthoritative)
+                _stateAuthority.SetPlayerConnectionState(identity.PlayerSlot, identity.UserId, identity.PlayerRef, false);
+        }
+
         private void Update()
         {
             if (!IsInitialized)
@@ -60,6 +87,9 @@ namespace MyDefense.Battle.Runtime
 
         public bool TryInitializeFromRunner()
         {
+            _runnerLifecycle ??= FindFirstObjectByType<BattleRunnerLifecycle>();
+            _waveExecutor ??= FindFirstObjectByType<BattleWaveExecutor>();
+            _stateAuthority ??= FindFirstObjectByType<BattleWaveStateAuthority>();
             if (_runnerLifecycle == null || _runnerLifecycle.SessionContext == null)
             {
                 if (!TryCreateSessionContext())
@@ -72,7 +102,9 @@ namespace MyDefense.Battle.Runtime
             // CreateSessionContext raises SessionContextCreated synchronously.
             // The callback may have completed initialization before this call
             // resumes, so do not initialize the same session a second time.
-            if (IsInitialized && ReferenceEquals(SessionContext, _runnerLifecycle.SessionContext))
+            if (IsInitialized
+                && ReferenceEquals(SessionContext, _runnerLifecycle.SessionContext)
+                && (_stateAuthority == null || _stateAuthority.IsSpawnedForAccess))
                 return true;
 
             BattlePlayerRoster roster = _runnerLifecycle.PlayerRoster;
@@ -89,16 +121,30 @@ namespace MyDefense.Battle.Runtime
                 _waveExecutor.SetLocalPlayerLane(
                     localIdentity.PlayerSlot == 1 ? LaneType.Player1Lane : LaneType.Player2Lane);
 
-            if (roster.Count != 2)
+            string player1Id;
+            string player2Id;
+            if (roster.TryGetByUserIdForSlot(1, out BattlePlayerIdentity player1)
+                && roster.TryGetByUserIdForSlot(2, out BattlePlayerIdentity player2))
+            {
+                player1Id = player1.UserId;
+                player2Id = player2.UserId;
+            }
+            else if (_stateAuthority != null
+                && _stateAuthority.IsSpawnedForAccess
+                && !string.IsNullOrWhiteSpace(_stateAuthority.Player1UserId.ToString())
+                && !string.IsNullOrWhiteSpace(_stateAuthority.Player2UserId.ToString()))
+            {
+                player1Id = _stateAuthority.Player1UserId.ToString();
+                player2Id = _stateAuthority.Player2UserId.ToString();
+            }
+            else
+            {
                 return false;
-
-            if (!roster.TryGetByUserIdForSlot(1, out BattlePlayerIdentity player1)
-                || !roster.TryGetByUserIdForSlot(2, out BattlePlayerIdentity player2))
-                return false;
+            }
 
             return Initialize(
                 _runnerLifecycle.SessionContext,
-                new BattlePlayerIdentityMap(player1.UserId, player2.UserId),
+                new BattlePlayerIdentityMap(player1Id, player2Id),
                 localIdentity.PlayerSlot == 1 ? LaneType.Player1Lane : LaneType.Player2Lane);
         }
 
@@ -108,8 +154,7 @@ namespace MyDefense.Battle.Runtime
                 || _runnerLifecycle.SessionContext != null
                 || _runnerLifecycle.Runner == null
                 || !_runnerLifecycle.Runner.IsRunning
-                || _waveExecutor == null
-                || _runnerLifecycle.PlayerRoster.Count != 2)
+                || _waveExecutor == null)
                 return false;
 
             if (!_waveExecutor.TryGetCanonicalSessionMetadata(
@@ -173,8 +218,11 @@ namespace MyDefense.Battle.Runtime
 
             _pathManager?.InitializePaths();
             _waveExecutor.SetLocalPlayerLane(localPlayerLane);
+            EnsureSettlementCoordinator(sessionContext);
             SessionContext = sessionContext;
             IsInitialized = true;
+            if (_stateAuthority == null || _stateAuthority.IsAuthoritative)
+                _waveExecutor.StartConfiguredWavesIfReady();
             return true;
         }
 
@@ -182,6 +230,16 @@ namespace MyDefense.Battle.Runtime
         {
             SessionContext = null;
             IsInitialized = false;
+        }
+
+        private void EnsureSettlementCoordinator(BattleSessionContext sessionContext)
+        {
+            if (_runnerLifecycle == null || _waveExecutor == null || _stateAuthority == null)
+                return;
+            BattleSettlementCoordinator coordinator = GetComponent<BattleSettlementCoordinator>();
+            if (coordinator == null)
+                coordinator = gameObject.AddComponent<BattleSettlementCoordinator>();
+            coordinator.Configure(_runnerLifecycle, _waveExecutor, _stateAuthority, sessionContext);
         }
     }
 }

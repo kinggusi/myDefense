@@ -1,0 +1,58 @@
+[
+  {
+    "mutationType" : "BERSERK",
+    "poolActive" : true,
+    "poolId" : "BATTLE_INJECTOR_POOL",
+    "poolName" : "Battle Kidnap Injector",
+    "resultType" : "MUTATION_INJECTOR",
+    "weight" : 1
+  },
+  {
+    "mutationType" : "FROZEN",
+    "poolActive" : true,
+    "poolId" : "BATTLE_INJECTOR_POOL",
+    "poolName" : "Battle Kidnap Injector",
+    "resultType" : "MUTATION_INJECTOR",
+    "weight" : 1
+  },
+  {
+    "mutationType" : "GIANT",
+    "poolActive" : true,
+    "poolId" : "BATTLE_INJECTOR_POOL",
+    "poolName" : "Battle Kidnap Injector",
+    "resultType" : "MUTATION_INJECTOR",
+    "weight" : 1
+  },
+  {
+    "mutationType" : "GREEDY",
+    "poolActive" : true,
+    "poolId" : "BATTLE_INJECTOR_POOL",
+    "poolName" : "Battle Kidnap Injector",
+    "resultType" : "MUTATION_INJECTOR",
+    "weight" : 1
+  },
+  {
+    "mutationType" : "OBESE",
+    "poolActive" : true,
+    "poolId" : "BATTLE_INJECTOR_POOL",
+    "poolName" : "Battle Kidnap Injector",
+    "resultType" : "MUTATION_INJECTOR",
+    "weight" : 1
+  },
+  {
+    "mutationType" : "SWIFT",
+    "poolActive" : true,
+    "poolId" : "BATTLE_INJECTOR_POOL",
+    "poolName" : "Battle Kidnap Injector",
+    "resultType" : "MUTATION_INJECTOR",
+    "weight" : 1
+  },
+  {
+    "mutationType" : "TOXIC",
+    "poolActive" : true,
+    "poolId" : "BATTLE_INJECTOR_POOL",
+    "poolName" : "Battle Kidnap Injector",
+    "resultType" : "MUTATION_INJECTOR",
+    "weight" : 1
+  }
+]

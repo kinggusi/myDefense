@@ -1,0 +1,98 @@
+[
+  {
+    "attackMultiplier" : 1.25,
+    "attackSpeedMultiplier" : 1.00,
+    "enabled" : true,
+    "goldMultiplier" : 1.00,
+    "injectorEnabled" : true,
+    "mpMultiplier" : 1.00,
+    "mutationType" : "BERSERK",
+    "randomActivationEnabled" : true,
+    "rangeMultiplier" : 1.00,
+    "weight" : 1
+  },
+  {
+    "attackMultiplier" : 1.00,
+    "attackSpeedMultiplier" : 1.00,
+    "enabled" : true,
+    "goldMultiplier" : 1.00,
+    "injectorEnabled" : false,
+    "mpMultiplier" : 1.00,
+    "mutationType" : "BLANK",
+    "randomActivationEnabled" : true,
+    "rangeMultiplier" : 1.00,
+    "weight" : 1
+  },
+  {
+    "attackMultiplier" : 1.00,
+    "attackSpeedMultiplier" : 0.85,
+    "enabled" : true,
+    "goldMultiplier" : 1.00,
+    "injectorEnabled" : true,
+    "mpMultiplier" : 1.10,
+    "mutationType" : "FROZEN",
+    "randomActivationEnabled" : true,
+    "rangeMultiplier" : 1.00,
+    "weight" : 1
+  },
+  {
+    "attackMultiplier" : 1.35,
+    "attackSpeedMultiplier" : 0.90,
+    "enabled" : true,
+    "goldMultiplier" : 1.00,
+    "injectorEnabled" : true,
+    "mpMultiplier" : 1.10,
+    "mutationType" : "GIANT",
+    "randomActivationEnabled" : true,
+    "rangeMultiplier" : 1.10,
+    "weight" : 1
+  },
+  {
+    "attackMultiplier" : 1.00,
+    "attackSpeedMultiplier" : 1.00,
+    "enabled" : true,
+    "goldMultiplier" : 1.25,
+    "injectorEnabled" : true,
+    "mpMultiplier" : 1.00,
+    "mutationType" : "GREEDY",
+    "randomActivationEnabled" : true,
+    "rangeMultiplier" : 1.00,
+    "weight" : 1
+  },
+  {
+    "attackMultiplier" : 0.80,
+    "attackSpeedMultiplier" : 0.80,
+    "enabled" : true,
+    "goldMultiplier" : 1.00,
+    "injectorEnabled" : true,
+    "mpMultiplier" : 1.20,
+    "mutationType" : "OBESE",
+    "randomActivationEnabled" : true,
+    "rangeMultiplier" : 1.15,
+    "weight" : 1
+  },
+  {
+    "attackMultiplier" : 1.00,
+    "attackSpeedMultiplier" : 1.25,
+    "enabled" : true,
+    "goldMultiplier" : 1.00,
+    "injectorEnabled" : true,
+    "mpMultiplier" : 1.00,
+    "mutationType" : "SWIFT",
+    "randomActivationEnabled" : true,
+    "rangeMultiplier" : 1.00,
+    "weight" : 1
+  },
+  {
+    "attackMultiplier" : 1.10,
+    "attackSpeedMultiplier" : 1.00,
+    "enabled" : true,
+    "goldMultiplier" : 1.00,
+    "injectorEnabled" : true,
+    "mpMultiplier" : 1.00,
+    "mutationType" : "TOXIC",
+    "randomActivationEnabled" : true,
+    "rangeMultiplier" : 1.00,
+    "weight" : 1
+  }
+]

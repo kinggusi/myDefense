@@ -1,0 +1,24 @@
+{
+  "pools" : [
+    {
+      "active" : true,
+      "entries" : [
+        {
+          "alienIds" : [
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28
+          ],
+          "grade" : "NORMAL",
+          "weight" : 10000
+        }
+      ],
+      "name" : "Battle Kidnap NORMAL",
+      "poolId" : "STANDARD_SUMMON_POOL"
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 {
   "schemaVersion" : 1,
-  "balanceVersion" : "1-51c8431934ce3b76",
-  "contentHash" : "51c8431934ce3b76c268ddc1bd73ddd34a4d52f6a132357848281e8c6b5841cb",
+  "balanceVersion" : "1-133ff341b0443dd1",
+  "contentHash" : "133ff341b0443dd188421060943fd14b337f85403bd06db762b460a0525a38e1",
   "files" : [ {
     "name" : "alien-level-stat.json",
     "sha256" : "62d5880e09c6b780e2c4894d6e357b13337fdcf1982d30b6738bf82190f209f6",
@@ -15,6 +15,10 @@
     "sha256" : "2cd5377e7cb18fd67089ceedb19c23fe0673f6b568cc66c689441666c73720b3",
     "size" : 6956
   }, {
+    "name" : "battle-reward.json",
+    "sha256" : "6e435ccf67b657a1a1bf5954bbe5753ceaad8e0aad7a492f5e4df608fab148f6",
+    "size" : 1542
+  }, {
     "name" : "field-limit.json",
     "sha256" : "3021464010c3cea0df6c3cc3b07389774c60e8113b1a4634d9cb5c91df2d6238",
     "size" : 203
@@ -27,6 +31,10 @@
     "sha256" : "fd50622b132fed2316df84407a743e14f231592e7516f059192b31f3ecdb88e6",
     "size" : 77
   }, {
+    "name" : "injector-pool.json",
+    "sha256" : "77224e2a4e3832608e8d763097d09e90df105d34e9ba7aee3d41174218e1ac30",
+    "size" : 1428
+  }, {
     "name" : "merge-rules.json",
     "sha256" : "276cac3b6ba3446bf83c5305d92aa3a044c1dd32ef2189306ed3b4644df91a54",
     "size" : 1034
@@ -34,6 +42,14 @@
     "name" : "monster-spec.json",
     "sha256" : "0012f5a55aeae2ae4b5b55a0435eabc8e97c3c3a71ea7643552dde850d864267",
     "size" : 652
+  }, {
+    "name" : "mutation-config.json",
+    "sha256" : "4026543e8bd8847ebb62c37626ca4e05954e25e279087670ce4ea6c26ce3835f",
+    "size" : 221
+  }, {
+    "name" : "mutation-spec.json",
+    "sha256" : "db14d7a50fc8b7d6638f4195dc792aad575387fe43db03e5cc6621583557fdfe",
+    "size" : 2400
   }, {
     "name" : "mythic-breeding-config.json",
     "sha256" : "42ead0a4f253583b822ed6d87ea99004f9be97649b8e4b89e558de9fe4f1b49d",
@@ -44,8 +60,8 @@
     "size" : 1582
   }, {
     "name" : "mythic-choice-balance.json",
-    "sha256" : "c3c08720c9d09bba4523e979fc3e9e9159aabd849b63711afe76ae555b7580aa",
-    "size" : 425
+    "sha256" : "37fbd4f365648052c82a7d64cd3fd74309b76455a0c534f64adc6b1ce089e9ce",
+    "size" : 426
   }, {
     "name" : "shop-products.json",
     "sha256" : "2a17d5f64c3c443de189b0f2c62c4efd4a6e29d429bd0a64047e0fa37ce92cd1",
@@ -54,6 +70,10 @@
     "name" : "summon-balance.json",
     "sha256" : "8e14bf7f6577056fa775303f307030aa9b46594171c045bbaca0241d3c5a3e17",
     "size" : 249
+  }, {
+    "name" : "summon-pools.json",
+    "sha256" : "e9c14d6ee8162786b6cdadc1b9dfde51bafce1b659e89f2a5a63cc56c0f467e2",
+    "size" : 391
   }, {
     "name" : "wave-spawn.json",
     "sha256" : "08343810f6efa56a50020e919f0085f8fb3d060ca927a735e0665d4b1f3f0478",

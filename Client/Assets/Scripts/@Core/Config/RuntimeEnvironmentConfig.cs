@@ -23,6 +23,15 @@ public static class RuntimeEnvironmentConfig
     public static string PhotonFusionAppId =>
         ReadOverride("MYDEFENSE_PHOTON_APP_ID", "photonAppId");
 
+    public static string FusionSessionName =>
+        ReadOverride("MYDEFENSE_FUSION_SESSION", "fusionSession") ?? "MyDefense-Dev";
+
+    public static string FusionUserId =>
+        ReadOverride("MYDEFENSE_FUSION_USER_ID", "fusionUserId");
+
+    public static string FusionRole =>
+        (ReadOverride("MYDEFENSE_FUSION_ROLE", "fusionRole") ?? "auto").ToLowerInvariant();
+
     private static string ReadOverride(string environmentVariable, string commandLineName)
     {
         string commandLineValue = ReadCommandLine(commandLineName);

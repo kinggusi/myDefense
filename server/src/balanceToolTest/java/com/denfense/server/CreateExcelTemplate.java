@@ -20,6 +20,32 @@ public class CreateExcelTemplate {
         r2.createCell(0).setCellValue(100);
         r2.createCell(1).setCellValue(10);
         r2.createCell(2).setCellValue(1000);
+
+        Sheet battleReward = workbook.createSheet("BattleReward");
+        String[] battleRewardHeaders = {"rewardType", "mapId", "wave", "gold", "universalPiece", "diamond",
+                "failureRewardBaseGold", "failureRewardCapPercent", "minimumRewardWave", "enabled"};
+        Row battleHeader = battleReward.createRow(0);
+        for (int i = 0; i < battleRewardHeaders.length; i++) battleHeader.createCell(i).setCellValue(battleRewardHeaders[i]);
+        Object[][] battleRows = {
+                {"CONFIG", "ALL", 0, 0, 0, 0, 10000, 80, 10, true},
+                {"CHECKPOINT", "ALL", 10, 500, 10, 0, 0, 0, 0, true},
+                {"CHECKPOINT", "ALL", 20, 750, 15, 0, 0, 0, 0, true},
+                {"CHECKPOINT", "ALL", 30, 1000, 20, 0, 0, 0, 0, true},
+                {"CHECKPOINT", "ALL", 40, 1500, 25, 0, 0, 0, 0, true},
+                {"CHECKPOINT", "ALL", 50, 2000, 30, 0, 0, 0, 0, true},
+                {"CHECKPOINT", "ALL", 60, 2500, 35, 0, 0, 0, 0, true},
+                {"CHECKPOINT", "ALL", 70, 3000, 40, 0, 0, 0, 0, true},
+                {"CHECKPOINT", "ALL", 80, 4000, 50, 0, 0, 0, 0, true},
+        };
+        for (int rowIndex = 0; rowIndex < battleRows.length; rowIndex++) {
+            Row row = battleReward.createRow(rowIndex + 1);
+            for (int col = 0; col < battleRows[rowIndex].length; col++) {
+                Object value = battleRows[rowIndex][col];
+                if (value instanceof Number n) row.createCell(col).setCellValue(n.doubleValue());
+                else if (value instanceof Boolean b) row.createCell(col).setCellValue(b);
+                else row.createCell(col).setCellValue(String.valueOf(value));
+            }
+        }
         
         // 2. AlienUpgradeCost
         Sheet upgrade = workbook.createSheet("AlienUpgradeCost");

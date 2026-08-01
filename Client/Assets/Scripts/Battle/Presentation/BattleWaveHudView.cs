@@ -8,6 +8,7 @@ namespace MyDefense.Battle
     public class BattleWaveHudView : MonoBehaviour
     {
         [SerializeField] private BattleWaveExecutor _waveExecutor;
+        [SerializeField] private BattleWaveStateAuthority _stateAuthority;
         [SerializeField] private Text _waveText;
         [SerializeField] private TMP_Text _player1MonsterCountText;
         [SerializeField] private TMP_Text _player2MonsterCountText;
@@ -18,12 +19,14 @@ namespace MyDefense.Battle
 
         private BattleWaveExecutor _subscribedExecutor;
 
+        private void Awake()
+        {
+            ResolveReferences();
+        }
+
         private void OnEnable()
         {
-            if (_waveExecutor == null)
-            {
-                _waveExecutor = BattleWaveExecutor.Instance;
-            }
+            ResolveReferences();
 
             Subscribe(_waveExecutor);
         }
@@ -75,6 +78,35 @@ namespace MyDefense.Battle
         private void UpdatePlayerMonsterCount(LaneType lane, int count, int limit)
         {
             UpdatePlayerDisplay(lane, count, GetPlayerState(lane), limit);
+        }
+
+        private void Update()
+        {
+            ResolveReferences();
+            if (_stateAuthority == null || !_stateAuthority.IsSpawnedForAccess)
+                return;
+
+            // The executor is authoritative only on the host. Every peer must
+            // render the replicated counts so P2 does not drift from the host.
+            UpdateWaveText(_stateAuthority.CurrentWave);
+            UpdatePlayerDisplay(
+                LaneType.Player1Lane,
+                _stateAuthority.Player1AliveMonsterCount,
+                _stateAuthority.Player1BattleState,
+                _stateAuthority.PlayerMonsterLimit);
+            UpdatePlayerDisplay(
+                LaneType.Player2Lane,
+                _stateAuthority.Player2AliveMonsterCount,
+                _stateAuthority.Player2BattleState,
+                _stateAuthority.PlayerMonsterLimit);
+        }
+
+        private void ResolveReferences()
+        {
+            if (_waveExecutor == null)
+                _waveExecutor = BattleWaveExecutor.Instance;
+            if (_stateAuthority == null)
+                _stateAuthority = FindFirstObjectByType<BattleWaveStateAuthority>();
         }
 
         private void UpdatePlayerBattleState(LaneType lane, PlayerBattleState state)

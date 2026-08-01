@@ -36,6 +36,14 @@ class BattleBalanceExcelContractTest {
             assertThat(summon.costIncreasePerUse()).isEqualTo(10);
             assertThat(summon.maxUses()).isEqualTo(-1);
         });
+        assertThat(data.summonPools()).singleElement().satisfies(pool -> {
+            assertThat(pool.poolId()).isEqualTo("STANDARD_SUMMON_POOL");
+            assertThat(pool.entries()).singleElement().satisfies(entry -> {
+                assertThat(entry.grade()).isEqualTo("NORMAL");
+                assertThat(entry.weight()).isEqualTo(10000);
+                assertThat(entry.alienIds()).containsExactly(22L, 23L, 24L, 25L, 26L, 27L, 28L);
+            });
+        });
         assertThat(data.mergeRules()).hasSize(5).allSatisfy(rule -> {
             assertThat(rule.requiredCount()).isEqualTo(2);
             assertThat(rule.sameSpeciesRequired()).isTrue();

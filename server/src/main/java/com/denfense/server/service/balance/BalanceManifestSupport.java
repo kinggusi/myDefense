@@ -15,6 +15,7 @@ public final class BalanceManifestSupport {
             "alien-level-stat.json",
             "alien-spec.json",
             "alien-upgrade-cost.json",
+            "battle-reward.json",
             "field-limit.json",
             "gacha-pools.json",
             "game-reward.json",
@@ -23,8 +24,12 @@ public final class BalanceManifestSupport {
             "mythic-choice-balance.json",
             "mythic-breeding-config.json",
             "mythic-breeding-results.json",
+            "mutation-config.json",
+            "mutation-spec.json",
+            "injector-pool.json",
             "shop-products.json",
             "summon-balance.json",
+            "summon-pools.json",
             "wave-spawn.json",
             "wave-spec.json"
     );

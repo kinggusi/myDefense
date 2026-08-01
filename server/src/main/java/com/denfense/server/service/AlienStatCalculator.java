@@ -1,6 +1,7 @@
 package com.denfense.server.service;
 
 import com.denfense.server.domain.AlienSpec;
+import com.denfense.server.balance.AlienSpecBalance;
 import com.denfense.server.service.balance.AlienLevelStatBalance;
 import com.denfense.server.service.balance.AlienUpgradeBalanceRegistry;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,19 @@ public class AlienStatCalculator {
                 multiply(spec.getBaseMp(), multiplier.mpMultiplier(), 2),
                 multiply(spec.getAtkSpeed(), multiplier.atkSpeedMultiplier(), 4),
                 multiply(spec.getRange(), multiplier.rangeMultiplier(), 4)
+        );
+    }
+
+    public AlienCurrentStat calculate(AlienSpecBalance spec, int level) {
+        if (spec == null) {
+            throw new IllegalArgumentException("AlienSpecBalance must not be null.");
+        }
+        AlienLevelStatBalance multiplier = balanceRegistry.getLevelStat(level);
+        return new AlienCurrentStat(
+                multiply(spec.baseAttack(), multiplier.atkMultiplier(), 2),
+                multiply(spec.baseMp(), multiplier.mpMultiplier(), 2),
+                multiply(spec.attackSpeed(), multiplier.atkSpeedMultiplier(), 4),
+                multiply(spec.attackRange(), multiplier.rangeMultiplier(), 4)
         );
     }
 

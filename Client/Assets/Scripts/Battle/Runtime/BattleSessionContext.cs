@@ -12,6 +12,7 @@ namespace MyDefense.Battle.Runtime
         public string CanonicalContentHash { get; }
         public string BattleContentVersion { get; }
         public string BattleContentHash { get; }
+        public string MapId { get; }
         public long StartedAtTick { get; }
         public MatchStateContract MatchState { get; private set; } = MatchStateContract.RUNNING;
 
@@ -21,13 +22,15 @@ namespace MyDefense.Battle.Runtime
             string canonicalContentHash,
             string battleContentVersion,
             string battleContentHash,
-            long startedAtTick)
+            long startedAtTick,
+            string mapId = null)
         {
             BattleSessionId = RequireText(battleSessionId, nameof(battleSessionId));
             CanonicalBalanceVersion = RequireText(canonicalBalanceVersion, nameof(canonicalBalanceVersion));
             CanonicalContentHash = RequireText(canonicalContentHash, nameof(canonicalContentHash));
             BattleContentVersion = RequireText(battleContentVersion, nameof(battleContentVersion));
             BattleContentHash = RequireText(battleContentHash, nameof(battleContentHash));
+            MapId = string.IsNullOrWhiteSpace(mapId) ? null : mapId.Trim();
             if (startedAtTick < 0)
                 throw new ArgumentOutOfRangeException(nameof(startedAtTick), "Session start tick cannot be negative.");
 
@@ -40,7 +43,8 @@ namespace MyDefense.Battle.Runtime
             string canonicalContentHash,
             string battleContentVersion,
             string battleContentHash,
-            long startedAtTick)
+            long startedAtTick,
+            string mapId = null)
         {
             if (runner == null) throw new ArgumentNullException(nameof(runner));
             if (!runner.IsRunning || !runner.SessionInfo.IsValid || string.IsNullOrWhiteSpace(runner.SessionInfo.Name))
@@ -52,7 +56,8 @@ namespace MyDefense.Battle.Runtime
                 canonicalContentHash,
                 battleContentVersion,
                 battleContentHash,
-                startedAtTick);
+                startedAtTick,
+                mapId);
         }
 
         public bool TryTransitionMatchState(MatchStateContract nextState)

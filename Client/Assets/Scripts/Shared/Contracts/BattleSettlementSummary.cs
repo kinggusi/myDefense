@@ -36,6 +36,7 @@ namespace MyDefense.Shared.Contracts
         public string contentHash;
         public string result;
         public int finalWave;
+        public string mapId;
         public string startedAt;
         public string finishedAt;
         public BattleSettlementPlayerSummary[] players;
@@ -61,6 +62,7 @@ namespace MyDefense.Shared.Contracts
         public int inGameGoldEarned;
         public int inGameGoldSpent;
         public int finalInGameGold;
+        public bool abandoned;
     }
 
     /// <summary>
@@ -74,6 +76,26 @@ namespace MyDefense.Shared.Contracts
         public int totalKills;
         public int bossKills;
         public int totalKillGold;
+    }
+
+    [Serializable]
+    public sealed class BattleSettlementResponse
+    {
+        public string battleSessionId;
+        public string status;
+        public bool alreadyProcessed;
+        public BattleSettlementReward[] rewards;
+    }
+
+    [Serializable]
+    public sealed class BattleSettlementReward
+    {
+        public long userId;
+        public string rewardKey;
+        public string rewardType;
+        public int gold;
+        public int universalPiece;
+        public int diamond;
     }
 
     /// <summary>
@@ -104,6 +126,7 @@ namespace MyDefense.Shared.Contracts
             AppendStringProperty(builder, "contentHash", summary.contentHash);
             AppendStringProperty(builder, "result", summary.result);
             AppendIntProperty(builder, "finalWave", summary.finalWave);
+            AppendStringProperty(builder, "mapId", summary.mapId);
             AppendStringProperty(builder, "startedAt", summary.startedAt);
             AppendStringProperty(builder, "finishedAt", summary.finishedAt);
             AppendPlayersProperty(builder, summary.players);
@@ -145,7 +168,9 @@ namespace MyDefense.Shared.Contracts
                 AppendIntProperty(builder, "initialInGameGold", player.initialInGameGold);
                 AppendIntProperty(builder, "inGameGoldEarned", player.inGameGoldEarned);
                 AppendIntProperty(builder, "inGameGoldSpent", player.inGameGoldSpent);
-                AppendIntProperty(builder, "finalInGameGold", player.finalInGameGold, false);
+                AppendIntProperty(builder, "finalInGameGold", player.finalInGameGold);
+                AppendBoolProperty(builder, "abandoned", player.abandoned);
+                builder.Length--;
                 builder.Append('}');
             }
 

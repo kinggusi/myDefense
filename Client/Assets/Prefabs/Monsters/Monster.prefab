@@ -181,7 +181,7 @@ Canvas:
   m_OverridePixelPerfect: 0
   m_SortingBucketNormalizedSize: 0
   m_VertexColorAlwaysGammaSpace: 0
-  m_AdditionalShaderChannelsFlag: 0
+  m_AdditionalShaderChannelsFlag: 25
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
   m_SortingOrder: 0
@@ -408,7 +408,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -472,11 +472,11 @@ GameObject:
   - component: {fileID: 1743122330085143534}
   - component: {fileID: -5900148494275695505}
   - component: {fileID: 7362284352776375731}
-  - component: {fileID: 4201090289808750039}
   - component: {fileID: 9030318921090463371}
   - component: {fileID: 7321991948531831337}
   - component: {fileID: 7352275867475386648}
   - component: {fileID: 2839070841877532256}
+  - component: {fileID: 585605380288782852}
   m_Layer: 0
   m_Name: Monster
   m_TagString: Monster
@@ -611,20 +611,6 @@ MonoBehaviour:
   _hpText: {fileID: 8116012277181631512}
   _hpSlider: {fileID: 3960489935288063998}
   _worldYOffset: 0.25
---- !u!114 &4201090289808750039
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7463564369751362190}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e964098de14912f498852cabafe85304, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MyDefense.Battle.BattleMonsterMovement
-  _laneType: 0
-  _speed: 5
 --- !u!114 &9030318921090463371
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -656,6 +642,7 @@ MonoBehaviour:
   NetworkedBehaviours:
   - {fileID: 7352275867475386648}
   - {fileID: 2839070841877532256}
+  - {fileID: 585605380288782852}
   ForceRemoteRenderTimeframe: 0
 --- !u!114 &7352275867475386648
 MonoBehaviour:
@@ -705,6 +692,20 @@ MonoBehaviour:
   SyncParent: 0
   _autoAOIOverride: 1
   DisableSharedModeInterpolation: 0
+--- !u!114 &585605380288782852
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7463564369751362190}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e964098de14912f498852cabafe85304, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MyDefense.Battle.BattleMonsterMovement
+  _laneType: 0
+  _speed: 5
 --- !u!1 &8188314502259905187
 GameObject:
   m_ObjectHideFlags: 0

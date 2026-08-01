@@ -1,5 +1,11 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
 using Fusion;
+using MyDefense.Shared.Contracts;
 using UnityEngine;
+using UnityEngine.Networking;
+using Object = UnityEngine.Object;
 
 namespace MyDefense.Battle.Presentation
 {
@@ -13,6 +19,13 @@ namespace MyDefense.Battle.Presentation
         private BattleWaveStateAuthority _authority;
         private Transform _player1Grid;
         private Transform _player2Grid;
+        private GameObject _unitPrefab;
+        private bool _unitPrefabResolved;
+        private readonly Dictionary<int, Dictionary<long, BattleAlienAttackSnapshotJson>> _attackCatalogs = new();
+        private readonly HashSet<int> _loadingAttackCatalogs = new();
+        private readonly HashSet<int> _failedAttackCatalogs = new();
+        private readonly Dictionary<int, string> _loadedPlayerIds = new();
+        private readonly Dictionary<int, string> _requestedPlayerIds = new();
 
         private void OnEnable()
         {
@@ -20,8 +33,13 @@ namespace MyDefense.Battle.Presentation
             if (_authority == null) return;
             _player1Grid = GameObject.Find("GridManager")?.transform;
             _player2Grid = GameObject.Find("EnemyGridParent")?.transform;
+            _unitPrefab = ResolveUnitPrefab();
+            _unitPrefabResolved = true;
             _authority.KidnapApplied += ApplyKidnap;
+            _authority.InjectorApplied += ApplyInjector;
+            _authority.MutationApplied += ApplyMutation;
             _authority.BoardChanged += ApplyBoardChange;
+            _authority.BoardSwapped += ApplyBoardSwap;
         }
 
         private void OnDisable()
@@ -29,7 +47,10 @@ namespace MyDefense.Battle.Presentation
             if (_authority != null)
             {
                 _authority.KidnapApplied -= ApplyKidnap;
+                _authority.InjectorApplied -= ApplyInjector;
+                _authority.MutationApplied -= ApplyMutation;
                 _authority.BoardChanged -= ApplyBoardChange;
+                _authority.BoardSwapped -= ApplyBoardSwap;
             }
         }
 
@@ -37,6 +58,9 @@ namespace MyDefense.Battle.Presentation
         {
             if (_authority == null || !_authority.Object || !_authority.Object.IsValid)
                 return;
+
+            EnsureAttackCatalog(1, _authority.Player1UserId.ToString());
+            EnsureAttackCatalog(2, _authority.Player2UserId.ToString());
 
             // Reconcile from the replicated occupancy snapshot so late joins,
             // scene reloads, and reconnects do not depend on past RPC events.
@@ -58,9 +82,14 @@ namespace MyDefense.Battle.Presentation
             // grid, so its source tile is intentionally empty. Do not create a
             // second visual while the pointer is holding the original unit.
             if (occupied && unit == null && !HasDraggingUnit(playerSlot, slotIndex))
-                ApplyKidnap(playerSlot, slotIndex);
+                if (_authority.IsBoardInjector(playerSlot, slotIndex))
+                    ApplyInjector(playerSlot, slotIndex, _authority.GetBoardMutationType(playerSlot, slotIndex));
+                else
+                    ApplyKidnap(playerSlot, slotIndex, _authority.GetBoardAlienId(playerSlot, slotIndex), _authority.GetBoardGrade(playerSlot, slotIndex));
             else if (!occupied && unit != null)
                 Object.Destroy(unit.gameObject);
+            else if (occupied && unit != null && !_authority.IsBoardInjector(playerSlot, slotIndex))
+                SyncUnitRuntimeState(unit.gameObject, playerSlot, slotIndex, _authority.GetBoardAlienId(playerSlot, slotIndex));
         }
 
         private static bool HasDraggingUnit(int playerSlot, int slotIndex)
@@ -74,7 +103,12 @@ namespace MyDefense.Battle.Presentation
             return false;
         }
 
-        private void ApplyKidnap(int playerSlot, int slotIndex)
+        private void ApplyKidnap(int playerSlot, int slotIndex, long alienId)
+        {
+            ApplyKidnap(playerSlot, slotIndex, alienId, _authority != null ? _authority.GetBoardGrade(playerSlot, slotIndex) : (byte)0);
+        }
+
+        private void ApplyKidnap(int playerSlot, int slotIndex, long alienId, byte grade)
         {
             if (slotIndex < 0 || slotIndex >= 24) return;
             Transform grid = playerSlot == 1 ? _player1Grid : _player2Grid;
@@ -91,7 +125,7 @@ namespace MyDefense.Battle.Presentation
             Transform tile = ResolveTile(grid, slotIndex);
             if (tile == null || tile.Find("FusionKidnapUnit") != null) return;
 
-            GameObject unit = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            GameObject unit = CreateUnitVisual(playerSlot, slotIndex, alienId, grade);
             unit.name = "FusionKidnapUnit";
             unit.transform.SetParent(tile, false);
             // Grid tiles are authored with a flattened Y scale (0.1). Compensate
@@ -108,12 +142,149 @@ namespace MyDefense.Battle.Presentation
                 SafeDivide(0.55f, tileScale.z));
             Renderer renderer = unit.GetComponent<Renderer>();
             if (renderer != null) renderer.material.color = playerSlot == 1 ? Color.cyan : Color.magenta;
+            ConfigureUnitData(unit, playerSlot, slotIndex, alienId, grade);
+            ApplyAttackSnapshot(unit, playerSlot, alienId);
+            ApplyGradeVisual(unit.transform, grade, alienId);
             FusionKidnapUnitDrag drag = unit.AddComponent<FusionKidnapUnitDrag>();
             drag.Initialize(this, _authority, playerSlot, slotIndex);
-            Debug.Log($"[FusionKidnapBoardView] slot={playerSlot} grid={grid.name} tile={tile.name} row={row} column={column} mirrored={isMirroredField} index={slotIndex}.");
+            Debug.Log($"[FusionKidnapBoardView] slot={playerSlot} alienId={alienId} grid={grid.name} tile={tile.name} row={row} column={column} mirrored={isMirroredField} index={slotIndex}.");
+        }
+
+        private void ApplyInjector(int playerSlot, int slotIndex, string mutationType)
+        {
+            ApplyKidnapVisual(playerSlot, slotIndex, 0, byte.MaxValue, mutationType);
+        }
+
+        private void ApplyMutation(int playerSlot, int sourceSlotIndex, int targetSlotIndex, string mutationType)
+        {
+            Transform grid = playerSlot == 1 ? _player1Grid : _player2Grid;
+            Transform source = ResolveTile(grid, sourceSlotIndex);
+            if (source != null && source.Find("FusionKidnapUnit") != null) Object.Destroy(source.Find("FusionKidnapUnit").gameObject);
+            Transform target = ResolveTile(grid, targetSlotIndex);
+            if (target != null && target.Find("FusionKidnapUnit") != null)
+            {
+                GameObject targetUnit = target.Find("FusionKidnapUnit").gameObject;
+                ApplyMutationVisual(targetUnit, mutationType);
+                SyncUnitRuntimeState(targetUnit, playerSlot, targetSlotIndex, _authority.GetBoardAlienId(playerSlot, targetSlotIndex));
+            }
+        }
+
+        private void ApplyKidnapVisual(int playerSlot, int slotIndex, long alienId, byte grade, string mutationType)
+        {
+            Transform grid = playerSlot == 1 ? _player1Grid : _player2Grid;
+            Transform tile = ResolveTile(grid, slotIndex);
+            if (tile == null || tile.Find("FusionKidnapUnit") != null) return;
+            GameObject unit = CreateUnitVisual(playerSlot, slotIndex, alienId, grade);
+            unit.name = "FusionKidnapUnit";
+            unit.transform.SetParent(tile, false);
+            ApplyUnitTransform(unit.transform, tile);
+            Renderer renderer = unit.GetComponent<Renderer>();
+            if (renderer != null) renderer.material.color = new Color(1f, 0.55f, 0.1f);
+            ConfigureUnitData(unit, playerSlot, slotIndex, alienId, grade);
+            ApplyMutationVisual(unit, mutationType);
+            FusionKidnapUnitDrag drag = unit.AddComponent<FusionKidnapUnitDrag>();
+            drag.Initialize(this, _authority, playerSlot, slotIndex);
+        }
+
+        private static void ApplyMutationVisual(GameObject unit, string mutationType)
+        {
+            if (unit == null) return;
+            TextMesh label = unit.GetComponentInChildren<TextMesh>();
+            if (label == null)
+            {
+                GameObject labelObject = new GameObject("GradeLabel");
+                labelObject.transform.SetParent(unit.transform, false);
+                labelObject.transform.localPosition = new Vector3(0f, 0f, -0.6f);
+                labelObject.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+                labelObject.transform.localScale = Vector3.one * 0.18f;
+                label = labelObject.AddComponent<TextMesh>();
+                label.anchor = TextAnchor.MiddleCenter; label.alignment = TextAlignment.Center; label.characterSize = 1f; label.fontSize = 40; label.color = Color.white;
+            }
+            label.text = "I";
         }
 
         public Transform GetGrid(int playerSlot) => playerSlot == 1 ? _player1Grid : _player2Grid;
+
+        private GameObject ResolveUnitPrefab()
+        {
+            if (_unitPrefabResolved)
+                return _unitPrefab;
+
+            GameManager manager = Object.FindFirstObjectByType<GameManager>(FindObjectsInactive.Include);
+            _unitPrefab = manager == null ? null : manager.unitPrefab;
+            _unitPrefabResolved = true;
+            if (_unitPrefab == null)
+                Debug.LogWarning("[FusionKidnapBoardView] GameManager.unitPrefab is not available; battle units will be visual-only.");
+            return _unitPrefab;
+        }
+
+        private GameObject CreateUnitVisual(int playerSlot, int slotIndex, long alienId, byte grade)
+        {
+            GameObject prefab = ResolveUnitPrefab();
+            if (prefab != null)
+                return Object.Instantiate(prefab);
+
+            // Keep the old primitive fallback for development scenes that do not
+            // contain GameManager, but make the limitation explicit in the log.
+            return GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        }
+
+        private void ConfigureUnitData(GameObject unit, int playerSlot, int slotIndex, long alienId, byte grade)
+        {
+            UnitData data = unit == null ? null : unit.GetComponent<UnitData>();
+            if (data == null)
+                return;
+
+            // The board slot is the runtime identity for this temporary Fusion
+            // presentation. It must be unique across both player fields so the
+            // damage audit can distinguish two copies of the same Alien species.
+            data.serverId = ((long)playerSlot << 32) | (uint)(slotIndex + 1);
+            data.specId = alienId;
+            data.grade = GradeName(grade);
+            data.unitName = "Alien-" + alienId;
+            ApplyMutationState(data, playerSlot, slotIndex);
+        }
+
+        private void SyncUnitRuntimeState(GameObject unit, int playerSlot, int slotIndex, long alienId)
+        {
+            UnitData data = unit == null ? null : unit.GetComponent<UnitData>();
+            if (data == null)
+                return;
+            string previousActiveMutation = data.activeMutationType;
+            ApplyMutationState(data, playerSlot, slotIndex);
+            if (!string.Equals(previousActiveMutation, data.activeMutationType, StringComparison.Ordinal))
+                ApplyAttackSnapshot(unit, playerSlot, alienId);
+        }
+
+        private void ApplyMutationState(UnitData data, int playerSlot, int slotIndex)
+        {
+            if (data == null || _authority == null)
+                return;
+            ApplyMutationState(
+                data,
+                _authority.GetBoardMutationState(playerSlot, slotIndex),
+                _authority.GetBoardMutationType(playerSlot, slotIndex));
+        }
+
+        public static void ApplyMutationState(UnitData data, byte state, string mutationType)
+        {
+            if (data == null)
+                throw new ArgumentNullException(nameof(data));
+            data.pendingMutationType = state == 2 || state == 4 ? mutationType : null;
+            data.activeMutationType = state == 3 ? mutationType : null;
+        }
+
+        private static string GradeName(byte grade)
+        {
+            return grade switch
+            {
+                1 => "EPIC",
+                2 => "UNIQUE",
+                3 => "LEGEND",
+                4 => "MYTHIC",
+                _ => "NORMAL"
+            };
+        }
 
         public bool TryFindNearestSlot(int playerSlot, Vector3 worldPosition, int excludeSlotIndex, out int slotIndex)
         {
@@ -148,7 +319,7 @@ namespace MyDefense.Battle.Presentation
             ApplyUnitTransform(unit.transform, tile);
         }
 
-        private void ApplyBoardChange(int playerSlot, int fromSlotIndex, int toSlotIndex, bool merged)
+        private void ApplyBoardChange(int playerSlot, int fromSlotIndex, int toSlotIndex, bool merged, long resultAlienId, byte resultGrade)
         {
             Transform grid = playerSlot == 1 ? _player1Grid : _player2Grid;
             if (grid == null) return;
@@ -156,14 +327,27 @@ namespace MyDefense.Battle.Presentation
             Transform targetTile = ResolveTile(grid, toSlotIndex);
             if (sourceTile == null || targetTile == null) return;
             Transform sourceUnit = sourceTile.Find("FusionKidnapUnit");
-            if (sourceUnit == null) return;
 
             if (merged)
             {
-                Object.Destroy(sourceUnit.gameObject);
-                Debug.Log($"[FusionKidnapBoardView] merge slot={playerSlot} source={fromSlotIndex} target={toSlotIndex}.");
+                if (fromSlotIndex != toSlotIndex && sourceUnit != null)
+                    Object.Destroy(sourceUnit.gameObject);
+                Transform targetUnit = targetTile.Find("FusionKidnapUnit");
+                if (targetUnit != null && resultAlienId > 0)
+                {
+                    // The target visual is reused for the merge result. Keep
+                    // its runtime UnitData in sync with the authoritative
+                    // result so grade/spec-based UI and subsequent merges do
+                    // not continue to treat an Epic result as the old Normal.
+                    ConfigureUnitData(targetUnit.gameObject, playerSlot, toSlotIndex, resultAlienId, resultGrade);
+                    ApplyAttackSnapshot(targetUnit.gameObject, playerSlot, resultAlienId);
+                    ApplyGradeVisual(targetUnit, resultGrade, resultAlienId);
+                }
+                Debug.Log($"[FusionKidnapBoardView] merge slot={playerSlot} source={fromSlotIndex} target={toSlotIndex} resultAlienId={resultAlienId} resultGrade={resultGrade}.");
                 return;
             }
+
+            if (sourceUnit == null) return;
 
             if (targetTile.Find("FusionKidnapUnit") != null) return;
             ApplyUnitTransform(sourceUnit, targetTile);
@@ -171,6 +355,25 @@ namespace MyDefense.Battle.Presentation
             if (drag != null)
                 drag.UpdateSlotIndex(toSlotIndex);
             Debug.Log($"[FusionKidnapBoardView] move slot={playerSlot} source={fromSlotIndex} target={toSlotIndex}.");
+        }
+
+        private void ApplyBoardSwap(int playerSlot, int sourceSlotIndex, int targetSlotIndex)
+        {
+            Transform grid = playerSlot == 1 ? _player1Grid : _player2Grid;
+            Transform sourceTile = ResolveTile(grid, sourceSlotIndex);
+            Transform targetTile = ResolveTile(grid, targetSlotIndex);
+            if (sourceTile == null || targetTile == null) return;
+            Transform sourceUnit = sourceTile.Find("FusionKidnapUnit");
+            Transform targetUnit = targetTile.Find("FusionKidnapUnit");
+            if (sourceUnit == null || targetUnit == null) return;
+
+            ApplyUnitTransform(sourceUnit, targetTile);
+            ApplyUnitTransform(targetUnit, sourceTile);
+            FusionKidnapUnitDrag sourceDrag = sourceUnit.GetComponent<FusionKidnapUnitDrag>();
+            FusionKidnapUnitDrag targetDrag = targetUnit.GetComponent<FusionKidnapUnitDrag>();
+            if (sourceDrag != null) sourceDrag.UpdateSlotIndex(targetSlotIndex);
+            if (targetDrag != null) targetDrag.UpdateSlotIndex(sourceSlotIndex);
+            Debug.Log($"[FusionKidnapBoardView] swap slot={playerSlot} source={sourceSlotIndex} target={targetSlotIndex}.");
         }
 
         private static void ApplyUnitTransform(Transform unit, Transform tile)
@@ -182,6 +385,37 @@ namespace MyDefense.Battle.Presentation
                 SafeDivide(0.55f, tileScale.x),
                 SafeDivide(0.55f, tileScale.y),
                 SafeDivide(0.55f, tileScale.z));
+        }
+
+        private static void ApplyGradeVisual(Transform unit, byte grade, long alienId)
+        {
+            if (unit == null) return;
+            Renderer renderer = unit.GetComponentInChildren<Renderer>();
+            if (renderer == null) return;
+            renderer.material.color = ColorForAlien(alienId);
+            TextMesh label = unit.GetComponentInChildren<TextMesh>();
+            if (label == null)
+            {
+                GameObject labelObject = new GameObject("GradeLabel");
+                labelObject.transform.SetParent(unit, false);
+                labelObject.transform.localPosition = new Vector3(0f, 0f, -0.6f);
+                labelObject.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+                labelObject.transform.localScale = Vector3.one * 0.18f;
+                label = labelObject.AddComponent<TextMesh>();
+                label.anchor = TextAnchor.MiddleCenter;
+                label.alignment = TextAlignment.Center;
+                label.characterSize = 1f;
+                label.fontSize = 48;
+                label.color = Color.white;
+            }
+            label.text = grade switch { 1 => "E", 2 => "U", 3 => "L", 4 => "M", _ => "N" };
+        }
+
+        private static Color ColorForAlien(long alienId)
+        {
+            uint value = unchecked((uint)(alienId * 2654435761L));
+            float hue = (value % 360u) / 360f;
+            return Color.HSVToRGB(hue, 0.78f, 0.95f);
         }
 
         private static Transform ResolveTile(Transform grid, int slotIndex)
@@ -198,6 +432,163 @@ namespace MyDefense.Battle.Presentation
         private static float SafeDivide(float value, float divisor)
         {
             return Mathf.Abs(divisor) > 0.0001f ? value / divisor : value;
+        }
+
+        private void EnsureAttackCatalog(int playerSlot, string playerId)
+        {
+            if (!_authority.IsAuthoritative || string.IsNullOrWhiteSpace(playerId))
+                return;
+            if (!_requestedPlayerIds.TryGetValue(playerSlot, out string requestedPlayerId)
+                || !string.Equals(requestedPlayerId, playerId, StringComparison.Ordinal))
+            {
+                _requestedPlayerIds[playerSlot] = playerId;
+                _failedAttackCatalogs.Remove(playerSlot);
+            }
+            if (_loadedPlayerIds.TryGetValue(playerSlot, out string loadedPlayerId)
+                && string.Equals(loadedPlayerId, playerId, StringComparison.Ordinal))
+                return;
+            if (_failedAttackCatalogs.Contains(playerSlot))
+                return;
+            if (_loadingAttackCatalogs.Contains(playerSlot))
+                return;
+
+            _loadingAttackCatalogs.Add(playerSlot);
+            StartCoroutine(LoadAttackCatalog(playerSlot, playerId));
+        }
+
+        private IEnumerator LoadAttackCatalog(int playerSlot, string playerId)
+        {
+            string url = RuntimeEnvironmentConfig.ApiBaseUrl
+                + "/battle/entry/attack-snapshots?playerId="
+                + UnityWebRequest.EscapeURL(playerId);
+            using UnityWebRequest request = UnityWebRequest.Get(url);
+            request.timeout = 10;
+            yield return request.SendWebRequest();
+
+            _loadingAttackCatalogs.Remove(playerSlot);
+            if (request.result != UnityWebRequest.Result.Success)
+            {
+                _failedAttackCatalogs.Add(playerSlot);
+                Debug.LogError($"[FusionKidnapBoardView] Attack snapshot load failed for player {playerSlot}: {request.error}");
+                yield break;
+            }
+
+            BattleAttackSnapshotCatalogJson response;
+            try
+            {
+                response = JsonUtility.FromJson<BattleAttackSnapshotCatalogJson>(request.downloadHandler.text);
+            }
+            catch (Exception exception)
+            {
+                _failedAttackCatalogs.Add(playerSlot);
+                Debug.LogError($"[FusionKidnapBoardView] Attack snapshot JSON is invalid: {exception.Message}");
+                yield break;
+            }
+
+            BattleWaveExecutor executor = _authority.Executor;
+            if (!IsCompatibleCatalog(response, executor)
+                || !string.Equals(response.playerId, playerId, StringComparison.Ordinal))
+            {
+                _failedAttackCatalogs.Add(playerSlot);
+                Debug.LogError($"[FusionKidnapBoardView] Attack snapshot balance mismatch for player {playerSlot}.");
+                yield break;
+            }
+
+            var catalog = new Dictionary<long, BattleAlienAttackSnapshotJson>();
+            foreach (BattleAlienAttackSnapshotJson entry in response.aliens ?? Array.Empty<BattleAlienAttackSnapshotJson>())
+            {
+                if (entry != null && entry.alienId > 0
+                    && IsFinitePositive(entry.damage)
+                    && IsFinitePositive(entry.attackRate)
+                    && IsFinitePositive(entry.range))
+                    catalog[entry.alienId] = entry;
+            }
+            if (catalog.Count == 0)
+            {
+                _failedAttackCatalogs.Add(playerSlot);
+                Debug.LogError($"[FusionKidnapBoardView] Attack snapshot catalog is empty for player {playerSlot}.");
+                yield break;
+            }
+
+            _attackCatalogs[playerSlot] = catalog;
+            _loadedPlayerIds[playerSlot] = playerId;
+            _failedAttackCatalogs.Remove(playerSlot);
+            ApplyCatalogToExistingUnits(playerSlot);
+            Debug.Log($"[FusionKidnapBoardView] Applied {catalog.Count} server-calculated attack snapshots for player {playerSlot}.");
+        }
+
+        internal static bool IsCompatibleCatalog(BattleAttackSnapshotCatalogJson response, BattleWaveExecutor executor)
+        {
+            return executor != null && IsCompatibleCatalog(
+                response,
+                executor.CanonicalBalanceVersion,
+                executor.CanonicalContentHash);
+        }
+
+        public static bool IsCompatibleCatalog(
+            BattleAttackSnapshotCatalogJson response,
+            string canonicalBalanceVersion,
+            string canonicalContentHash)
+        {
+            return response != null
+                && string.Equals(response.balanceVersion, canonicalBalanceVersion, StringComparison.Ordinal)
+                && string.Equals(response.contentHash, canonicalContentHash, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private void ApplyCatalogToExistingUnits(int playerSlot)
+        {
+            Transform grid = GetGrid(playerSlot);
+            if (grid == null)
+                return;
+            for (int slot = 0; slot < 24; slot++)
+            {
+                Transform unit = ResolveTile(grid, slot)?.Find("FusionKidnapUnit");
+                UnitData data = unit == null ? null : unit.GetComponent<UnitData>();
+                if (data != null && data.specId > 0)
+                    ApplyAttackSnapshot(unit.gameObject, playerSlot, data.specId);
+            }
+        }
+
+        private bool ApplyAttackSnapshot(GameObject unit, int playerSlot, long alienId)
+        {
+            if (unit == null
+                || !_attackCatalogs.TryGetValue(playerSlot, out Dictionary<long, BattleAlienAttackSnapshotJson> catalog)
+                || !catalog.TryGetValue(alienId, out BattleAlienAttackSnapshotJson entry))
+                return false;
+            UnitData data = unit.GetComponent<UnitData>();
+            UnitAttack attack = unit.GetComponent<UnitAttack>();
+            if (data == null || attack == null)
+                return false;
+
+            attack.ApplyAttackSnapshot(AlienAttackSnapshot.FromCalculatedStats(
+                data.serverId,
+                entry.damage,
+                entry.attackRate,
+                entry.range,
+                data.activeMutationType));
+            return true;
+        }
+
+        private static bool IsFinitePositive(float value)
+            => value > 0f && !float.IsNaN(value) && !float.IsInfinity(value);
+
+        [Serializable]
+        public sealed class BattleAttackSnapshotCatalogJson
+        {
+            public string playerId;
+            public string balanceVersion;
+            public string contentHash;
+            public BattleAlienAttackSnapshotJson[] aliens;
+        }
+
+        [Serializable]
+        public sealed class BattleAlienAttackSnapshotJson
+        {
+            public long alienId;
+            public int level;
+            public float damage;
+            public float attackRate;
+            public float range;
         }
     }
 }

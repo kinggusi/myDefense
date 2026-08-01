@@ -81,6 +81,8 @@ public class BalanceDataLoader implements ApplicationRunner {
 
     @Value("${balance.summon.path:classpath:balance/generated/summon-balance.json}")
     private String summonFilePath;
+    @Value("${balance.summon-pool.path:classpath:balance/generated/summon-pools.json}")
+    private String summonPoolFilePath;
 
     @Value("${balance.merge-rule.path:classpath:balance/generated/merge-rules.json}")
     private String mergeRuleFilePath;
@@ -92,6 +94,9 @@ public class BalanceDataLoader implements ApplicationRunner {
     private String mythicBreedingConfigFilePath;
     @Value("${balance.mythic-breeding-results.path:classpath:balance/generated/mythic-breeding-results.json}")
     private String mythicBreedingResultsFilePath;
+
+    @Value("${balance.battle-reward.path:classpath:balance/generated/battle-reward.json}")
+    private String battleRewardFilePath;
 
     public void setRewardFilePath(String rewardFilePath) {
         this.rewardFilePath = rewardFilePath;
@@ -122,8 +127,10 @@ public class BalanceDataLoader implements ApplicationRunner {
     public void setWaveSpawnFilePath(String value) { this.waveSpawnFilePath = value; }
     public void setFieldLimitFilePath(String value) { this.fieldLimitFilePath = value; }
     public void setSummonFilePath(String value) { this.summonFilePath = value; }
+    public void setSummonPoolFilePath(String value) { this.summonPoolFilePath = value; }
     public void setMergeRuleFilePath(String value) { this.mergeRuleFilePath = value; }
     public void setMythicChoiceFilePath(String value) { this.mythicChoiceFilePath = value; }
+    public void setBattleRewardFilePath(String value) { this.battleRewardFilePath = value; }
 
     @Override
     public void run(ApplicationArguments args) throws Exception {
@@ -187,21 +194,28 @@ public class BalanceDataLoader implements ApplicationRunner {
             WaveSpawnBalanceDocument spawnDoc = readDocument(strictMapper, waveSpawnFilePath, WaveSpawnBalanceDocument.class);
             FieldLimitBalanceDocument fieldLimitDoc = readDocument(strictMapper, fieldLimitFilePath, FieldLimitBalanceDocument.class);
             SummonBalanceDocument summonDoc = readDocument(strictMapper, summonFilePath, SummonBalanceDocument.class);
+            SummonPoolBalanceDocument summonPoolDoc = readDocument(strictMapper, summonPoolFilePath, SummonPoolBalanceDocument.class);
             MergeRuleBalanceDocument mergeRuleDoc = readDocument(strictMapper, mergeRuleFilePath, MergeRuleBalanceDocument.class);
             MythicChoiceBalanceDocument mythicChoiceDoc = readDocument(strictMapper, mythicChoiceFilePath, MythicChoiceBalanceDocument.class);
             MythicBreedingConfigBalance breedingConfig = readDocument(strictMapper, mythicBreedingConfigFilePath, MythicBreedingConfigBalance.class);
             MythicBreedingResultDocument breedingResults = readDocument(strictMapper, mythicBreedingResultsFilePath, MythicBreedingResultDocument.class);
+            BattleRewardBalance battleReward = readDocument(strictMapper, battleRewardFilePath, BattleRewardBalance.class);
 
             validator.validateBattleBalance(monsterDoc, waveDoc, spawnDoc, fieldLimitDoc, summonDoc,
                     mergeRuleDoc, mythicChoiceDoc, specs);
+            validator.validateSummonPool(summonPoolDoc, specs);
+            if (summonDoc.summons().stream().anyMatch(s -> summonPoolDoc.pools().stream().noneMatch(p -> p.poolId().equals(s.resultPoolId()))))
+                throw new IllegalStateException("SummonBalance.resultPoolId must reference SummonPool.");
             validateBreedingBalance(breedingConfig, breedingResults, specs, poolDoc, mythicChoiceDoc);
+            validator.validateBattleReward(battleReward);
 
             alienUpgradeRegistry.init(upgradeCosts, levelStats);
             registry.init(rewardBalance, specs, productDoc.products(), poolDoc.pools());
+            registry.initBattleReward(battleReward);
             monsterBalanceRegistry.init(monsterDoc.monsters());
             waveBalanceRegistry.init(waveDoc.waves(), spawnDoc.spawns());
             battleRuleBalanceRegistry.init(fieldLimitDoc.fieldLimits(), summonDoc.summons(),
-                    mergeRuleDoc.mergeRules(), mythicChoiceDoc.mythicChoices(), specs);
+                    mergeRuleDoc.mergeRules(), mythicChoiceDoc.mythicChoices(), summonPoolDoc.pools(), specs);
             mythicBreedingBalanceRegistry.init(breedingConfig, breedingResults.results());
 
             log.info("Balance 데이터 로딩 완료. MaxLevel: {}", maxLevel);

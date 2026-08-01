@@ -18,6 +18,7 @@ namespace MyDefense.Shared.Tests
                 "contentHash",
                 "result",
                 "finalWave",
+                "mapId",
                 "startedAt",
                 "finishedAt",
                 "players",
@@ -39,7 +40,8 @@ namespace MyDefense.Shared.Tests
                 "initialInGameGold",
                 "inGameGoldEarned",
                 "inGameGoldSpent",
-                "finalInGameGold");
+                "finalInGameGold",
+                "abandoned");
         }
 
         [Test]
@@ -74,6 +76,7 @@ namespace MyDefense.Shared.Tests
                 typeof(int),
                 typeof(string),
                 typeof(string),
+                typeof(string),
                 typeof(BattleSettlementPlayerSummary[]),
                 typeof(BattleSettlementMonsterSummary[]),
                 typeof(string));
@@ -88,7 +91,8 @@ namespace MyDefense.Shared.Tests
                 typeof(int),
                 typeof(int),
                 typeof(int),
-                typeof(int));
+                typeof(int),
+                typeof(bool));
             AssertPublicFieldTypes<BattleSettlementMonsterSummary>(
                 typeof(string),
                 typeof(int),
@@ -107,6 +111,7 @@ namespace MyDefense.Shared.Tests
                 contentHash = "content-hash",
                 result = BattleSettlementResultValues.Victory,
                 finalWave = 80,
+                mapId = "EARTH",
                 startedAt = "2026-07-18T12:00:00",
                 finishedAt = "2026-07-18T12:20:00",
                 players = new[]
@@ -123,7 +128,8 @@ namespace MyDefense.Shared.Tests
                         initialInGameGold = 100,
                         inGameGoldEarned = 50,
                         inGameGoldSpent = 20,
-                        finalInGameGold = 130
+                        finalInGameGold = 130,
+                        abandoned = false
                     },
                     new BattleSettlementPlayerSummary
                     {
@@ -137,7 +143,8 @@ namespace MyDefense.Shared.Tests
                         initialInGameGold = 100,
                         inGameGoldEarned = 20,
                         inGameGoldSpent = 10,
-                        finalInGameGold = 110
+                        finalInGameGold = 110,
+                        abandoned = true
                     }
                 },
                 monsterKills = new[]
@@ -156,11 +163,14 @@ namespace MyDefense.Shared.Tests
             string json = BattleSettlementSummaryJson.Serialize(summary);
 
             StringAssert.Contains("\"battleSessionId\":\"session-1\"", json);
+            StringAssert.Contains("\"mapId\":\"EARTH\"", json);
             StringAssert.Contains("\"supportKills\":2", json);
             StringAssert.Contains("\"eliminatedWave\":null", json);
             StringAssert.Contains("\"eliminatedWave\":9", json);
             StringAssert.Contains("\"monsterSpecId\":\"NORMAL_MONSTER\"", json);
             StringAssert.Contains("\"finalInGameGold\":130", json);
+            StringAssert.Contains("\"abandoned\":false", json);
+            StringAssert.Contains("\"abandoned\":true", json);
             StringAssert.Contains("\"totalKillGold\":200", json);
         }
 

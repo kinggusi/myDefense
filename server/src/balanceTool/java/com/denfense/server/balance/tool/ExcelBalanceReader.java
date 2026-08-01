@@ -29,6 +29,7 @@ public class ExcelBalanceReader {
             checkMergedRegions(workbook);
 
             GameRewardBalance reward = readGameRewardSheet(workbook);
+            com.denfense.server.balance.BattleRewardBalance battleReward = readBattleRewardSheet(workbook);
             List<AlienUpgradeCostBalance> upgradeCosts = readAlienUpgradeCostSheet(workbook);
             List<com.denfense.server.service.balance.AlienLevelStatBalance> levelStats = readAlienLevelStatSheet(workbook);
             
@@ -37,6 +38,7 @@ public class ExcelBalanceReader {
             List<com.denfense.server.balance.AlienSpecBalance> alienSpecs = readAlienSpecSheet(workbook);
             List<com.denfense.server.balance.ShopProductBalance> shopProducts = readShopProductSheet(workbook);
             List<com.denfense.server.balance.GachaPoolBalance> gachaPools = readGachaPoolSheet(workbook);
+            List<com.denfense.server.balance.SummonPoolBalance> summonPools = readSummonPoolSheet(workbook);
             List<com.denfense.server.balance.MonsterSpecBalance> monsters = readMonsterSpecSheet(workbook);
             List<com.denfense.server.balance.WaveSpecBalance> waves = readWaveSpecSheet(workbook);
             List<com.denfense.server.balance.WaveSpawnBalance> waveSpawns = readWaveSpawnSheet(workbook);
@@ -44,9 +46,13 @@ public class ExcelBalanceReader {
             List<com.denfense.server.balance.SummonBalance> summons = readSummonBalanceSheet(workbook);
             List<com.denfense.server.balance.MergeRuleBalance> mergeRules = readMergeRuleSheet(workbook);
             List<com.denfense.server.balance.MythicChoiceBalance> mythicChoices = readMythicChoiceSheet(workbook);
+            List<com.denfense.server.balance.MutationSpecBalance> mutationSpecs = readMutationSpecSheet(workbook);
+            com.denfense.server.balance.MutationConfigBalance mutationConfig = readMutationConfigSheet(workbook);
+            List<com.denfense.server.balance.InjectorPoolBalance> injectorPools = readInjectorPoolSheet(workbook);
 
-            return new BalanceData(reward, upgradeCosts, levelStats, alienSpecs, shopProducts, gachaPools,
-                    monsters, waves, waveSpawns, fieldLimits, summons, mergeRules, mythicChoices);
+            return new BalanceData(reward, battleReward, upgradeCosts, levelStats, alienSpecs, shopProducts, gachaPools, summonPools,
+                    monsters, waves, waveSpawns, fieldLimits, summons, mergeRules, mythicChoices,
+                    mutationSpecs, mutationConfig, injectorPools);
 
         } catch (IOException e) {
             throw new BalanceConversionException("파일을 읽는 중 오류가 발생했습니다: " + filePath, e);
@@ -115,6 +121,46 @@ public class ExcelBalanceReader {
         }
         
         return reward;
+    }
+
+    private com.denfense.server.balance.BattleRewardBalance readBattleRewardSheet(Workbook workbook) {
+        Sheet sheet = getSheetOrThrow(workbook, "BattleReward");
+        List<String> headers = requiredHeaders(sheet, "rewardType", "mapId", "wave", "gold", "universalPiece", "diamond",
+                "failureRewardBaseGold", "failureRewardCapPercent", "minimumRewardWave", "enabled");
+        int type = headers.indexOf("rewardType"), map = headers.indexOf("mapId"), wave = headers.indexOf("wave");
+        int gold = headers.indexOf("gold"), universal = headers.indexOf("universalPiece"), diamond = headers.indexOf("diamond");
+        int failureBase = headers.indexOf("failureRewardBaseGold"), failureCap = headers.indexOf("failureRewardCapPercent");
+        int minimum = headers.indexOf("minimumRewardWave"), enabled = headers.indexOf("enabled");
+        int maxWave = 0, minimumRewardWave = 0, failureRewardBaseGold = 0, failureRewardCapPercent = 0;
+        List<com.denfense.server.balance.BattleRewardBalance.Checkpoint> checkpoints = new ArrayList<>();
+        List<com.denfense.server.balance.BattleRewardBalance.MapFirstClear> mapFirstClears = new ArrayList<>();
+        for (int rowIndex = 1; rowIndex <= sheet.getLastRowNum(); rowIndex++) {
+            Row row = sheet.getRow(rowIndex);
+            if (row == null || isBlankRow(row, headers.size()) || !readBooleanCell(sheet.getSheetName(), rowIndex, "enabled", row.getCell(enabled))) continue;
+            String rewardType = readStringCell(sheet.getSheetName(), rowIndex, "rewardType", row.getCell(type));
+            int rowWave = readIntCell(sheet.getSheetName(), rowIndex, "wave", row.getCell(wave));
+            if ("CONFIG".equals(rewardType)) {
+                maxWave = rowWave == 0 ? 80 : rowWave;
+                failureRewardBaseGold = readIntCell(sheet.getSheetName(), rowIndex, "failureRewardBaseGold", row.getCell(failureBase));
+                failureRewardCapPercent = readIntCell(sheet.getSheetName(), rowIndex, "failureRewardCapPercent", row.getCell(failureCap));
+                minimumRewardWave = readIntCell(sheet.getSheetName(), rowIndex, "minimumRewardWave", row.getCell(minimum));
+            } else if ("CHECKPOINT".equals(rewardType)) {
+                checkpoints.add(new com.denfense.server.balance.BattleRewardBalance.Checkpoint(rowWave,
+                        readIntCell(sheet.getSheetName(), rowIndex, "gold", row.getCell(gold)),
+                        readIntCell(sheet.getSheetName(), rowIndex, "universalPiece", row.getCell(universal))));
+            } else if ("MAP_FIRST_CLEAR".equals(rewardType)) {
+                mapFirstClears.add(new com.denfense.server.balance.BattleRewardBalance.MapFirstClear(
+                        readStringCell(sheet.getSheetName(), rowIndex, "mapId", row.getCell(map)), rowWave,
+                        readIntCell(sheet.getSheetName(), rowIndex, "diamond", row.getCell(diamond))));
+            } else {
+                throw new BalanceConversionException("[BattleReward] unknown rewardType: " + rewardType);
+            }
+        }
+        if (maxWave == 0) maxWave = 80;
+        checkpoints.sort(Comparator.comparingInt(com.denfense.server.balance.BattleRewardBalance.Checkpoint::wave));
+        mapFirstClears.sort(Comparator.comparing(com.denfense.server.balance.BattleRewardBalance.MapFirstClear::mapId));
+        return new com.denfense.server.balance.BattleRewardBalance(maxWave, minimumRewardWave, failureRewardBaseGold,
+                failureRewardCapPercent, checkpoints, mapFirstClears);
     }
 
     private List<AlienUpgradeCostBalance> readAlienUpgradeCostSheet(Workbook workbook) {
@@ -617,6 +663,33 @@ public class ExcelBalanceReader {
         return pools;
     }
 
+    private List<com.denfense.server.balance.SummonPoolBalance> readSummonPoolSheet(Workbook workbook) {
+        Sheet sheet = getSheetOrThrow(workbook, "SummonPool");
+        List<String> headers = requiredHeaders(sheet, "poolId", "poolName", "poolActive", "grade", "weight", "alienIds");
+        Map<String, List<com.denfense.server.balance.SummonPoolEntryBalance>> entries = new LinkedHashMap<>();
+        Map<String, String> names = new LinkedHashMap<>();
+        Map<String, Boolean> active = new LinkedHashMap<>();
+        for (int rowIndex = 1; rowIndex <= sheet.getLastRowNum(); rowIndex++) {
+            Row row = sheet.getRow(rowIndex);
+            if (row == null || isBlankRow(row, headers.size())) continue;
+            String poolId = readStringCell(sheet.getSheetName(), rowIndex, "poolId", row.getCell(headers.indexOf("poolId")));
+            String poolName = readStringCell(sheet.getSheetName(), rowIndex, "poolName", row.getCell(headers.indexOf("poolName")));
+            boolean poolActive = readBooleanCell(sheet.getSheetName(), rowIndex, "poolActive", row.getCell(headers.indexOf("poolActive")));
+            String grade = readStringCell(sheet.getSheetName(), rowIndex, "grade", row.getCell(headers.indexOf("grade")));
+            int weight = readIntCell(sheet.getSheetName(), rowIndex, "weight", row.getCell(headers.indexOf("weight")));
+            String ids = readStringCell(sheet.getSheetName(), rowIndex, "alienIds", row.getCell(headers.indexOf("alienIds")));
+            List<Long> alienIds = Arrays.stream(ids.split(",")).map(String::trim).filter(s -> !s.isEmpty()).map(Long::parseLong).sorted().toList();
+            if (alienIds.isEmpty() || weight <= 0) throw new BalanceConversionException("[SummonPool] invalid row " + (rowIndex + 1));
+            names.putIfAbsent(poolId, poolName);
+            active.putIfAbsent(poolId, poolActive);
+            entries.computeIfAbsent(poolId, ignored -> new ArrayList<>())
+                    .add(new com.denfense.server.balance.SummonPoolEntryBalance(grade, weight, alienIds));
+        }
+        return entries.keySet().stream().sorted()
+                .map(id -> new com.denfense.server.balance.SummonPoolBalance(id, names.get(id), active.get(id), entries.get(id)))
+                .toList();
+    }
+
     private List<com.denfense.server.balance.MonsterSpecBalance> readMonsterSpecSheet(Workbook workbook) {
         Sheet sheet = getSheetOrThrow(workbook, "MonsterSpec");
         List<String> headers = requiredHeaders(sheet,
@@ -777,6 +850,74 @@ public class ExcelBalanceReader {
         return result;
     }
 
+    private List<com.denfense.server.balance.MutationSpecBalance> readMutationSpecSheet(Workbook workbook) {
+        Sheet sheet = getSheetOrThrow(workbook, "MutationSpec");
+        List<String> headers = requiredHeaders(sheet, "mutationType", "enabled", "injectorEnabled", "randomActivationEnabled",
+                "weight", "attackMultiplier", "mpMultiplier", "attackSpeedMultiplier", "rangeMultiplier", "goldMultiplier");
+        List<com.denfense.server.balance.MutationSpecBalance> result = new ArrayList<>();
+        for (int rowIndex = 1; rowIndex <= sheet.getLastRowNum(); rowIndex++) {
+            Row row = sheet.getRow(rowIndex);
+            if (row == null || isBlankRow(row, headers.size())) continue;
+            result.add(new com.denfense.server.balance.MutationSpecBalance(
+                    readStringCell(sheet.getSheetName(), rowIndex, "mutationType", row.getCell(headers.indexOf("mutationType"))),
+                    readBooleanCell(sheet.getSheetName(), rowIndex, "enabled", row.getCell(headers.indexOf("enabled"))),
+                    readBooleanCell(sheet.getSheetName(), rowIndex, "injectorEnabled", row.getCell(headers.indexOf("injectorEnabled"))),
+                    readBooleanCell(sheet.getSheetName(), rowIndex, "randomActivationEnabled", row.getCell(headers.indexOf("randomActivationEnabled"))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "weight", row.getCell(headers.indexOf("weight"))),
+                    readDecimalCell(sheet.getSheetName(), rowIndex, "attackMultiplier", row.getCell(headers.indexOf("attackMultiplier"))),
+                    readDecimalCell(sheet.getSheetName(), rowIndex, "mpMultiplier", row.getCell(headers.indexOf("mpMultiplier"))),
+                    readDecimalCell(sheet.getSheetName(), rowIndex, "attackSpeedMultiplier", row.getCell(headers.indexOf("attackSpeedMultiplier"))),
+                    readDecimalCell(sheet.getSheetName(), rowIndex, "rangeMultiplier", row.getCell(headers.indexOf("rangeMultiplier"))),
+                    readDecimalCell(sheet.getSheetName(), rowIndex, "goldMultiplier", row.getCell(headers.indexOf("goldMultiplier")))
+            ));
+        }
+        result.sort(Comparator.comparing(com.denfense.server.balance.MutationSpecBalance::mutationType));
+        return result;
+    }
+
+    private com.denfense.server.balance.MutationConfigBalance readMutationConfigSheet(Workbook workbook) {
+        Sheet sheet = getSheetOrThrow(workbook, "MutationConfig");
+        List<String> headers = requiredHeaders(sheet, "modeId", "initialActivationCost", "rerollCost1", "rerollCost2", "rerollCost3", "rerollCost4", "rerollCostAfterMax", "injectorReplaceCost");
+        com.denfense.server.balance.MutationConfigBalance result = null;
+        for (int rowIndex = 1; rowIndex <= sheet.getLastRowNum(); rowIndex++) {
+            Row row = sheet.getRow(rowIndex);
+            if (row == null || isBlankRow(row, headers.size())) continue;
+            if (result != null) throw new BalanceConversionException("[MutationConfig] exactly one data row is required.");
+            result = new com.denfense.server.balance.MutationConfigBalance(
+                    readStringCell(sheet.getSheetName(), rowIndex, "modeId", row.getCell(headers.indexOf("modeId"))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "initialActivationCost", row.getCell(headers.indexOf("initialActivationCost"))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "rerollCost1", row.getCell(headers.indexOf("rerollCost1"))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "rerollCost2", row.getCell(headers.indexOf("rerollCost2"))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "rerollCost3", row.getCell(headers.indexOf("rerollCost3"))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "rerollCost4", row.getCell(headers.indexOf("rerollCost4"))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "rerollCostAfterMax", row.getCell(headers.indexOf("rerollCostAfterMax"))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "injectorReplaceCost", row.getCell(headers.indexOf("injectorReplaceCost")))
+            );
+        }
+        if (result == null) throw new BalanceConversionException("[MutationConfig] data row is missing.");
+        return result;
+    }
+
+    private List<com.denfense.server.balance.InjectorPoolBalance> readInjectorPoolSheet(Workbook workbook) {
+        Sheet sheet = getSheetOrThrow(workbook, "InjectorPool");
+        List<String> headers = requiredHeaders(sheet, "poolId", "poolName", "poolActive", "mutationType", "weight", "resultType");
+        List<com.denfense.server.balance.InjectorPoolBalance> result = new ArrayList<>();
+        for (int rowIndex = 1; rowIndex <= sheet.getLastRowNum(); rowIndex++) {
+            Row row = sheet.getRow(rowIndex);
+            if (row == null || isBlankRow(row, headers.size())) continue;
+            result.add(new com.denfense.server.balance.InjectorPoolBalance(
+                    readStringCell(sheet.getSheetName(), rowIndex, "poolId", row.getCell(headers.indexOf("poolId"))),
+                    readStringCell(sheet.getSheetName(), rowIndex, "poolName", row.getCell(headers.indexOf("poolName"))),
+                    readBooleanCell(sheet.getSheetName(), rowIndex, "poolActive", row.getCell(headers.indexOf("poolActive"))),
+                    readStringCell(sheet.getSheetName(), rowIndex, "mutationType", row.getCell(headers.indexOf("mutationType"))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "weight", row.getCell(headers.indexOf("weight"))),
+                    readStringCell(sheet.getSheetName(), rowIndex, "resultType", row.getCell(headers.indexOf("resultType")))
+            ));
+        }
+        result.sort(Comparator.comparing(com.denfense.server.balance.InjectorPoolBalance::mutationType));
+        return result;
+    }
+
     private List<String> requiredHeaders(Sheet sheet, String... expected) {
         Row header = sheet.getRow(0);
         if (header == null) {
@@ -786,12 +927,14 @@ public class ExcelBalanceReader {
     }
 
     public static record BalanceData(
-        GameRewardBalance gameReward, 
+        GameRewardBalance gameReward,
+        com.denfense.server.balance.BattleRewardBalance battleReward,
         List<AlienUpgradeCostBalance> alienUpgradeCosts,
         List<com.denfense.server.service.balance.AlienLevelStatBalance> alienLevelStats,
         List<com.denfense.server.balance.AlienSpecBalance> alienSpecs,
         List<com.denfense.server.balance.ShopProductBalance> shopProducts,
         List<com.denfense.server.balance.GachaPoolBalance> gachaPools,
+        List<com.denfense.server.balance.SummonPoolBalance> summonPools,
         List<com.denfense.server.balance.MonsterSpecBalance> monsters,
         List<com.denfense.server.balance.WaveSpecBalance> waves,
         List<com.denfense.server.balance.WaveSpawnBalance> waveSpawns,
@@ -799,5 +942,8 @@ public class ExcelBalanceReader {
         List<com.denfense.server.balance.SummonBalance> summons,
         List<com.denfense.server.balance.MergeRuleBalance> mergeRules,
         List<com.denfense.server.balance.MythicChoiceBalance> mythicChoices
+        , List<com.denfense.server.balance.MutationSpecBalance> mutationSpecs,
+        com.denfense.server.balance.MutationConfigBalance mutationConfig,
+        List<com.denfense.server.balance.InjectorPoolBalance> injectorPools
     ) {}
 }

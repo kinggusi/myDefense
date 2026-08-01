@@ -233,6 +233,34 @@ namespace MyDefense.Battle.Tests
             Assert.That(deduplicator.ProcessedKeys, Is.Not.InstanceOf<HashSet<BattleRuntimeMonsterKey>>());
         }
 
+        [Test]
+        public void KillDeduplicator_ClearResetsAuditForNextSession()
+        {
+            var deduplicator = new BattleKillDeduplicator();
+            BattleKillAuditRecord record = Kill("session-alpha", 1, "MONSTER", BattleMonsterLanePolicy.EACH_FIELD, "player-alpha");
+
+            Assert.That(deduplicator.TryRegister(record), Is.True);
+            deduplicator.Clear();
+
+            Assert.That(deduplicator.Records, Is.Empty);
+            Assert.That(deduplicator.ProcessedKeys, Is.Empty);
+            Assert.That(deduplicator.TryRegister(record), Is.True);
+        }
+
+        [Test]
+        public void KillDeduplicator_ReservedKeyBlocksDuplicateBeforeAuditExists()
+        {
+            var deduplicator = new BattleKillDeduplicator();
+            BattleKillAuditRecord record = Kill("session-alpha", 1, "MONSTER", BattleMonsterLanePolicy.EACH_FIELD, "player-alpha");
+
+            Assert.That(deduplicator.TryReserve(record.RuntimeKey), Is.True);
+            Assert.That(deduplicator.TryReserve(record.RuntimeKey), Is.False);
+            Assert.That(deduplicator.TryAttachAudit(record), Is.True);
+            Assert.That(deduplicator.TryAttachAudit(record), Is.False);
+            deduplicator.Release(record.RuntimeKey);
+            Assert.That(deduplicator.TryReserve(record.RuntimeKey), Is.True);
+        }
+
         private BattleWaveExecutor CreateExecutor(GameObject prefab, string sessionId)
         {
             GameObject executorObject = CreateGameObject("Runtime Identity Executor");

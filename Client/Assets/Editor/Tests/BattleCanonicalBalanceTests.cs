@@ -24,8 +24,8 @@ namespace MyDefense.Battle.Tests
 
             Assert.That(result.IsValid, Is.True, JoinErrors(result.Errors));
             Assert.That(result.Bundle.Manifest.SchemaVersion, Is.EqualTo(1));
-            Assert.That(result.Bundle.Manifest.BalanceVersion, Is.EqualTo("1-5ba7976a923b7ea9"));
-            Assert.That(result.Bundle.Manifest.ContentHash, Is.EqualTo("5ba7976a923b7ea9e8fd34889b7f36871106f6f0f29cc70ac1f0bc95434705f4"));
+            Assert.That(result.Bundle.Manifest.BalanceVersion, Is.EqualTo("1-133ff341b0443dd1"));
+            Assert.That(result.Bundle.Manifest.ContentHash, Is.EqualTo("133ff341b0443dd188421060943fd14b337f85403bd06db762b460a0525a38e1"));
 
             AssertMonster(result.Bundle.MonsterDefinitions, "NORMAL_MONSTER", "NORMAL", 30f, 5f, 20, true);
             AssertMonster(result.Bundle.MonsterDefinitions, "ELITE_MONSTER", "ELITE", 60f, 4f, 40, true);
@@ -43,6 +43,11 @@ namespace MyDefense.Battle.Tests
             Assert.That(firstCost, Is.EqualTo(50));
             Assert.That(result.Bundle.Summon.TryGetCost(1, out int secondCost), Is.True);
             Assert.That(secondCost, Is.EqualTo(60));
+            Assert.That(result.Bundle.SummonPools.TryGetValue("STANDARD_SUMMON_POOL", out CanonicalSummonPool pool), Is.True);
+            Assert.That(pool.Entries, Has.Count.EqualTo(1));
+            Assert.That(pool.Entries[0].Grade, Is.EqualTo("NORMAL"));
+            Assert.That(pool.Entries[0].Weight, Is.EqualTo(10000));
+            Assert.That(pool.Entries[0].AlienIds, Is.EqualTo(new long[] { 22, 23, 24, 25, 26, 27, 28 }));
         }
 
         [Test]
@@ -51,10 +56,11 @@ namespace MyDefense.Battle.Tests
             CanonicalBalanceLoadResult canonical = LoadProduction();
             var source = new RecordingBattleTextSource(new ResourcesBattleBalanceTextSource());
 
+            Assert.That(CanonicalBattleAlienIdProvider.TryCreate(out CanonicalBattleAlienIdProvider alienIds, out string alienError), Is.True, alienError);
             CanonicalCompositeBattleBalanceProvider provider = CanonicalCompositeBattleBalanceProvider.Load(
                 canonical,
                 source,
-                EmptyBattleAlienIdProvider.Instance);
+                alienIds);
 
             Assert.That(provider.IsValid, Is.True, JoinErrors(provider.ValidationErrors));
             Assert.That(source.Requested, Does.Not.Contain(BattleBalanceResourcePaths.WaveSpec));
@@ -66,6 +72,33 @@ namespace MyDefense.Battle.Tests
             Assert.That(spawn.MonsterId, Is.EqualTo("NORMAL_MONSTER"));
             Assert.That(spawn.SpawnCount, Is.EqualTo(10));
             Assert.That(spawn.HpMultiplier, Is.EqualTo(1f));
+        }
+
+        [Test]
+        public void KidnapPoolResolver_IsDeterministicAndUsesCanonicalIds()
+        {
+            CanonicalBalanceLoadResult result = LoadProduction();
+            Assert.That(result.IsValid, Is.True, JoinErrors(result.Errors));
+
+            bool first = BattleKidnapPoolResolver.TrySelect(
+                result.Bundle.SummonPools,
+                "STANDARD_SUMMON_POOL",
+                12345UL,
+                out long firstAlienId,
+                out byte firstGrade);
+            bool second = BattleKidnapPoolResolver.TrySelect(
+                result.Bundle.SummonPools,
+                "STANDARD_SUMMON_POOL",
+                12345UL,
+                out long secondAlienId,
+                out byte secondGrade);
+
+            Assert.That(first, Is.True);
+            Assert.That(second, Is.True);
+            Assert.That(secondAlienId, Is.EqualTo(firstAlienId));
+            Assert.That(firstGrade, Is.EqualTo(0));
+            Assert.That(secondGrade, Is.EqualTo(firstGrade));
+            Assert.That(firstAlienId, Is.InRange(22L, 28L));
         }
 
         [Test]
@@ -141,6 +174,25 @@ namespace MyDefense.Battle.Tests
             CanonicalBalanceLoadResult result = Load(files);
 
             AssertInvalidContaining(result, "file is missing");
+        }
+
+        [Test]
+        public void MergeValidation_RequiresSameAlienAndGradeBelowMythic()
+        {
+            Assert.That(BattleWaveStateAuthority.CanMerge(0, 1, true, true, 22, 22, 0, 0), Is.True);
+            Assert.That(BattleWaveStateAuthority.CanMerge(0, 1, true, true, 22, 23, 0, 0), Is.False);
+            Assert.That(BattleWaveStateAuthority.CanMerge(0, 1, true, true, 22, 22, 0, 1), Is.False);
+            Assert.That(BattleWaveStateAuthority.CanMerge(0, 1, true, true, 22, 22, 4, 4), Is.False);
+            Assert.That(BattleWaveStateAuthority.CanMerge(0, 1, true, false, 22, 22, 0, 0), Is.False);
+        }
+
+        [Test]
+        public void MergeResultResolver_UsesCanonicalNextGradePool()
+        {
+            Assert.That(BattleMergeResultResolver.TryResolveRandomNextGrade(0, 0UL, out long alienId, out byte grade), Is.True);
+            Assert.That(alienId, Is.InRange(15L, 21L));
+            Assert.That(grade, Is.EqualTo(1));
+            Assert.That(BattleMergeResultResolver.TryResolveRandomNextGrade(3, 0UL, out _, out _), Is.False);
         }
 
         [Test]
@@ -222,7 +274,9 @@ namespace MyDefense.Battle.Tests
                 Assert.That(executor.MonsterLimit, Is.EqualTo(100));
                 Assert.That(executor.MonsterWarningThreshold, Is.EqualTo(80));
                 Assert.That(executor.MonsterDangerThreshold, Is.EqualTo(90));
-                Assert.That(executor.CanonicalBalanceVersion, Is.EqualTo("1-5ba7976a923b7ea9"));
+                CanonicalBalanceLoadResult production = LoadProduction();
+                Assert.That(production.IsValid, Is.True, JoinErrors(production.Errors));
+                Assert.That(executor.CanonicalBalanceVersion, Is.EqualTo(production.Bundle.Manifest.BalanceVersion));
                 Assert.That(executor.BattleContentVersion, Is.EqualTo("battle-v1"));
             }
             finally

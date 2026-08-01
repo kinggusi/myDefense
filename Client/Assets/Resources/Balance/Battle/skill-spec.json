@@ -1,6 +1,8 @@
 {
   "schemaVersion": 1,
   "balanceVersion": "battle-v1",
-  "contentHash": "e5191ca7829d5de41391f57b51b832aab030c30145fb8c7c4031f3cb1b07c4f4",
-  "items": []
+  "contentHash": "0dda18570acf74cb151123dec6cda4be2606469422ba6bb2244234a1bcc3cc3a",
+  "items": [
+    {"skillId":"SKILL_BASIC","nameKey":"skill.basic.name","descriptionKey":"skill.basic.description","skillType":"BASIC_ATTACK","triggerType":"BASIC_ATTACK","cooldownSeconds":0,"mpCost":0,"castRange":100,"targetPolicy":"DEFAULT_PROGRESS","maxTargetCount":1,"projectileId":"PROJ_BASIC","animationKey":"BasicAttack","vfxKey":"BasicProjectile","sfxKey":"BasicHit","enabled":true}
+  ]
 }

@@ -37,7 +37,9 @@ class BattleBalanceExcelConverterTest {
 
         for (String file : OUTPUT_FILES) assertThat(output.resolve(file)).exists();
         assertThat(Files.readString(output.resolve("wave-spec.json"))).contains("\"roundNumber\":20");
-        assertThat(Files.readString(output.resolve("skill-spec.json"))).contains("\"items\": []");
+        assertThat(Files.readString(output.resolve("skill-spec.json")))
+                .contains("\"skillId\":\"SKILL_BASIC\"")
+                .contains("\"projectileId\":\"PROJ_BASIC\"");
         assertThat(Files.readString(output.resolve("battle-balance-manifest.json")))
                 .contains("\"balanceVersion\": \"battle-v1\"")
                 .contains("Balance/Battle/wave-spec");
@@ -204,7 +206,7 @@ class BattleBalanceExcelConverterTest {
     }
 
     private static void addProjectile(Sheet sheet, String moveType, double speed) {
-        Row row = sheet.createRow(1);
+        Row row = sheet.createRow(sheet.getLastRowNum() + 1);
         row.createCell(0).setCellValue("PROJECTILE_TEST");
         row.createCell(1).setCellValue("Bullet");
         row.createCell(2).setCellValue(moveType);

@@ -1,5 +1,9 @@
 using UnityEngine;
 using MyDefense.Shared.Contracts;
+using MyDefense.Battle;
+using MyDefense.Battle.Balance;
+using MyDefense.Battle.Combat;
+using Fusion;
 
 public class UnitAttack : MonoBehaviour, IAlienAttackSnapshotConsumer
 {
@@ -17,10 +21,15 @@ public class UnitAttack : MonoBehaviour, IAlienAttackSnapshotConsumer
 
     private AlienAttackSnapshot attackSnapshot;
     private bool hasAttackSnapshot;
+    private BattleWaveStateAuthority battleAuthority;
+    private BattleProjectileSpawner projectileSpawner;
+    private bool missingProjectilePipelineLogged;
 
     private void Awake()
     {
         cachedUnitData = GetComponent<UnitData>();
+        battleAuthority = FindFirstObjectByType<BattleWaveStateAuthority>();
+        projectileSpawner = FindFirstObjectByType<BattleProjectileSpawner>();
     }
 
     private void OnDisable()
@@ -68,8 +77,34 @@ public class UnitAttack : MonoBehaviour, IAlienAttackSnapshotConsumer
 
     void Update()
     {
+        // In a Fusion battle only State Authority searches targets and fires.
+        // The resulting NetworkObject projectile is replicated for peers to render.
+
         // Only Alien objects with UnitData may attack.
         if (cachedUnitData == null || !gameObject.activeInHierarchy || !enabled)
+        {
+            target = null;
+            return;
+        }
+
+        if (battleAuthority != null && battleAuthority.IsSpawnedForAccess && !battleAuthority.IsAuthoritative)
+        {
+            target = null;
+            return;
+        }
+
+        // Fusion combat must never fall back to prefab/legacy values. The
+        // User/System server calculates these stats and the Battle entry
+        // snapshot provider applies them before this unit may attack.
+        if (battleAuthority != null && battleAuthority.IsSpawnedForAccess && !IsSnapshotValid())
+        {
+            target = null;
+            return;
+        }
+
+        // A Legendary material waiting for Mythic choice remains on the board,
+        // but cannot attack until the authoritative choice is resolved.
+        if (IsAttackSuppressedByMythicChoice())
         {
             target = null;
             return;
@@ -107,6 +142,20 @@ public class UnitAttack : MonoBehaviour, IAlienAttackSnapshotConsumer
         }
     }
 
+    internal bool IsAttackSuppressedByMythicChoice()
+    {
+        if (cachedUnitData == null)
+            return false;
+        if (battleAuthority == null)
+            battleAuthority = FindFirstObjectByType<BattleWaveStateAuthority>();
+        if (battleAuthority == null)
+            return false;
+
+        int playerSlot = (int)(cachedUnitData.serverId >> 32);
+        int boardSlot = (int)((cachedUnitData.serverId & uint.MaxValue) - 1L);
+        return battleAuthority.IsBoardSlotLockedForMythicChoice(playerSlot, boardSlot);
+    }
+
     void UpdateTarget(float currentRange)
     {
         GameObject[] enemies = GameObject.FindGameObjectsWithTag("Monster");
@@ -138,11 +187,19 @@ public class UnitAttack : MonoBehaviour, IAlienAttackSnapshotConsumer
 
     void Shoot()
     {
-        if (bulletPrefab == null || cachedUnitData == null) {
+        if (cachedUnitData == null || target == null) {
             return;
         }
 
         Vector3 spawnPos = transform.position + Vector3.up * 1.0f;
+        if (TryShootAuthoritativeProjectile(spawnPos))
+            return;
+
+        // Non-Fusion/offline fixtures retain the legacy local projectile path.
+        if (battleAuthority != null && battleAuthority.IsSpawnedForAccess)
+            return;
+        if (bulletPrefab == null)
+            return;
         GameObject bulletGO = Instantiate(bulletPrefab, spawnPos, Quaternion.identity);
         Bullet bullet = bulletGO.GetComponent<Bullet>();
         if (bullet != null)
@@ -159,4 +216,44 @@ public class UnitAttack : MonoBehaviour, IAlienAttackSnapshotConsumer
             bullet.Seek(target);
         }
     }
+
+    private bool TryShootAuthoritativeProjectile(Vector3 spawnPosition)
+    {
+        if (battleAuthority == null)
+            battleAuthority = FindFirstObjectByType<BattleWaveStateAuthority>();
+        if (battleAuthority == null || !battleAuthority.IsSpawnedForAccess || !battleAuthority.IsAuthoritative)
+            return false;
+
+        projectileSpawner ??= FindFirstObjectByType<BattleProjectileSpawner>();
+        BattleWaveExecutor executor = battleAuthority.Executor;
+        NetworkObject targetObject = target == null ? null : target.GetComponentInParent<NetworkObject>();
+        if (projectileSpawner == null || targetObject == null || !targetObject.IsValid || executor == null
+            || !executor.TryGetCanonicalBasicProjectile(cachedUnitData.specId, out ProjectileSpecData projectileSpec))
+        {
+            if (!missingProjectilePipelineLogged)
+            {
+                missingProjectilePipelineLogged = true;
+                Debug.LogError("[UnitAttack] Canonical Fusion projectile pipeline is unavailable.");
+            }
+            return false;
+        }
+
+        if (!IsSnapshotValid())
+            return false;
+        AlienAttackSnapshot snapshot = attackSnapshot;
+        string sessionId = executor.RuntimeSession?.BattleSessionId;
+        Vector3 direction = (target.position - spawnPosition).normalized;
+        bool spawned = projectileSpawner.TrySpawnFromAttackSnapshot(
+            projectileSpec,
+            snapshot,
+            sessionId,
+            spawnPosition,
+            direction,
+            targetObject.Id,
+            out _);
+        if (spawned)
+            missingProjectilePipelineLogged = false;
+        return spawned;
+    }
+
 }

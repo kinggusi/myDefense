@@ -40,6 +40,21 @@ namespace MyDefense.Battle.Tests
         }
 
         [Test]
+        public void DisconnectReservesSlotForSameUserReconnect()
+        {
+            var roster = new BattlePlayerRoster();
+            PlayerRef original = PlayerRef.FromIndex(0);
+            Assert.That(roster.TryAdd(original, "user-a", out BattlePlayerIdentity first), Is.True);
+            Assert.That(roster.TryAdd(PlayerRef.FromIndex(1), "user-b", out _), Is.True);
+
+            Assert.That(roster.Disconnect(original), Is.True);
+            Assert.That(roster.CanAddUser("user-c"), Is.False);
+            Assert.That(roster.CanAddUser("user-a"), Is.True);
+            Assert.That(roster.TryAdd(PlayerRef.FromIndex(2), "user-a", out BattlePlayerIdentity reconnected), Is.True);
+            Assert.That(reconnected.PlayerSlot, Is.EqualTo(first.PlayerSlot));
+        }
+
+        [Test]
         public void UserTokenRoundTripsAndRejectsEmptyTokens()
         {
             byte[] token = BattlePlayerIdentityToken.Encode("user-a");

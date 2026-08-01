@@ -62,6 +62,10 @@ namespace MyDefense.Battle.Tests
                 GUILayout.Label($"Local Slot: {localSlot} (1=top field, 2=bottom field)");
                 if (GUILayout.Button("Kidnap (local player)", GUILayout.Height(48f)))
                     _authority.RequestKidnap();
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                if (GUILayout.Button("TEST: Kidnap Injector", GUILayout.Height(48f)))
+                    _authority.RequestTestInjectorKidnap();
+#endif
             }
 
             GUILayout.Space(12f);

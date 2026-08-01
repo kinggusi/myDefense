@@ -11,6 +11,10 @@ namespace MyDefense.Battle.Balance.Canonical
         string BattleContentHash { get; }
         CanonicalFieldLimit FieldLimit { get; }
         CanonicalSummonBalance Summon { get; }
+        IReadOnlyDictionary<string, CanonicalSummonPool> SummonPools { get; }
+        IReadOnlyList<CanonicalMutationSpec> MutationSpecs { get; }
+        CanonicalMutationConfig MutationConfig { get; }
+        IReadOnlyList<CanonicalInjectorPoolEntry> InjectorPool { get; }
         IMonsterDefinitionProvider MonsterDefinitions { get; }
     }
 
@@ -37,6 +41,10 @@ namespace MyDefense.Battle.Balance.Canonical
         public string BattleContentHash { get; }
         public CanonicalFieldLimit FieldLimit { get; }
         public CanonicalSummonBalance Summon { get; }
+        public IReadOnlyDictionary<string, CanonicalSummonPool> SummonPools { get; }
+        public IReadOnlyList<CanonicalMutationSpec> MutationSpecs { get; }
+        public CanonicalMutationConfig MutationConfig { get; }
+        public IReadOnlyList<CanonicalInjectorPoolEntry> InjectorPool { get; }
         public IMonsterDefinitionProvider MonsterDefinitions { get; }
 
         private CanonicalCompositeBattleBalanceProvider(
@@ -54,6 +62,10 @@ namespace MyDefense.Battle.Balance.Canonical
             MonsterDefinitions = canonical?.MonsterDefinitions;
             FieldLimit = fieldLimit;
             Summon = canonical?.Summon;
+            SummonPools = canonical?.SummonPools;
+            MutationSpecs = canonical?.MutationSpecs;
+            MutationConfig = canonical?.MutationConfig;
+            InjectorPool = canonical?.InjectorPool;
             Catalog = catalog;
             ValidationErrors = Array.AsReadOnly(new List<string>(errors ?? Array.Empty<string>()).ToArray());
             IsValid = canonical != null && catalog != null && fieldLimit != null && Summon != null && ValidationErrors.Count == 0;

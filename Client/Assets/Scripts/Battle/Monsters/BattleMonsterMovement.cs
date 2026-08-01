@@ -4,7 +4,7 @@ using Fusion;
 
 namespace MyDefense.Battle
 {
-    public class BattleMonsterMovement : MonoBehaviour
+    public class BattleMonsterMovement : NetworkBehaviour
     {
         [Header("이동 설정")]
         [SerializeField] private LaneType _laneType = LaneType.Player1Lane;
@@ -54,7 +54,29 @@ namespace MyDefense.Battle
             InitializePath();
         }
 
+        public override void Spawned()
+        {
+            if (!HasMovementAuthority()) return;
+            InitializePath();
+        }
+
         private void Update()
+        {
+            NetworkObject networkObject = GetComponent<NetworkObject>();
+            if (networkObject != null && networkObject.Runner != null)
+                return;
+
+            TickMovement(Time.deltaTime);
+        }
+
+        public override void FixedUpdateNetwork()
+        {
+            if (!HasMovementAuthority()) return;
+
+            TickMovement(Runner != null ? Runner.DeltaTime : Time.fixedDeltaTime);
+        }
+
+        private void TickMovement(float deltaTime)
         {
             if (!HasMovementAuthority()) return;
 
@@ -69,7 +91,7 @@ namespace MyDefense.Battle
 
             if (_isPathCompleted) return; // 경로가 완료되어 대기 중이면 이동 연산 생략
 
-            Move();
+            Move(deltaTime);
         }
 
         private void InitializePath()
@@ -117,7 +139,7 @@ namespace MyDefense.Battle
             Debug.LogError($"[BattleMonsterMovement] Cannot move on {_laneType}: invalid path ({waypointCount} waypoints; {reason}). Movement stopped.");
         }
 
-        private void Move()
+        private void Move(float deltaTime)
         {
             if (_waypoints == null || _waypoints.Count == 0) return;
 
@@ -129,13 +151,13 @@ namespace MyDefense.Battle
             transform.position = Vector3.MoveTowards(
                 transform.position,
                 targetWaypoint.position,
-                Mathf.Max(0f, _speed) * Time.deltaTime);
+                Mathf.Max(0f, _speed) * Mathf.Max(0f, deltaTime));
 
             // 3. 방향 전환 (목표 노드를 바라보기)
             if (dir != Vector3.zero)
             {
                 Quaternion targetRotation = Quaternion.LookRotation(dir);
-                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, 10f * Time.deltaTime);
+                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, 10f * Mathf.Max(0f, deltaTime));
             }
 
             // 4. 도착 판정 (거리가 0.15보다 가까워지면 다음 목표로)

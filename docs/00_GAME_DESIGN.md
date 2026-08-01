@@ -109,7 +109,7 @@ Normal~Legendary는 등급별 7종이며 세부 역할 분배는 별도 밸런�
 - 원하는 Mutation을 확정하는 매개체
 - 별도 최종 형태가 아님
 - 랜덤으로 같은 Mutation을 얻은 경우와 최종 결과 동일
-- Normal~Mythic 모든 Alien에게 사용 가능
+- Normal~Mythic Alien에게 사용할 수 있지만, 미해금/잠금 Mythic에는 사용할 수 없음
 - 사용하면 Pending Mutation DNA를 보유
 - Merge 이후에도 계승
 - Kidnap 시 낮은 확률로 등장하며 Alien과 동일하게 필드 슬롯 1칸을 차지
@@ -136,8 +136,9 @@ Normal~Legendary는 등급별 7종이며 세부 역할 분배는 별도 밸런�
 
 ## 12. Mythic Mutation
 ### DNA가 있는 Mythic
-- Legendary Merge 결과로 Mythic이 생성되는 즉시 계승된 DNA Mutation이 무료로 자동 활성화
-- 별도의 활성화 골드 비용이나 버튼 조작 없음
+- 해금된 Mythic이면 Legendary Merge 결과와 함께 계승된 DNA Mutation이 무료로 자동 활성화
+- 미해금 Mythic이면 DNA를 보존하되 `SEALED` 상태로 저장하고 효과를 적용하지 않음
+- `SEALED` DNA의 활성화 시점과 UI는 해금 시스템 연동 후 확정
 
 ### DNA가 없는 Mythic
 - 순수 Mythic이 생성되면 Mutation 버튼 활성화

@@ -23,6 +23,22 @@ namespace MyDefense.Battle.Tests
         }
 
         [Test]
+        public void EmptySerializedMapUsesCanonicalFirstPlanet()
+        {
+            var gameObject = new UnityEngine.GameObject("runner-map-test");
+            try
+            {
+                var lifecycle = gameObject.AddComponent<BattleRunnerLifecycle>();
+                Assert.That(lifecycle.MapId, Is.EqualTo(BattleRunnerLifecycle.DefaultMapId));
+                Assert.That(lifecycle.MapId, Is.EqualTo("NEPTUNE"));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(gameObject);
+            }
+        }
+
+        [Test]
         public void EmptySessionNameIsRejectedBeforeRunnerCreation()
         {
             var gameObject = new UnityEngine.GameObject("runner-test");

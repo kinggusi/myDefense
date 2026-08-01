@@ -82,7 +82,11 @@ namespace MyDefense.Battle.Balance.Canonical
             CanonicalBalanceContract.WaveFileName,
             CanonicalBalanceContract.WaveSpawnFileName,
             CanonicalBalanceContract.FieldLimitFileName,
-            CanonicalBalanceContract.SummonFileName
+            CanonicalBalanceContract.SummonFileName,
+            CanonicalBalanceContract.SummonPoolFileName
+            , CanonicalBalanceContract.MutationSpecFileName
+            , CanonicalBalanceContract.MutationConfigFileName
+            , CanonicalBalanceContract.InjectorPoolFileName
         };
 
         public static CanonicalBalanceLoadResult Load(
@@ -162,6 +166,10 @@ namespace MyDefense.Battle.Balance.Canonical
             SummonDocumentJson summonDocument = names.Contains(CanonicalBalanceContract.SummonFileName)
                 ? ParseDocument<SummonDocumentJson>(fileBytes, CanonicalBalanceContract.SummonFileName, errors)
                 : null;
+            SummonPoolDocumentJson summonPoolDocument = ParseDocument<SummonPoolDocumentJson>(fileBytes, CanonicalBalanceContract.SummonPoolFileName, errors);
+            MutationSpecJson[] mutationSpecDocument = ParseArrayJson<MutationSpecJson>(fileBytes[CanonicalBalanceContract.MutationSpecFileName], CanonicalBalanceContract.MutationSpecFileName, errors);
+            MutationConfigJson mutationConfigDocument = ParseJson<MutationConfigJson>(fileBytes[CanonicalBalanceContract.MutationConfigFileName], CanonicalBalanceContract.MutationConfigFileName, errors);
+            InjectorPoolJson[] injectorPoolDocument = ParseArrayJson<InjectorPoolJson>(fileBytes[CanonicalBalanceContract.InjectorPoolFileName], CanonicalBalanceContract.InjectorPoolFileName, errors);
             if (errors.Count > 0) return Invalid(errors);
 
             List<CanonicalMonsterSpec> monsters = BuildMonsters(monsterDocument.monsters, runtimeMapping, errors);
@@ -169,6 +177,10 @@ namespace MyDefense.Battle.Balance.Canonical
             List<CanonicalWaveSpawn> spawns = BuildSpawns(spawnDocument.spawns, errors);
             List<CanonicalFieldLimit> fieldLimits = BuildFieldLimits(fieldLimitDocument.fieldLimits, errors);
             CanonicalSummonBalance summon = BuildSummon(summonDocument?.summons, errors);
+            IReadOnlyDictionary<string, CanonicalSummonPool> summonPools = BuildSummonPools(summonPoolDocument?.pools, errors);
+            List<CanonicalMutationSpec> mutationSpecs = BuildMutationSpecs(mutationSpecDocument, errors);
+            CanonicalMutationConfig mutationConfig = BuildMutationConfig(mutationConfigDocument, errors);
+            List<CanonicalInjectorPoolEntry> injectorPool = BuildInjectorPool(injectorPoolDocument, errors);
             ValidateRelationships(monsters, waves, spawns, errors);
             if (errors.Count > 0) return Invalid(errors);
 
@@ -210,7 +222,7 @@ namespace MyDefense.Battle.Balance.Canonical
             var runtimeWaveDocument = new BattleBalanceDocument<WaveSpecData>(manifest.SchemaVersion, manifest.BalanceVersion, manifest.ContentHash, runtimeWaves);
             var runtimeSpawnDocument = new BattleBalanceDocument<WaveSpawnSpecData>(manifest.SchemaVersion, manifest.BalanceVersion, manifest.ContentHash, runtimeSpawns);
             return new CanonicalBalanceLoadResult(
-                new CanonicalBalanceBundle(manifest, monsterRegistry, waveRegistry, spawnRegistry, fieldLimitRegistry, summon, runtimeWaveDocument, runtimeSpawnDocument),
+                new CanonicalBalanceBundle(manifest, monsterRegistry, waveRegistry, spawnRegistry, fieldLimitRegistry, summon, summonPools, mutationSpecs, mutationConfig, injectorPool, runtimeWaveDocument, runtimeSpawnDocument),
                 errors);
         }
 
@@ -258,6 +270,44 @@ namespace MyDefense.Battle.Balance.Canonical
             return result;
         }
 
+        private static List<CanonicalMutationSpec> BuildMutationSpecs(MutationSpecJson[] source, List<string> errors)
+        {
+            var result = new List<CanonicalMutationSpec>();
+            var ids = new HashSet<string>(StringComparer.Ordinal);
+            foreach (MutationSpecJson raw in source ?? Array.Empty<MutationSpecJson>())
+            {
+                if (raw == null || string.IsNullOrWhiteSpace(raw.mutationType) || !ids.Add(raw.mutationType) || raw.weight <= 0)
+                { errors.Add("MutationSpec must have unique positive-weight mutationType."); continue; }
+                if (raw.attackMultiplier <= 0 || raw.mpMultiplier <= 0 || raw.attackSpeedMultiplier <= 0 || raw.rangeMultiplier <= 0 || raw.goldMultiplier <= 0)
+                    errors.Add("MutationSpec multipliers must be positive: " + raw.mutationType + ".");
+                result.Add(new CanonicalMutationSpec(raw.mutationType, raw.enabled, raw.injectorEnabled, raw.randomActivationEnabled, raw.weight,
+                    raw.attackMultiplier, raw.mpMultiplier, raw.attackSpeedMultiplier, raw.rangeMultiplier, raw.goldMultiplier));
+            }
+            if (result.Count != 8) errors.Add("MutationSpec must contain exactly 8 rows.");
+            return result;
+        }
+
+        private static CanonicalMutationConfig BuildMutationConfig(MutationConfigJson raw, List<string> errors)
+        {
+            if (raw == null || string.IsNullOrWhiteSpace(raw.modeId) || raw.initialActivationCost < 0 || raw.rerollCost1 <= 0 || raw.rerollCost2 <= 0 || raw.rerollCost3 <= 0 || raw.rerollCost4 <= 0 || raw.rerollCostAfterMax <= 0 || raw.injectorReplaceCost < 0)
+            { errors.Add("Invalid mutation config."); return null; }
+            return new CanonicalMutationConfig(raw.modeId, raw.initialActivationCost, raw.rerollCost1, raw.rerollCost2, raw.rerollCost3, raw.rerollCost4, raw.rerollCostAfterMax, raw.injectorReplaceCost);
+        }
+
+        private static List<CanonicalInjectorPoolEntry> BuildInjectorPool(InjectorPoolJson[] source, List<string> errors)
+        {
+            var result = new List<CanonicalInjectorPoolEntry>();
+            var types = new HashSet<string>(StringComparer.Ordinal);
+            foreach (InjectorPoolJson raw in source ?? Array.Empty<InjectorPoolJson>())
+            {
+                if (raw == null || string.IsNullOrWhiteSpace(raw.mutationType) || !types.Add(raw.mutationType) || raw.weight <= 0 || !string.Equals(raw.resultType, "MUTATION_INJECTOR", StringComparison.Ordinal) || string.Equals(raw.mutationType, "BLANK", StringComparison.Ordinal))
+                { errors.Add("Invalid injector pool row."); continue; }
+                result.Add(new CanonicalInjectorPoolEntry(raw.poolId, raw.poolName, raw.poolActive, raw.mutationType, raw.weight, raw.resultType));
+            }
+            if (result.Count == 0) errors.Add("Injector pool must not be empty.");
+            return result;
+        }
+
         private static CanonicalSummonBalance BuildSummon(SummonJson[] source, List<string> errors)
         {
             if (source == null || source.Length == 0)
@@ -279,6 +329,37 @@ namespace MyDefense.Battle.Balance.Canonical
                 return null;
             }
             return new CanonicalSummonBalance(raw.modeId, raw.summonType, raw.baseCost, raw.costIncreasePerUse, raw.maxUses, raw.resultPoolId, raw.enabled);
+        }
+
+        private static IReadOnlyDictionary<string, CanonicalSummonPool> BuildSummonPools(SummonPoolJson[] source, List<string> errors)
+        {
+            var result = new Dictionary<string, CanonicalSummonPool>(StringComparer.Ordinal);
+            foreach (SummonPoolJson raw in source ?? Array.Empty<SummonPoolJson>())
+            {
+                if (raw == null || string.IsNullOrWhiteSpace(raw.poolId) || result.ContainsKey(raw.poolId))
+                {
+                    errors.Add("SummonPool.poolId must be unique and non-empty.");
+                    continue;
+                }
+                var entries = new List<CanonicalSummonPoolEntry>();
+                int totalWeight = 0;
+                foreach (SummonPoolEntryJson entry in raw.entries ?? Array.Empty<SummonPoolEntryJson>())
+                {
+                    if (entry == null || !string.Equals(entry.grade, "NORMAL", StringComparison.Ordinal)
+                        || entry.weight <= 0 || entry.alienIds == null || entry.alienIds.Length == 0)
+                    {
+                        errors.Add("Battle SummonPool permits NORMAL entries with positive weight only.");
+                        continue;
+                    }
+                    totalWeight += entry.weight;
+                    entries.Add(new CanonicalSummonPoolEntry(entry.grade, entry.weight, entry.alienIds));
+                }
+                if (raw.active && (entries.Count == 0 || totalWeight != 10000))
+                    errors.Add("Active SummonPool weights must total 10000: " + raw.poolId + ".");
+                result[raw.poolId] = new CanonicalSummonPool(raw.poolId, raw.name, raw.active, entries);
+            }
+            if (!result.ContainsKey("STANDARD_SUMMON_POOL")) errors.Add("Missing STANDARD_SUMMON_POOL.");
+            return result;
         }
 
         private static List<CanonicalWaveSpec> BuildWaves(WaveJson[] source, List<string> errors)
@@ -424,6 +505,22 @@ namespace MyDefense.Battle.Balance.Canonical
             }
         }
 
+        private static T[] ParseArrayJson<T>(byte[] bytes, string label, List<string> errors) where T : class
+        {
+            try
+            {
+                string raw = Encoding.UTF8.GetString(bytes ?? Array.Empty<byte>());
+                ArrayDocument<T> document = JsonUtility.FromJson<ArrayDocument<T>>("{\"items\":" + raw + "}");
+                if (document == null || document.items == null) errors.Add("Failed to parse " + label + ".");
+                return document?.items;
+            }
+            catch (Exception exception)
+            {
+                errors.Add("Failed to parse " + label + ": " + exception.Message);
+                return null;
+            }
+        }
+
         private static bool IsSha256(string value)
         {
             return value != null && Regex.IsMatch(value, "^[0-9a-f]{64}$");
@@ -465,5 +562,12 @@ namespace MyDefense.Battle.Balance.Canonical
         [Serializable] private sealed class FieldLimitJson { public string modeId; public int playerCount; public int maxAliveMonsterCountPerField; public int warningThreshold; public int dangerThreshold; }
         [Serializable] private sealed class SummonDocumentJson { public SummonJson[] summons; }
         [Serializable] private sealed class SummonJson { public string modeId; public string summonType; public int baseCost; public int costIncreasePerUse; public int maxUses; public string resultPoolId; public bool enabled; }
+        [Serializable] private sealed class SummonPoolDocumentJson { public SummonPoolJson[] pools; }
+        [Serializable] private sealed class SummonPoolJson { public string poolId; public string name; public bool active; public SummonPoolEntryJson[] entries; }
+        [Serializable] private sealed class SummonPoolEntryJson { public string grade; public int weight; public long[] alienIds; }
+        [Serializable] private sealed class MutationSpecJson { public string mutationType; public bool enabled; public bool injectorEnabled; public bool randomActivationEnabled; public int weight; public float attackMultiplier; public float mpMultiplier; public float attackSpeedMultiplier; public float rangeMultiplier; public float goldMultiplier; }
+        [Serializable] private sealed class MutationConfigJson { public string modeId; public int initialActivationCost; public int rerollCost1; public int rerollCost2; public int rerollCost3; public int rerollCost4; public int rerollCostAfterMax; public int injectorReplaceCost; }
+        [Serializable] private sealed class InjectorPoolJson { public string poolId; public string poolName; public bool poolActive; public string mutationType; public int weight; public string resultType; }
+        [Serializable] private sealed class ArrayDocument<T> { public T[] items; }
     }
 }

@@ -18,7 +18,7 @@
 
 ### LegendaryChoiceState
 
-- Legendary Merge 결과 선택 창의 Shared 상태로, 재료 2종, 후보 3종, 리롤 잔여량, 8초 제한, 선택/자동선택 상태를 포함한다.
+- Legendary Merge 결과 선택 창의 Shared 상태로, 재료 2종, 후보 3종, 리롤 잔여량, 10초 제한(리롤 성공 시 10초 재설정), 선택/자동선택 상태를 포함한다.
 - `selectedAlienId`는 선택 전 `null`을 허용하며, 선택 후 후보 중 하나여야 한다.
 - Unity 전용 serializer가 enum을 문자열로, nullable ID를 JSON `null`로 출력해 Spring `String phase`/`Long selectedAlienId`와 대응한다.
 

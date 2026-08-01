@@ -24,6 +24,7 @@ class BattleSettlementContractTest {
                 "contentHash",
                 "result",
                 "finalWave",
+                "mapId",
                 "startedAt",
                 "finishedAt",
                 "players",
@@ -46,7 +47,8 @@ class BattleSettlementContractTest {
                 "initialInGameGold",
                 "inGameGoldEarned",
                 "inGameGoldSpent",
-                "finalInGameGold"
+                "finalInGameGold",
+                "abandoned"
         );
     }
 
@@ -77,6 +79,7 @@ class BattleSettlementContractTest {
                 String.class,
                 String.class,
                 int.class,
+                String.class,
                 LocalDateTime.class,
                 LocalDateTime.class,
                 List.class,
@@ -95,7 +98,8 @@ class BattleSettlementContractTest {
                 int.class,
                 int.class,
                 int.class,
-                int.class
+                int.class,
+                boolean.class
         );
         assertRecordComponentTypes(
                 BattleSettlementDtos.Monster.class,
@@ -116,6 +120,7 @@ class BattleSettlementContractTest {
                   "contentHash":"content-hash",
                   "result":"VICTORY",
                   "finalWave":80,
+                  "mapId":"EARTH",
                   "startedAt":"2026-07-18T12:00:00",
                   "finishedAt":"2026-07-18T12:20:00",
                   "players":[
@@ -131,6 +136,7 @@ class BattleSettlementContractTest {
         BattleSettlementDtos.Request request = mapper.readValue(json, BattleSettlementDtos.Request.class);
 
         assertThat(request.startedAt()).isEqualTo(LocalDateTime.of(2026, 7, 18, 12, 0));
+        assertThat(request.mapId()).isEqualTo("EARTH");
         assertThat(request.players().get(0).eliminatedWave()).isNull();
         assertThat(request.players().get(1).eliminatedWave()).isEqualTo(79);
         assertThat(request.monsterKills().get(0).totalKillGold()).isEqualTo(300);

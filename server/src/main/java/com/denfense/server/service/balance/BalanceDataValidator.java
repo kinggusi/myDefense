@@ -13,6 +13,27 @@ import java.util.stream.Collectors;
 @Component
 public class BalanceDataValidator {
 
+    public void validateBattleReward(com.denfense.server.balance.BattleRewardBalance balance) {
+        if (balance == null || balance.maxWave() != 80 || balance.minimumRewardWave() < 1
+                || balance.failureRewardBaseGold() <= 0 || balance.failureRewardCapPercent() <= 0
+                || balance.failureRewardCapPercent() > 100) {
+            throw new IllegalStateException("Invalid BattleReward config.");
+        }
+        if (balance.checkpoints() == null || balance.checkpoints().size() != 8
+                || balance.checkpoints().stream().anyMatch(c -> c.wave() <= 0 || c.wave() > balance.maxWave()
+                || c.wave() % 10 != 0 || c.gold() < 0 || c.universalPiece() < 0)
+                || balance.checkpoints().stream().map(com.denfense.server.balance.BattleRewardBalance.Checkpoint::wave).distinct().count() != 8) {
+            throw new IllegalStateException("BattleReward checkpoints must define 10..80 exactly once.");
+        }
+        Set<String> expectedMaps = Set.of("NEPTUNE", "URANUS", "SATURN", "JUPITER", "MARS", "EARTH", "VENUS", "MERCURY", "SUN");
+        if (balance.mapFirstClears() == null || balance.mapFirstClears().size() != expectedMaps.size()
+                || balance.mapFirstClears().stream().anyMatch(c -> c.wave() != balance.maxWave() || c.diamond() <= 0
+                || c.mapId() == null || c.mapId().isBlank())
+                || !balance.mapFirstClears().stream().map(com.denfense.server.balance.BattleRewardBalance.MapFirstClear::mapId).collect(Collectors.toSet()).equals(expectedMaps)) {
+            throw new IllegalStateException("BattleReward must define nine unique planet first-clear rewards.");
+        }
+    }
+
     private static final String EACH_FIELD = "EACH_FIELD";
     private static final String BOSS_SHARED = "BOSS_SHARED";
     private static final Set<String> ALLOWED_LANE_POLICIES = Set.of(EACH_FIELD, BOSS_SHARED);
@@ -264,7 +285,36 @@ public class BalanceDataValidator {
         }
     }
 
-    public void validateShopProduct(com.denfense.server.balance.ShopProductBalanceDocument document, com.denfense.server.balance.GachaPoolBalanceDocument poolDocument) {
+      public void validateSummonPool(com.denfense.server.balance.SummonPoolBalanceDocument document,
+                                     List<com.denfense.server.balance.AlienSpecBalance> specs) {
+          if (document == null || document.pools() == null || document.pools().isEmpty())
+              throw new IllegalStateException("SummonPool must not be empty.");
+          var gradeById = specs.stream().collect(Collectors.toMap(com.denfense.server.balance.AlienSpecBalance::alienId,
+                  com.denfense.server.balance.AlienSpecBalance::grade));
+          Set<String> poolIds = new HashSet<>();
+          for (var pool : document.pools()) {
+              if (pool == null || pool.poolId() == null || pool.poolId().isBlank() || !poolIds.add(pool.poolId()))
+                  throw new IllegalStateException("SummonPool poolId must be unique and non-blank.");
+              if (pool.active() && (pool.entries() == null || pool.entries().isEmpty()))
+                  throw new IllegalStateException("Active SummonPool must have entries: " + pool.poolId());
+              int totalWeight = 0;
+              Set<Long> ids = new HashSet<>();
+              for (var entry : pool.entries()) {
+                  if (!"NORMAL".equals(entry.grade()) || entry.weight() <= 0 || entry.alienIds() == null || entry.alienIds().isEmpty())
+                      throw new IllegalStateException("Battle SummonPool permits NORMAL entries only: " + pool.poolId());
+                  totalWeight += entry.weight();
+                  for (Long id : entry.alienIds()) {
+                      if (!ids.add(id) || !"NORMAL".equals(gradeById.get(id)))
+                          throw new IllegalStateException("SummonPool contains duplicate or non-NORMAL alienId: " + id);
+                  }
+              }
+              if (totalWeight != 10000) throw new IllegalStateException("SummonPool weights must total 10000: " + pool.poolId());
+          }
+          if (poolIds.stream().noneMatch("STANDARD_SUMMON_POOL"::equals))
+              throw new IllegalStateException("STANDARD_SUMMON_POOL is required.");
+      }
+
+      public void validateShopProduct(com.denfense.server.balance.ShopProductBalanceDocument document, com.denfense.server.balance.GachaPoolBalanceDocument poolDocument) {
         if (document == null) {
             throw new IllegalStateException("ShopProductBalanceDocument가 null입니다.");
         }

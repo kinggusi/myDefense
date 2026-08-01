@@ -17,6 +17,7 @@ public class BattleRuleBalanceRegistry {
             List<SummonBalance> summons,
             List<MergeRuleBalance> mergeRules,
             List<MythicChoiceBalance> mythicChoices,
+            List<SummonPoolBalance> summonPools,
             List<AlienSpecBalance> alienSpecs
     ) {
         if (state != null) throw new IllegalStateException("BattleRuleBalanceRegistry is already initialized.");
@@ -28,12 +29,14 @@ public class BattleRuleBalanceRegistry {
                 .collect(Collectors.toUnmodifiableMap(MergeRuleBalance::sourceGrade, Function.identity()));
         Map<String, MythicChoiceBalance> choiceMap = mythicChoices.stream()
                 .collect(Collectors.toUnmodifiableMap(MythicChoiceBalance::modeId, Function.identity()));
+        Map<String, SummonPoolBalance> summonPoolMap = summonPools.stream()
+                .collect(Collectors.toUnmodifiableMap(SummonPoolBalance::poolId, Function.identity()));
         List<Long> mythicIds = alienSpecs.stream()
                 .filter(spec -> "MYTHIC".equals(spec.grade()))
                 .map(AlienSpecBalance::alienId)
                 .sorted()
                 .toList();
-        state = new State(fieldMap, summonMap, mergeMap, choiceMap, mythicIds);
+        state = new State(fieldMap, summonMap, mergeMap, choiceMap, summonPoolMap, mythicIds);
     }
 
     public FieldLimitBalance getFieldLimit(String modeId) {
@@ -60,6 +63,12 @@ public class BattleRuleBalanceRegistry {
         return value;
     }
 
+    public SummonPoolBalance getSummonPool(String poolId) {
+        SummonPoolBalance value = requireState().summonPools().get(poolId);
+        if (value == null) throw new IllegalArgumentException("Unknown summon pool: " + poolId);
+        return value;
+    }
+
     public List<Long> getEnabledMythicAlienIds() {
         return List.copyOf(requireState().mythicAlienIds());
     }
@@ -78,6 +87,7 @@ public class BattleRuleBalanceRegistry {
             Map<SummonKey, SummonBalance> summons,
             Map<String, MergeRuleBalance> mergeRules,
             Map<String, MythicChoiceBalance> mythicChoices,
+            Map<String, SummonPoolBalance> summonPools,
             List<Long> mythicAlienIds
     ) {
     }

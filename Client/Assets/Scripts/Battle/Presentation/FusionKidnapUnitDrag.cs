@@ -19,9 +19,13 @@ namespace MyDefense.Battle.Presentation
         private Vector3 _originalLocalPosition;
         private Vector3 _originalLocalScale;
         private bool _dragging;
+        private bool _pointerPressed;
+        private Vector2 _pointerDownScreenPosition;
         private bool _reportedInput;
         private bool _reportedReject;
         private Plane _dragPlane;
+
+        private const float DragThresholdPixels = 12f;
 
         public bool IsDragging => _dragging;
         public int PlayerSlot => _playerSlot;
@@ -42,36 +46,62 @@ namespace MyDefense.Battle.Presentation
 
         private void OnMouseDown()
         {
-            BeginDrag();
+            BeginPointerPress(Mouse.current != null ? Mouse.current.position.ReadValue() : Vector2.zero);
         }
 
         public void OnPointerDown(PointerEventData eventData)
         {
-            BeginDrag();
+            BeginPointerPress(eventData.position);
         }
 
         public void OnDrag(PointerEventData eventData)
         {
+            TryBeginDrag(eventData.position);
             ContinueDrag(eventData.position);
         }
 
         public void OnPointerUp(PointerEventData eventData)
         {
-            EndDrag();
+            if (_dragging) EndDrag();
+            _pointerPressed = false;
         }
 
         private void Update()
         {
-            if (!_dragging && Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame && Camera.main != null)
+            if (Mouse.current == null) return;
+
+            Vector2 pointerPosition = Mouse.current.position.ReadValue();
+            if (!_pointerPressed && Mouse.current.leftButton.wasPressedThisFrame && Camera.main != null)
             {
                 Ray ray = Camera.main.ScreenPointToRay(Mouse.current.position.ReadValue());
                 if (Physics.Raycast(ray, out RaycastHit hit)
                     && (hit.collider == GetComponent<Collider>() || hit.collider.transform.IsChildOf(transform)))
-                    BeginDrag();
+                    BeginPointerPress(pointerPosition);
             }
 
-            if (_dragging && Mouse.current != null && Mouse.current.leftButton.wasReleasedThisFrame)
+            if (_pointerPressed && !_dragging && Mouse.current.leftButton.isPressed)
+                TryBeginDrag(pointerPosition);
+            if (_dragging && Mouse.current.leftButton.isPressed)
+                ContinueDrag(pointerPosition);
+            if (_dragging && Mouse.current.leftButton.wasReleasedThisFrame)
                 EndDrag();
+            if (!_dragging && Mouse.current.leftButton.wasReleasedThisFrame)
+                _pointerPressed = false;
+        }
+
+        private void BeginPointerPress(Vector2 screenPosition)
+        {
+            if (_dragging) return;
+            _pointerPressed = true;
+            _pointerDownScreenPosition = screenPosition;
+        }
+
+        private void TryBeginDrag(Vector2 screenPosition)
+        {
+            if (_dragging || !_pointerPressed) return;
+            if ((screenPosition - _pointerDownScreenPosition).sqrMagnitude < DragThresholdPixels * DragThresholdPixels)
+                return;
+            BeginDrag();
         }
 
         private void BeginDrag()
@@ -94,10 +124,12 @@ namespace MyDefense.Battle.Presentation
 
         private void OnMouseDrag()
         {
-            if (!_dragging || Mouse.current == null)
+            if (Mouse.current == null)
                 return;
 
-            ContinueDrag(Mouse.current.position.ReadValue());
+            Vector2 pointerPosition = Mouse.current.position.ReadValue();
+            TryBeginDrag(pointerPosition);
+            ContinueDrag(pointerPosition);
         }
 
         private void ContinueDrag(Vector2 screenPosition)
@@ -119,11 +151,16 @@ namespace MyDefense.Battle.Presentation
         {
             if (!_dragging) return;
             _dragging = false;
-            if (_view.TryFindNearestSlot(_playerSlot, transform.position, _slotIndex, out int targetSlot)
-                && !_authority.IsBoardOccupied(_playerSlot, targetSlot))
+            _pointerPressed = false;
+            if (_view.TryFindNearestSlot(_playerSlot, transform.position, _slotIndex, out int targetSlot))
             {
                 _view.SnapUnitToSlot(gameObject, _playerSlot, _slotIndex);
-                _authority.RequestMove(_slotIndex, targetSlot);
+                if (_authority.IsBoardInjector(_playerSlot, _slotIndex) && _authority.IsBoardOccupied(_playerSlot, targetSlot))
+                    _authority.RequestUseInjector(_slotIndex, targetSlot);
+                else if (_authority.IsBoardOccupied(_playerSlot, targetSlot))
+                    _authority.RequestMergeOrSwap(_slotIndex, targetSlot);
+                else
+                    _authority.RequestMove(_slotIndex, targetSlot);
                 return;
             }
 
@@ -139,9 +176,10 @@ namespace MyDefense.Battle.Presentation
             }
             int localSlot = _authority.GetNetworkedPlayerSlot(_authority.Runner.LocalPlayer);
             bool occupied = _authority.IsBoardOccupied(_playerSlot, _slotIndex);
-            if (localSlot != _playerSlot || !occupied)
+            bool choiceLocked = _authority.IsBoardSlotLockedForMythicChoice(_playerSlot, _slotIndex);
+            if (localSlot != _playerSlot || !occupied || choiceLocked)
             {
-                ReportReject($"localSlot={localSlot}, unitSlot={_playerSlot}, slot={_slotIndex}, occupied={occupied}");
+                ReportReject($"localSlot={localSlot}, unitSlot={_playerSlot}, slot={_slotIndex}, occupied={occupied}, choiceLocked={choiceLocked}");
                 return false;
             }
             return true;

@@ -17,13 +17,14 @@ import java.util.Map;
 
 public class BalanceExcelConverter {
 
-    private static final int ARGUMENT_COUNT = 14;
+    private static final int ARGUMENT_COUNT = 18;
 
     public static void main(String[] args) {
         if (args.length < ARGUMENT_COUNT) {
             System.err.println("Usage: convertBalance <excelPath> <rewardPath> <upgradeCostPath> <levelStatPath> "
                     + "<specPath> <shopPath> <poolPath> <monsterPath> <wavePath> <waveSpawnPath> "
-                    + "<fieldLimitPath> <summonPath> <mergeRulePath> <mythicChoicePath>");
+                    + "<fieldLimitPath> <summonPath> <summonPoolPath> <mergeRulePath> <mythicChoicePath>"
+                    + " <mutationSpecPath> <mutationConfigPath> <injectorPoolPath>");
             System.exit(1);
         }
 
@@ -62,6 +63,9 @@ public class BalanceExcelConverter {
             stagedToTarget.put(
                     stagingDirectory.resolve(BalanceManifestSupport.MANIFEST_FILE_NAME),
                     generatedDirectory.resolve(BalanceManifestSupport.MANIFEST_FILE_NAME));
+            stagedToTarget.put(
+                    stagingDirectory.resolve("battle-reward.json"),
+                    generatedDirectory.resolve("battle-reward.json"));
             writer.replaceFilesAtomically(stagedToTarget);
 
             System.out.println("Conversion successful. Generated files: " + stagedToTarget.size());
@@ -78,6 +82,7 @@ public class BalanceExcelConverter {
     public static void validate(ExcelBalanceReader.BalanceData data) {
         BalanceDataValidator validator = new BalanceDataValidator();
         validator.validateGameReward(data.gameReward());
+        validator.validateBattleReward(data.battleReward());
         validator.validateAlienLevelStats(data.alienLevelStats());
         int maxLevel = data.alienLevelStats().stream()
                 .mapToInt(com.denfense.server.service.balance.AlienLevelStatBalance::level)
@@ -88,7 +93,10 @@ public class BalanceExcelConverter {
 
         GachaPoolBalanceDocument poolDocument = new GachaPoolBalanceDocument(data.gachaPools());
         ShopProductBalanceDocument productDocument = new ShopProductBalanceDocument(data.shopProducts());
-        validator.validateGachaPool(poolDocument, data.alienSpecs());
+            validator.validateGachaPool(poolDocument, data.alienSpecs());
+            validator.validateSummonPool(new SummonPoolBalanceDocument(data.summonPools()), data.alienSpecs());
+            if (data.summons().stream().anyMatch(s -> !data.summonPools().stream().anyMatch(p -> p.poolId().equals(s.resultPoolId()))))
+                throw new IllegalStateException("SummonBalance.resultPoolId must reference SummonPool.");
         validator.validateShopProduct(productDocument, poolDocument);
         validator.validateBattleBalance(
                 new MonsterSpecBalanceDocument(data.monsters()),
@@ -99,6 +107,7 @@ public class BalanceExcelConverter {
                 new MergeRuleBalanceDocument(data.mergeRules()),
                 new MythicChoiceBalanceDocument(data.mythicChoices()),
                 data.alienSpecs());
+        validateMutationBalance(data);
     }
 
     private static Map<Path, Object> documents(
@@ -108,11 +117,13 @@ public class BalanceExcelConverter {
     ) {
         Map<Path, Object> documents = new LinkedHashMap<>();
         documents.put(directory.resolve("game-reward.json"), data.gameReward());
+        documents.put(directory.resolve("battle-reward.json"), data.battleReward());
         documents.put(directory.resolve("alien-upgrade-cost.json"), data.alienUpgradeCosts());
         documents.put(directory.resolve("alien-level-stat.json"), data.alienLevelStats());
         documents.put(directory.resolve("alien-spec.json"), data.alienSpecs());
         documents.put(directory.resolve("shop-products.json"), new ShopProductBalanceDocument(data.shopProducts()));
         documents.put(directory.resolve("gacha-pools.json"), new GachaPoolBalanceDocument(data.gachaPools()));
+        documents.put(directory.resolve("summon-pools.json"), new SummonPoolBalanceDocument(data.summonPools()));
         documents.put(directory.resolve("monster-spec.json"), new MonsterSpecBalanceDocument(data.monsters()));
         documents.put(directory.resolve("wave-spec.json"), new WaveSpecBalanceDocument(data.waves()));
         documents.put(directory.resolve("wave-spawn.json"), new WaveSpawnBalanceDocument(data.waveSpawns()));
@@ -121,7 +132,60 @@ public class BalanceExcelConverter {
         documents.put(directory.resolve("merge-rules.json"), new MergeRuleBalanceDocument(data.mergeRules()));
         documents.put(directory.resolve("mythic-choice-balance.json"),
                 new MythicChoiceBalanceDocument(data.mythicChoices(), excludedAlienIds));
+        documents.put(directory.resolve("mutation-spec.json"), data.mutationSpecs());
+        documents.put(directory.resolve("mutation-config.json"), data.mutationConfig());
+        documents.put(directory.resolve("injector-pool.json"), data.injectorPools());
         return documents;
+    }
+
+    private static void validateMutationBalance(ExcelBalanceReader.BalanceData data) {
+        if (data.mutationSpecs() == null || data.mutationSpecs().size() != 8)
+            throw new IllegalStateException("MutationSpec must define exactly 8 mutation types.");
+        java.util.Set<String> types = new java.util.HashSet<>();
+        for (MutationSpecBalance spec : data.mutationSpecs()) {
+            if (!types.add(spec.mutationType()) || spec.weight() <= 0
+                    || spec.attackMultiplier().signum() <= 0 || spec.mpMultiplier().signum() <= 0
+                    || spec.attackSpeedMultiplier().signum() <= 0 || spec.rangeMultiplier().signum() <= 0
+                    || spec.goldMultiplier().signum() <= 0)
+                throw new IllegalStateException("Invalid MutationSpec: " + spec.mutationType());
+        }
+        if (!types.containsAll(java.util.Set.of("BERSERK", "GREEDY", "SWIFT", "GIANT", "OBESE", "TOXIC", "FROZEN", "BLANK")))
+            throw new IllegalStateException("MutationSpec is missing a required mutation type.");
+        MutationSpecBalance blank = data.mutationSpecs().stream().filter(s -> "BLANK".equals(s.mutationType())).findFirst().orElseThrow();
+        if (blank.injectorEnabled()) throw new IllegalStateException("BLANK must not be injector-enabled.");
+        MutationConfigBalance config = data.mutationConfig();
+        if (config == null || config.initialActivationCost() < 0 || config.rerollCost1() <= 0 || config.rerollCost2() <= 0
+                || config.rerollCost3() <= 0 || config.rerollCost4() <= 0 || config.rerollCostAfterMax() <= 0 || config.injectorReplaceCost() < 0)
+            throw new IllegalStateException("Invalid MutationConfig.");
+        if (data.injectorPools() == null || data.injectorPools().isEmpty()) throw new IllegalStateException("InjectorPool must not be empty.");
+        java.util.Set<String> poolTypes = new java.util.HashSet<>();
+        java.util.Set<String> injectorEnabledTypes = data.mutationSpecs().stream()
+                .filter(MutationSpecBalance::injectorEnabled)
+                .map(MutationSpecBalance::mutationType)
+                .collect(java.util.stream.Collectors.toSet());
+        int totalWeight = 0;
+        String poolId = null;
+        String poolName = null;
+        Boolean poolActive = null;
+        for (InjectorPoolBalance pool : data.injectorPools()) {
+            if (!poolTypes.add(pool.mutationType()) || pool.weight() <= 0 || !"MUTATION_INJECTOR".equals(pool.resultType())
+                    || !types.contains(pool.mutationType()) || "BLANK".equals(pool.mutationType()))
+                throw new IllegalStateException("Invalid InjectorPool row: " + pool.mutationType());
+            if (poolId == null) {
+                poolId = pool.poolId();
+                poolName = pool.poolName();
+                poolActive = pool.poolActive();
+            } else if (!java.util.Objects.equals(poolId, pool.poolId())
+                    || !java.util.Objects.equals(poolName, pool.poolName())
+                    || !java.util.Objects.equals(poolActive, pool.poolActive())) {
+                throw new IllegalStateException("InjectorPool rows must share pool identity and active flag.");
+            }
+            totalWeight += pool.weight();
+        }
+        if (totalWeight <= 0 || !Boolean.TRUE.equals(poolActive))
+            throw new IllegalStateException("InjectorPool must be active with positive total weight.");
+        if (!injectorEnabledTypes.equals(poolTypes))
+            throw new IllegalStateException("MutationSpec injectorEnabled types must exactly match InjectorPool types.");
     }
 
     private static List<Long> readCanonicalMythicChoiceExcludedAlienIds() throws IOException {
