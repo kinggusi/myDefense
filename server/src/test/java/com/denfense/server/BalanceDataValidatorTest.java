@@ -170,9 +170,11 @@ class BalanceDataValidatorTest {
     private List<AlienLevelStatBalance> validStats() {
         List<AlienLevelStatBalance> stats = new ArrayList<>();
         for (int level = 1; level <= 50; level++) {
-            BigDecimal atk = BigDecimal.ONE.add(BigDecimal.valueOf(level - 1).multiply(new BigDecimal("0.05")));
+            BigDecimal atk = BigDecimal.ONE
+                    .add(BigDecimal.valueOf(level - 1).multiply(new BigDecimal("0.045")))
+                    .add(BigDecimal.valueOf(Math.min(level / 10, 4)).multiply(new BigDecimal("0.08")));
             BigDecimal mp = BigDecimal.ONE.add(BigDecimal.valueOf(level - 1).multiply(new BigDecimal("0.03")));
-            BigDecimal speed = BigDecimal.ONE.add(BigDecimal.valueOf(level / 10).multiply(new BigDecimal("0.02")));
+            BigDecimal speed = BigDecimal.ONE.add(BigDecimal.valueOf(level - 1).multiply(new BigDecimal("0.005")));
             stats.add(new AlienLevelStatBalance(level, atk, mp, speed, new BigDecimal("1.00")));
         }
         return stats;

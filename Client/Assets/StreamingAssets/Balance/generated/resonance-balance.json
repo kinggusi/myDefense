@@ -1,0 +1,92 @@
+[
+  {
+    "attackMultiplier" : 1.08,
+    "attackSpeedMultiplier" : 1.01,
+    "enabled" : true,
+    "level" : 1,
+    "rangeMultiplier" : 1.00,
+    "requiredGold" : 800,
+    "track" : "MYTHIC"
+  },
+  {
+    "attackMultiplier" : 1.16,
+    "attackSpeedMultiplier" : 1.02,
+    "enabled" : true,
+    "level" : 2,
+    "rangeMultiplier" : 1.00,
+    "requiredGold" : 1600,
+    "track" : "MYTHIC"
+  },
+  {
+    "attackMultiplier" : 1.24,
+    "attackSpeedMultiplier" : 1.03,
+    "enabled" : true,
+    "level" : 3,
+    "rangeMultiplier" : 1.00,
+    "requiredGold" : 2800,
+    "track" : "MYTHIC"
+  },
+  {
+    "attackMultiplier" : 1.32,
+    "attackSpeedMultiplier" : 1.04,
+    "enabled" : true,
+    "level" : 4,
+    "rangeMultiplier" : 1.00,
+    "requiredGold" : 4400,
+    "track" : "MYTHIC"
+  },
+  {
+    "attackMultiplier" : 1.40,
+    "attackSpeedMultiplier" : 1.05,
+    "enabled" : true,
+    "level" : 5,
+    "rangeMultiplier" : 1.00,
+    "requiredGold" : 6500,
+    "track" : "MYTHIC"
+  },
+  {
+    "attackMultiplier" : 1.05,
+    "attackSpeedMultiplier" : 1.01,
+    "enabled" : true,
+    "level" : 1,
+    "rangeMultiplier" : 1.00,
+    "requiredGold" : 400,
+    "track" : "NORMAL"
+  },
+  {
+    "attackMultiplier" : 1.10,
+    "attackSpeedMultiplier" : 1.02,
+    "enabled" : true,
+    "level" : 2,
+    "rangeMultiplier" : 1.00,
+    "requiredGold" : 800,
+    "track" : "NORMAL"
+  },
+  {
+    "attackMultiplier" : 1.15,
+    "attackSpeedMultiplier" : 1.03,
+    "enabled" : true,
+    "level" : 3,
+    "rangeMultiplier" : 1.00,
+    "requiredGold" : 1400,
+    "track" : "NORMAL"
+  },
+  {
+    "attackMultiplier" : 1.20,
+    "attackSpeedMultiplier" : 1.04,
+    "enabled" : true,
+    "level" : 4,
+    "rangeMultiplier" : 1.00,
+    "requiredGold" : 2200,
+    "track" : "NORMAL"
+  },
+  {
+    "attackMultiplier" : 1.25,
+    "attackSpeedMultiplier" : 1.05,
+    "enabled" : true,
+    "level" : 5,
+    "rangeMultiplier" : 1.00,
+    "requiredGold" : 3200,
+    "track" : "NORMAL"
+  }
+]

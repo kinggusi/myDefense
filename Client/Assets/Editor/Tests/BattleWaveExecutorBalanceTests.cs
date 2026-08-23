@@ -22,7 +22,7 @@ namespace MyDefense.Battle.Tests
     {
         private const BindingFlags PrivateInstance = BindingFlags.Instance | BindingFlags.NonPublic;
         private const string MonsterPrefabPath = "Assets/Prefabs/Monsters/Monster.prefab";
-        private const string ExpectedBundleHash = "7455fa6d5ef5833bff113695d3df37f1ec45654e8d0cc168822d9a986cceebb8";
+        private const string ExpectedBundleHash = "7e3c6534c8da8b5aadaa346510f7ed169b8ab142e4b1c3f3739dcc6921fc9f55";
 
         private GameObject _executorObject;
         private GameObject _spawnPointObject;

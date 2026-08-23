@@ -19,7 +19,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
+@SpringBootTest(properties = "spring.datasource.url=jdbc:h2:mem:alien-upgrade-status;MODE=MySQL")
 @AutoConfigureMockMvc
 class AlienUpgradeStatusApiIntegrationTest {
 
@@ -65,7 +65,7 @@ class AlienUpgradeStatusApiIntegrationTest {
                 .andExpect(jsonPath("$.currentLevel").value(1))
                 .andExpect(jsonPath("$.requiredPieces").value(5))
                 .andExpect(jsonPath("$.requiredUniversalPiece").value(0))
-                .andExpect(jsonPath("$.requiredGold").value(100))
+                .andExpect(jsonPath("$.requiredGold").value(500))
                 .andExpect(jsonPath("$.requiredGrowthCell").value(0))
                 .andExpect(jsonPath("$.maxLevel").value(50))
                 .andExpect(jsonPath("$.canUpgrade").value(true))
@@ -158,8 +158,8 @@ class AlienUpgradeStatusApiIntegrationTest {
                 .andExpect(jsonPath("$.afterLevel").value(2))
                 .andExpect(jsonPath("$.nextRequiredPieces").value(10))
                 .andExpect(jsonPath("$.nextRequiredUniversalPiece").value(10))
-                .andExpect(jsonPath("$.nextRequiredGold").value(200))
-                .andExpect(jsonPath("$.currentAtk").value(105.0))
+                .andExpect(jsonPath("$.nextRequiredGold").value(700))
+                .andExpect(jsonPath("$.currentAtk").value(104.5))
                 .andExpect(jsonPath("$.currentMp").value(82.4))
                 .andExpect(jsonPath("$.canUpgrade").value(true))
                 .andExpect(jsonPath("$.cannotUpgradeReason").value("NONE"));
@@ -170,6 +170,8 @@ class AlienUpgradeStatusApiIntegrationTest {
         userAlien.setLevel(49);
         userAlien.setPieces(245);
         userAlienRepository.save(userAlien);
+        user.setGold(200_000);
+        userRepository.save(user);
         mockMvc.perform(post("/api/aliens/100/upgrade").param("username", user.getUsername()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.afterLevel").value(50))

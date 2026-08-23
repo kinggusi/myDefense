@@ -1,6 +1,7 @@
 using Fusion;
 using MyDefense.Battle.Balance;
 using MyDefense.Battle.Runtime;
+using MyDefense.Shared.Contracts;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -23,6 +24,14 @@ namespace MyDefense.Battle
         [Networked] public float CurrentHp { get; private set; }
         [Networked] public float MaxHp { get; private set; }
         [Networked] public NetworkBool IsDead { get; private set; }
+        [Networked] public float MutationMoveSpeedMultiplier { get; private set; }
+        [Networked] private float MutationDotDamage { get; set; }
+        [Networked] private int MutationDotTicksRemaining { get; set; }
+        [Networked] private TickTimer MutationDotTimer { get; set; }
+        [Networked] private float MutationDotIntervalSeconds { get; set; }
+        [Networked] private long MutationDotAttackerId { get; set; }
+        [Networked] private NetworkString<_16> MutationDotType { get; set; }
+        [Networked] private TickTimer MutationSlowTimer { get; set; }
 
         private MonsterStat _monsterStat;
         private BattleWaveStateAuthority _waveAuthority;
@@ -32,6 +41,7 @@ namespace MyDefense.Battle
 
         public BattleMonsterLanePolicy LanePolicy => (BattleMonsterLanePolicy)LanePolicyValue;
         public bool IsInitialized => RuntimeMonsterId != 0 && !string.IsNullOrEmpty(BattleSessionId.ToString());
+        public float CurrentMoveSpeedMultiplier => MutationMoveSpeedMultiplier <= 0f ? 1f : MutationMoveSpeedMultiplier;
 
         public override void Spawned()
         {
@@ -45,7 +55,64 @@ namespace MyDefense.Battle
             _monsterStat.OnDied += HandleDied;
 
             if (HasStateAuthority)
+            {
+                MutationMoveSpeedMultiplier = 1f;
                 SyncHealthFromLocal();
+            }
+        }
+
+        public override void FixedUpdateNetwork()
+        {
+            if (!HasStateAuthority || Runner == null || !Runner.IsRunning || IsDead)
+                return;
+            if (MutationSlowTimer.IsRunning && MutationSlowTimer.Expired(Runner))
+            {
+                MutationSlowTimer = default;
+                MutationMoveSpeedMultiplier = 1f;
+            }
+            if (!MutationDotTimer.IsRunning || !MutationDotTimer.Expired(Runner) || MutationDotTicksRemaining <= 0)
+                return;
+
+            _monsterStat ??= GetComponent<MonsterStat>();
+            _monsterStat?.ApplyDamage(new DamagePayload
+            {
+                BattleSessionId = BattleSessionId.ToString(),
+                TargetRuntimeId = RuntimeMonsterId,
+                AttackerId = MutationDotAttackerId,
+                Amount = MutationDotDamage,
+                ActiveMutationType = MutationDotType.ToString()
+            });
+            MutationDotTicksRemaining--;
+            MutationDotTimer = MutationDotTicksRemaining > 0
+                ? TickTimer.CreateFromSeconds(Runner, MutationDotIntervalSeconds)
+                : default;
+        }
+
+        public void ApplyMutationEffect(
+            float dotDamage,
+            int dotTicks,
+            float dotIntervalSeconds,
+            float slowMultiplier,
+            float slowDurationSeconds,
+            long attackerId,
+            string mutationType)
+        {
+            if (!HasStateAuthority || Runner == null || !Runner.IsRunning || IsDead)
+                return;
+            if (dotDamage > 0f && dotTicks > 0 && dotIntervalSeconds > 0f)
+            {
+                MutationDotDamage = dotDamage;
+                MutationDotTicksRemaining = dotTicks;
+                MutationDotIntervalSeconds = dotIntervalSeconds;
+                MutationDotAttackerId = attackerId;
+                MutationDotType = mutationType ?? "NONE";
+                MutationDotTimer = TickTimer.CreateFromSeconds(Runner, dotIntervalSeconds);
+            }
+            if (slowMultiplier > 0f && slowMultiplier < 1f && slowDurationSeconds > 0f)
+            {
+                MutationMoveSpeedMultiplier = Mathf.Min(CurrentMoveSpeedMultiplier, slowMultiplier);
+                MutationSlowTimer = TickTimer.CreateFromSeconds(Runner, slowDurationSeconds);
+            }
         }
 
         public override void Despawned(NetworkRunner runner, bool hasState)

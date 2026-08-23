@@ -21,7 +21,7 @@ import java.util.ArrayList;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest
+@SpringBootTest(properties = "spring.datasource.url=jdbc:h2:mem:in-game-service;MODE=MySQL")
 class InGameServiceTest {
 
     @Autowired

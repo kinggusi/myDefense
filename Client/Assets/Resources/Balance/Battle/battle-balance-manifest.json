@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
   "balanceVersion": "battle-v1",
-  "bundleHash": "7455fa6d5ef5833bff113695d3df37f1ec45654e8d0cc168822d9a986cceebb8",
+  "bundleHash": "7e3c6534c8da8b5aadaa346510f7ed169b8ab142e4b1c3f3739dcc6921fc9f55",
   "files": [
     {"resourcePath":"Balance/Battle/alien-skill-links","contentHash":"c8d2ed604775ef5576e08275540db78d4aeb6040c8d41acbfa5c43053b3e26d5"},
-    {"resourcePath":"Balance/Battle/boss-pattern-spec","contentHash":"e5191ca7829d5de41391f57b51b832aab030c30145fb8c7c4031f3cb1b07c4f4"},
+    {"resourcePath":"Balance/Battle/boss-pattern-spec","contentHash":"5876e17408d28c93adeb338be3117ae516eac64c5da473c732bd109e23e29367"},
     {"resourcePath":"Balance/Battle/projectile-spec","contentHash":"b2858cacc88107943441ef13bf036df5d83f2cf842378c9a12bb6c5f4161ef46"},
     {"resourcePath":"Balance/Battle/skill-effect-spec","contentHash":"356d70c01ad613d6dc4e5a53c520db16aebf440d967227645c12866d7cce2d05"},
     {"resourcePath":"Balance/Battle/skill-spec","contentHash":"0dda18570acf74cb151123dec6cda4be2606469422ba6bb2244234a1bcc3cc3a"},

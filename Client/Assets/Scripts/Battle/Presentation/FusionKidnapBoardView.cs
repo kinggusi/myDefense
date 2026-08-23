@@ -2,6 +2,8 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using Fusion;
+using MyDefense.Battle.Balance.Canonical;
+using MyDefense.Battle.Runtime;
 using MyDefense.Shared.Contracts;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -26,6 +28,9 @@ namespace MyDefense.Battle.Presentation
         private readonly HashSet<int> _failedAttackCatalogs = new();
         private readonly Dictionary<int, string> _loadedPlayerIds = new();
         private readonly Dictionary<int, string> _requestedPlayerIds = new();
+        private int _selectedLocalMythicSlot = -1;
+
+        public int SelectedLocalMythicSlot => _selectedLocalMythicSlot;
 
         private void OnEnable()
         {
@@ -40,6 +45,7 @@ namespace MyDefense.Battle.Presentation
             _authority.MutationApplied += ApplyMutation;
             _authority.BoardChanged += ApplyBoardChange;
             _authority.BoardSwapped += ApplyBoardSwap;
+            _authority.ResonanceUpgraded += ApplyResonanceUpgrade;
         }
 
         private void OnDisable()
@@ -51,6 +57,7 @@ namespace MyDefense.Battle.Presentation
                 _authority.MutationApplied -= ApplyMutation;
                 _authority.BoardChanged -= ApplyBoardChange;
                 _authority.BoardSwapped -= ApplyBoardSwap;
+                _authority.ResonanceUpgraded -= ApplyResonanceUpgrade;
             }
         }
 
@@ -200,10 +207,49 @@ namespace MyDefense.Battle.Presentation
                 label = labelObject.AddComponent<TextMesh>();
                 label.anchor = TextAnchor.MiddleCenter; label.alignment = TextAlignment.Center; label.characterSize = 1f; label.fontSize = 40; label.color = Color.white;
             }
-            label.text = "I";
+            string normalized = string.IsNullOrWhiteSpace(mutationType)
+                ? "NONE"
+                : mutationType.Trim().ToUpperInvariant();
+            label.text = normalized == "NONE" ? string.Empty : "M:" + normalized[0];
+            MutationAuraView aura = unit.GetComponent<MutationAuraView>();
+            if (aura == null) aura = unit.AddComponent<MutationAuraView>();
+            aura.Apply(normalized);
         }
 
         public Transform GetGrid(int playerSlot) => playerSlot == 1 ? _player1Grid : _player2Grid;
+
+        public int EnsureSelectedLocalMythicSlot(int playerSlot)
+        {
+            if (IsSelectableMythic(playerSlot, _selectedLocalMythicSlot))
+                return _selectedLocalMythicSlot;
+            return SelectNextLocalMythicSlot(playerSlot, 1);
+        }
+
+        public int SelectNextLocalMythicSlot(int playerSlot, int direction)
+        {
+            if (_authority == null || (playerSlot != 1 && playerSlot != 2))
+                return _selectedLocalMythicSlot = -1;
+            int step = direction < 0 ? -1 : 1;
+            int start = IsValidBoardSlot(_selectedLocalMythicSlot)
+                ? _selectedLocalMythicSlot
+                : (step > 0 ? -1 : 24);
+            for (int offset = 1; offset <= 24; offset++)
+            {
+                int candidate = (start + step * offset) % 24;
+                if (candidate < 0) candidate += 24;
+                if (IsSelectableMythic(playerSlot, candidate))
+                    return _selectedLocalMythicSlot = candidate;
+            }
+            return _selectedLocalMythicSlot = -1;
+        }
+
+        private bool IsSelectableMythic(int playerSlot, int slotIndex)
+            => IsValidBoardSlot(slotIndex)
+                && _authority.IsBoardOccupied(playerSlot, slotIndex)
+                && !_authority.IsBoardInjector(playerSlot, slotIndex)
+                && _authority.GetBoardGrade(playerSlot, slotIndex) == 4;
+
+        private static bool IsValidBoardSlot(int slotIndex) => slotIndex >= 0 && slotIndex < 24;
 
         private GameObject ResolveUnitPrefab()
         {
@@ -252,6 +298,7 @@ namespace MyDefense.Battle.Presentation
                 return;
             string previousActiveMutation = data.activeMutationType;
             ApplyMutationState(data, playerSlot, slotIndex);
+            ApplyMutationVisual(unit, data.activeMutationType);
             if (!string.Equals(previousActiveMutation, data.activeMutationType, StringComparison.Ordinal))
                 ApplyAttackSnapshot(unit, playerSlot, alienId);
         }
@@ -413,9 +460,18 @@ namespace MyDefense.Battle.Presentation
 
         private static Color ColorForAlien(long alienId)
         {
-            uint value = unchecked((uint)(alienId * 2654435761L));
-            float hue = (value % 360u) / 360f;
-            return Color.HSVToRGB(hue, 0.78f, 0.95f);
+            long normalizedAlienId = alienId > 0L ? alienId : 1L;
+            int speciesIndex = (int)((normalizedAlienId - 1L) % 7L);
+            return speciesIndex switch
+            {
+                0 => new Color(0.90f, 0.15f, 0.15f), // red
+                1 => new Color(1.00f, 0.45f, 0.05f), // orange
+                2 => new Color(0.95f, 0.82f, 0.08f), // yellow
+                3 => new Color(0.15f, 0.75f, 0.25f), // green
+                4 => new Color(0.12f, 0.45f, 0.95f), // blue
+                5 => new Color(0.25f, 0.18f, 0.65f), // indigo
+                _ => new Color(0.62f, 0.20f, 0.82f)  // purple
+            };
         }
 
         private static Transform ResolveTile(Transform grid, int slotIndex)
@@ -549,6 +605,11 @@ namespace MyDefense.Battle.Presentation
             }
         }
 
+        private void ApplyResonanceUpgrade(int playerSlot, CanonicalResonanceTrack track, int level, int remainingGold)
+        {
+            ApplyCatalogToExistingUnits(playerSlot);
+        }
+
         private bool ApplyAttackSnapshot(GameObject unit, int playerSlot, long alienId)
         {
             if (unit == null
@@ -560,12 +621,25 @@ namespace MyDefense.Battle.Presentation
             if (data == null || attack == null)
                 return false;
 
-            attack.ApplyAttackSnapshot(AlienAttackSnapshot.FromCalculatedStats(
+            AlienAttackSnapshot snapshot = AlienAttackSnapshot.FromCalculatedStats(
                 data.serverId,
                 entry.damage,
                 entry.attackRate,
                 entry.range,
-                data.activeMutationType));
+                data.activeMutationType);
+            byte grade = _authority.GetBoardGrade(playerSlot, (int)((uint)data.serverId - 1));
+            if (_authority?.Executor != null)
+                _authority.Executor.TryApplyCanonicalResonance(
+                    grade,
+                    _authority.GetResonanceLevel(playerSlot, CanonicalResonanceTrack.NORMAL),
+                    _authority.GetResonanceLevel(playerSlot, CanonicalResonanceTrack.MYTHIC),
+                    snapshot,
+                    out snapshot);
+            if (!string.IsNullOrWhiteSpace(data.activeMutationType)
+                && _authority?.Executor != null
+                && _authority.Executor.TryGetCanonicalMutationSpec(data.activeMutationType, out var mutationSpec))
+                snapshot = MutationAttackSnapshotCalculator.Apply(snapshot, mutationSpec);
+            attack.ApplyAttackSnapshot(snapshot);
             return true;
         }
 

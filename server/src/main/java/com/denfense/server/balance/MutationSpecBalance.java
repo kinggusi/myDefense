@@ -12,5 +12,18 @@ public record MutationSpecBalance(
         BigDecimal mpMultiplier,
         BigDecimal attackSpeedMultiplier,
         BigDecimal rangeMultiplier,
-        BigDecimal goldMultiplier) {
+        BigDecimal goldMultiplier,
+        String mechanic,
+        BigDecimal splashRadius,
+        BigDecimal splashDamageMultiplier,
+        BigDecimal bossDamageMultiplier,
+        BigDecimal dotDamageMultiplier,
+        int dotTickCount,
+        BigDecimal dotTickIntervalSeconds,
+        BigDecimal slowMultiplier,
+        BigDecimal slowDurationSeconds,
+        int goldPerHit,
+        BigDecimal gambleSuccessChance,
+        BigDecimal gambleSuccessMultiplier,
+        BigDecimal gambleFailureMultiplier) {
 }

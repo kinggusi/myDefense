@@ -113,9 +113,9 @@ class BalanceExcelConverterTest {
         for (int level = 1; level <= 50; level++) {
             Row row = levelStat.createRow(level);
             row.createCell(0).setCellValue(level);
-            row.createCell(1).setCellValue(1 + (level - 1) * 0.05);
+            row.createCell(1).setCellValue(1 + (level - 1) * 0.045 + Math.min(level / 10, 4) * 0.08);
             row.createCell(2).setCellValue(1 + (level - 1) * 0.03);
-            row.createCell(3).setCellValue(1 + (level / 10) * 0.02);
+            row.createCell(3).setCellValue(1 + (level - 1) * 0.005);
             row.createCell(4).setCellValue(1.00);
         }
 
@@ -278,12 +278,12 @@ class BalanceExcelConverterTest {
                         com.denfense.server.service.balance.AlienLevelStatBalance::level,
                         Function.identity()));
         assertStat(statsByLevel, 1, "1.00", "1.00", "1.00");
-        assertStat(statsByLevel, 9, "1.40", "1.24", "1.00");
-        assertStat(statsByLevel, 10, "1.45", "1.27", "1.02");
-        assertStat(statsByLevel, 20, "1.95", "1.57", "1.04");
-        assertStat(statsByLevel, 30, "2.45", "1.87", "1.06");
-        assertStat(statsByLevel, 40, "2.95", "2.17", "1.08");
-        assertStat(statsByLevel, 50, "3.45", "2.47", "1.10");
+        assertStat(statsByLevel, 9, "1.360", "1.240", "1.040");
+        assertStat(statsByLevel, 10, "1.485", "1.270", "1.045");
+        assertStat(statsByLevel, 20, "2.015", "1.570", "1.095");
+        assertStat(statsByLevel, 30, "2.545", "1.870", "1.145");
+        assertStat(statsByLevel, 40, "3.075", "2.170", "1.195");
+        assertStat(statsByLevel, 50, "3.525", "2.470", "1.245");
         
         assertThat(data.shopProducts()).hasSize(2);
         com.denfense.server.balance.ShopProductBalance shop1 = data.shopProducts().get(0);

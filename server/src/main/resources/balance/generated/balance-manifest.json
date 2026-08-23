@@ -1,19 +1,19 @@
 {
   "schemaVersion" : 1,
-  "balanceVersion" : "1-133ff341b0443dd1",
-  "contentHash" : "133ff341b0443dd188421060943fd14b337f85403bd06db762b460a0525a38e1",
+  "balanceVersion" : "1-69adccef540835fe",
+  "contentHash" : "69adccef540835fedf5da9ee853345722df52b2dc37f0e7f5003ac7e3d9ee276",
   "files" : [ {
     "name" : "alien-level-stat.json",
-    "sha256" : "62d5880e09c6b780e2c4894d6e357b13337fdcf1982d30b6738bf82190f209f6",
-    "size" : 7194
+    "sha256" : "2afc3bb0d4e009c185e35cf76e56cf942e7925b288f77577eb20722b906a6f8f",
+    "size" : 7394
   }, {
     "name" : "alien-spec.json",
     "sha256" : "76d7ed0322a7bb38e8216a4d6b6332fcd8f245ec699534da00c5894cb0f6acc4",
     "size" : 13904
   }, {
     "name" : "alien-upgrade-cost.json",
-    "sha256" : "2cd5377e7cb18fd67089ceedb19c23fe0673f6b568cc66c689441666c73720b3",
-    "size" : 6956
+    "sha256" : "744959e553ffe411dcb7ada363083a209ff3261fe30fa4e51766c4190ad4813a",
+    "size" : 7002
   }, {
     "name" : "battle-reward.json",
     "sha256" : "6e435ccf67b657a1a1bf5954bbe5753ceaad8e0aad7a492f5e4df608fab148f6",
@@ -48,8 +48,8 @@
     "size" : 221
   }, {
     "name" : "mutation-spec.json",
-    "sha256" : "db14d7a50fc8b7d6638f4195dc792aad575387fe43db03e5cc6621583557fdfe",
-    "size" : 2400
+    "sha256" : "465723cf5b86841bfed325b7d8fcd0e85f9dccdcc5e3a3327a760763a536c2fb",
+    "size" : 5733
   }, {
     "name" : "mythic-breeding-config.json",
     "sha256" : "42ead0a4f253583b822ed6d87ea99004f9be97649b8e4b89e558de9fe4f1b49d",
@@ -62,6 +62,14 @@
     "name" : "mythic-choice-balance.json",
     "sha256" : "37fbd4f365648052c82a7d64cd3fd74309b76455a0c534f64adc6b1ce089e9ce",
     "size" : 426
+  }, {
+    "name" : "planet-battle-balance.json",
+    "sha256" : "4da1a97bd718de08540903fb0e9d872c3c0a96c1ee006598b896816958a9f180",
+    "size" : 1595
+  }, {
+    "name" : "resonance-balance.json",
+    "sha256" : "7f53c360202de3d53a4ff6bb417e276ca15acba5fdde2bad26ed139c2cc151f4",
+    "size" : 1950
   }, {
     "name" : "shop-products.json",
     "sha256" : "2a17d5f64c3c443de189b0f2c62c4efd4a6e29d429bd0a64047e0fa37ce92cd1",
@@ -76,11 +84,11 @@
     "size" : 391
   }, {
     "name" : "wave-spawn.json",
-    "sha256" : "08343810f6efa56a50020e919f0085f8fb3d060ca927a735e0665d4b1f3f0478",
-    "size" : 2920
+    "sha256" : "406c64c740301baf05a49943ef8acc2478f36f55cc177d96587430d7ba722f37",
+    "size" : 34529
   }, {
     "name" : "wave-spec.json",
-    "sha256" : "2e7fe453b66b3c23e7039ba6f73cfd803295bc34bc80387d636b26c3dd9d73b0",
-    "size" : 2567
+    "sha256" : "b79554b1b82b11299a13b6819368fe8d8aa3f899181b733b3afce99e64ff0f9c",
+    "size" : 20452
   } ]
 }

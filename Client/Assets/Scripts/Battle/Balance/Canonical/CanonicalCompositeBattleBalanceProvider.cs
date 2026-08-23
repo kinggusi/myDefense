@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace MyDefense.Battle.Balance.Canonical
 {
@@ -10,11 +11,13 @@ namespace MyDefense.Battle.Balance.Canonical
         string BattleContentVersion { get; }
         string BattleContentHash { get; }
         CanonicalFieldLimit FieldLimit { get; }
+        CanonicalPlanetBattleRegistry PlanetBattles { get; }
         CanonicalSummonBalance Summon { get; }
         IReadOnlyDictionary<string, CanonicalSummonPool> SummonPools { get; }
         IReadOnlyList<CanonicalMutationSpec> MutationSpecs { get; }
         CanonicalMutationConfig MutationConfig { get; }
         IReadOnlyList<CanonicalInjectorPoolEntry> InjectorPool { get; }
+        CanonicalResonanceRegistry Resonance { get; }
         IMonsterDefinitionProvider MonsterDefinitions { get; }
     }
 
@@ -40,11 +43,13 @@ namespace MyDefense.Battle.Balance.Canonical
         public string BattleContentVersion { get; }
         public string BattleContentHash { get; }
         public CanonicalFieldLimit FieldLimit { get; }
+        public CanonicalPlanetBattleRegistry PlanetBattles { get; }
         public CanonicalSummonBalance Summon { get; }
         public IReadOnlyDictionary<string, CanonicalSummonPool> SummonPools { get; }
         public IReadOnlyList<CanonicalMutationSpec> MutationSpecs { get; }
         public CanonicalMutationConfig MutationConfig { get; }
         public IReadOnlyList<CanonicalInjectorPoolEntry> InjectorPool { get; }
+        public CanonicalResonanceRegistry Resonance { get; }
         public IMonsterDefinitionProvider MonsterDefinitions { get; }
 
         private CanonicalCompositeBattleBalanceProvider(
@@ -61,14 +66,16 @@ namespace MyDefense.Battle.Balance.Canonical
             BattleContentHash = battleManifest?.BundleHash;
             MonsterDefinitions = canonical?.MonsterDefinitions;
             FieldLimit = fieldLimit;
+            PlanetBattles = canonical?.PlanetBattles;
             Summon = canonical?.Summon;
             SummonPools = canonical?.SummonPools;
             MutationSpecs = canonical?.MutationSpecs;
             MutationConfig = canonical?.MutationConfig;
             InjectorPool = canonical?.InjectorPool;
+            Resonance = canonical?.Resonance;
             Catalog = catalog;
             ValidationErrors = Array.AsReadOnly(new List<string>(errors ?? Array.Empty<string>()).ToArray());
-            IsValid = canonical != null && catalog != null && fieldLimit != null && Summon != null && ValidationErrors.Count == 0;
+            IsValid = canonical != null && catalog != null && fieldLimit != null && PlanetBattles != null && Summon != null && ValidationErrors.Count == 0;
         }
 
         public static CanonicalCompositeBattleBalanceProvider LoadProduction(
@@ -127,6 +134,7 @@ namespace MyDefense.Battle.Balance.Canonical
             BattleBalanceCatalog catalog = null;
             if (errors.Count == 0)
             {
+                bossPatterns = ExpandBossPatternTemplates(canonical.RuntimeWaves, bossPatterns);
                 var documents = new BattleBalanceDocuments(
                     canonical.RuntimeWaves,
                     canonical.RuntimeSpawns,
@@ -141,6 +149,46 @@ namespace MyDefense.Battle.Balance.Canonical
             }
 
             return new CanonicalCompositeBattleBalanceProvider(canonical, manifest, catalog, fieldLimit, errors);
+        }
+
+        private static BattleBalanceDocument<BossPatternSpecData> ExpandBossPatternTemplates(
+            BattleBalanceDocument<WaveSpecData> runtimeWaves,
+            BattleBalanceDocument<BossPatternSpecData> source)
+        {
+            if (runtimeWaves == null || source == null || source.Items.Count == 0)
+                return source;
+
+            IReadOnlyList<BossPatternSpecData> template = source.Items
+                .Where(pattern => string.Equals(pattern.WaveId, "WAVE_010", StringComparison.Ordinal))
+                .OrderBy(pattern => pattern.PatternOrder)
+                .ToArray();
+            if (template.Count == 0)
+                return source;
+
+            var expanded = new List<BossPatternSpecData>();
+            foreach (WaveSpecData bossWave in runtimeWaves.Items.Where(wave => wave.Enabled && wave.WaveType == WaveType.BOSS))
+            {
+                foreach (BossPatternSpecData pattern in template)
+                {
+                    expanded.Add(new BossPatternSpecData(
+                        bossWave.WaveId,
+                        pattern.PatternOrder,
+                        pattern.PatternType,
+                        pattern.TriggerType,
+                        pattern.TriggerValue,
+                        pattern.CooldownSeconds,
+                        pattern.SkillId,
+                        pattern.ParameterKey,
+                        pattern.ParameterValue,
+                        pattern.Enabled));
+                }
+            }
+
+            return new BattleBalanceDocument<BossPatternSpecData>(
+                source.SchemaVersion,
+                source.BalanceVersion,
+                source.ContentHash,
+                expanded);
         }
 
         private static BattleBalanceManifestData LoadManifest(IBattleBalanceTextSource source, BattleBalanceJsonParser parser, List<string> errors)

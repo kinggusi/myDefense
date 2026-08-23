@@ -117,7 +117,17 @@ namespace MyDefenseGame.Editor.FeatureTesting
                 Case("P0-UI-LEGACY", "기존 단일 플레이 보드", "kinggusi", "Assets/Scenes/Tests/TestGameScene.unity", FeatureTestType.Scene,
                     "Legacy 테스트 Fixture", "Scene 종료 및 보드 상태 초기화", "", "드래그·빈 슬롯 이동·동일 유닛 머지", "docs/test-reports/P0-11-1.md"),
                 Case("P0-NET-CONNECT", "Fusion 접속 Smoke Test", "jjangash", "Assets/Scenes/Tests/FusionConnectionTest.unity", FeatureTestType.FusionTwoClient,
-                    "Photon App ID와 Host/Client 실행 파일", "두 프로세스 종료", "BattleRunnerLifecycleTests", "동일 Session Host/Client 입장", "docs/test-reports/P0-11-1.md")
+                    "Photon App ID와 Host/Client 실행 파일", "두 프로세스 종료", "BattleRunnerLifecycleTests", "동일 Session Host/Client 입장", "docs/test-reports/P0-11-1.md"),
+                Case("P1-1", "Mythic Mutation 활성화·재변이", "jjangash", "Assets/Scenes/Battle.unity", FeatureTestType.FusionTwoClient,
+                    "순수·해금 Mythic과 충분한 개인 Gold", "Session 종료 및 보드 초기화", "BattleWaveStateAuthorityTests", "300G 활성화·단계별 재변이·현재 Mutation 제외·Injector 교체", "docs/P1_INTEGRATION_TEST_SCENARIO.md"),
+                Case("P1-2", "Mutation 전투 효과", "kinggusi", "Assets/Scenes/Battle.unity", FeatureTestType.FusionTwoClient,
+                    "8종 Mutation Mythic과 Monster/Boss", "Session 종료 및 Combat 상태 초기화", "BattleDamageContractTests", "광역·Boss·DOT·Slow·경제·도박·BLANK 효과", "docs/P1_INTEGRATION_TEST_SCENARIO.md"),
+                Case("P1-3", "일반·신화 공명", "jjangash", "Assets/Scenes/Battle.unity", FeatureTestType.FusionTwoClient,
+                    "Normal~Legendary와 Mythic, 충분한 개인 Gold", "Session 종료하여 공명 레벨 초기화", "BattleResonanceCalculatorTests;BattleWaveStateAuthorityTests", "등급별 공명 비용·공격 Snapshot 반영·재접속·전투 종료 초기화", "docs/P1_INTEGRATION_TEST_SCENARIO.md"),
+                Case("P1-4", "행성·80 Wave·Boss", "kinggusi", "Assets/Scenes/Battle.unity", FeatureTestType.FusionTwoClient,
+                    "canonical Planet/Wave/Spawn Balance", "Session 종료 및 Wave 초기화", "BattleCanonicalBalanceTests;BattleWaveExecutorStateTests", "9행성 배율·10 Wave 간격 Boss·BOSS_SHARED·SUN 난이도", "docs/P1_INTEGRATION_TEST_SCENARIO.md"),
+                Case("P1-5", "Battle Settlement 보상 E2E", "jjangash", "Assets/Scenes/Battle.unity", FeatureTestType.FusionTwoClient,
+                    "Spring Boot와 canonical manifest, 2인 종료 Summary", "Session 종료 및 Settlement 테스트 데이터 정리", "BattleSettlementCoordinatorTests;BattleSettlementEndToEndIntegrationTest", "승리·패배·관전·이탈 자격·멱등 보상", "docs/P1_INTEGRATION_TEST_SCENARIO.md")
             });
         }
 

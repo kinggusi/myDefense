@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Fusion;
 using MyDefense.Battle.Balance;
+using MyDefense.Battle.Runtime;
 using MyDefense.Shared.Contracts;
 using UnityEngine;
 
@@ -21,6 +22,18 @@ namespace MyDefense.Battle.Combat
         [Networked] public long AttackerServerId { get; private set; }
         [Networked] public float Damage { get; private set; }
         [Networked] public NetworkString<_16> ActiveMutationType { get; private set; }
+        [Networked] public float SplashRadius { get; private set; }
+        [Networked] public float SplashDamageMultiplier { get; private set; }
+        [Networked] public float BossDamageMultiplier { get; private set; }
+        [Networked] public float DotDamagePerTick { get; private set; }
+        [Networked] public int DotTickCount { get; private set; }
+        [Networked] public float DotTickIntervalSeconds { get; private set; }
+        [Networked] public float SlowMultiplier { get; private set; }
+        [Networked] public float SlowDurationSeconds { get; private set; }
+        [Networked] public int GoldPerHit { get; private set; }
+        [Networked] public float GambleSuccessChance { get; private set; }
+        [Networked] public float GambleSuccessMultiplier { get; private set; }
+        [Networked] public float GambleFailureMultiplier { get; private set; }
         [Networked] public int PierceRemaining { get; private set; }
         [Networked] public NetworkBool DestroyOnHit { get; private set; }
         [Networked] public NetworkBool IsConsumed { get; private set; }
@@ -50,6 +63,18 @@ namespace MyDefense.Battle.Combat
             AttackerServerId = spawnData.AttackerServerId;
             Damage = spawnData.Damage;
             ActiveMutationType = string.IsNullOrWhiteSpace(spawnData.ActiveMutationType) ? "NONE" : spawnData.ActiveMutationType;
+            SplashRadius = spawnData.SplashRadius;
+            SplashDamageMultiplier = spawnData.SplashDamageMultiplier;
+            BossDamageMultiplier = Mathf.Max(1f, spawnData.BossDamageMultiplier);
+            DotDamagePerTick = Mathf.Max(0f, spawnData.DotDamagePerTick);
+            DotTickCount = Mathf.Max(0, spawnData.DotTickCount);
+            DotTickIntervalSeconds = Mathf.Max(0f, spawnData.DotTickIntervalSeconds);
+            SlowMultiplier = spawnData.SlowMultiplier <= 0f ? 1f : spawnData.SlowMultiplier;
+            SlowDurationSeconds = Mathf.Max(0f, spawnData.SlowDurationSeconds);
+            GoldPerHit = Mathf.Max(0, spawnData.GoldPerHit);
+            GambleSuccessChance = Mathf.Clamp01(spawnData.GambleSuccessChance);
+            GambleSuccessMultiplier = spawnData.GambleSuccessMultiplier <= 0f ? 1f : spawnData.GambleSuccessMultiplier;
+            GambleFailureMultiplier = spawnData.GambleFailureMultiplier <= 0f ? 1f : spawnData.GambleFailureMultiplier;
             PierceRemaining = spec.PierceCount;
             DestroyOnHit = spec.DestroyOnHit;
             IsConsumed = false;
@@ -124,17 +149,35 @@ namespace MyDefense.Battle.Combat
 
             BattleMonsterNetworkState monster = (target as Component)?.GetComponentInParent<BattleMonsterNetworkState>();
             ulong targetRuntimeId = monster == null ? 0UL : monster.RuntimeMonsterId;
+            AlienAttackSnapshot mutationSnapshot = BuildMutationSnapshot();
+            float resolvedDamage = MutationAttackSnapshotCalculator.ResolveDeterministicDamage(
+                mutationSnapshot,
+                RuntimeProjectileId,
+                monster != null && monster.LanePolicy == BattleMonsterLanePolicy.BOSS_SHARED);
             DamagePayload payload = new DamagePayload
             {
                 BattleSessionId = BattleSessionId.ToString(),
                 RuntimeProjectileId = RuntimeProjectileId,
                 TargetRuntimeId = targetRuntimeId,
                 AttackerId = AttackerServerId,
-                Amount = Damage,
+                Amount = resolvedDamage,
                 IsCritical = isCritical,
                 ActiveMutationType = ActiveMutationType.ToString()
             };
             target.ApplyDamage(payload);
+            if (monster != null)
+            {
+                monster.ApplyMutationEffect(
+                    DotDamagePerTick,
+                    DotTickCount,
+                    DotTickIntervalSeconds,
+                    SlowMultiplier,
+                    SlowDurationSeconds,
+                    AttackerServerId,
+                    ActiveMutationType.ToString());
+                ApplySplashDamage(monster, payload);
+            }
+            AwardMutationHitGold();
             if (targetRuntimeId != 0)
             {
                 try
@@ -154,6 +197,62 @@ namespace MyDefense.Battle.Combat
             if (DestroyOnHit || PierceRemaining <= 0)
                 ConsumeAndDespawn();
             return true;
+        }
+
+        private AlienAttackSnapshot BuildMutationSnapshot()
+        {
+            return new AlienAttackSnapshot
+            {
+                AttackerServerId = AttackerServerId,
+                Damage = Damage,
+                AttackRate = 1f,
+                Range = 1f,
+                ActiveMutationType = ActiveMutationType.ToString(),
+                SplashRadius = SplashRadius,
+                SplashDamageMultiplier = SplashDamageMultiplier,
+                BossDamageMultiplier = BossDamageMultiplier,
+                DotDamagePerTick = DotDamagePerTick,
+                DotTickCount = DotTickCount,
+                DotTickIntervalSeconds = DotTickIntervalSeconds,
+                SlowMultiplier = SlowMultiplier,
+                SlowDurationSeconds = SlowDurationSeconds,
+                GoldPerHit = GoldPerHit,
+                GambleSuccessChance = GambleSuccessChance,
+                GambleSuccessMultiplier = GambleSuccessMultiplier,
+                GambleFailureMultiplier = GambleFailureMultiplier
+            };
+        }
+
+        private void ApplySplashDamage(BattleMonsterNetworkState primary, DamagePayload primaryPayload)
+        {
+            if (primary == null || SplashRadius <= 0f || SplashDamageMultiplier <= 0f)
+                return;
+            Collider[] hits = Physics.OverlapSphere(primary.transform.position, SplashRadius);
+            for (int index = 0; index < hits.Length; index++)
+            {
+                BattleMonsterNetworkState nearby = hits[index] == null
+                    ? null
+                    : hits[index].GetComponentInParent<BattleMonsterNetworkState>();
+                if (nearby == null || nearby == primary || nearby.Object == null || !nearby.Object.IsValid
+                    || !_hitTargets.Add(nearby.Object.Id))
+                    continue;
+                IDamageable nearbyDamageable = nearby.GetComponentInChildren<IDamageable>();
+                if (nearbyDamageable == null)
+                    continue;
+                DamagePayload splash = primaryPayload;
+                splash.TargetRuntimeId = nearby.RuntimeMonsterId;
+                splash.Amount = Damage * SplashDamageMultiplier;
+                nearbyDamageable.ApplyDamage(splash);
+            }
+        }
+
+        private void AwardMutationHitGold()
+        {
+            if (GoldPerHit <= 0)
+                return;
+            BattleWaveStateAuthority authority = FindFirstObjectByType<BattleWaveStateAuthority>();
+            int playerSlot = (int)(AttackerServerId >> 32);
+            authority?.TryAwardMutationHitGold(playerSlot, GoldPerHit);
         }
 
         private void OnTriggerEnter(Collider other)
@@ -223,6 +322,14 @@ namespace MyDefense.Battle.Combat
                 return Fail("Projectile damage must be finite and greater than zero.", out error);
             if (spawnData.Direction.sqrMagnitude <= 0.000001f)
                 return Fail("Projectile direction must be non-zero.", out error);
+            if (spawnData.SplashRadius < 0f || spawnData.SplashDamageMultiplier < 0f
+                || spawnData.BossDamageMultiplier < 0f || spawnData.DotDamagePerTick < 0f
+                || spawnData.DotTickCount < 0 || spawnData.DotTickIntervalSeconds < 0f
+                || spawnData.SlowMultiplier < 0f || spawnData.SlowDurationSeconds < 0f
+                || spawnData.GoldPerHit < 0 || spawnData.GambleSuccessChance < 0f
+                || spawnData.GambleSuccessChance > 1f || spawnData.GambleSuccessMultiplier < 0f
+                || spawnData.GambleFailureMultiplier < 0f)
+                return Fail("Mutation projectile values are invalid.", out error);
             if (spec.Speed <= 0f && spec.MoveType != ProjectileMoveType.INSTANT)
                 return Fail("A moving projectile requires a positive canonical speed.", out error);
             return true;

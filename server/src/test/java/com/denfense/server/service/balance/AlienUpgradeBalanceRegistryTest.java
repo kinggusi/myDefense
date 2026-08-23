@@ -20,7 +20,7 @@ class AlienUpgradeBalanceRegistryTest {
 
         assertThat(registry.getMaxLevel()).isEqualTo(50);
         assertThat(registry.getUpgradeCost(9).requiredGrowthCell()).isEqualTo(10);
-        assertThat(registry.getLevelStat(50).atkMultiplier()).isEqualByComparingTo("3.45");
+        assertThat(registry.getLevelStat(50).atkMultiplier()).isEqualByComparingTo("3.525");
         assertThrows(UnsupportedOperationException.class, () -> registry.getAllUpgradeCosts().clear());
         assertThrows(UnsupportedOperationException.class, () -> registry.getAllLevelStats().clear());
         assertThrows(IllegalStateException.class, () -> registry.init(costs(), stats()));
@@ -62,9 +62,10 @@ class AlienUpgradeBalanceRegistryTest {
         List<AlienLevelStatBalance> stats = new ArrayList<>();
         for (int level = 1; level <= 50; level++) {
             stats.add(new AlienLevelStatBalance(level,
-                    BigDecimal.ONE.add(BigDecimal.valueOf(level - 1).multiply(new BigDecimal("0.05"))),
+                    BigDecimal.ONE.add(BigDecimal.valueOf(level - 1).multiply(new BigDecimal("0.045")))
+                            .add(BigDecimal.valueOf(Math.min(level / 10, 4)).multiply(new BigDecimal("0.08"))),
                     BigDecimal.ONE.add(BigDecimal.valueOf(level - 1).multiply(new BigDecimal("0.03"))),
-                    BigDecimal.ONE.add(BigDecimal.valueOf(level / 10).multiply(new BigDecimal("0.02"))),
+                    BigDecimal.ONE.add(BigDecimal.valueOf(level - 1).multiply(new BigDecimal("0.005"))),
                     new BigDecimal("1.00")));
         }
         return stats;

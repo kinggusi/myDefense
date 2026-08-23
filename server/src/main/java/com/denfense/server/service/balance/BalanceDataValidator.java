@@ -87,6 +87,54 @@ public class BalanceDataValidator {
         }
     }
 
+    public void validateResonanceBalance(List<ResonanceBalance> rows) {
+        if (rows == null || rows.size() != 10) {
+            throw new IllegalStateException("ResonanceBalance must contain exactly 10 rows.");
+        }
+
+        Set<String> allowedTracks = Set.of("NORMAL", "MYTHIC");
+        Set<String> keys = new HashSet<>();
+        Map<String, List<ResonanceBalance>> byTrack = rows.stream()
+                .collect(Collectors.groupingBy(ResonanceBalance::track));
+        if (!byTrack.keySet().equals(allowedTracks)) {
+            throw new IllegalStateException("ResonanceBalance tracks must be NORMAL and MYTHIC.");
+        }
+
+        for (ResonanceBalance row : rows) {
+            if (row == null || !allowedTracks.contains(row.track())
+                    || row.level() < 1 || row.level() > 5
+                    || !keys.add(row.track() + ":" + row.level())
+                    || row.requiredGold() <= 0
+                    || !row.enabled()
+                    || row.attackMultiplier() == null || row.attackMultiplier().compareTo(BigDecimal.ONE) <= 0
+                    || row.attackSpeedMultiplier() == null || row.attackSpeedMultiplier().compareTo(BigDecimal.ONE) <= 0
+                    || row.rangeMultiplier() == null || row.rangeMultiplier().compareTo(BigDecimal.ONE) != 0) {
+                throw new IllegalStateException("Invalid ResonanceBalance row: " + row);
+            }
+        }
+
+        for (String track : allowedTracks) {
+            List<ResonanceBalance> ordered = byTrack.get(track).stream()
+                    .sorted(java.util.Comparator.comparingInt(ResonanceBalance::level))
+                    .toList();
+            int previousGold = 0;
+            BigDecimal previousAttack = BigDecimal.ONE;
+            BigDecimal previousSpeed = BigDecimal.ONE;
+            for (int index = 0; index < ordered.size(); index++) {
+                ResonanceBalance row = ordered.get(index);
+                if (row.level() != index + 1
+                        || row.requiredGold() <= previousGold
+                        || row.attackMultiplier().compareTo(previousAttack) <= 0
+                        || row.attackSpeedMultiplier().compareTo(previousSpeed) <= 0) {
+                    throw new IllegalStateException("ResonanceBalance must increase continuously: " + track);
+                }
+                previousGold = row.requiredGold();
+                previousAttack = row.attackMultiplier();
+                previousSpeed = row.attackSpeedMultiplier();
+            }
+        }
+    }
+
     public void validateAlienLevelStats(List<AlienLevelStatBalance> stats) {
         if (stats == null || stats.isEmpty()) {
             throw new IllegalStateException("AlienLevelStat 데이터가 비어 있습니다.");
@@ -112,6 +160,20 @@ public class BalanceDataValidator {
                     || stat.atkSpeedMultiplier().compareTo(BigDecimal.ONE) != 0
                     || stat.rangeMultiplier().compareTo(BigDecimal.ONE) != 0)) {
                 throw new IllegalStateException("level 1 multiplier는 모두 1.00이어야 합니다.");
+            }
+            int completedMilestones = Math.min(stat.level() / 10, 4);
+            BigDecimal expectedAttack = BigDecimal.ONE
+                    .add(BigDecimal.valueOf(stat.level() - 1L).multiply(new BigDecimal("0.045")))
+                    .add(BigDecimal.valueOf(completedMilestones).multiply(new BigDecimal("0.08")));
+            BigDecimal expectedMp = BigDecimal.ONE
+                    .add(BigDecimal.valueOf(stat.level() - 1L).multiply(new BigDecimal("0.03")));
+            BigDecimal expectedSpeed = BigDecimal.ONE
+                    .add(BigDecimal.valueOf(stat.level() - 1L).multiply(new BigDecimal("0.005")));
+            if (stat.atkMultiplier().compareTo(expectedAttack) != 0
+                    || stat.mpMultiplier().compareTo(expectedMp) != 0
+                    || stat.atkSpeedMultiplier().compareTo(expectedSpeed) != 0) {
+                throw new IllegalStateException("AlienLevelStat multiplier does not match the canonical growth policy at level "
+                        + stat.level() + ".");
             }
         }
         for (int level = 1; level <= maxLevel; level++) {
@@ -436,6 +498,9 @@ public class BalanceDataValidator {
         }
         for (Map.Entry<String, List<WaveSpecBalance>> entry : byMode.entrySet()) {
             List<Integer> waves = entry.getValue().stream().map(WaveSpecBalance::wave).sorted().toList();
+            if (waves.size() != 80) {
+                throw new IllegalStateException("COOP wave template must define exactly 80 waves for mode: " + entry.getKey());
+            }
             for (int expected = 1; expected <= waves.size(); expected++) {
                 if (waves.get(expected - 1) != expected) {
                     throw new IllegalStateException("Waves must be continuous from 1 for mode: " + entry.getKey());
@@ -443,6 +508,12 @@ public class BalanceDataValidator {
             }
             if (entry.getValue().stream().noneMatch(WaveSpecBalance::isBossWave)) {
                 throw new IllegalStateException("At least one boss wave is required for mode: " + entry.getKey());
+            }
+            for (WaveSpecBalance wave : entry.getValue()) {
+                if (wave.isBossWave() != (wave.wave() % 10 == 0)) {
+                    throw new IllegalStateException("Boss waves must be exactly waves 10,20,...,80: "
+                            + entry.getKey() + "/" + wave.wave());
+                }
             }
         }
 
@@ -523,6 +594,40 @@ public class BalanceDataValidator {
                     || limit.warningThreshold() >= limit.dangerThreshold()
                     || limit.dangerThreshold() >= limit.maxAliveMonsterCountPerField()) {
                 throw new IllegalStateException("Invalid field limit thresholds for mode: " + limit.modeId());
+            }
+        }
+    }
+
+    public void validatePlanetBattles(PlanetBattleBalanceDocument document) {
+        List<String> expectedOrder = List.of(
+                "NEPTUNE", "URANUS", "SATURN", "JUPITER", "MARS",
+                "EARTH", "VENUS", "MERCURY", "SUN");
+        List<BigDecimal> expectedHp = List.of(
+                new BigDecimal("1.00"), new BigDecimal("1.35"), new BigDecimal("1.80"),
+                new BigDecimal("2.40"), new BigDecimal("3.20"), new BigDecimal("4.30"),
+                new BigDecimal("5.80"), new BigDecimal("7.80"), new BigDecimal("11.00"));
+        List<BigDecimal> expectedSpeed = List.of(
+                new BigDecimal("1.00"), new BigDecimal("1.03"), new BigDecimal("1.06"),
+                new BigDecimal("1.09"), new BigDecimal("1.12"), new BigDecimal("1.15"),
+                new BigDecimal("1.18"), new BigDecimal("1.21"), new BigDecimal("1.25"));
+        if (document == null || document.planets() == null || document.planets().size() != expectedOrder.size()) {
+            throw new IllegalStateException("PlanetBattle must define exactly nine planets.");
+        }
+        List<PlanetBattleBalance> sorted = document.planets().stream()
+                .sorted(java.util.Comparator.comparingInt(PlanetBattleBalance::order)).toList();
+        Set<String> ids = new HashSet<>();
+        Set<Integer> orders = new HashSet<>();
+        for (int index = 0; index < sorted.size(); index++) {
+            PlanetBattleBalance planet = sorted.get(index);
+            requireText(planet.mapId(), "planet mapId");
+            if (!planet.enabled() || !ids.add(planet.mapId()) || !orders.add(planet.order())
+                    || planet.order() != index + 1 || !expectedOrder.get(index).equals(planet.mapId())
+                    || !positive(planet.hpMultiplier()) || !positive(planet.speedMultiplier())
+                    || planet.bossHpMultiplier() == null
+                    || planet.bossHpMultiplier().compareTo(new BigDecimal("3.00")) != 0
+                    || planet.hpMultiplier().compareTo(expectedHp.get(index)) != 0
+                    || planet.speedMultiplier().compareTo(expectedSpeed.get(index)) != 0) {
+                throw new IllegalStateException("Invalid PlanetBattle row: " + planet.mapId());
             }
         }
     }

@@ -17,14 +17,14 @@ import java.util.Map;
 
 public class BalanceExcelConverter {
 
-    private static final int ARGUMENT_COUNT = 18;
+    private static final int ARGUMENT_COUNT = 20;
 
     public static void main(String[] args) {
         if (args.length < ARGUMENT_COUNT) {
             System.err.println("Usage: convertBalance <excelPath> <rewardPath> <upgradeCostPath> <levelStatPath> "
-                    + "<specPath> <shopPath> <poolPath> <monsterPath> <wavePath> <waveSpawnPath> "
+                    + "<specPath> <shopPath> <poolPath> <monsterPath> <wavePath> <waveSpawnPath> <planetBattlePath> "
                     + "<fieldLimitPath> <summonPath> <summonPoolPath> <mergeRulePath> <mythicChoicePath>"
-                    + " <mutationSpecPath> <mutationConfigPath> <injectorPoolPath>");
+                    + " <mutationSpecPath> <mutationConfigPath> <injectorPoolPath> <resonancePath>");
             System.exit(1);
         }
 
@@ -107,6 +107,8 @@ public class BalanceExcelConverter {
                 new MergeRuleBalanceDocument(data.mergeRules()),
                 new MythicChoiceBalanceDocument(data.mythicChoices()),
                 data.alienSpecs());
+        validator.validatePlanetBattles(new PlanetBattleBalanceDocument(data.planetBattles()));
+        validator.validateResonanceBalance(data.resonanceBalances());
         validateMutationBalance(data);
     }
 
@@ -127,6 +129,7 @@ public class BalanceExcelConverter {
         documents.put(directory.resolve("monster-spec.json"), new MonsterSpecBalanceDocument(data.monsters()));
         documents.put(directory.resolve("wave-spec.json"), new WaveSpecBalanceDocument(data.waves()));
         documents.put(directory.resolve("wave-spawn.json"), new WaveSpawnBalanceDocument(data.waveSpawns()));
+        documents.put(directory.resolve("planet-battle-balance.json"), new PlanetBattleBalanceDocument(data.planetBattles()));
         documents.put(directory.resolve("field-limit.json"), new FieldLimitBalanceDocument(data.fieldLimits()));
         documents.put(directory.resolve("summon-balance.json"), new SummonBalanceDocument(data.summons()));
         documents.put(directory.resolve("merge-rules.json"), new MergeRuleBalanceDocument(data.mergeRules()));
@@ -135,6 +138,7 @@ public class BalanceExcelConverter {
         documents.put(directory.resolve("mutation-spec.json"), data.mutationSpecs());
         documents.put(directory.resolve("mutation-config.json"), data.mutationConfig());
         documents.put(directory.resolve("injector-pool.json"), data.injectorPools());
+        documents.put(directory.resolve("resonance-balance.json"), data.resonanceBalances());
         return documents;
     }
 
@@ -146,8 +150,16 @@ public class BalanceExcelConverter {
             if (!types.add(spec.mutationType()) || spec.weight() <= 0
                     || spec.attackMultiplier().signum() <= 0 || spec.mpMultiplier().signum() <= 0
                     || spec.attackSpeedMultiplier().signum() <= 0 || spec.rangeMultiplier().signum() <= 0
-                    || spec.goldMultiplier().signum() <= 0)
+                    || spec.goldMultiplier().signum() <= 0 || spec.bossDamageMultiplier().signum() <= 0
+                    || spec.slowMultiplier().signum() <= 0 || spec.gambleSuccessMultiplier().signum() <= 0
+                    || spec.gambleFailureMultiplier().signum() <= 0
+                    || spec.splashRadius().signum() < 0 || spec.splashDamageMultiplier().signum() < 0
+                    || spec.dotDamageMultiplier().signum() < 0 || spec.dotTickCount() < 0
+                    || spec.dotTickIntervalSeconds().signum() < 0 || spec.slowDurationSeconds().signum() < 0
+                    || spec.goldPerHit() < 0 || spec.gambleSuccessChance().signum() < 0
+                    || spec.gambleSuccessChance().compareTo(java.math.BigDecimal.ONE) > 0)
                 throw new IllegalStateException("Invalid MutationSpec: " + spec.mutationType());
+            validateMutationMechanic(spec);
         }
         if (!types.containsAll(java.util.Set.of("BERSERK", "GREEDY", "SWIFT", "GIANT", "OBESE", "TOXIC", "FROZEN", "BLANK")))
             throw new IllegalStateException("MutationSpec is missing a required mutation type.");
@@ -186,6 +198,37 @@ public class BalanceExcelConverter {
             throw new IllegalStateException("InjectorPool must be active with positive total weight.");
         if (!injectorEnabledTypes.equals(poolTypes))
             throw new IllegalStateException("MutationSpec injectorEnabled types must exactly match InjectorPool types.");
+    }
+
+    private static void validateMutationMechanic(MutationSpecBalance spec) {
+        String expected = switch (spec.mutationType()) {
+            case "GIANT" -> "SPLASH";
+            case "BERSERK" -> "BOSS_SINGLE";
+            case "SWIFT" -> "ATTACK_SPEED";
+            case "TOXIC" -> "DOT";
+            case "GREEDY" -> "ECONOMY";
+            case "OBESE" -> "GAMBLE";
+            case "FROZEN" -> "SLOW";
+            case "BLANK" -> "NONE";
+            default -> null;
+        };
+        if (!java.util.Objects.equals(expected, spec.mechanic()))
+            throw new IllegalStateException("Mutation mechanic mismatch: " + spec.mutationType());
+        if ("SPLASH".equals(expected) && (spec.splashRadius().signum() <= 0 || spec.splashDamageMultiplier().signum() <= 0))
+            throw new IllegalStateException("GIANT requires splash values.");
+        if ("BOSS_SINGLE".equals(expected) && spec.bossDamageMultiplier().compareTo(java.math.BigDecimal.ONE) <= 0)
+            throw new IllegalStateException("BERSERK requires a boss multiplier.");
+        if ("DOT".equals(expected) && (spec.dotDamageMultiplier().signum() <= 0 || spec.dotTickCount() <= 0 || spec.dotTickIntervalSeconds().signum() <= 0))
+            throw new IllegalStateException("TOXIC requires DoT values.");
+        if ("SLOW".equals(expected) && (spec.slowMultiplier().compareTo(java.math.BigDecimal.ONE) >= 0 || spec.slowDurationSeconds().signum() <= 0))
+            throw new IllegalStateException("FROZEN requires slow values.");
+        if ("ECONOMY".equals(expected) && spec.goldPerHit() <= 0)
+            throw new IllegalStateException("GREEDY requires goldPerHit.");
+        if ("GAMBLE".equals(expected) && (spec.gambleSuccessChance().signum() <= 0
+                || spec.gambleSuccessChance().compareTo(java.math.BigDecimal.ONE) >= 0
+                || spec.gambleSuccessMultiplier().compareTo(java.math.BigDecimal.ONE) <= 0
+                || spec.gambleFailureMultiplier().compareTo(java.math.BigDecimal.ONE) >= 0))
+            throw new IllegalStateException("OBESE requires gamble values.");
     }
 
     private static List<Long> readCanonicalMythicChoiceExcludedAlienIds() throws IOException {

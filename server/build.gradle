@@ -89,6 +89,7 @@ task convertBalance(type: JavaExec) {
     def monsterPath = project.hasProperty('monsterPath') ? project.property('monsterPath') : "${project.projectDir}/src/main/resources/balance/generated/monster-spec.json"
     def wavePath = project.hasProperty('wavePath') ? project.property('wavePath') : "${project.projectDir}/src/main/resources/balance/generated/wave-spec.json"
     def waveSpawnPath = project.hasProperty('waveSpawnPath') ? project.property('waveSpawnPath') : "${project.projectDir}/src/main/resources/balance/generated/wave-spawn.json"
+    def planetBattlePath = project.hasProperty('planetBattlePath') ? project.property('planetBattlePath') : "${project.projectDir}/src/main/resources/balance/generated/planet-battle-balance.json"
     def fieldLimitPath = project.hasProperty('fieldLimitPath') ? project.property('fieldLimitPath') : "${project.projectDir}/src/main/resources/balance/generated/field-limit.json"
     def summonPath = project.hasProperty('summonPath') ? project.property('summonPath') : "${project.projectDir}/src/main/resources/balance/generated/summon-balance.json"
     def summonPoolPath = project.hasProperty('summonPoolPath') ? project.property('summonPoolPath') : "${project.projectDir}/src/main/resources/balance/generated/summon-pools.json"
@@ -97,10 +98,11 @@ task convertBalance(type: JavaExec) {
     def mutationSpecPath = project.hasProperty('mutationSpecPath') ? project.property('mutationSpecPath') : "${project.projectDir}/src/main/resources/balance/generated/mutation-spec.json"
     def mutationConfigPath = project.hasProperty('mutationConfigPath') ? project.property('mutationConfigPath') : "${project.projectDir}/src/main/resources/balance/generated/mutation-config.json"
     def injectorPoolPath = project.hasProperty('injectorPoolPath') ? project.property('injectorPoolPath') : "${project.projectDir}/src/main/resources/balance/generated/injector-pool.json"
+    def resonancePath = project.hasProperty('resonancePath') ? project.property('resonancePath') : "${project.projectDir}/src/main/resources/balance/generated/resonance-balance.json"
 
     args = [excelPath, rewardPath, upgradePath, levelStatPath, specPath, shopPath, poolPath,
-            monsterPath, wavePath, waveSpawnPath, fieldLimitPath, summonPath, summonPoolPath, mergeRulePath, mythicChoicePath,
-            mutationSpecPath, mutationConfigPath, injectorPoolPath]
+            monsterPath, wavePath, waveSpawnPath, planetBattlePath, fieldLimitPath, summonPath, summonPoolPath, mergeRulePath, mythicChoicePath,
+            mutationSpecPath, mutationConfigPath, injectorPoolPath, resonancePath]
 }
 
 task balanceToolTest(type: Test) {
@@ -159,7 +161,7 @@ tasks.register('syncCanonicalBalanceToUnity') {
         }
 
         def requiredRuntimeFiles = [
-                'monster-spec.json', 'wave-spec.json', 'wave-spawn.json', 'field-limit.json'
+                'monster-spec.json', 'wave-spec.json', 'wave-spawn.json', 'planet-battle-balance.json', 'field-limit.json'
         ] as Set
         def names = new LinkedHashSet<String>()
         def verifiedEntries = []

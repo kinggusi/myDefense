@@ -4,7 +4,7 @@
       "spawnGroupId" : "WAVE_01",
       "order" : 1,
       "monsterId" : "NORMAL_MONSTER",
-      "spawnCountPerField" : 10,
+      "spawnCountPerField" : 12,
       "startDelaySeconds" : 0.00,
       "spawnIntervalSeconds" : 1.00,
       "lanePolicy" : "EACH_FIELD"
@@ -13,7 +13,7 @@
       "spawnGroupId" : "WAVE_02",
       "order" : 1,
       "monsterId" : "NORMAL_MONSTER",
-      "spawnCountPerField" : 10,
+      "spawnCountPerField" : 13,
       "startDelaySeconds" : 0.00,
       "spawnIntervalSeconds" : 1.00,
       "lanePolicy" : "EACH_FIELD"
@@ -22,7 +22,7 @@
       "spawnGroupId" : "WAVE_03",
       "order" : 1,
       "monsterId" : "NORMAL_MONSTER",
-      "spawnCountPerField" : 10,
+      "spawnCountPerField" : 13,
       "startDelaySeconds" : 0.00,
       "spawnIntervalSeconds" : 1.00,
       "lanePolicy" : "EACH_FIELD"
@@ -31,7 +31,7 @@
       "spawnGroupId" : "WAVE_04",
       "order" : 1,
       "monsterId" : "NORMAL_MONSTER",
-      "spawnCountPerField" : 10,
+      "spawnCountPerField" : 14,
       "startDelaySeconds" : 0.00,
       "spawnIntervalSeconds" : 1.00,
       "lanePolicy" : "EACH_FIELD"
@@ -40,17 +40,8 @@
       "spawnGroupId" : "WAVE_05",
       "order" : 1,
       "monsterId" : "NORMAL_MONSTER",
-      "spawnCountPerField" : 8,
+      "spawnCountPerField" : 14,
       "startDelaySeconds" : 0.00,
-      "spawnIntervalSeconds" : 1.00,
-      "lanePolicy" : "EACH_FIELD"
-    },
-    {
-      "spawnGroupId" : "WAVE_05",
-      "order" : 2,
-      "monsterId" : "ELITE_MONSTER",
-      "spawnCountPerField" : 2,
-      "startDelaySeconds" : 4.00,
       "spawnIntervalSeconds" : 1.00,
       "lanePolicy" : "EACH_FIELD"
     },
@@ -58,7 +49,7 @@
       "spawnGroupId" : "WAVE_06",
       "order" : 1,
       "monsterId" : "NORMAL_MONSTER",
-      "spawnCountPerField" : 10,
+      "spawnCountPerField" : 15,
       "startDelaySeconds" : 0.00,
       "spawnIntervalSeconds" : 1.00,
       "lanePolicy" : "EACH_FIELD"
@@ -67,7 +58,7 @@
       "spawnGroupId" : "WAVE_07",
       "order" : 1,
       "monsterId" : "NORMAL_MONSTER",
-      "spawnCountPerField" : 10,
+      "spawnCountPerField" : 15,
       "startDelaySeconds" : 0.00,
       "spawnIntervalSeconds" : 1.00,
       "lanePolicy" : "EACH_FIELD"
@@ -76,13 +67,211 @@
       "spawnGroupId" : "WAVE_08",
       "order" : 1,
       "monsterId" : "NORMAL_MONSTER",
-      "spawnCountPerField" : 8,
+      "spawnCountPerField" : 16,
       "startDelaySeconds" : 0.00,
       "spawnIntervalSeconds" : 1.00,
       "lanePolicy" : "EACH_FIELD"
     },
     {
-      "spawnGroupId" : "WAVE_08",
+      "spawnGroupId" : "WAVE_09",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 16,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_10_BOSS",
+      "order" : 1,
+      "monsterId" : "WAVE_BOSS",
+      "spawnCountPerField" : 1,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "BOSS_SHARED"
+    },
+    {
+      "spawnGroupId" : "WAVE_11",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 17,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_11",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 1,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_12",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 18,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_12",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 1,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_13",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 18,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_13",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 1,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_14",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 19,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_14",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 1,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_15",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 19,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_15",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 1,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_16",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 20,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_16",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 1,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_17",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 20,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_17",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 1,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_18",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 21,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_18",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 1,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_19",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 21,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_19",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 1,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_20_BOSS",
+      "order" : 1,
+      "monsterId" : "WAVE_BOSS",
+      "spawnCountPerField" : 1,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "BOSS_SHARED"
+    },
+    {
+      "spawnGroupId" : "WAVE_21",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 22,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_21",
       "order" : 2,
       "monsterId" : "ELITE_MONSTER",
       "spawnCountPerField" : 2,
@@ -91,16 +280,1006 @@
       "lanePolicy" : "EACH_FIELD"
     },
     {
-      "spawnGroupId" : "WAVE_09",
+      "spawnGroupId" : "WAVE_22",
       "order" : 1,
       "monsterId" : "NORMAL_MONSTER",
-      "spawnCountPerField" : 10,
+      "spawnCountPerField" : 22,
       "startDelaySeconds" : 0.00,
       "spawnIntervalSeconds" : 1.00,
       "lanePolicy" : "EACH_FIELD"
     },
     {
-      "spawnGroupId" : "WAVE_10_BOSS",
+      "spawnGroupId" : "WAVE_22",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 3,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_23",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 22,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_23",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 3,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_24",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 23,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_24",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 3,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_25",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 23,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_25",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 3,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_26",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 24,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_26",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 3,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_27",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 24,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_27",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 3,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_28",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 25,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_28",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 3,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_29",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 25,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_29",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 3,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_30_BOSS",
+      "order" : 1,
+      "monsterId" : "WAVE_BOSS",
+      "spawnCountPerField" : 1,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "BOSS_SHARED"
+    },
+    {
+      "spawnGroupId" : "WAVE_31",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 25,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_31",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 5,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_32",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 26,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_32",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 5,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_33",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 26,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_33",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 5,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_34",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 27,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_34",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 5,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_35",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 27,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_35",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 5,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_36",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 28,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_36",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 5,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_37",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 28,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_37",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 5,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_38",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 29,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_38",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 5,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_39",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 29,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_39",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 5,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_40_BOSS",
+      "order" : 1,
+      "monsterId" : "WAVE_BOSS",
+      "spawnCountPerField" : 1,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "BOSS_SHARED"
+    },
+    {
+      "spawnGroupId" : "WAVE_41",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 29,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_41",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 7,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_42",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 30,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_42",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 7,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_43",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 30,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_43",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 7,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_44",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 30,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_44",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 8,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_45",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 30,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_45",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 8,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_46",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 31,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_46",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 8,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_47",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 31,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_47",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 8,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_48",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 32,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_48",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 8,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_49",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 32,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_49",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 8,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_50_BOSS",
+      "order" : 1,
+      "monsterId" : "WAVE_BOSS",
+      "spawnCountPerField" : 1,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "BOSS_SHARED"
+    },
+    {
+      "spawnGroupId" : "WAVE_51",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 31,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_51",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 11,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_52",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 32,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_52",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 11,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_53",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 32,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_53",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 11,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_54",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 33,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_54",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 11,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_55",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 33,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_55",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 11,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_56",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 34,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_56",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 11,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_57",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 34,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_57",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 11,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_58",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 34,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_58",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 12,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_59",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 34,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_59",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 12,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_60_BOSS",
+      "order" : 1,
+      "monsterId" : "WAVE_BOSS",
+      "spawnCountPerField" : 1,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "BOSS_SHARED"
+    },
+    {
+      "spawnGroupId" : "WAVE_61",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 34,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_61",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 14,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_62",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 34,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_62",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 15,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_63",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 34,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_63",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 15,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_64",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 35,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_64",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 15,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_65",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 35,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_65",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 15,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_66",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 36,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_66",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 15,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_67",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 36,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_67",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 15,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_68",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 36,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_68",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 16,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_69",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 36,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_69",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 16,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_70_BOSS",
+      "order" : 1,
+      "monsterId" : "WAVE_BOSS",
+      "spawnCountPerField" : 1,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "BOSS_SHARED"
+    },
+    {
+      "spawnGroupId" : "WAVE_71",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 35,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_71",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 19,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_72",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 36,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_72",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 19,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_73",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 36,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_73",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 20,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_74",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 36,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_74",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 20,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_75",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 37,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_75",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 20,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_76",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 38,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_76",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 20,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_77",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 38,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_77",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 21,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_78",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 38,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_78",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 21,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_79",
+      "order" : 1,
+      "monsterId" : "NORMAL_MONSTER",
+      "spawnCountPerField" : 39,
+      "startDelaySeconds" : 0.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_79",
+      "order" : 2,
+      "monsterId" : "ELITE_MONSTER",
+      "spawnCountPerField" : 21,
+      "startDelaySeconds" : 4.00,
+      "spawnIntervalSeconds" : 1.00,
+      "lanePolicy" : "EACH_FIELD"
+    },
+    {
+      "spawnGroupId" : "WAVE_80_BOSS",
       "order" : 1,
       "monsterId" : "WAVE_BOSS",
       "spawnCountPerField" : 1,

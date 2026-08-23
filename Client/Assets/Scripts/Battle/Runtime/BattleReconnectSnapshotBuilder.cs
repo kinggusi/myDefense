@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using MyDefense.Shared.Contracts;
 using MyDefense.Battle.Balance;
+using MyDefense.Battle.Balance.Canonical;
 using UnityEngine;
 
 namespace MyDefense.Battle.Runtime
@@ -64,6 +65,8 @@ namespace MyDefense.Battle.Runtime
                 connectionState = authority.GetPlayerConnectionState(playerSlot),
                 inGameGold = authority.GetInGameGoldForPlayerSlot(playerSlot),
                 currentKidnapCost = kidnapCost,
+                normalResonanceLevel = authority.GetResonanceLevel(playerSlot, CanonicalResonanceTrack.NORMAL),
+                mythicResonanceLevel = authority.GetResonanceLevel(playerSlot, CanonicalResonanceTrack.MYTHIC),
                 eliminatedWave = eliminated ? eliminatedWave : (int?)null
             };
         }
@@ -89,9 +92,9 @@ namespace MyDefense.Battle.Runtime
                         gridY = slot % 6,
                         alienSpecId = injector ? null : authority.GetBoardAlienId(playerSlot, slot),
                         grade = injector ? null : GradeName(authority.GetBoardGrade(playerSlot, slot)),
-                        pendingMutationType = mutationState == 2 ? mutationType : null,
+                        pendingMutationType = ResolvePendingMutationType(mutationState, mutationType),
                         activeMutationType = mutationState == 3 ? mutationType : null,
-                        mutationRerollCount = 0,
+                        mutationRerollCount = authority.GetBoardMutationRerollCount(playerSlot, slot),
                         mutationType = injector ? mutationType : null,
                         mutationState = (BattleMutationState)mutationState
                     });
@@ -99,6 +102,11 @@ namespace MyDefense.Battle.Runtime
             }
             return result.ToArray();
         }
+
+        public static string ResolvePendingMutationType(byte mutationState, string mutationType)
+            => mutationState == (byte)BattleMutationState.PENDING || mutationState == (byte)BattleMutationState.SEALED
+                ? mutationType
+                : null;
 
         private static BattleMythicChoiceSnapshot[] CreateMythicChoices(BattleWaveStateAuthority authority)
         {

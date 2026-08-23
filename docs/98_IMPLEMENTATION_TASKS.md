@@ -344,45 +344,45 @@ P0-1-1~4 → P0-1-5 → P0-1-6
 
 | Task ID | 담당 | 상태 | Codex 작업 |
 |---|---|---|---|
-| P1-1-1 | jjangash | 대기 | 순수 Mythic Mutation 버튼 상태 구현 |
-| P1-1-2 | jjangash | 대기 | 최초 Mutation 300골드 차감·랜덤 추첨 |
-| P1-1-3 | jjangash | 대기 | 재변이 비용 `600→1,200→2,400→4,800` 구현 |
-| P1-1-4 | jjangash | 대기 | 현재 Mutation을 재추첨 후보에서 제외 |
-| P1-1-5 | jjangash | 대기 | Mutation된 Mythic에 Injector 사용 시 무료 교체 |
-| P1-1-6 | kinggusi | 대기 | Mutation별 외형·Animation·Effect 연결 |
+| P1-1-1 | jjangash | 검증 대기 | 순수 Mythic Mutation 버튼 상태 구현 |
+| P1-1-2 | jjangash | 검증 대기 | 최초 Mutation 300골드 차감·랜덤 추첨 |
+| P1-1-3 | jjangash | 검증 대기 | 재변이 비용 `600→1,200→2,400→4,800` 구현 |
+| P1-1-4 | jjangash | 검증 대기 | 현재 Mutation을 재추첨 후보에서 제외 |
+| P1-1-5 | jjangash | 검증 대기 | Mutation된 Mythic에 Injector 사용 시 무료 교체 |
+| P1-1-6 | kinggusi | 검증 대기 | Mutation별 외형·Animation·Effect 연결 |
 
 ### P1-2 Mutation StatCalculator
 
 | Task ID | 담당 | 상태 | Codex 작업 |
 |---|---|---|---|
-| P1-2-1 | jjangash | 대기 | 8종 Mutation 스탯 데이터 스키마 정의 |
-| P1-2-2 | jjangash | 대기 | 공격력·공격속도·사거리 계산 구현 |
-| P1-2-3 | jjangash | 대기 | 지속 피해·경제형·도박형 계산 계약 구현 |
-| P1-2-4 | kinggusi | 대기 | 지속 피해 Hit 적용 |
-| P1-2-5 | kinggusi | 대기 | 상태 이상 이동·공격 효과 적용 |
-| P1-2-6 | kinggusi | 대기 | 광역·단일 Boss형 공격 메커니즘 구현 |
+| P1-2-1 | jjangash | 검증 대기 | 8종 Mutation 스탯 데이터 스키마 정의 |
+| P1-2-2 | jjangash | 검증 대기 | 공격력·공격속도·사거리 계산 구현 |
+| P1-2-3 | jjangash | 검증 대기 | 지속 피해·경제형·도박형 계산 계약 구현 |
+| P1-2-4 | kinggusi | 검증 대기 | 지속 피해 Hit 적용 |
+| P1-2-5 | kinggusi | 검증 대기 | 상태 이상 이동·공격 효과 적용 |
+| P1-2-6 | kinggusi | 검증 대기 | 광역·단일 Boss형 공격 메커니즘 구현 |
 
 ### P1-3 영구·인게임 강화
 
 | Task ID | 담당 | 상태 | Codex 작업 |
 |---|---|---|---|
-| P1-3-1 | jjangash | 부분 완료 | 영구 강화 레벨·공격 성장 공식 최종 확정 |
-| P1-3-2 | jjangash | 부분 완료 | 레벨별 Gold·조각·성장 세포 Balance 최종 조정 |
-| P1-3-3 | jjangash | 부분 완료 | 영구 강화 서버 검증·Transaction 마감 |
-| P1-3-4 | jjangash | 대기 | 일반 공명 인게임 강화 구현 |
-| P1-3-5 | jjangash | 대기 | 신화 공명 인게임 강화 구현 |
-| P1-3-6 | kinggusi | 부분 완료 | 강화된 Snapshot을 공격 동작에 적용 |
+| P1-3-1 | jjangash | 완료 | 영구 강화 레벨·공격 성장 공식 최종 확정 |
+| P1-3-2 | jjangash | 완료 | 레벨별 Gold·조각·성장 세포 Balance 최종 조정 |
+| P1-3-3 | jjangash | 완료 | 영구 강화 서버 검증·Transaction 마감 |
+| P1-3-4 | jjangash | 검증 대기 | 일반 공명 인게임 강화 구현 |
+| P1-3-5 | jjangash | 검증 대기 | 신화 공명 인게임 강화 구현 |
+| P1-3-6 | kinggusi | 검증 대기 | 강화된 Snapshot을 공격 동작에 적용 |
 
 ### P1-4 행성·Monster·Boss 밸런스
 
 | Task ID | 담당 | 상태 | Codex 작업 |
 |---|---|---|---|
-| P1-4-1 | kinggusi | 대기 | 수성~태양 Monster·Boss 구성안 작성 |
-| P1-4-2 | kinggusi | 대기 | 행성별 HP·속도·Boss 패턴 초안 작성 |
+| P1-4-1 | kinggusi | 완료 | 수성~태양 Monster·Boss 구성안 작성 |
+| P1-4-2 | kinggusi | 완료 | 행성별 HP·속도·Boss 패턴 초안 작성 |
 | P1-4-3 | jjangash | 완료 | Battle·Monster·Wave Balance JSON 스키마 기반 제공 |
 | P1-4-4 | jjangash | 완료 | Battle Excel 변환·검증·Manifest 기반 제공 |
-| P1-4-5 | kinggusi | 부분 완료 | Canonical Balance를 Battle 실행기에 최종 연결 |
-| P1-4-6 | kinggusi | 대기 | 권장 스펙 기준 전투 난이도 플레이 테스트 |
+| P1-4-5 | kinggusi | 완료 | Canonical Balance를 Battle 실행기에 최종 연결 |
+| P1-4-6 | kinggusi | 검증 대기 | 권장 스펙 기준 전투 난이도 플레이 테스트 |
 
 ### P1-5 Settlement 보상
 
@@ -393,9 +393,12 @@ P0-1-1~4 → P0-1-5 → P0-1-6
 | P1-5-3 | jjangash | 완료 | 관전·이탈·미복귀 자격 판정 구현 |
 | P1-5-4 | jjangash | 완료 | 영구 재화 지급 Transaction 구현 |
 | P1-5-5 | jjangash | 완료 | 기존 멱등 저장을 영구 보상 중복 지급 방지까지 확장 |
-| P1-5-6 | kinggusi | 대기 | 실제 전투 종료 결과와 서버 응답 대조 테스트 |
+| P1-5-6 | kinggusi | 부분 완료 | 실제 전투 종료 결과와 서버 응답 대조 테스트 | P1-5-7 |
+| P1-5-7 | Shared | 대기 | 인증된 matchmaking/Fusion Session authority를 Spring trusted roster adapter에 연결 | 인증·매치 Session 계약 |
 
 > 8-1 보상 정책 구현 메모: 행성별 80 Wave를 기준으로 `highestClearedWave`(마지막으로 완전히 클리어한 Wave)에 따라 패배/재클리어 Gold를 계산한다. Wave 10~80 체크포인트는 최초 1회만 Gold·Universal Piece를 지급하고, Wave 80 최초 클리어는 행성별 Diamond를 1회 지급한다. 관전자와 연결이 유지된 탈락자는 지급 대상이며, 명시적 이탈/120초 초과 미복귀는 지급하지 않는다. 보상 Balance는 `BattleReward` Excel 시트와 `battle-reward.json`으로 관리한다. 현재 Settlement 서버는 Runtime이 확정한 `abandoned` 플래그를 영속화하므로, 실제 연결·120초 미복귀 판정은 P1-5-6의 authoritative Fusion Summary 연동에서 검증해야 한다. P1-5-6은 Unity/Fusion 실제 종료 Summary와 이 서버 계약의 종단 간 대조가 남아 있다.
+
+> P1 자동 구현·검증 기록(2026-08-02): Mutation 활성화/재변이/Injector, 8종 전투 효과, 영구 강화 Balance, 일반·신화 공명, 9행성·80 Wave·10 Wave 간격 Boss, Settlement HTTP 계약을 구현했다. Boss 공통 패턴 템플릿은 모든 canonical Boss Wave ID로 확장되며 Spawn 시 phase 1, HP 50%에서 이동속도 1.35배가 적용된다. Settlement는 신뢰된 matchmaking/session authority가 사전 등록한 2인 roster와 canonical 완료 Wave별 Spawn/Kill 총계를 대조한 뒤에만 영구 보상을 지급한다. 공개 Attack Snapshot API는 roster를 등록하지 않으며, 신뢰된 provider가 없는 현재 런타임에서는 안전하게 보상을 거부한다. 이미 저장된 동일 정산은 roster 만료·서버 재시작 후에도 기존 결과를 멱등 반환한다. Server 296/296, BalanceTool 70/70, Unity EditMode 359/359, Battle Scene validate issue 0을 통과했다. 실제 Fusion Host/Standalone Client에서의 Mutation·공명·행성 난이도는 `docs/P1_INTEGRATION_TEST_SCENARIO.md` 사용자 통합 게이트로 남기며, 정상 Settlement E2E는 P1-5-7 선행 후 수행한다.
 
 ---
 

@@ -1,7 +1,12 @@
 using System.Reflection;
 using System.Linq;
+using System.Collections.Generic;
 using Fusion;
 using MyDefense.Battle;
+using MyDefense.Battle.Balance;
+using MyDefense.Battle.Balance.Canonical;
+using MyDefense.Battle.Runtime;
+using MyDefense.Shared.Contracts;
 using NUnit.Framework;
 using Assert = NUnit.Framework.Assert;
 
@@ -149,6 +154,111 @@ namespace MyDefense.Battle.Tests
                 Is.EqualTo(MyDefense.Shared.Contracts.BattleMutationState.SEALED));
             Assert.That(BattleWaveStateAuthority.ResolveMythicMutationState(33, null),
                 Is.EqualTo(MyDefense.Shared.Contracts.BattleMutationState.NONE));
+        }
+
+        [Test]
+        public void MutationAuthorityExposesNetworkedRerollStateAndRpcEntryPoint()
+        {
+            Assert.That(typeof(BattleWaveStateAuthority).GetProperty(
+                "Player1BoardMutationRerollCounts", BindingFlags.Instance | BindingFlags.NonPublic), Is.Not.Null);
+            Assert.That(typeof(BattleWaveStateAuthority).GetProperty(
+                "Player2BoardMutationRerollCounts", BindingFlags.Instance | BindingFlags.NonPublic), Is.Not.Null);
+            Assert.That(typeof(BattleWaveStateAuthority).GetMethod(nameof(BattleWaveStateAuthority.RequestMutation)), Is.Not.Null);
+            Assert.That(typeof(BattleWaveStateAuthority).GetMethod(nameof(BattleWaveStateAuthority.GetBoardMutationRerollCount)), Is.Not.Null);
+            Assert.That(typeof(BattleWaveStateAuthority).GetMethod(
+                "ApplyMutationRequest", BindingFlags.Instance | BindingFlags.NonPublic), Is.Not.Null);
+        }
+
+        [Test]
+        public void CanonicalMutationCostsFollowInitialAndCappedRerollSequence()
+        {
+            var config = new CanonicalMutationConfig("DEFAULT", 300, 600, 1200, 2400, 4800, 4800, 0);
+            Assert.That(BattleWaveExecutor.TryGetCanonicalMutationCost(config, true, 0, out int initial), Is.True);
+            Assert.That(initial, Is.EqualTo(300));
+            int[] expected = { 600, 1200, 2400, 4800, 4800, 4800 };
+            for (int rerollCount = 0; rerollCount < expected.Length; rerollCount++)
+            {
+                Assert.That(BattleWaveExecutor.TryGetCanonicalMutationCost(config, false, rerollCount, out int cost), Is.True);
+                Assert.That(cost, Is.EqualTo(expected[rerollCount]));
+            }
+        }
+
+        [Test]
+        public void CanonicalMutationRandomIncludesBlankAndRerollExcludesCurrentType()
+        {
+            var specs = new List<CanonicalMutationSpec>
+            {
+                Mutation("BLANK", 1),
+                Mutation("BERSERK", 1),
+                Mutation("SWIFT", 1)
+            };
+            Assert.That(BattleWaveExecutor.TryResolveCanonicalMutation(specs, 0, null, out string initial), Is.True);
+            Assert.That(initial, Is.EqualTo("BLANK"));
+            for (ulong seed = 0; seed < 12; seed++)
+            {
+                Assert.That(BattleWaveExecutor.TryResolveCanonicalMutation(specs, seed, "BERSERK", out string rerolled), Is.True);
+                Assert.That(rerolled, Is.Not.EqualTo("BERSERK"));
+            }
+        }
+
+        [Test]
+        public void InjectorCanReplaceActiveUnlockedMythicButNeverSealedMythic()
+        {
+            Assert.That(BattleWaveStateAuthority.CanApplyInjectorToTarget(4, BattleMutationState.ACTIVE, true), Is.True);
+            Assert.That(BattleWaveStateAuthority.CanApplyInjectorToTarget(4, BattleMutationState.NONE, true), Is.True);
+            Assert.That(BattleWaveStateAuthority.CanApplyInjectorToTarget(4, BattleMutationState.SEALED, false), Is.False);
+            Assert.That(BattleWaveStateAuthority.CanApplyInjectorToTarget(4, BattleMutationState.ACTIVE, false), Is.False);
+            Assert.That(BattleWaveStateAuthority.CanApplyInjectorToTarget(3, BattleMutationState.PENDING, true), Is.False);
+        }
+
+        [Test]
+        public void ReconnectSnapshotPreservesPendingAndSealedMutationDna()
+        {
+            Assert.That(BattleReconnectSnapshotBuilder.ResolvePendingMutationType(
+                (byte)BattleMutationState.PENDING, "TOXIC"), Is.EqualTo("TOXIC"));
+            Assert.That(BattleReconnectSnapshotBuilder.ResolvePendingMutationType(
+                (byte)BattleMutationState.SEALED, "FROZEN"), Is.EqualTo("FROZEN"));
+            Assert.That(BattleReconnectSnapshotBuilder.ResolvePendingMutationType(
+                (byte)BattleMutationState.ACTIVE, "SWIFT"), Is.Null);
+        }
+
+        private static CanonicalMutationSpec Mutation(string type, int weight)
+            => new(type, true, type != "BLANK", true, weight, 1f, 1f, 1f, 1f, 1f);
+
+        [Test]
+        public void BossPatternRuntime_TriggersSpawnAndHpThresholdExactlyOnce()
+        {
+            var patterns = new List<MyDefense.Battle.Balance.BossPatternSpecData>
+            {
+                new("COOP_STANDARD:10", 1, MyDefense.Battle.Balance.BossPatternType.SET_PHASE, MyDefense.Battle.Balance.BossTriggerType.ON_SPAWN, 0f, 0f, null, "phase", 1f, true),
+                new("COOP_STANDARD:10", 2, MyDefense.Battle.Balance.BossPatternType.SET_MOVE_SPEED_MULTIPLIER, MyDefense.Battle.Balance.BossTriggerType.HP_PERCENT, 50f, 0f, null, "speed", 1.25f, true)
+            };
+            var runtime = new BattleBossPatternRuntime(patterns);
+            var triggered = new List<int>();
+
+            runtime.Tick(0f, 1f, pattern => triggered.Add(pattern.PatternOrder));
+            runtime.Tick(1f, 0.5f, pattern => triggered.Add(pattern.PatternOrder));
+            runtime.Tick(2f, 0.4f, pattern => triggered.Add(pattern.PatternOrder));
+
+            Assert.That(triggered, Is.EqualTo(new[] { 1, 2 }));
+            Assert.That(runtime.CompletedCount, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void BossPatternRuntime_LoopHonorsCanonicalCooldown()
+        {
+            var runtime = new BattleBossPatternRuntime(new[]
+            {
+                new MyDefense.Battle.Balance.BossPatternSpecData("COOP_STANDARD:20", 1, MyDefense.Battle.Balance.BossPatternType.CAST_SKILL, MyDefense.Battle.Balance.BossTriggerType.LOOP, 2f, 3f, "SKILL_BASIC", null, 0f, true)
+            });
+            int triggered = 0;
+
+            runtime.Tick(1f, 1f, _ => triggered++);
+            runtime.Tick(2f, 1f, _ => triggered++);
+            runtime.Tick(4f, 1f, _ => triggered++);
+            runtime.Tick(5f, 1f, _ => triggered++);
+
+            Assert.That(triggered, Is.EqualTo(2));
         }
 
         [Test]

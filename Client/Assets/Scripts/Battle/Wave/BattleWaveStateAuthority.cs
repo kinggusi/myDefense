@@ -15,7 +15,7 @@ namespace MyDefense.Battle
     /// </summary>
     [RequireComponent(typeof(NetworkObject))]
     [RequireComponent(typeof(BattleWaveExecutor))]
-    public sealed class BattleWaveStateAuthority : NetworkBehaviour
+    public sealed partial class BattleWaveStateAuthority : NetworkBehaviour
     {
         private const byte MutationStateNone = 0;
         private const byte MutationStateInjector = 1;
@@ -33,6 +33,14 @@ namespace MyDefense.Battle
             if (string.IsNullOrWhiteSpace(inheritedMutation)) return BattleMutationState.NONE;
             bool eligible = BattleMergeResultResolver.TryGetMythicMutationEligibility(alienId, out bool value) && value;
             return eligible ? BattleMutationState.ACTIVE : BattleMutationState.SEALED;
+        }
+
+        public static bool CanApplyInjectorToTarget(byte grade, BattleMutationState mutationState, bool mythicEligible)
+        {
+            if (grade > 4 || (grade == 4 && !mythicEligible))
+                return false;
+            return mutationState == BattleMutationState.NONE
+                || (grade == 4 && mutationState == BattleMutationState.ACTIVE);
         }
 
         private const int DefaultInitialInGameGold = 100000;
@@ -92,6 +100,8 @@ namespace MyDefense.Battle
         [Networked, Capacity(24)] private NetworkArray<NetworkString<_16>> Player2BoardMutationTypes => default;
         [Networked, Capacity(24)] private NetworkArray<byte> Player1BoardMutationStates => default;
         [Networked, Capacity(24)] private NetworkArray<byte> Player2BoardMutationStates => default;
+        [Networked, Capacity(24)] private NetworkArray<byte> Player1BoardMutationRerollCounts => default;
+        [Networked, Capacity(24)] private NetworkArray<byte> Player2BoardMutationRerollCounts => default;
         [Networked] private NetworkBool Player1MythicChoiceActive { get; set; }
         [Networked] private NetworkBool Player2MythicChoiceActive { get; set; }
         [Networked] private int Player1MythicChoiceSlot { get; set; }
@@ -242,6 +252,27 @@ namespace MyDefense.Battle
 
         public int GetTeamInGameGold() => TeamInGameGold;
 
+        /// <summary>
+        /// Awards an authority-calculated Mutation economy hit. The projectile
+        /// carries only canonical GoldPerHit and this method owns the replicated ledger.
+        /// </summary>
+        public bool TryAwardMutationHitGold(int playerSlot, int amount)
+        {
+            if (!HasStateAuthority || !IsSpawnedForAccess || amount <= 0 || (playerSlot != 1 && playerSlot != 2))
+                return false;
+            if (playerSlot == 1)
+            {
+                Player1InGameGold = AddGoldSafely(Player1InGameGold, amount);
+                Player1InGameGoldEarned = AddGoldSafely(Player1InGameGoldEarned, amount);
+            }
+            else
+            {
+                Player2InGameGold = AddGoldSafely(Player2InGameGold, amount);
+                Player2InGameGoldEarned = AddGoldSafely(Player2InGameGoldEarned, amount);
+            }
+            return true;
+        }
+
         public bool IsBoardOccupied(int playerSlot, int slotIndex)
         {
             if (!IsValidBoardIndex(slotIndex))
@@ -286,6 +317,35 @@ namespace MyDefense.Battle
 
         public bool IsBoardMutationSealed(int playerSlot, int slotIndex)
             => GetBoardMutationState(playerSlot, slotIndex) == MutationStateSealed;
+
+        public int GetBoardMutationRerollCount(int playerSlot, int slotIndex)
+        {
+            if (!IsValidBoardIndex(slotIndex)) return 0;
+            return playerSlot == 1 ? Player1BoardMutationRerollCounts[slotIndex]
+                : playerSlot == 2 ? Player2BoardMutationRerollCounts[slotIndex] : 0;
+        }
+
+        public bool TryGetMutationAction(int playerSlot, int slotIndex, out bool initialActivation, out int cost)
+        {
+            initialActivation = false;
+            cost = 0;
+            if (_executor == null || !IsValidBoardIndex(slotIndex) || !IsBoardOccupied(playerSlot, slotIndex)
+                || IsBoardInjector(playerSlot, slotIndex) || GetBoardGrade(playerSlot, slotIndex) != 4
+                || !BattleMergeResultResolver.TryGetMythicMutationEligibility(GetBoardAlienId(playerSlot, slotIndex), out bool eligible)
+                || !eligible)
+                return false;
+
+            byte state = GetBoardMutationState(playerSlot, slotIndex);
+            if (state == MutationStateNone)
+                initialActivation = true;
+            else if (state != MutationStateActive || string.IsNullOrWhiteSpace(GetBoardMutationType(playerSlot, slotIndex)))
+                return false;
+
+            return _executor.TryGetCanonicalMutationCost(
+                initialActivation,
+                GetBoardMutationRerollCount(playerSlot, slotIndex),
+                out cost);
+        }
 
         public int GetNetworkedPlayerSlot(PlayerRef playerRef)
         {
@@ -587,6 +647,19 @@ namespace MyDefense.Battle
             RPC_RequestMythicReroll();
         }
 
+        public void RequestMutation(int slotIndex)
+        {
+            if (!IsSpawnedForAccess || Object == null || !Object.IsValid || !IsValidBoardIndex(slotIndex))
+                return;
+            if (HasStateAuthority)
+            {
+                if (TryResolvePlayerSlot(Runner.LocalPlayer, out int playerSlot))
+                    ApplyMutationRequest(playerSlot, slotIndex);
+                return;
+            }
+            RPC_RequestMutation(slotIndex);
+        }
+
         [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
         private void RPC_RequestMergeOrSwap(int sourceSlotIndex, int targetSlotIndex, RpcInfo info = default)
         {
@@ -631,21 +704,24 @@ namespace MyDefense.Battle
             NetworkArray<byte> grades = playerSlot == 1 ? Player1BoardGrades : Player2BoardGrades;
             NetworkArray<NetworkString<_16>> mutations = playerSlot == 1 ? Player1BoardMutationTypes : Player2BoardMutationTypes;
             NetworkArray<byte> mutationStates = playerSlot == 1 ? Player1BoardMutationStates : Player2BoardMutationStates;
+            NetworkArray<byte> mutationRerolls = playerSlot == 1 ? Player1BoardMutationRerollCounts : Player2BoardMutationRerollCounts;
             string mutationType = mutations[sourceSlotIndex].ToString();
+            byte targetMutationState = mutationStates[targetSlotIndex];
+            bool mythicEligible = grades[targetSlotIndex] != 4
+                || (BattleMergeResultResolver.TryGetMythicMutationEligibility(alienIds[targetSlotIndex], out bool eligible) && eligible);
             if (!board[sourceSlotIndex] || mutationStates[sourceSlotIndex] != MutationStateInjector
                 || string.IsNullOrWhiteSpace(mutationType) || !board[targetSlotIndex]
                 || alienIds[targetSlotIndex] <= 0 || grades[targetSlotIndex] > 4
-                || mutationStates[targetSlotIndex] != MutationStateNone) return;
-            if (grades[targetSlotIndex] == 4
-                && (!BattleMergeResultResolver.TryGetMythicMutationEligibility(alienIds[targetSlotIndex], out bool eligible)
-                    || !eligible)) return;
+                || !CanApplyInjectorToTarget(grades[targetSlotIndex], (BattleMutationState)targetMutationState, mythicEligible)) return;
             board.Set(sourceSlotIndex, false);
             alienIds.Set(sourceSlotIndex, 0);
             grades.Set(sourceSlotIndex, 0);
             mutations.Set(sourceSlotIndex, default);
             mutationStates.Set(sourceSlotIndex, MutationStateNone);
+            mutationRerolls.Set(sourceSlotIndex, 0);
             mutations.Set(targetSlotIndex, mutationType);
             mutationStates.Set(targetSlotIndex, grades[targetSlotIndex] == 4 ? MutationStateActive : MutationStatePending);
+            mutationRerolls.Set(targetSlotIndex, 0);
             RPC_MutationApplied(playerSlot, sourceSlotIndex, targetSlotIndex, mutationType);
             Debug.Log($"[Fusion] Mutation Injector applied: player={playerSlot}, source={sourceSlotIndex}, target={targetSlotIndex}, mutation={mutationType}.");
         }
@@ -667,6 +743,43 @@ namespace MyDefense.Battle
         private void RPC_RequestMythicReroll(RpcInfo info = default)
         {
             if (TryResolvePlayerSlot(info.Source, out int playerSlot)) ApplyMythicReroll(playerSlot);
+        }
+
+        [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+        private void RPC_RequestMutation(int slotIndex, RpcInfo info = default)
+        {
+            if (TryResolvePlayerSlot(info.Source, out int playerSlot))
+                ApplyMutationRequest(playerSlot, slotIndex);
+        }
+
+        private void ApplyMutationRequest(int playerSlot, int slotIndex)
+        {
+            if (!HasStateAuthority || _executor == null || IsMythicChoiceActive(playerSlot)
+                || !TryGetMutationAction(playerSlot, slotIndex, out bool initialActivation, out int cost))
+                return;
+
+            LaneType lane = playerSlot == 1 ? LaneType.Player1Lane : playerSlot == 2 ? LaneType.Player2Lane : (LaneType)(-1);
+            if (!IsPlayerActionAllowed(lane))
+                return;
+
+            string currentMutation = initialActivation ? null : GetBoardMutationType(playerSlot, slotIndex);
+            int rerollCount = GetBoardMutationRerollCount(playerSlot, slotIndex);
+            ulong tick = Runner == null ? 0UL : (ulong)Runner.Tick.Raw;
+            ulong seed = tick ^ (ulong)(playerSlot * 1009 + slotIndex * 131 + rerollCount * 8191 + (initialActivation ? 17 : 37));
+            if (!_executor.TryResolveCanonicalMutation(seed, currentMutation, out string nextMutation)
+                || string.IsNullOrWhiteSpace(nextMutation)
+                || (!initialActivation && string.Equals(nextMutation, currentMutation, StringComparison.OrdinalIgnoreCase))
+                || !TrySpendGold(lane, cost, out int remainingGold))
+                return;
+
+            NetworkArray<NetworkString<_16>> mutations = playerSlot == 1 ? Player1BoardMutationTypes : Player2BoardMutationTypes;
+            NetworkArray<byte> states = playerSlot == 1 ? Player1BoardMutationStates : Player2BoardMutationStates;
+            NetworkArray<byte> rerolls = playerSlot == 1 ? Player1BoardMutationRerollCounts : Player2BoardMutationRerollCounts;
+            mutations.Set(slotIndex, nextMutation);
+            states.Set(slotIndex, MutationStateActive);
+            rerolls.Set(slotIndex, initialActivation ? (byte)0 : (byte)Math.Min(byte.MaxValue, rerollCount + 1));
+            RPC_MutationApplied(playerSlot, -1, slotIndex, nextMutation);
+            Debug.Log($"[Fusion] Mythic Mutation {(initialActivation ? "activated" : "rerolled")}: player={playerSlot}, slot={slotIndex}, mutation={nextMutation}, cost={cost}, remaining={remainingGold}.");
         }
 
         [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
@@ -693,6 +806,7 @@ namespace MyDefense.Battle
             NetworkArray<byte> grades = playerSlot == 1 ? Player1BoardGrades : Player2BoardGrades;
             NetworkArray<NetworkString<_16>> mutations = playerSlot == 1 ? Player1BoardMutationTypes : Player2BoardMutationTypes;
             NetworkArray<byte> mutationStates = playerSlot == 1 ? Player1BoardMutationStates : Player2BoardMutationStates;
+            NetworkArray<byte> mutationRerolls = playerSlot == 1 ? Player1BoardMutationRerollCounts : Player2BoardMutationRerollCounts;
             if (!board[fromSlotIndex] || board[toSlotIndex])
                 return;
 
@@ -708,6 +822,8 @@ namespace MyDefense.Battle
             mutations.Set(fromSlotIndex, default);
             mutationStates.Set(toSlotIndex, mutationStates[fromSlotIndex]);
             mutationStates.Set(fromSlotIndex, MutationStateNone);
+            mutationRerolls.Set(toSlotIndex, mutationRerolls[fromSlotIndex]);
+            mutationRerolls.Set(fromSlotIndex, 0);
             RPC_BoardChanged(playerSlot, fromSlotIndex, toSlotIndex, false, alienId, grade);
         }
 
@@ -723,6 +839,7 @@ namespace MyDefense.Battle
             NetworkArray<byte> grades = playerSlot == 1 ? Player1BoardGrades : Player2BoardGrades;
             NetworkArray<NetworkString<_16>> mutations = playerSlot == 1 ? Player1BoardMutationTypes : Player2BoardMutationTypes;
             NetworkArray<byte> mutationStates = playerSlot == 1 ? Player1BoardMutationStates : Player2BoardMutationStates;
+            NetworkArray<byte> mutationRerolls = playerSlot == 1 ? Player1BoardMutationRerollCounts : Player2BoardMutationRerollCounts;
             if (!board[sourceSlotIndex] || !board[targetSlotIndex]) return;
 
             long sourceAlienId = alienIds[sourceSlotIndex];
@@ -740,6 +857,9 @@ namespace MyDefense.Battle
             byte sourceMutationState = mutationStates[sourceSlotIndex];
             mutationStates.Set(sourceSlotIndex, mutationStates[targetSlotIndex]);
             mutationStates.Set(targetSlotIndex, sourceMutationState);
+            byte sourceMutationRerolls = mutationRerolls[sourceSlotIndex];
+            mutationRerolls.Set(sourceSlotIndex, mutationRerolls[targetSlotIndex]);
+            mutationRerolls.Set(targetSlotIndex, sourceMutationRerolls);
             RPC_BoardSwapped(playerSlot, sourceSlotIndex, targetSlotIndex);
         }
 
@@ -756,6 +876,7 @@ namespace MyDefense.Battle
             NetworkArray<byte> grades = playerSlot == 1 ? Player1BoardGrades : Player2BoardGrades;
             NetworkArray<NetworkString<_16>> mutations = playerSlot == 1 ? Player1BoardMutationTypes : Player2BoardMutationTypes;
             NetworkArray<byte> mutationStates = playerSlot == 1 ? Player1BoardMutationStates : Player2BoardMutationStates;
+            NetworkArray<byte> mutationRerolls = playerSlot == 1 ? Player1BoardMutationRerollCounts : Player2BoardMutationRerollCounts;
             if (!CanMerge(
                     sourceSlotIndex,
                     targetSlotIndex,
@@ -778,11 +899,13 @@ namespace MyDefense.Battle
                 mutations.Set(targetSlotIndex, ResolveInheritedMutation(sourceMutation, targetMutation, seed));
                 mutationStates.Set(targetSlotIndex, string.IsNullOrWhiteSpace(mutations[targetSlotIndex].ToString())
                     ? MutationStateNone : MutationStatePending);
+                mutationRerolls.Set(targetSlotIndex, 0);
                 board.Set(sourceSlotIndex, false);
                 alienIds.Set(sourceSlotIndex, 0);
                 grades.Set(sourceSlotIndex, 0);
                 mutations.Set(sourceSlotIndex, default);
                 mutationStates.Set(sourceSlotIndex, MutationStateNone);
+                mutationRerolls.Set(sourceSlotIndex, 0);
                 RPC_BoardChanged(playerSlot, sourceSlotIndex, targetSlotIndex, true, 0, 3);
                 Debug.Log($"[Fusion] Mythic choice opened: slot={playerSlot}, target={targetSlotIndex}, candidates={string.Join(",", candidates)}.");
                 return;
@@ -795,12 +918,14 @@ namespace MyDefense.Battle
             grades.Set(sourceSlotIndex, 0);
             mutations.Set(sourceSlotIndex, default);
             mutationStates.Set(sourceSlotIndex, MutationStateNone);
+            mutationRerolls.Set(sourceSlotIndex, 0);
             alienIds.Set(targetSlotIndex, resultAlienId);
             grades.Set(targetSlotIndex, resultGrade);
             string inheritedMutation = ResolveInheritedMutation(sourceMutation, targetMutation, seed);
             mutations.Set(targetSlotIndex, inheritedMutation);
             mutationStates.Set(targetSlotIndex, string.IsNullOrWhiteSpace(inheritedMutation)
                 ? MutationStateNone : MutationStatePending);
+            mutationRerolls.Set(targetSlotIndex, 0);
             RPC_BoardChanged(playerSlot, sourceSlotIndex, targetSlotIndex, true, resultAlienId, resultGrade);
             Debug.Log($"[Fusion] Merge request authorized: slot={playerSlot}, source={sourceSlotIndex}, target={targetSlotIndex}, alienId={alienIds[targetSlotIndex]}, grade={grades[targetSlotIndex]}.");
         }
@@ -873,11 +998,13 @@ namespace MyDefense.Battle
             NetworkArray<byte> grades = playerSlot == 1 ? Player1BoardGrades : Player2BoardGrades;
             NetworkArray<NetworkString<_16>> mutations = playerSlot == 1 ? Player1BoardMutationTypes : Player2BoardMutationTypes;
             NetworkArray<byte> mutationStates = playerSlot == 1 ? Player1BoardMutationStates : Player2BoardMutationStates;
+            NetworkArray<byte> mutationRerolls = playerSlot == 1 ? Player1BoardMutationRerollCounts : Player2BoardMutationRerollCounts;
             if (!board[targetSlot] || grades[targetSlot] != 3) return;
             alienIds.Set(targetSlot, candidates[candidateIndex]);
             grades.Set(targetSlot, 4);
             string inheritedMutation = mutations[targetSlot].ToString();
             mutationStates.Set(targetSlot, (byte)ResolveMythicMutationState(candidates[candidateIndex], inheritedMutation));
+            mutationRerolls.Set(targetSlot, 0);
             if (playerSlot == 1)
             {
                 Player1MythicChoiceActive = false;
@@ -1052,6 +1179,8 @@ namespace MyDefense.Battle
                 Player2BoardMutationTypes.Set(index, default);
                 Player1BoardMutationStates.Set(index, MutationStateNone);
                 Player2BoardMutationStates.Set(index, MutationStateNone);
+                Player1BoardMutationRerollCounts.Set(index, 0);
+                Player2BoardMutationRerollCounts.Set(index, 0);
             }
             for (int index = 0; index < 3; index++)
             {
@@ -1100,6 +1229,7 @@ namespace MyDefense.Battle
             NetworkArray<long> alienIds = identity.PlayerSlot == 1 ? Player1BoardAlienIds : Player2BoardAlienIds;
             NetworkArray<NetworkString<_16>> mutationTypes = identity.PlayerSlot == 1 ? Player1BoardMutationTypes : Player2BoardMutationTypes;
             NetworkArray<byte> mutationStates = identity.PlayerSlot == 1 ? Player1BoardMutationStates : Player2BoardMutationStates;
+            NetworkArray<byte> mutationRerolls = identity.PlayerSlot == 1 ? Player1BoardMutationRerollCounts : Player2BoardMutationRerollCounts;
             int slotIndex = FindFirstEmptyBoardSlot(board);
             if (slotIndex < 0)
             {
@@ -1138,6 +1268,7 @@ namespace MyDefense.Battle
             alienIds.Set(slotIndex, kidnapResult.AlienId);
             mutationTypes.Set(slotIndex, kidnapResult.MutationType ?? default);
             mutationStates.Set(slotIndex, kidnapResult.IsInjector ? MutationStateInjector : MutationStateNone);
+            mutationRerolls.Set(slotIndex, 0);
             byte gradeCode = kidnapResult.IsInjector ? byte.MaxValue : kidnapResult.GradeCode;
             if (identity.PlayerSlot == 1) Player1BoardGrades.Set(slotIndex, gradeCode);
             else Player2BoardGrades.Set(slotIndex, gradeCode);

@@ -51,12 +51,12 @@ class BalanceDataLoaderIntegrationTest {
         // 3. UpgradeCostPolicy 연동 확인
         UpgradeCost cost1 = upgradeCostPolicy.calculate(1);
         assertThat(cost1.getRequiredPieces()).isEqualTo(5);
-        assertThat(cost1.getRequiredGold()).isEqualTo(100);
+        assertThat(cost1.getRequiredGold()).isEqualTo(500);
         assertThat(cost1.getRequiredGrowthCell()).isEqualTo(0);
         
         UpgradeCost cost10 = upgradeCostPolicy.calculate(10);
         assertThat(cost10.getRequiredPieces()).isEqualTo(50);
-        assertThat(cost10.getRequiredGold()).isEqualTo(1000);
+        assertThat(cost10.getRequiredGold()).isEqualTo(3000);
         assertThat(cost10.getRequiredGrowthCell()).isEqualTo(10);
     }
 

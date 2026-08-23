@@ -76,9 +76,9 @@ public class CreateExcelTemplate {
         for (int level = 1; level <= 50; level++) {
             Row row = levelStat.createRow(level);
             row.createCell(0).setCellValue(level);
-            row.createCell(1).setCellValue(1 + (level - 1) * 0.05);
+            row.createCell(1).setCellValue(1 + (level - 1) * 0.045 + Math.min(level / 10, 4) * 0.08);
             row.createCell(2).setCellValue(1 + (level - 1) * 0.03);
-            row.createCell(3).setCellValue(1 + (level / 10) * 0.02);
+            row.createCell(3).setCellValue(1 + (level - 1) * 0.005);
             row.createCell(4).setCellValue(1.0);
         }
         

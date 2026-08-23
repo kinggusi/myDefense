@@ -81,12 +81,14 @@ namespace MyDefense.Battle.Balance.Canonical
             CanonicalBalanceContract.MonsterFileName,
             CanonicalBalanceContract.WaveFileName,
             CanonicalBalanceContract.WaveSpawnFileName,
+            CanonicalBalanceContract.PlanetBattleFileName,
             CanonicalBalanceContract.FieldLimitFileName,
             CanonicalBalanceContract.SummonFileName,
             CanonicalBalanceContract.SummonPoolFileName
             , CanonicalBalanceContract.MutationSpecFileName
             , CanonicalBalanceContract.MutationConfigFileName
             , CanonicalBalanceContract.InjectorPoolFileName
+            , CanonicalBalanceContract.ResonanceFileName
         };
 
         public static CanonicalBalanceLoadResult Load(
@@ -162,6 +164,7 @@ namespace MyDefense.Battle.Balance.Canonical
             MonsterDocumentJson monsterDocument = ParseDocument<MonsterDocumentJson>(fileBytes, CanonicalBalanceContract.MonsterFileName, errors);
             WaveDocumentJson waveDocument = ParseDocument<WaveDocumentJson>(fileBytes, CanonicalBalanceContract.WaveFileName, errors);
             WaveSpawnDocumentJson spawnDocument = ParseDocument<WaveSpawnDocumentJson>(fileBytes, CanonicalBalanceContract.WaveSpawnFileName, errors);
+            PlanetBattleDocumentJson planetDocument = ParseDocument<PlanetBattleDocumentJson>(fileBytes, CanonicalBalanceContract.PlanetBattleFileName, errors);
             FieldLimitDocumentJson fieldLimitDocument = ParseDocument<FieldLimitDocumentJson>(fileBytes, CanonicalBalanceContract.FieldLimitFileName, errors);
             SummonDocumentJson summonDocument = names.Contains(CanonicalBalanceContract.SummonFileName)
                 ? ParseDocument<SummonDocumentJson>(fileBytes, CanonicalBalanceContract.SummonFileName, errors)
@@ -170,17 +173,22 @@ namespace MyDefense.Battle.Balance.Canonical
             MutationSpecJson[] mutationSpecDocument = ParseArrayJson<MutationSpecJson>(fileBytes[CanonicalBalanceContract.MutationSpecFileName], CanonicalBalanceContract.MutationSpecFileName, errors);
             MutationConfigJson mutationConfigDocument = ParseJson<MutationConfigJson>(fileBytes[CanonicalBalanceContract.MutationConfigFileName], CanonicalBalanceContract.MutationConfigFileName, errors);
             InjectorPoolJson[] injectorPoolDocument = ParseArrayJson<InjectorPoolJson>(fileBytes[CanonicalBalanceContract.InjectorPoolFileName], CanonicalBalanceContract.InjectorPoolFileName, errors);
+            ResonanceJson[] resonanceDocument = names.Contains(CanonicalBalanceContract.ResonanceFileName)
+                ? ParseArrayJson<ResonanceJson>(fileBytes[CanonicalBalanceContract.ResonanceFileName], CanonicalBalanceContract.ResonanceFileName, errors)
+                : Array.Empty<ResonanceJson>();
             if (errors.Count > 0) return Invalid(errors);
 
             List<CanonicalMonsterSpec> monsters = BuildMonsters(monsterDocument.monsters, runtimeMapping, errors);
             List<CanonicalWaveSpec> waves = BuildWaves(waveDocument.waves, errors);
             List<CanonicalWaveSpawn> spawns = BuildSpawns(spawnDocument.spawns, errors);
+            List<CanonicalPlanetBattle> planets = BuildPlanetBattles(planetDocument.planets, errors);
             List<CanonicalFieldLimit> fieldLimits = BuildFieldLimits(fieldLimitDocument.fieldLimits, errors);
             CanonicalSummonBalance summon = BuildSummon(summonDocument?.summons, errors);
             IReadOnlyDictionary<string, CanonicalSummonPool> summonPools = BuildSummonPools(summonPoolDocument?.pools, errors);
             List<CanonicalMutationSpec> mutationSpecs = BuildMutationSpecs(mutationSpecDocument, errors);
             CanonicalMutationConfig mutationConfig = BuildMutationConfig(mutationConfigDocument, errors);
             List<CanonicalInjectorPoolEntry> injectorPool = BuildInjectorPool(injectorPoolDocument, errors);
+            CanonicalResonanceRegistry resonance = BuildResonance(resonanceDocument, errors);
             ValidateRelationships(monsters, waves, spawns, errors);
             if (errors.Count > 0) return Invalid(errors);
 
@@ -188,6 +196,7 @@ namespace MyDefense.Battle.Balance.Canonical
             var waveRegistry = new CanonicalWaveRegistry(waves);
             var spawnRegistry = new CanonicalWaveSpawnRegistry(spawns);
             var fieldLimitRegistry = new CanonicalFieldLimitRegistry(fieldLimits);
+            var planetRegistry = new CanonicalPlanetBattleRegistry(planets);
             var runtimeWaves = new List<WaveSpecData>();
             var runtimeSpawns = new List<WaveSpawnSpecData>();
             foreach (CanonicalWaveSpec wave in waves)
@@ -222,7 +231,7 @@ namespace MyDefense.Battle.Balance.Canonical
             var runtimeWaveDocument = new BattleBalanceDocument<WaveSpecData>(manifest.SchemaVersion, manifest.BalanceVersion, manifest.ContentHash, runtimeWaves);
             var runtimeSpawnDocument = new BattleBalanceDocument<WaveSpawnSpecData>(manifest.SchemaVersion, manifest.BalanceVersion, manifest.ContentHash, runtimeSpawns);
             return new CanonicalBalanceLoadResult(
-                new CanonicalBalanceBundle(manifest, monsterRegistry, waveRegistry, spawnRegistry, fieldLimitRegistry, summon, summonPools, mutationSpecs, mutationConfig, injectorPool, runtimeWaveDocument, runtimeSpawnDocument),
+                new CanonicalBalanceBundle(manifest, monsterRegistry, waveRegistry, spawnRegistry, fieldLimitRegistry, planetRegistry, summon, summonPools, mutationSpecs, mutationConfig, injectorPool, resonance, runtimeWaveDocument, runtimeSpawnDocument),
                 errors);
         }
 
@@ -280,11 +289,54 @@ namespace MyDefense.Battle.Balance.Canonical
                 { errors.Add("MutationSpec must have unique positive-weight mutationType."); continue; }
                 if (raw.attackMultiplier <= 0 || raw.mpMultiplier <= 0 || raw.attackSpeedMultiplier <= 0 || raw.rangeMultiplier <= 0 || raw.goldMultiplier <= 0)
                     errors.Add("MutationSpec multipliers must be positive: " + raw.mutationType + ".");
+                ValidateMutationMechanic(raw, errors);
                 result.Add(new CanonicalMutationSpec(raw.mutationType, raw.enabled, raw.injectorEnabled, raw.randomActivationEnabled, raw.weight,
-                    raw.attackMultiplier, raw.mpMultiplier, raw.attackSpeedMultiplier, raw.rangeMultiplier, raw.goldMultiplier));
+                    raw.attackMultiplier, raw.mpMultiplier, raw.attackSpeedMultiplier, raw.rangeMultiplier, raw.goldMultiplier,
+                    raw.mechanic, raw.splashRadius, raw.splashDamageMultiplier, raw.bossDamageMultiplier,
+                    raw.dotDamageMultiplier, raw.dotTickCount, raw.dotTickIntervalSeconds,
+                    raw.slowMultiplier, raw.slowDurationSeconds, raw.goldPerHit,
+                    raw.gambleSuccessChance, raw.gambleSuccessMultiplier, raw.gambleFailureMultiplier));
             }
             if (result.Count != 8) errors.Add("MutationSpec must contain exactly 8 rows.");
             return result;
+        }
+
+        private static void ValidateMutationMechanic(MutationSpecJson raw, List<string> errors)
+        {
+            string expected = raw.mutationType switch
+            {
+                "GIANT" => "SPLASH",
+                "BERSERK" => "BOSS_SINGLE",
+                "SWIFT" => "ATTACK_SPEED",
+                "TOXIC" => "DOT",
+                "GREEDY" => "ECONOMY",
+                "OBESE" => "GAMBLE",
+                "FROZEN" => "SLOW",
+                "BLANK" => "NONE",
+                _ => null
+            };
+            if (expected == null || !string.Equals(raw.mechanic, expected, StringComparison.Ordinal))
+                errors.Add("MutationSpec mechanic does not match mutationType: " + raw.mutationType + ".");
+            if (raw.bossDamageMultiplier <= 0f || raw.slowMultiplier <= 0f
+                || raw.gambleSuccessMultiplier <= 0f || raw.gambleFailureMultiplier <= 0f
+                || raw.splashRadius < 0f || raw.splashDamageMultiplier < 0f
+                || raw.dotDamageMultiplier < 0f || raw.dotTickCount < 0 || raw.dotTickIntervalSeconds < 0f
+                || raw.slowDurationSeconds < 0f || raw.goldPerHit < 0
+                || raw.gambleSuccessChance < 0f || raw.gambleSuccessChance > 1f)
+                errors.Add("MutationSpec mechanic values are invalid: " + raw.mutationType + ".");
+            if (expected == "SPLASH" && (raw.splashRadius <= 0f || raw.splashDamageMultiplier <= 0f))
+                errors.Add("GIANT requires positive splash settings.");
+            if (expected == "BOSS_SINGLE" && raw.bossDamageMultiplier <= 1f)
+                errors.Add("BERSERK requires bossDamageMultiplier greater than one.");
+            if (expected == "DOT" && (raw.dotDamageMultiplier <= 0f || raw.dotTickCount <= 0 || raw.dotTickIntervalSeconds <= 0f))
+                errors.Add("TOXIC requires positive DoT settings.");
+            if (expected == "SLOW" && (raw.slowMultiplier >= 1f || raw.slowDurationSeconds <= 0f))
+                errors.Add("FROZEN requires a slowing multiplier and duration.");
+            if (expected == "ECONOMY" && raw.goldPerHit <= 0)
+                errors.Add("GREEDY requires positive goldPerHit.");
+            if (expected == "GAMBLE" && (raw.gambleSuccessChance <= 0f || raw.gambleSuccessChance >= 1f
+                || raw.gambleSuccessMultiplier <= 1f || raw.gambleFailureMultiplier >= 1f))
+                errors.Add("OBESE requires valid gamble success/failure settings.");
         }
 
         private static CanonicalMutationConfig BuildMutationConfig(MutationConfigJson raw, List<string> errors)
@@ -306,6 +358,56 @@ namespace MyDefense.Battle.Balance.Canonical
             }
             if (result.Count == 0) errors.Add("Injector pool must not be empty.");
             return result;
+        }
+
+        private static CanonicalResonanceRegistry BuildResonance(ResonanceJson[] source, List<string> errors)
+        {
+            if (source == null || source.Length == 0)
+                return new CanonicalResonanceRegistry(Array.Empty<CanonicalResonanceLevel>());
+
+            var result = new List<CanonicalResonanceLevel>();
+            var keys = new HashSet<string>(StringComparer.Ordinal);
+            foreach (ResonanceJson raw in source)
+            {
+                if (raw == null
+                    || !Enum.TryParse(raw.track, false, out CanonicalResonanceTrack track)
+                    || raw.level < 1 || raw.level > CanonicalResonanceRegistry.MaxLevel
+                    || !keys.Add(raw.track + ":" + raw.level)
+                    || raw.requiredGold <= 0
+                    || raw.attackMultiplier <= 1f
+                    || raw.attackSpeedMultiplier <= 1f
+                    || Math.Abs(raw.rangeMultiplier - 1f) > 0.0001f
+                    || !raw.enabled)
+                {
+                    errors.Add("Invalid ResonanceBalance row: " + (raw?.track ?? "<null>") + ":" + (raw?.level ?? 0) + ".");
+                    continue;
+                }
+                result.Add(new CanonicalResonanceLevel(track, raw.level, raw.requiredGold,
+                    raw.attackMultiplier, raw.attackSpeedMultiplier, raw.rangeMultiplier));
+            }
+
+            var registry = new CanonicalResonanceRegistry(result);
+            if (!registry.IsComplete || result.Count != 10)
+                errors.Add("ResonanceBalance must contain NORMAL and MYTHIC levels 1 through 5 exactly once.");
+
+            foreach (CanonicalResonanceTrack track in Enum.GetValues(typeof(CanonicalResonanceTrack)))
+            {
+                int previousCost = 0;
+                float previousAttack = 1f;
+                float previousSpeed = 1f;
+                for (int level = 1; level <= CanonicalResonanceRegistry.MaxLevel; level++)
+                {
+                    if (!registry.TryGet(track, level, out CanonicalResonanceLevel value)) continue;
+                    if (value.RequiredGold <= previousCost
+                        || value.AttackMultiplier <= previousAttack
+                        || value.AttackSpeedMultiplier <= previousSpeed)
+                        errors.Add("ResonanceBalance costs and multipliers must increase by level: " + track + ".");
+                    previousCost = value.RequiredGold;
+                    previousAttack = value.AttackMultiplier;
+                    previousSpeed = value.AttackSpeedMultiplier;
+                }
+            }
+            return registry;
         }
 
         private static CanonicalSummonBalance BuildSummon(SummonJson[] source, List<string> errors)
@@ -383,7 +485,33 @@ namespace MyDefense.Battle.Balance.Canonical
                 result.Add(new CanonicalWaveSpec(raw.modeId, raw.wave, raw.hpMultiplier, raw.interWaveDelaySeconds, raw.isBossWave, raw.bossTimeLimitSeconds, raw.spawnGroupId, raw.enabled));
             }
             if (result.Count == 0) errors.Add("Canonical WaveSpec must not be empty.");
+            ValidateStandardWaveProgression(result, errors);
             return result;
+        }
+
+        private static void ValidateStandardWaveProgression(List<CanonicalWaveSpec> waves, List<string> errors)
+        {
+            List<CanonicalWaveSpec> standard = waves
+                .FindAll(wave => wave != null
+                    && wave.Enabled
+                    && string.Equals(wave.ModeId, CanonicalBalanceContract.DefaultModeId, StringComparison.Ordinal));
+            if (standard.Count != 80)
+            {
+                errors.Add("COOP_STANDARD must contain exactly 80 enabled waves.");
+                return;
+            }
+
+            standard.Sort((left, right) => left.Wave.CompareTo(right.Wave));
+            for (int index = 0; index < standard.Count; index++)
+            {
+                int expectedWave = index + 1;
+                CanonicalWaveSpec wave = standard[index];
+                if (wave.Wave != expectedWave)
+                    errors.Add("COOP_STANDARD waves must be continuous from 1 through 80.");
+                bool expectedBoss = expectedWave % 10 == 0;
+                if (wave.IsBossWave != expectedBoss)
+                    errors.Add("COOP_STANDARD Boss waves must be exactly every tenth wave: " + expectedWave + ".");
+            }
         }
 
         private static List<CanonicalWaveSpawn> BuildSpawns(WaveSpawnJson[] source, List<string> errors)
@@ -428,6 +556,40 @@ namespace MyDefense.Battle.Balance.Canonical
                 result.Add(new CanonicalFieldLimit(raw.modeId, raw.playerCount, raw.maxAliveMonsterCountPerField, raw.warningThreshold, raw.dangerThreshold));
             }
             if (result.Count == 0) errors.Add("Canonical FieldLimit must not be empty.");
+            return result;
+        }
+
+        private static List<CanonicalPlanetBattle> BuildPlanetBattles(PlanetBattleJson[] source, List<string> errors)
+        {
+            string[] expectedIds = { "NEPTUNE", "URANUS", "SATURN", "JUPITER", "MARS", "EARTH", "VENUS", "MERCURY", "SUN" };
+            float[] expectedHp = { 1f, 1.35f, 1.8f, 2.4f, 3.2f, 4.3f, 5.8f, 7.8f, 11f };
+            float[] expectedSpeed = { 1f, 1.03f, 1.06f, 1.09f, 1.12f, 1.15f, 1.18f, 1.21f, 1.25f };
+            var result = new List<CanonicalPlanetBattle>();
+            var ids = new HashSet<string>(StringComparer.Ordinal);
+            foreach (PlanetBattleJson raw in source ?? Array.Empty<PlanetBattleJson>())
+            {
+                if (raw == null) { errors.Add("PlanetBattle contains null row."); continue; }
+                string mapId = raw.mapId?.Trim();
+                if (string.IsNullOrWhiteSpace(mapId)) errors.Add("PlanetBattle.mapId is required.");
+                else if (!ids.Add(mapId)) errors.Add("Duplicate canonical PlanetBattle mapId: " + mapId + ".");
+                if (raw.order < 1 || raw.hpMultiplier <= 0f || raw.speedMultiplier <= 0f || raw.bossHpMultiplier <= 0f)
+                    errors.Add("PlanetBattle order and multipliers must be positive: " + (mapId ?? "<null>") + ".");
+                if (!raw.enabled) errors.Add("All canonical PlanetBattle rows must be enabled: " + (mapId ?? "<null>") + ".");
+                result.Add(new CanonicalPlanetBattle(mapId, raw.order, raw.hpMultiplier, raw.speedMultiplier, raw.bossHpMultiplier, raw.enabled));
+            }
+
+            if (result.Count != expectedIds.Length)
+                errors.Add("Canonical PlanetBattle must contain exactly nine enabled planets.");
+            for (int index = 0; index < expectedIds.Length; index++)
+            {
+                CanonicalPlanetBattle planet = result.Find(value => value != null && string.Equals(value.MapId, expectedIds[index], StringComparison.Ordinal));
+                if (planet == null) { errors.Add("Canonical PlanetBattle is missing mapId: " + expectedIds[index] + "."); continue; }
+                if (planet.Order != index + 1
+                    || Math.Abs(planet.HpMultiplier - expectedHp[index]) > 0.0001f
+                    || Math.Abs(planet.SpeedMultiplier - expectedSpeed[index]) > 0.0001f
+                    || Math.Abs(planet.BossHpMultiplier - 3f) > 0.0001f)
+                    errors.Add("Canonical PlanetBattle policy mismatch: " + expectedIds[index] + ".");
+            }
             return result;
         }
 
@@ -558,6 +720,8 @@ namespace MyDefense.Battle.Balance.Canonical
         [Serializable] private sealed class WaveJson { public string modeId; public int wave; public float hpMultiplier; public float interWaveDelaySeconds; public bool isBossWave; public float bossTimeLimitSeconds; public string spawnGroupId; public bool enabled; }
         [Serializable] private sealed class WaveSpawnDocumentJson { public WaveSpawnJson[] spawns; }
         [Serializable] private sealed class WaveSpawnJson { public string spawnGroupId; public int order; public string monsterId; public int spawnCountPerField; public float startDelaySeconds; public float spawnIntervalSeconds; public string lanePolicy; }
+        [Serializable] private sealed class PlanetBattleDocumentJson { public PlanetBattleJson[] planets; }
+        [Serializable] private sealed class PlanetBattleJson { public string mapId; public int order; public float hpMultiplier; public float speedMultiplier; public float bossHpMultiplier; public bool enabled; }
         [Serializable] private sealed class FieldLimitDocumentJson { public FieldLimitJson[] fieldLimits; }
         [Serializable] private sealed class FieldLimitJson { public string modeId; public int playerCount; public int maxAliveMonsterCountPerField; public int warningThreshold; public int dangerThreshold; }
         [Serializable] private sealed class SummonDocumentJson { public SummonJson[] summons; }
@@ -565,9 +729,35 @@ namespace MyDefense.Battle.Balance.Canonical
         [Serializable] private sealed class SummonPoolDocumentJson { public SummonPoolJson[] pools; }
         [Serializable] private sealed class SummonPoolJson { public string poolId; public string name; public bool active; public SummonPoolEntryJson[] entries; }
         [Serializable] private sealed class SummonPoolEntryJson { public string grade; public int weight; public long[] alienIds; }
-        [Serializable] private sealed class MutationSpecJson { public string mutationType; public bool enabled; public bool injectorEnabled; public bool randomActivationEnabled; public int weight; public float attackMultiplier; public float mpMultiplier; public float attackSpeedMultiplier; public float rangeMultiplier; public float goldMultiplier; }
+        [Serializable] private sealed class MutationSpecJson
+        {
+            public string mutationType;
+            public bool enabled;
+            public bool injectorEnabled;
+            public bool randomActivationEnabled;
+            public int weight;
+            public float attackMultiplier;
+            public float mpMultiplier;
+            public float attackSpeedMultiplier;
+            public float rangeMultiplier;
+            public float goldMultiplier;
+            public string mechanic;
+            public float splashRadius;
+            public float splashDamageMultiplier;
+            public float bossDamageMultiplier = 1f;
+            public float dotDamageMultiplier;
+            public int dotTickCount;
+            public float dotTickIntervalSeconds;
+            public float slowMultiplier = 1f;
+            public float slowDurationSeconds;
+            public int goldPerHit;
+            public float gambleSuccessChance;
+            public float gambleSuccessMultiplier = 1f;
+            public float gambleFailureMultiplier = 1f;
+        }
         [Serializable] private sealed class MutationConfigJson { public string modeId; public int initialActivationCost; public int rerollCost1; public int rerollCost2; public int rerollCost3; public int rerollCost4; public int rerollCostAfterMax; public int injectorReplaceCost; }
         [Serializable] private sealed class InjectorPoolJson { public string poolId; public string poolName; public bool poolActive; public string mutationType; public int weight; public string resultType; }
+        [Serializable] private sealed class ResonanceJson { public string track; public int level; public int requiredGold; public float attackMultiplier; public float attackSpeedMultiplier; public float rangeMultiplier; public bool enabled; }
         [Serializable] private sealed class ArrayDocument<T> { public T[] items; }
     }
 }

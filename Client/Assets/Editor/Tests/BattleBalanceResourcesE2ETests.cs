@@ -66,7 +66,9 @@ namespace MyDefense.Battle.Tests
         {
             BattleBalanceCatalog catalog = ValidCatalog();
 
-            Assert.That(catalog.BossPatterns.GetByWave("WAVE_010"), Is.Empty);
+            Assert.That(catalog.BossPatterns.GetByWave("WAVE_010").Count, Is.EqualTo(2));
+            Assert.That(catalog.BossPatterns.GetByWave("WAVE_010")[0].PatternType, Is.EqualTo(BossPatternType.SET_PHASE));
+            Assert.That(catalog.BossPatterns.GetByWave("WAVE_010")[1].PatternType, Is.EqualTo(BossPatternType.SET_MOVE_SPEED_MULTIPLIER));
             Assert.That(catalog.Skills.All.Select(item => item.SkillId), Is.EquivalentTo(new[] { "SKILL_BASIC" }));
             Assert.That(catalog.AlienSkills.GetByAlien(1).Single().SkillId, Is.EqualTo("SKILL_BASIC"));
             Assert.That(catalog.AlienSkills.GetByAlien(48).Single().SkillId, Is.EqualTo("SKILL_BASIC"));

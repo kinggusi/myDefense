@@ -31,7 +31,7 @@ class BattleBalanceRegistryIntegrationTest {
             assertThat(spawn.spawnCountPerField()).isEqualTo(1);
             assertThat(spawn.monsterId()).isEqualTo("WAVE_BOSS");
         });
-        assertThat(waves.getSpawns("WAVE_05")).hasSize(2)
+        assertThat(waves.getSpawns("WAVE_11")).hasSize(2)
                 .allSatisfy(spawn -> assertThat(spawn.lanePolicy()).isEqualTo("EACH_FIELD"))
                 .extracting(spawn -> spawn.order()).containsExactly(1, 2);
 
@@ -51,7 +51,7 @@ class BattleBalanceRegistryIntegrationTest {
 
         List<Long> mythics = rules.getEnabledMythicAlienIds();
         assertThatThrownBy(() -> mythics.add(49L)).isInstanceOf(UnsupportedOperationException.class);
-        assertThatThrownBy(() -> waves.getSpawns("WAVE_05").add(waves.getSpawns("WAVE_05").get(0)))
+        assertThatThrownBy(() -> waves.getSpawns("WAVE_11").add(waves.getSpawns("WAVE_11").get(0)))
                 .isInstanceOf(UnsupportedOperationException.class);
     }
 

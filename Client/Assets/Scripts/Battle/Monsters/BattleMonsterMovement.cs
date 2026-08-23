@@ -151,7 +151,7 @@ namespace MyDefense.Battle
             transform.position = Vector3.MoveTowards(
                 transform.position,
                 targetWaypoint.position,
-                Mathf.Max(0f, _speed) * Mathf.Max(0f, deltaTime));
+                Mathf.Max(0f, _speed) * ResolveMutationSpeedMultiplier() * Mathf.Max(0f, deltaTime));
 
             // 3. 방향 전환 (목표 노드를 바라보기)
             if (dir != Vector3.zero)
@@ -165,6 +165,12 @@ namespace MyDefense.Battle
             {
                 GetNextWaypoint();
             }
+        }
+
+        private float ResolveMutationSpeedMultiplier()
+        {
+            BattleMonsterNetworkState state = GetComponent<BattleMonsterNetworkState>();
+            return state == null ? 1f : Mathf.Max(0f, state.CurrentMoveSpeedMultiplier);
         }
 
         private void GetNextWaypoint()

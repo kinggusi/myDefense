@@ -21,6 +21,8 @@ public final class BalanceManifestSupport {
             "game-reward.json",
             "merge-rules.json",
             "monster-spec.json",
+            "planet-battle-balance.json",
+            "resonance-balance.json",
             "mythic-choice-balance.json",
             "mythic-breeding-config.json",
             "mythic-breeding-results.json",

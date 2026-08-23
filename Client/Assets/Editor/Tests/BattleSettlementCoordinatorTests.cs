@@ -53,6 +53,35 @@ namespace MyDefense.Battle.Tests
             Assert.That(first.summaryHash, Is.Not.EqualTo(second.summaryHash));
         }
 
+        [Test]
+        public void BuildRequestPreservesVictoryWave80AndRealPlayerIdentity()
+        {
+            var session = new BattleSessionContext("e2e-session", "balance-v1", "content-v1", "battle-v1", "battle-hash", 1, "NEPTUNE");
+            var players = new[]
+            {
+                new BattlePlayerSummarySeed("account-host", 1, false, null, 100, 20, 0, 120),
+                new BattlePlayerSummarySeed("account-client", 2, false, null, 100, 20, 0, 120)
+            };
+            var kills = new List<BattleKillAuditRecord>
+            {
+                new(new BattleRuntimeMonsterKey("e2e-session", 1), "NORMAL_MONSTER", "account-host", "account-host", BattleMonsterLanePolicy.EACH_FIELD, 1, 1, killGold: 20),
+                new(new BattleRuntimeMonsterKey("e2e-session", 2), "NORMAL_MONSTER", "account-client", "account-client", BattleMonsterLanePolicy.EACH_FIELD, 1, 1, killGold: 20)
+            };
+
+            BattleSummary battle = BattleSummaryBuilder.Build(session, MatchState.CLEARED, 80, players, kills);
+            BattleSettlementSummary request = BattleSettlementCoordinator.BuildRequest(
+                battle,
+                "e2e-request",
+                new DateTime(2026, 8, 2, 12, 0, 0, DateTimeKind.Utc),
+                new DateTime(2026, 8, 2, 12, 20, 0, DateTimeKind.Utc));
+
+            Assert.That(request.result, Is.EqualTo("VICTORY"));
+            Assert.That(request.finalWave, Is.EqualTo(80));
+            Assert.That(request.mapId, Is.EqualTo("NEPTUNE"));
+            Assert.That(request.players.Select(player => player.playerId),
+                Is.EqualTo(new[] { "account-host", "account-client" }));
+        }
+
         private static BattleSummary CreateSummary()
         {
             var session = new BattleSessionContext("settlement-coordinator-session", "balance-v1", "content-v1", "battle-v1", "battle-hash", 1, "EARTH");

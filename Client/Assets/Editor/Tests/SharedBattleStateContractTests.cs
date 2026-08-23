@@ -89,6 +89,8 @@ namespace MyDefense.Shared.Tests
                         connectionState = PlayerConnectionState.CONNECTED,
                         inGameGold = 60,
                         currentKidnapCost = 30,
+                        normalResonanceLevel = 3,
+                        mythicResonanceLevel = 1,
                         eliminatedWave = null
                     },
                     new BattleSessionPlayerSnapshot
@@ -99,6 +101,8 @@ namespace MyDefense.Shared.Tests
                         connectionState = PlayerConnectionState.DISCONNECTED,
                         inGameGold = 60,
                         currentKidnapCost = 30,
+                        normalResonanceLevel = 2,
+                        mythicResonanceLevel = 4,
                         eliminatedWave = 11
                     }
                 },
@@ -159,11 +163,25 @@ namespace MyDefense.Shared.Tests
             Assert.DoesNotThrow(() => BattleSessionSnapshotValidator.Validate(snapshot));
             var json = BattleSessionSnapshotJson.Serialize(snapshot);
             StringAssert.Contains("\"eliminatedWave\":null", json);
+            StringAssert.Contains("\"normalResonanceLevel\":3", json);
+            StringAssert.Contains("\"mythicResonanceLevel\":4", json);
             StringAssert.Contains("\"currentWaveSpecId\":\"WAVE_12\"", json);
             StringAssert.Contains("\"alienSpecId\":22", json);
             StringAssert.Contains("\"mutationState\":\"SEALED\"", json);
             StringAssert.Contains("\"candidateAlienIds\":[29,30,31]", json);
             StringAssert.Contains("\"runtimeMonsterId\":1001", json);
+        }
+
+        [Test]
+        public void BattleSessionSnapshot_RejectsOutOfRangeResonanceLevel()
+        {
+            var snapshot = CreateMinimalSnapshot();
+            snapshot.players[0].normalResonanceLevel = 6;
+            Assert.Throws<ArgumentException>(() => BattleSessionSnapshotValidator.Validate(snapshot));
+
+            snapshot = CreateMinimalSnapshot();
+            snapshot.players[1].mythicResonanceLevel = -1;
+            Assert.Throws<ArgumentException>(() => BattleSessionSnapshotValidator.Validate(snapshot));
         }
 
         [Test]

@@ -10,6 +10,18 @@ namespace MyDefense.Shared.Contracts
         public float AttackRate;
         public float Range;
         public string ActiveMutationType;
+        public float SplashRadius;
+        public float SplashDamageMultiplier;
+        public float BossDamageMultiplier;
+        public float DotDamagePerTick;
+        public int DotTickCount;
+        public float DotTickIntervalSeconds;
+        public float SlowMultiplier;
+        public float SlowDurationSeconds;
+        public int GoldPerHit;
+        public float GambleSuccessChance;
+        public float GambleSuccessMultiplier;
+        public float GambleFailureMultiplier;
 
         /// <summary>Builds a snapshot from values already calculated by StatCalculator.</summary>
         public static AlienAttackSnapshot FromCalculatedStats(long attackerServerId, float damage,
@@ -25,7 +37,11 @@ namespace MyDefense.Shared.Contracts
                 Damage = damage,
                 AttackRate = attackRate,
                 Range = range,
-                ActiveMutationType = string.IsNullOrWhiteSpace(activeMutationType) ? "NONE" : activeMutationType
+                ActiveMutationType = string.IsNullOrWhiteSpace(activeMutationType) ? "NONE" : activeMutationType,
+                BossDamageMultiplier = 1f,
+                SlowMultiplier = 1f,
+                GambleSuccessMultiplier = 1f,
+                GambleFailureMultiplier = 1f
             };
         }
     }

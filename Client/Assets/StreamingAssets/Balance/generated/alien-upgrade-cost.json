@@ -1,343 +1,343 @@
 [
   {
     "currentLevel" : 1,
-    "requiredGold" : 100,
+    "requiredGold" : 500,
     "requiredGrowthCell" : 0,
     "requiredPieces" : 5,
     "targetLevel" : 2
   },
   {
     "currentLevel" : 2,
-    "requiredGold" : 200,
+    "requiredGold" : 700,
     "requiredGrowthCell" : 0,
     "requiredPieces" : 10,
     "targetLevel" : 3
   },
   {
     "currentLevel" : 3,
-    "requiredGold" : 300,
+    "requiredGold" : 900,
     "requiredGrowthCell" : 0,
     "requiredPieces" : 15,
     "targetLevel" : 4
   },
   {
     "currentLevel" : 4,
-    "requiredGold" : 400,
+    "requiredGold" : 1200,
     "requiredGrowthCell" : 0,
     "requiredPieces" : 20,
     "targetLevel" : 5
   },
   {
     "currentLevel" : 5,
-    "requiredGold" : 500,
+    "requiredGold" : 1500,
     "requiredGrowthCell" : 0,
     "requiredPieces" : 25,
     "targetLevel" : 6
   },
   {
     "currentLevel" : 6,
-    "requiredGold" : 600,
+    "requiredGold" : 1800,
     "requiredGrowthCell" : 0,
     "requiredPieces" : 30,
     "targetLevel" : 7
   },
   {
     "currentLevel" : 7,
-    "requiredGold" : 700,
+    "requiredGold" : 2100,
     "requiredGrowthCell" : 0,
     "requiredPieces" : 35,
     "targetLevel" : 8
   },
   {
     "currentLevel" : 8,
-    "requiredGold" : 800,
+    "requiredGold" : 2500,
     "requiredGrowthCell" : 0,
     "requiredPieces" : 40,
     "targetLevel" : 9
   },
   {
     "currentLevel" : 9,
-    "requiredGold" : 900,
+    "requiredGold" : 2800,
     "requiredGrowthCell" : 10,
     "requiredPieces" : 45,
     "targetLevel" : 10
   },
   {
     "currentLevel" : 10,
-    "requiredGold" : 1000,
+    "requiredGold" : 3000,
     "requiredGrowthCell" : 10,
     "requiredPieces" : 50,
     "targetLevel" : 11
   },
   {
     "currentLevel" : 11,
-    "requiredGold" : 1100,
+    "requiredGold" : 4000,
     "requiredGrowthCell" : 10,
     "requiredPieces" : 55,
     "targetLevel" : 12
   },
   {
     "currentLevel" : 12,
-    "requiredGold" : 1200,
+    "requiredGold" : 4800,
     "requiredGrowthCell" : 10,
     "requiredPieces" : 60,
     "targetLevel" : 13
   },
   {
     "currentLevel" : 13,
-    "requiredGold" : 1300,
+    "requiredGold" : 5600,
     "requiredGrowthCell" : 10,
     "requiredPieces" : 65,
     "targetLevel" : 14
   },
   {
     "currentLevel" : 14,
-    "requiredGold" : 1400,
+    "requiredGold" : 6500,
     "requiredGrowthCell" : 10,
     "requiredPieces" : 70,
     "targetLevel" : 15
   },
   {
     "currentLevel" : 15,
-    "requiredGold" : 1500,
+    "requiredGold" : 7400,
     "requiredGrowthCell" : 10,
     "requiredPieces" : 75,
     "targetLevel" : 16
   },
   {
     "currentLevel" : 16,
-    "requiredGold" : 1600,
+    "requiredGold" : 8400,
     "requiredGrowthCell" : 10,
     "requiredPieces" : 80,
     "targetLevel" : 17
   },
   {
     "currentLevel" : 17,
-    "requiredGold" : 1700,
+    "requiredGold" : 9500,
     "requiredGrowthCell" : 10,
     "requiredPieces" : 85,
     "targetLevel" : 18
   },
   {
     "currentLevel" : 18,
-    "requiredGold" : 1800,
+    "requiredGold" : 10500,
     "requiredGrowthCell" : 10,
     "requiredPieces" : 90,
     "targetLevel" : 19
   },
   {
     "currentLevel" : 19,
-    "requiredGold" : 1900,
+    "requiredGold" : 11500,
     "requiredGrowthCell" : 20,
     "requiredPieces" : 95,
     "targetLevel" : 20
   },
   {
     "currentLevel" : 20,
-    "requiredGold" : 2000,
+    "requiredGold" : 12000,
     "requiredGrowthCell" : 20,
     "requiredPieces" : 100,
     "targetLevel" : 21
   },
   {
     "currentLevel" : 21,
-    "requiredGold" : 2100,
+    "requiredGold" : 15000,
     "requiredGrowthCell" : 20,
     "requiredPieces" : 105,
     "targetLevel" : 22
   },
   {
     "currentLevel" : 22,
-    "requiredGold" : 2200,
+    "requiredGold" : 17000,
     "requiredGrowthCell" : 20,
     "requiredPieces" : 110,
     "targetLevel" : 23
   },
   {
     "currentLevel" : 23,
-    "requiredGold" : 2300,
+    "requiredGold" : 19000,
     "requiredGrowthCell" : 20,
     "requiredPieces" : 115,
     "targetLevel" : 24
   },
   {
     "currentLevel" : 24,
-    "requiredGold" : 2400,
+    "requiredGold" : 21000,
     "requiredGrowthCell" : 20,
     "requiredPieces" : 120,
     "targetLevel" : 25
   },
   {
     "currentLevel" : 25,
-    "requiredGold" : 2500,
+    "requiredGold" : 23000,
     "requiredGrowthCell" : 20,
     "requiredPieces" : 125,
     "targetLevel" : 26
   },
   {
     "currentLevel" : 26,
-    "requiredGold" : 2600,
+    "requiredGold" : 25000,
     "requiredGrowthCell" : 20,
     "requiredPieces" : 130,
     "targetLevel" : 27
   },
   {
     "currentLevel" : 27,
-    "requiredGold" : 2700,
+    "requiredGold" : 27000,
     "requiredGrowthCell" : 20,
     "requiredPieces" : 135,
     "targetLevel" : 28
   },
   {
     "currentLevel" : 28,
-    "requiredGold" : 2800,
+    "requiredGold" : 30000,
     "requiredGrowthCell" : 20,
     "requiredPieces" : 140,
     "targetLevel" : 29
   },
   {
     "currentLevel" : 29,
-    "requiredGold" : 2900,
+    "requiredGold" : 32500,
     "requiredGrowthCell" : 30,
     "requiredPieces" : 145,
     "targetLevel" : 30
   },
   {
     "currentLevel" : 30,
-    "requiredGold" : 3000,
+    "requiredGold" : 35000,
     "requiredGrowthCell" : 30,
     "requiredPieces" : 150,
     "targetLevel" : 31
   },
   {
     "currentLevel" : 31,
-    "requiredGold" : 3100,
+    "requiredGold" : 40000,
     "requiredGrowthCell" : 30,
     "requiredPieces" : 155,
     "targetLevel" : 32
   },
   {
     "currentLevel" : 32,
-    "requiredGold" : 3200,
+    "requiredGold" : 44000,
     "requiredGrowthCell" : 30,
     "requiredPieces" : 160,
     "targetLevel" : 33
   },
   {
     "currentLevel" : 33,
-    "requiredGold" : 3300,
+    "requiredGold" : 48000,
     "requiredGrowthCell" : 30,
     "requiredPieces" : 165,
     "targetLevel" : 34
   },
   {
     "currentLevel" : 34,
-    "requiredGold" : 3400,
+    "requiredGold" : 52000,
     "requiredGrowthCell" : 30,
     "requiredPieces" : 170,
     "targetLevel" : 35
   },
   {
     "currentLevel" : 35,
-    "requiredGold" : 3500,
+    "requiredGold" : 56000,
     "requiredGrowthCell" : 30,
     "requiredPieces" : 175,
     "targetLevel" : 36
   },
   {
     "currentLevel" : 36,
-    "requiredGold" : 3600,
+    "requiredGold" : 60000,
     "requiredGrowthCell" : 30,
     "requiredPieces" : 180,
     "targetLevel" : 37
   },
   {
     "currentLevel" : 37,
-    "requiredGold" : 3700,
+    "requiredGold" : 65000,
     "requiredGrowthCell" : 30,
     "requiredPieces" : 185,
     "targetLevel" : 38
   },
   {
     "currentLevel" : 38,
-    "requiredGold" : 3800,
+    "requiredGold" : 70000,
     "requiredGrowthCell" : 30,
     "requiredPieces" : 190,
     "targetLevel" : 39
   },
   {
     "currentLevel" : 39,
-    "requiredGold" : 3900,
+    "requiredGold" : 75000,
     "requiredGrowthCell" : 40,
     "requiredPieces" : 195,
     "targetLevel" : 40
   },
   {
     "currentLevel" : 40,
-    "requiredGold" : 4000,
+    "requiredGold" : 80000,
     "requiredGrowthCell" : 40,
     "requiredPieces" : 200,
     "targetLevel" : 41
   },
   {
     "currentLevel" : 41,
-    "requiredGold" : 4100,
+    "requiredGold" : 90000,
     "requiredGrowthCell" : 40,
     "requiredPieces" : 205,
     "targetLevel" : 42
   },
   {
     "currentLevel" : 42,
-    "requiredGold" : 4200,
+    "requiredGold" : 100000,
     "requiredGrowthCell" : 40,
     "requiredPieces" : 210,
     "targetLevel" : 43
   },
   {
     "currentLevel" : 43,
-    "requiredGold" : 4300,
+    "requiredGold" : 110000,
     "requiredGrowthCell" : 40,
     "requiredPieces" : 215,
     "targetLevel" : 44
   },
   {
     "currentLevel" : 44,
-    "requiredGold" : 4400,
+    "requiredGold" : 120000,
     "requiredGrowthCell" : 40,
     "requiredPieces" : 220,
     "targetLevel" : 45
   },
   {
     "currentLevel" : 45,
-    "requiredGold" : 4500,
+    "requiredGold" : 130000,
     "requiredGrowthCell" : 40,
     "requiredPieces" : 225,
     "targetLevel" : 46
   },
   {
     "currentLevel" : 46,
-    "requiredGold" : 4600,
+    "requiredGold" : 140000,
     "requiredGrowthCell" : 40,
     "requiredPieces" : 230,
     "targetLevel" : 47
   },
   {
     "currentLevel" : 47,
-    "requiredGold" : 4700,
+    "requiredGold" : 150000,
     "requiredGrowthCell" : 40,
     "requiredPieces" : 235,
     "targetLevel" : 48
   },
   {
     "currentLevel" : 48,
-    "requiredGold" : 4800,
+    "requiredGold" : 165000,
     "requiredGrowthCell" : 40,
     "requiredPieces" : 240,
     "targetLevel" : 49
   },
   {
     "currentLevel" : 49,
-    "requiredGold" : 4900,
+    "requiredGold" : 180000,
     "requiredGrowthCell" : 50,
     "requiredPieces" : 245,
     "targetLevel" : 50

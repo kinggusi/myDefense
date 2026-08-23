@@ -24,8 +24,8 @@ namespace MyDefense.Battle.Tests
 
             Assert.That(result.IsValid, Is.True, JoinErrors(result.Errors));
             Assert.That(result.Bundle.Manifest.SchemaVersion, Is.EqualTo(1));
-            Assert.That(result.Bundle.Manifest.BalanceVersion, Is.EqualTo("1-133ff341b0443dd1"));
-            Assert.That(result.Bundle.Manifest.ContentHash, Is.EqualTo("133ff341b0443dd188421060943fd14b337f85403bd06db762b460a0525a38e1"));
+            Assert.That(result.Bundle.Manifest.BalanceVersion, Is.EqualTo("1-69adccef540835fe"));
+            Assert.That(result.Bundle.Manifest.ContentHash, Is.EqualTo("69adccef540835fedf5da9ee853345722df52b2dc37f0e7f5003ac7e3d9ee276"));
 
             AssertMonster(result.Bundle.MonsterDefinitions, "NORMAL_MONSTER", "NORMAL", 30f, 5f, 20, true);
             AssertMonster(result.Bundle.MonsterDefinitions, "ELITE_MONSTER", "ELITE", 60f, 4f, 40, true);
@@ -36,8 +36,16 @@ namespace MyDefense.Battle.Tests
             Assert.That(limit.MaxAliveMonsterCountPerField, Is.EqualTo(100));
             Assert.That(limit.WarningThreshold, Is.EqualTo(80));
             Assert.That(limit.DangerThreshold, Is.EqualTo(90));
-            Assert.That(result.Bundle.Waves.All.Count, Is.EqualTo(10));
+            Assert.That(result.Bundle.Waves.All.Count, Is.EqualTo(80));
             Assert.That(result.Bundle.WaveSpawns.GetByGroup("WAVE_10_BOSS").Single().LanePolicy, Is.EqualTo(CanonicalLanePolicy.BOSS_SHARED));
+            Assert.That(result.Bundle.PlanetBattles.All, Has.Count.EqualTo(9));
+            Assert.That(result.Bundle.PlanetBattles.TryGet("EARTH", out CanonicalPlanetBattle earth), Is.True);
+            Assert.That(earth.HpMultiplier, Is.EqualTo(4.3f).Within(0.001f));
+            Assert.That(earth.SpeedMultiplier, Is.EqualTo(1.15f).Within(0.001f));
+            Assert.That(earth.BossHpMultiplier, Is.EqualTo(3f));
+            Assert.That(result.Bundle.PlanetBattles.TryGet("SUN", out CanonicalPlanetBattle sun), Is.True);
+            Assert.That(sun.HpMultiplier, Is.EqualTo(11f));
+            Assert.That(sun.SpeedMultiplier, Is.EqualTo(1.25f).Within(0.001f));
             Assert.That(result.Bundle.Summon, Is.Not.Null);
             Assert.That(result.Bundle.Summon.TryGetCost(0, out int firstCost), Is.True);
             Assert.That(firstCost, Is.EqualTo(50));
@@ -70,8 +78,11 @@ namespace MyDefense.Battle.Tests
             Assert.That(wave.NextWaveDelaySeconds, Is.EqualTo(3f));
             WaveSpawnSpecData spawn = provider.Catalog.Waves.GetSpawns(wave.WaveId).Single();
             Assert.That(spawn.MonsterId, Is.EqualTo("NORMAL_MONSTER"));
-            Assert.That(spawn.SpawnCount, Is.EqualTo(10));
+            Assert.That(spawn.SpawnCount, Is.EqualTo(12));
             Assert.That(spawn.HpMultiplier, Is.EqualTo(1f));
+            Assert.That(provider.Catalog.BossPatterns.GetByWave("COOP_STANDARD:10"), Has.Count.EqualTo(2));
+            Assert.That(provider.Catalog.BossPatterns.GetByWave("COOP_STANDARD:80"), Has.Count.EqualTo(2));
+            Assert.That(provider.Catalog.BossPatterns.GetByWave("WAVE_010"), Is.Empty);
         }
 
         [Test]
@@ -252,6 +263,30 @@ namespace MyDefense.Battle.Tests
             CanonicalBalanceLoadResult result = Load(files);
 
             AssertInvalidContaining(result, "exactly one BOSS_SHARED");
+        }
+
+        [Test]
+        public void StandardWaveCatalog_MustContainContinuousOneThroughEighty()
+        {
+            Dictionary<string, byte[]> files = LoadProductionFiles();
+            MutateAndRebuild(files, CanonicalBalanceContract.WaveFileName,
+                json => json.Replace("\"wave\" : 80,", "\"wave\" : 79,"));
+
+            CanonicalBalanceLoadResult result = Load(files);
+
+            AssertInvalidContaining(result, "continuous from 1 through 80");
+        }
+
+        [Test]
+        public void StandardWaveCatalog_RequiresBossExactlyEveryTenthWave()
+        {
+            Dictionary<string, byte[]> files = LoadProductionFiles();
+            MutateAndRebuild(files, CanonicalBalanceContract.WaveFileName,
+                json => json.Replace("\"isBossWave\" : true", "\"isBossWave\" : false"));
+
+            CanonicalBalanceLoadResult result = Load(files);
+
+            AssertInvalidContaining(result, "Boss waves must be exactly every tenth wave");
         }
 
         [Test]

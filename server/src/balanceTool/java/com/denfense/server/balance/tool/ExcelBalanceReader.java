@@ -42,6 +42,7 @@ public class ExcelBalanceReader {
             List<com.denfense.server.balance.MonsterSpecBalance> monsters = readMonsterSpecSheet(workbook);
             List<com.denfense.server.balance.WaveSpecBalance> waves = readWaveSpecSheet(workbook);
             List<com.denfense.server.balance.WaveSpawnBalance> waveSpawns = readWaveSpawnSheet(workbook);
+            List<com.denfense.server.balance.PlanetBattleBalance> planetBattles = readPlanetBattleSheet(workbook);
             List<com.denfense.server.balance.FieldLimitBalance> fieldLimits = readFieldLimitSheet(workbook);
             List<com.denfense.server.balance.SummonBalance> summons = readSummonBalanceSheet(workbook);
             List<com.denfense.server.balance.MergeRuleBalance> mergeRules = readMergeRuleSheet(workbook);
@@ -49,10 +50,11 @@ public class ExcelBalanceReader {
             List<com.denfense.server.balance.MutationSpecBalance> mutationSpecs = readMutationSpecSheet(workbook);
             com.denfense.server.balance.MutationConfigBalance mutationConfig = readMutationConfigSheet(workbook);
             List<com.denfense.server.balance.InjectorPoolBalance> injectorPools = readInjectorPoolSheet(workbook);
+            List<com.denfense.server.balance.ResonanceBalance> resonanceBalances = readResonanceBalanceSheet(workbook);
 
             return new BalanceData(reward, battleReward, upgradeCosts, levelStats, alienSpecs, shopProducts, gachaPools, summonPools,
-                    monsters, waves, waveSpawns, fieldLimits, summons, mergeRules, mythicChoices,
-                    mutationSpecs, mutationConfig, injectorPools);
+                    monsters, waves, waveSpawns, planetBattles, fieldLimits, summons, mergeRules, mythicChoices,
+                    mutationSpecs, mutationConfig, injectorPools, resonanceBalances);
 
         } catch (IOException e) {
             throw new BalanceConversionException("파일을 읽는 중 오류가 발생했습니다: " + filePath, e);
@@ -211,10 +213,10 @@ public class ExcelBalanceReader {
             if (row == null || isBlankRow(row, headers.size())) continue;
             stats.add(new com.denfense.server.service.balance.AlienLevelStatBalance(
                     readIntCell(sheet.getSheetName(), rowIndex, "level", row.getCell(levelIndex)),
-                    readDecimalCell(sheet.getSheetName(), rowIndex, "atkMultiplier", row.getCell(atkIndex)),
-                    readDecimalCell(sheet.getSheetName(), rowIndex, "mpMultiplier", row.getCell(mpIndex)),
-                    readDecimalCell(sheet.getSheetName(), rowIndex, "atkSpeedMultiplier", row.getCell(speedIndex)),
-                    readDecimalCell(sheet.getSheetName(), rowIndex, "rangeMultiplier", row.getCell(rangeIndex))
+                    readDecimalCell(sheet.getSheetName(), rowIndex, "atkMultiplier", row.getCell(atkIndex), 3),
+                    readDecimalCell(sheet.getSheetName(), rowIndex, "mpMultiplier", row.getCell(mpIndex), 3),
+                    readDecimalCell(sheet.getSheetName(), rowIndex, "atkSpeedMultiplier", row.getCell(speedIndex), 3),
+                    readDecimalCell(sheet.getSheetName(), rowIndex, "rangeMultiplier", row.getCell(rangeIndex), 3)
             ));
         }
         stats.sort(Comparator.comparingInt(com.denfense.server.service.balance.AlienLevelStatBalance::level));
@@ -481,6 +483,10 @@ public class ExcelBalanceReader {
     }
 
     private BigDecimal readDecimalCell(String sheetName, int rowIdx, String colName, Cell cell) {
+        return readDecimalCell(sheetName, rowIdx, colName, cell, 2);
+    }
+
+    private BigDecimal readDecimalCell(String sheetName, int rowIdx, String colName, Cell cell, int scale) {
         if (cell == null || cell.getCellType() == CellType.BLANK) {
             throw new BalanceConversionException(String.format("[%s] %d행 '%s' 값이 비어 있습니다.", sheetName, rowIdx + 1, colName));
         }
@@ -492,7 +498,7 @@ public class ExcelBalanceReader {
         if (!Double.isFinite(value)) {
             throw new BalanceConversionException(String.format("[%s] %d행 '%s' 값이 유한한 숫자가 아닙니다.", sheetName, rowIdx + 1, colName));
         }
-        return BigDecimal.valueOf(value).setScale(2, RoundingMode.HALF_UP);
+        return BigDecimal.valueOf(value).setScale(scale, RoundingMode.HALF_UP);
     }
 
     private boolean readBooleanCell(String sheetName, int rowIdx, String colName, Cell cell) {
@@ -759,6 +765,27 @@ public class ExcelBalanceReader {
         return result;
     }
 
+    private List<com.denfense.server.balance.PlanetBattleBalance> readPlanetBattleSheet(Workbook workbook) {
+        Sheet sheet = getSheetOrThrow(workbook, "PlanetBattle");
+        List<String> headers = requiredHeaders(sheet, "mapId", "order", "hpMultiplier", "speedMultiplier",
+                "bossHpMultiplier", "enabled");
+        List<com.denfense.server.balance.PlanetBattleBalance> result = new ArrayList<>();
+        for (int rowIndex = 1; rowIndex <= sheet.getLastRowNum(); rowIndex++) {
+            Row row = sheet.getRow(rowIndex);
+            if (row == null || isBlankRow(row, headers.size())) continue;
+            result.add(new com.denfense.server.balance.PlanetBattleBalance(
+                    readStringCell(sheet.getSheetName(), rowIndex, "mapId", row.getCell(headers.indexOf("mapId"))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "order", row.getCell(headers.indexOf("order"))),
+                    readDecimalCell(sheet.getSheetName(), rowIndex, "hpMultiplier", row.getCell(headers.indexOf("hpMultiplier"))),
+                    readDecimalCell(sheet.getSheetName(), rowIndex, "speedMultiplier", row.getCell(headers.indexOf("speedMultiplier"))),
+                    readDecimalCell(sheet.getSheetName(), rowIndex, "bossHpMultiplier", row.getCell(headers.indexOf("bossHpMultiplier"))),
+                    readBooleanCell(sheet.getSheetName(), rowIndex, "enabled", row.getCell(headers.indexOf("enabled")))
+            ));
+        }
+        result.sort(Comparator.comparingInt(com.denfense.server.balance.PlanetBattleBalance::order));
+        return result;
+    }
+
     private List<com.denfense.server.balance.FieldLimitBalance> readFieldLimitSheet(Workbook workbook) {
         Sheet sheet = getSheetOrThrow(workbook, "FieldLimitBalance");
         List<String> headers = requiredHeaders(sheet, "modeId", "playerCount", "maxAliveMonsterCountPerField",
@@ -853,7 +880,10 @@ public class ExcelBalanceReader {
     private List<com.denfense.server.balance.MutationSpecBalance> readMutationSpecSheet(Workbook workbook) {
         Sheet sheet = getSheetOrThrow(workbook, "MutationSpec");
         List<String> headers = requiredHeaders(sheet, "mutationType", "enabled", "injectorEnabled", "randomActivationEnabled",
-                "weight", "attackMultiplier", "mpMultiplier", "attackSpeedMultiplier", "rangeMultiplier", "goldMultiplier");
+                "weight", "attackMultiplier", "mpMultiplier", "attackSpeedMultiplier", "rangeMultiplier", "goldMultiplier",
+                "mechanic", "splashRadius", "splashDamageMultiplier", "bossDamageMultiplier", "dotDamageMultiplier",
+                "dotTickCount", "dotTickIntervalSeconds", "slowMultiplier", "slowDurationSeconds", "goldPerHit",
+                "gambleSuccessChance", "gambleSuccessMultiplier", "gambleFailureMultiplier");
         List<com.denfense.server.balance.MutationSpecBalance> result = new ArrayList<>();
         for (int rowIndex = 1; rowIndex <= sheet.getLastRowNum(); rowIndex++) {
             Row row = sheet.getRow(rowIndex);
@@ -868,7 +898,20 @@ public class ExcelBalanceReader {
                     readDecimalCell(sheet.getSheetName(), rowIndex, "mpMultiplier", row.getCell(headers.indexOf("mpMultiplier"))),
                     readDecimalCell(sheet.getSheetName(), rowIndex, "attackSpeedMultiplier", row.getCell(headers.indexOf("attackSpeedMultiplier"))),
                     readDecimalCell(sheet.getSheetName(), rowIndex, "rangeMultiplier", row.getCell(headers.indexOf("rangeMultiplier"))),
-                    readDecimalCell(sheet.getSheetName(), rowIndex, "goldMultiplier", row.getCell(headers.indexOf("goldMultiplier")))
+                    readDecimalCell(sheet.getSheetName(), rowIndex, "goldMultiplier", row.getCell(headers.indexOf("goldMultiplier"))),
+                    readStringCell(sheet.getSheetName(), rowIndex, "mechanic", row.getCell(headers.indexOf("mechanic"))),
+                    readDecimalCell(sheet.getSheetName(), rowIndex, "splashRadius", row.getCell(headers.indexOf("splashRadius"))),
+                    readDecimalCell(sheet.getSheetName(), rowIndex, "splashDamageMultiplier", row.getCell(headers.indexOf("splashDamageMultiplier"))),
+                    readDecimalCell(sheet.getSheetName(), rowIndex, "bossDamageMultiplier", row.getCell(headers.indexOf("bossDamageMultiplier"))),
+                    readDecimalCell(sheet.getSheetName(), rowIndex, "dotDamageMultiplier", row.getCell(headers.indexOf("dotDamageMultiplier"))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "dotTickCount", row.getCell(headers.indexOf("dotTickCount"))),
+                    readDecimalCell(sheet.getSheetName(), rowIndex, "dotTickIntervalSeconds", row.getCell(headers.indexOf("dotTickIntervalSeconds"))),
+                    readDecimalCell(sheet.getSheetName(), rowIndex, "slowMultiplier", row.getCell(headers.indexOf("slowMultiplier"))),
+                    readDecimalCell(sheet.getSheetName(), rowIndex, "slowDurationSeconds", row.getCell(headers.indexOf("slowDurationSeconds"))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "goldPerHit", row.getCell(headers.indexOf("goldPerHit"))),
+                    readDecimalCell(sheet.getSheetName(), rowIndex, "gambleSuccessChance", row.getCell(headers.indexOf("gambleSuccessChance"))),
+                    readDecimalCell(sheet.getSheetName(), rowIndex, "gambleSuccessMultiplier", row.getCell(headers.indexOf("gambleSuccessMultiplier"))),
+                    readDecimalCell(sheet.getSheetName(), rowIndex, "gambleFailureMultiplier", row.getCell(headers.indexOf("gambleFailureMultiplier")))
             ));
         }
         result.sort(Comparator.comparing(com.denfense.server.balance.MutationSpecBalance::mutationType));
@@ -918,6 +961,29 @@ public class ExcelBalanceReader {
         return result;
     }
 
+    private List<com.denfense.server.balance.ResonanceBalance> readResonanceBalanceSheet(Workbook workbook) {
+        Sheet sheet = getSheetOrThrow(workbook, "ResonanceBalance");
+        List<String> headers = requiredHeaders(sheet, "track", "level", "requiredGold", "attackMultiplier",
+                "attackSpeedMultiplier", "rangeMultiplier", "enabled");
+        List<com.denfense.server.balance.ResonanceBalance> result = new ArrayList<>();
+        for (int rowIndex = 1; rowIndex <= sheet.getLastRowNum(); rowIndex++) {
+            Row row = sheet.getRow(rowIndex);
+            if (row == null || isBlankRow(row, headers.size())) continue;
+            result.add(new com.denfense.server.balance.ResonanceBalance(
+                    readStringCell(sheet.getSheetName(), rowIndex, "track", row.getCell(headers.indexOf("track"))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "level", row.getCell(headers.indexOf("level"))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "requiredGold", row.getCell(headers.indexOf("requiredGold"))),
+                    readDecimalCell(sheet.getSheetName(), rowIndex, "attackMultiplier", row.getCell(headers.indexOf("attackMultiplier"))),
+                    readDecimalCell(sheet.getSheetName(), rowIndex, "attackSpeedMultiplier", row.getCell(headers.indexOf("attackSpeedMultiplier"))),
+                    readDecimalCell(sheet.getSheetName(), rowIndex, "rangeMultiplier", row.getCell(headers.indexOf("rangeMultiplier"))),
+                    readBooleanCell(sheet.getSheetName(), rowIndex, "enabled", row.getCell(headers.indexOf("enabled")))
+            ));
+        }
+        result.sort(Comparator.comparing(com.denfense.server.balance.ResonanceBalance::track)
+                .thenComparingInt(com.denfense.server.balance.ResonanceBalance::level));
+        return result;
+    }
+
     private List<String> requiredHeaders(Sheet sheet, String... expected) {
         Row header = sheet.getRow(0);
         if (header == null) {
@@ -938,12 +1004,14 @@ public class ExcelBalanceReader {
         List<com.denfense.server.balance.MonsterSpecBalance> monsters,
         List<com.denfense.server.balance.WaveSpecBalance> waves,
         List<com.denfense.server.balance.WaveSpawnBalance> waveSpawns,
+        List<com.denfense.server.balance.PlanetBattleBalance> planetBattles,
         List<com.denfense.server.balance.FieldLimitBalance> fieldLimits,
         List<com.denfense.server.balance.SummonBalance> summons,
         List<com.denfense.server.balance.MergeRuleBalance> mergeRules,
         List<com.denfense.server.balance.MythicChoiceBalance> mythicChoices
         , List<com.denfense.server.balance.MutationSpecBalance> mutationSpecs,
         com.denfense.server.balance.MutationConfigBalance mutationConfig,
-        List<com.denfense.server.balance.InjectorPoolBalance> injectorPools
+        List<com.denfense.server.balance.InjectorPoolBalance> injectorPools,
+        List<com.denfense.server.balance.ResonanceBalance> resonanceBalances
     ) {}
 }

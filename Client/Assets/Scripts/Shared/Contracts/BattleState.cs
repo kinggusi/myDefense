@@ -63,7 +63,7 @@ namespace MyDefense.Shared.Contracts
     [System.Serializable]
     public sealed class BattleSessionSnapshot
     {
-        public const int CurrentSchemaVersion = 1;
+        public const int CurrentSchemaVersion = 2;
 
         public int schemaVersion = CurrentSchemaVersion;
         public string battleSessionId;
@@ -92,6 +92,8 @@ namespace MyDefense.Shared.Contracts
         public PlayerConnectionState connectionState;
         public int inGameGold;
         public int currentKidnapCost;
+        public int normalResonanceLevel;
+        public int mythicResonanceLevel;
         public int? eliminatedWave;
     }
 
@@ -161,6 +163,8 @@ namespace MyDefense.Shared.Contracts
             {
                 if (player == null || (player.playerSlot != 1 && player.playerSlot != 2) || !slots.Add(player.playerSlot)
                     || string.IsNullOrWhiteSpace(player.playerId) || player.inGameGold < 0 || player.currentKidnapCost < 0
+                    || player.normalResonanceLevel < 0 || player.normalResonanceLevel > 5
+                    || player.mythicResonanceLevel < 0 || player.mythicResonanceLevel > 5
                     || ((player.battleState == PlayerBattleState.ELIMINATED || player.battleState == PlayerBattleState.SPECTATING) && !player.eliminatedWave.HasValue)
                     || (player.battleState == PlayerBattleState.ACTIVE && player.eliminatedWave.HasValue)
                     || (player.eliminatedWave.HasValue && (player.eliminatedWave.Value <= 0 || player.eliminatedWave.Value > snapshot.currentWave)))
@@ -241,6 +245,8 @@ namespace MyDefense.Shared.Contracts
                     .Append(",\"connectionState\":").Append(String(player.connectionState.ToString()))
                     .Append(",\"inGameGold\":").Append(player.inGameGold)
                     .Append(",\"currentKidnapCost\":").Append(player.currentKidnapCost)
+                    .Append(",\"normalResonanceLevel\":").Append(player.normalResonanceLevel)
+                    .Append(",\"mythicResonanceLevel\":").Append(player.mythicResonanceLevel)
                     .Append(",\"eliminatedWave\":");
                 if (player.eliminatedWave.HasValue) json.Append(player.eliminatedWave.Value); else json.Append("null");
                 json.Append('}');
