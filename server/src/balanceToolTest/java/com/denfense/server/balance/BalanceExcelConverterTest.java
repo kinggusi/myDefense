@@ -52,6 +52,41 @@ class BalanceExcelConverterTest {
         rowReward.createCell(1).setCellValue(10);
         rowReward.createCell(2).setCellValue(1000);
 
+        Sheet battleReward = workbook.createSheet("BattleReward");
+        String[] battleHeaders = {"rewardType", "mapId", "wave", "gold", "universalPiece", "diamond",
+                "failureRewardBaseGold", "failureRewardCapPercent", "minimumRewardWave", "enabled"};
+        Row battleHeader = battleReward.createRow(0);
+        for (int i = 0; i < battleHeaders.length; i++) battleHeader.createCell(i).setCellValue(battleHeaders[i]);
+        Object[][] battleRows = {
+                {"CONFIG", "ALL", 0, 0, 0, 0, 10000, 80, 10, true},
+                {"CHECKPOINT", "ALL", 10, 500, 10, 0, 0, 0, 0, true},
+                {"CHECKPOINT", "ALL", 20, 750, 15, 0, 0, 0, 0, true},
+                {"CHECKPOINT", "ALL", 30, 1000, 20, 0, 0, 0, 0, true},
+                {"CHECKPOINT", "ALL", 40, 1500, 25, 0, 0, 0, 0, true},
+                {"CHECKPOINT", "ALL", 50, 2000, 30, 0, 0, 0, 0, true},
+                {"CHECKPOINT", "ALL", 60, 2500, 35, 0, 0, 0, 0, true},
+                {"CHECKPOINT", "ALL", 70, 3000, 40, 0, 0, 0, 0, true},
+                {"CHECKPOINT", "ALL", 80, 4000, 50, 0, 0, 0, 0, true},
+                {"MAP_FIRST_CLEAR", "NEPTUNE", 80, 0, 0, 3000, 0, 0, 0, true},
+                {"MAP_FIRST_CLEAR", "URANUS", 80, 0, 0, 4000, 0, 0, 0, true},
+                {"MAP_FIRST_CLEAR", "SATURN", 80, 0, 0, 5000, 0, 0, 0, true},
+                {"MAP_FIRST_CLEAR", "JUPITER", 80, 0, 0, 6000, 0, 0, 0, true},
+                {"MAP_FIRST_CLEAR", "MARS", 80, 0, 0, 7000, 0, 0, 0, true},
+                {"MAP_FIRST_CLEAR", "EARTH", 80, 0, 0, 8000, 0, 0, 0, true},
+                {"MAP_FIRST_CLEAR", "VENUS", 80, 0, 0, 9000, 0, 0, 0, true},
+                {"MAP_FIRST_CLEAR", "MERCURY", 80, 0, 0, 10000, 0, 0, 0, true},
+                {"MAP_FIRST_CLEAR", "SUN", 80, 0, 0, 11000, 0, 0, 0, true},
+        };
+        for (int rowIndex = 0; rowIndex < battleRows.length; rowIndex++) {
+            Row row = battleReward.createRow(rowIndex + 1);
+            for (int col = 0; col < battleRows[rowIndex].length; col++) {
+                Object value = battleRows[rowIndex][col];
+                if (value instanceof Number n) row.createCell(col).setCellValue(n.doubleValue());
+                else if (value instanceof Boolean b) row.createCell(col).setCellValue(b);
+                else row.createCell(col).setCellValue(String.valueOf(value));
+            }
+        }
+
         Sheet upgrade = workbook.createSheet("AlienUpgradeCost");
         Row headerUpgrade = upgrade.createRow(0);
         headerUpgrade.createCell(0).setCellValue("currentLevel");
@@ -78,9 +113,9 @@ class BalanceExcelConverterTest {
         for (int level = 1; level <= 50; level++) {
             Row row = levelStat.createRow(level);
             row.createCell(0).setCellValue(level);
-            row.createCell(1).setCellValue(1 + (level - 1) * 0.05);
+            row.createCell(1).setCellValue(1 + (level - 1) * 0.045 + Math.min(level / 10, 4) * 0.08);
             row.createCell(2).setCellValue(1 + (level - 1) * 0.03);
-            row.createCell(3).setCellValue(1 + (level / 10) * 0.02);
+            row.createCell(3).setCellValue(1 + (level - 1) * 0.005);
             row.createCell(4).setCellValue(1.00);
         }
 
@@ -243,12 +278,12 @@ class BalanceExcelConverterTest {
                         com.denfense.server.service.balance.AlienLevelStatBalance::level,
                         Function.identity()));
         assertStat(statsByLevel, 1, "1.00", "1.00", "1.00");
-        assertStat(statsByLevel, 9, "1.40", "1.24", "1.00");
-        assertStat(statsByLevel, 10, "1.45", "1.27", "1.02");
-        assertStat(statsByLevel, 20, "1.95", "1.57", "1.04");
-        assertStat(statsByLevel, 30, "2.45", "1.87", "1.06");
-        assertStat(statsByLevel, 40, "2.95", "2.17", "1.08");
-        assertStat(statsByLevel, 50, "3.45", "2.47", "1.10");
+        assertStat(statsByLevel, 9, "1.360", "1.240", "1.040");
+        assertStat(statsByLevel, 10, "1.485", "1.270", "1.045");
+        assertStat(statsByLevel, 20, "2.015", "1.570", "1.095");
+        assertStat(statsByLevel, 30, "2.545", "1.870", "1.145");
+        assertStat(statsByLevel, 40, "3.075", "2.170", "1.195");
+        assertStat(statsByLevel, 50, "3.525", "2.470", "1.245");
         
         assertThat(data.shopProducts()).hasSize(2);
         com.denfense.server.balance.ShopProductBalance shop1 = data.shopProducts().get(0);

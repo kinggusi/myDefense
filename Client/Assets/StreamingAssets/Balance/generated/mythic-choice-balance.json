@@ -1,4 +1,8 @@
 {
+  "excludedAlienIds" : [
+    47,
+    48
+  ],
   "mythicChoices" : [
     {
       "modeId" : "COOP_STANDARD",
@@ -7,7 +11,7 @@
       "paidRerollLimit" : 1,
       "paidRerollCost" : 100,
       "excludePreviousCandidates" : true,
-      "selectionTimeoutSeconds" : 8.00,
+      "selectionTimeoutSeconds" : 10.00,
       "autoSelectPolicy" : "FIRST",
       "battleContinuesDuringSelection" : true,
       "enabled" : true

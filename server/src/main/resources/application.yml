@@ -1,4 +1,6 @@
 spring:
+  profiles:
+    default: local
   application:
     name: DefenseServer
 
@@ -35,3 +37,6 @@ balance:
   alien-spec:
     consistency-mode: warn
     seed-enabled: true
+mydefense:
+  battle:
+    allow-anonymous-entry-snapshots: false

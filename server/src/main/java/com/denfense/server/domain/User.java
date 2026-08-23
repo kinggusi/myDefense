@@ -71,6 +71,18 @@ public class User {
         }
     }
 
+    public void earnUniversalPiece(int amount) {
+        if (amount < 0) throw new com.denfense.server.exception.BusinessException(com.denfense.server.exception.ErrorCode.INVALID_REQUEST, "대체 코인 지급량은 0 이상이어야 합니다.");
+        long value = (long) this.universalPiece + amount;
+        this.universalPiece = value > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) value;
+    }
+
+    public void earnDiamond(int amount) {
+        if (amount < 0) throw new com.denfense.server.exception.BusinessException(com.denfense.server.exception.ErrorCode.INVALID_REQUEST, "젬 지급량은 0 이상이어야 합니다.");
+        long value = (long) this.diamond + amount;
+        this.diamond = value > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) value;
+    }
+
     public void spendUniversalPiece(int amount) {
         if (amount < 0) {
             throw new com.denfense.server.exception.BusinessException(com.denfense.server.exception.ErrorCode.INVALID_REQUEST, "차감 개수는 0 이상이어야 합니다.");

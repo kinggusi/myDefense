@@ -22,8 +22,20 @@ class BattleBalanceExcelContractTest {
         BalanceExcelConverter.validate(data);
 
         assertThat(data.monsters()).hasSize(3);
-        assertThat(data.waves()).hasSize(10);
-        assertThat(data.waveSpawns()).hasSize(12);
+        assertThat(data.waves()).hasSize(80);
+        assertThat(data.waveSpawns()).hasSize(143);
+        assertThat(data.planetBattles()).hasSize(9);
+        assertThat(data.planetBattles().get(0)).satisfies(planet -> {
+            assertThat(planet.mapId()).isEqualTo("NEPTUNE");
+            assertThat(planet.hpMultiplier()).isEqualByComparingTo("1.0");
+            assertThat(planet.speedMultiplier()).isEqualByComparingTo("1.0");
+            assertThat(planet.bossHpMultiplier()).isEqualByComparingTo("3.0");
+        });
+        assertThat(data.planetBattles().get(8)).satisfies(planet -> {
+            assertThat(planet.mapId()).isEqualTo("SUN");
+            assertThat(planet.hpMultiplier()).isEqualByComparingTo("11.0");
+            assertThat(planet.speedMultiplier()).isEqualByComparingTo("1.25");
+        });
         assertThat(data.fieldLimits()).singleElement().satisfies(limit -> {
             assertThat(limit.playerCount()).isEqualTo(2);
             assertThat(limit.maxAliveMonsterCountPerField()).isEqualTo(100);
@@ -35,6 +47,14 @@ class BattleBalanceExcelContractTest {
             assertThat(summon.baseCost()).isEqualTo(50);
             assertThat(summon.costIncreasePerUse()).isEqualTo(10);
             assertThat(summon.maxUses()).isEqualTo(-1);
+        });
+        assertThat(data.summonPools()).singleElement().satisfies(pool -> {
+            assertThat(pool.poolId()).isEqualTo("STANDARD_SUMMON_POOL");
+            assertThat(pool.entries()).singleElement().satisfies(entry -> {
+                assertThat(entry.grade()).isEqualTo("NORMAL");
+                assertThat(entry.weight()).isEqualTo(10000);
+                assertThat(entry.alienIds()).containsExactly(22L, 23L, 24L, 25L, 26L, 27L, 28L);
+            });
         });
         assertThat(data.mergeRules()).hasSize(5).allSatisfy(rule -> {
             assertThat(rule.requiredCount()).isEqualTo(2);

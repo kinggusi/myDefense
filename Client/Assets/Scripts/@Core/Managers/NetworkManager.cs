@@ -9,9 +9,17 @@ public class NetworkManager : MonoBehaviour
     public static NetworkManager Instance;
     
     // 🔥 자신의 서버 주소로 수정 (localhost는 유니티 에디터 기준)
-    public string BaseUrl = "http://localhost:8080/api";
+    public string BaseUrl = RuntimeEnvironmentConfig.DefaultApiBaseUrl;
 
-    void Awake() { Instance = this; DontDestroyOnLoad(gameObject); }
+    void Awake()
+    {
+        Instance = this;
+        if (RuntimeEnvironmentConfig.HasApiBaseUrlOverride)
+            BaseUrl = RuntimeEnvironmentConfig.ApiBaseUrl;
+        else if (string.IsNullOrWhiteSpace(BaseUrl))
+            BaseUrl = RuntimeEnvironmentConfig.DefaultApiBaseUrl;
+        DontDestroyOnLoad(gameObject);
+    }
 
     // 일반적인 POST (소환 등)
     public void Post(string uri, WWWForm form, Action<string> onSuccess, Action<string> onError)

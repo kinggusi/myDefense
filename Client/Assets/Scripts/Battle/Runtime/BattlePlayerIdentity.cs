@@ -24,9 +24,11 @@ namespace MyDefense.Battle.Runtime
     {
         private readonly Dictionary<PlayerRef, BattlePlayerIdentity> _byPlayer = new();
         private readonly Dictionary<string, BattlePlayerIdentity> _byUser = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, int> _reservedSlots = new(StringComparer.Ordinal);
 
         public int Count => _byPlayer.Count;
         public IReadOnlyList<BattlePlayerIdentity> Players => _byPlayer.Values.OrderBy(identity => identity.PlayerSlot).ToList();
+        public event Action PlayersChanged;
 
         public bool TryAdd(PlayerRef playerRef, string userId, out BattlePlayerIdentity identity)
         {
@@ -34,14 +36,39 @@ namespace MyDefense.Battle.Runtime
             if (!playerRef.IsRealPlayer || string.IsNullOrWhiteSpace(userId))
                 return false;
             userId = userId.Trim();
-            if (_byPlayer.ContainsKey(playerRef) || _byUser.ContainsKey(userId) || _byPlayer.Count >= 2)
+            if (_byPlayer.ContainsKey(playerRef) || _byUser.ContainsKey(userId) || !CanAddUser(userId))
                 return false;
 
-            int playerSlot = _byPlayer.Values.Any(existing => existing.PlayerSlot == 1) ? 2 : 1;
+            int playerSlot = _reservedSlots.TryGetValue(userId, out int reservedSlot)
+                ? reservedSlot
+                : AvailableUnreservedSlot();
+            if (playerSlot == 0)
+                return false;
             identity = new BattlePlayerIdentity(playerRef, userId, playerSlot);
             _byPlayer.Add(playerRef, identity);
             _byUser.Add(userId, identity);
+            PlayersChanged?.Invoke();
             return true;
+        }
+
+        public bool Disconnect(PlayerRef playerRef)
+        {
+            if (!_byPlayer.Remove(playerRef, out BattlePlayerIdentity identity))
+                return false;
+            _byUser.Remove(identity.UserId);
+            _reservedSlots[identity.UserId] = identity.PlayerSlot;
+            PlayersChanged?.Invoke();
+            return true;
+        }
+
+        public bool CanAddUser(string userId)
+        {
+            if (string.IsNullOrWhiteSpace(userId)) return false;
+            userId = userId.Trim();
+            if (_byUser.ContainsKey(userId)) return false;
+            if (_reservedSlots.TryGetValue(userId, out int reservedSlot))
+                return !_byPlayer.Values.Any(player => player.PlayerSlot == reservedSlot);
+            return AvailableUnreservedSlot() != 0;
         }
 
         public bool Remove(PlayerRef playerRef)
@@ -49,19 +76,40 @@ namespace MyDefense.Battle.Runtime
             if (!_byPlayer.Remove(playerRef, out BattlePlayerIdentity identity))
                 return false;
             _byUser.Remove(identity.UserId);
+            PlayersChanged?.Invoke();
             return true;
         }
 
         public void Clear()
         {
+            if (_byPlayer.Count == 0 && _reservedSlots.Count == 0) return;
             _byPlayer.Clear();
             _byUser.Clear();
+            _reservedSlots.Clear();
+            PlayersChanged?.Invoke();
         }
 
         public bool TryGet(PlayerRef playerRef, out BattlePlayerIdentity identity) => _byPlayer.TryGetValue(playerRef, out identity);
 
         public bool TryGetByUserId(string userId, out BattlePlayerIdentity identity)
             => _byUser.TryGetValue(userId ?? string.Empty, out identity);
+
+        public bool TryGetByUserIdForSlot(int playerSlot, out BattlePlayerIdentity identity)
+        {
+            identity = _byPlayer.Values.FirstOrDefault(player => player.PlayerSlot == playerSlot);
+            return identity != null;
+        }
+
+        private int AvailableUnreservedSlot()
+        {
+            for (int slot = 1; slot <= 2; slot++)
+            {
+                if (_byPlayer.Values.Any(player => player.PlayerSlot == slot)) continue;
+                if (_reservedSlots.Values.Contains(slot)) continue;
+                return slot;
+            }
+            return 0;
+        }
     }
 
     public static class BattlePlayerIdentityToken

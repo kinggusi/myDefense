@@ -1,6 +1,8 @@
 {
   "schemaVersion": 1,
   "balanceVersion": "battle-v1",
-  "contentHash": "e5191ca7829d5de41391f57b51b832aab030c30145fb8c7c4031f3cb1b07c4f4",
-  "items": []
+  "contentHash": "356d70c01ad613d6dc4e5a53c520db16aebf440d967227645c12866d7cce2d05",
+  "items": [
+    {"skillId":"SKILL_BASIC","executionOrder":1,"triggerPhase":"ON_HIT","effectType":"DAMAGE","magnitudeSource":"ATTACK_SNAPSHOT_DAMAGE","baseMagnitude":0,"coefficient":1,"chance":1,"durationSeconds":0,"tickIntervalSeconds":0,"radius":0,"maxStacks":1,"stackPolicy":"NONE","bossMultiplier":1}
+  ]
 }

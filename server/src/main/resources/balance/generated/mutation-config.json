@@ -1,0 +1,10 @@
+{
+  "initialActivationCost" : 300,
+  "injectorReplaceCost" : 0,
+  "modeId" : "COOP_STANDARD",
+  "rerollCost1" : 600,
+  "rerollCost2" : 1200,
+  "rerollCost3" : 2400,
+  "rerollCost4" : 4800,
+  "rerollCostAfterMax" : 4800
+}

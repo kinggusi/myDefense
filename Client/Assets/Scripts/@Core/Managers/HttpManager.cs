@@ -8,7 +8,7 @@ public class HttpManager : MonoBehaviour
     public static HttpManager Instance;
     
     // 서버 주소 (자신의 환경에 맞게)
-    private const string BASE_URL = "http://localhost:8080/api";
+    private string BaseUrl => RuntimeEnvironmentConfig.ApiBaseUrl;
 
     void Awake()
     {
@@ -19,14 +19,14 @@ public class HttpManager : MonoBehaviour
     // 1. [상점] 가챠 요청
     public void PostGacha(string username, int count, Action<string> onSuccess)
     {
-        string url = $"{BASE_URL}/shop/gacha?username={username}&count={count}";
+        string url = $"{BaseUrl}/shop/gacha?username={username}&count={count}";
         StartCoroutine(SendPostRequest(url, onSuccess));
     }
 
     // 2. [인벤] 왹져 강화 요청
     public void PostUpgrade(string username, int alienId, Action<string> onSuccess)
     {
-        string url = $"{BASE_URL}/aliens/{alienId}/upgrade?username={username}";
+        string url = $"{BaseUrl}/aliens/{alienId}/upgrade?username={username}";
         StartCoroutine(SendPostRequest(url, onSuccess));
     }
 

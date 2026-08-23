@@ -22,7 +22,7 @@ namespace MyDefense.Battle.Tests
     {
         private const BindingFlags PrivateInstance = BindingFlags.Instance | BindingFlags.NonPublic;
         private const string MonsterPrefabPath = "Assets/Prefabs/Monsters/Monster.prefab";
-        private const string ExpectedBundleHash = "ab535ca2986ca84b196567cefa30c2e20c8f3e277efa131df9766a24c98633bf";
+        private const string ExpectedBundleHash = "7e3c6534c8da8b5aadaa346510f7ed169b8ab142e4b1c3f3739dcc6921fc9f55";
 
         private GameObject _executorObject;
         private GameObject _spawnPointObject;
@@ -61,7 +61,7 @@ namespace MyDefense.Battle.Tests
             SetField("_monsterPrefab", _monsterPrefab);
             SetField("_spawnPoint", _spawnPointObject.transform);
             SetField("_totalMonsterGoal", 100);
-            Configure(new ResourcesBattleBalanceProvider(_monsterDefinitions, EmptyBattleAlienIdProvider.Instance));
+            Configure(new ResourcesBattleBalanceProvider(_monsterDefinitions, ProductionAlienIds()));
             InitializeRuntimeSession();
             Assert.That(BattleWaveExecutor.Instance, Is.SameAs(_executor));
         }
@@ -133,6 +133,7 @@ namespace MyDefense.Battle.Tests
             Assert.That(_executor.IsCatalogExhausted, Is.True);
             Assert.That(events, Is.EqualTo(1));
             Assert.That(_executor.IsWaveRunning, Is.False);
+            Assert.That(_executor.MatchState, Is.EqualTo(MatchState.CLEARED));
         }
 
         [Test]
@@ -328,7 +329,7 @@ namespace MyDefense.Battle.Tests
         public void UnresolvedPrefabKey_FaultsAndClearsWaveState()
         {
             Configure(
-                new ResourcesBattleBalanceProvider(_monsterDefinitions, EmptyBattleAlienIdProvider.Instance),
+                new ResourcesBattleBalanceProvider(_monsterDefinitions, ProductionAlienIds()),
                 _monsterDefinitions,
                 new RejectingPrefabResolver());
             InitializeRuntimeSession();
@@ -344,7 +345,7 @@ namespace MyDefense.Battle.Tests
         public void UnknownMonsterIdAtExecution_FaultsAndClearsWaveState()
         {
             Configure(
-                new ResourcesBattleBalanceProvider(_monsterDefinitions, EmptyBattleAlienIdProvider.Instance),
+                new ResourcesBattleBalanceProvider(_monsterDefinitions, ProductionAlienIds()),
                 new RejectingMonsterProvider(),
                 _prefabResolver);
             InitializeRuntimeSession();
@@ -395,7 +396,7 @@ namespace MyDefense.Battle.Tests
             invalid.AddComponent<MonsterStat>();
             _spawnedObjects.Add(invalid);
             Configure(
-                new ResourcesBattleBalanceProvider(_monsterDefinitions, EmptyBattleAlienIdProvider.Instance),
+                new ResourcesBattleBalanceProvider(_monsterDefinitions, ProductionAlienIds()),
                 _monsterDefinitions,
                 new ExplicitBattleMonsterPrefabResolver("Monster", invalid));
             InitializeRuntimeSession();
@@ -414,7 +415,7 @@ namespace MyDefense.Battle.Tests
             invalid.AddComponent<BattleMonsterMovement>();
             _spawnedObjects.Add(invalid);
             Configure(
-                new ResourcesBattleBalanceProvider(_monsterDefinitions, EmptyBattleAlienIdProvider.Instance),
+                new ResourcesBattleBalanceProvider(_monsterDefinitions, ProductionAlienIds()),
                 _monsterDefinitions,
                 new ExplicitBattleMonsterPrefabResolver("Monster", invalid));
             InitializeRuntimeSession();
@@ -516,6 +517,12 @@ namespace MyDefense.Battle.Tests
             FieldInfo field = typeof(WaitForSeconds).GetField("m_Seconds", PrivateInstance);
             Assert.That(field, Is.Not.Null);
             return (float)field.GetValue(wait);
+        }
+
+        private static IAlienIdProvider ProductionAlienIds()
+        {
+            Assert.That(CanonicalBattleAlienIdProvider.TryCreate(out CanonicalBattleAlienIdProvider provider, out string error), Is.True, error);
+            return provider;
         }
 
         private object GetField(string fieldName)

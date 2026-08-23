@@ -57,6 +57,7 @@ namespace MyDefense.Battle
         private Coroutine _activeWaveCoroutine = null;
         private bool _isCurrentWaveBoss;
         private bool _regularWaveSpawnCompleted;
+        private bool _configuredWaveExecutionStarted;
         private bool _regularWaveCompletionReported;
         private int _player1AliveMonsterCount;
         private int _player2AliveMonsterCount;
@@ -84,6 +85,10 @@ namespace MyDefense.Battle
         private BattleSessionContext _runtimeSession;
         private IBattlePlayerIdentityProvider _playerIdentityProvider;
         private BattleSpawnSequenceIssuer _spawnSequenceIssuer;
+        private BattleBossPatternRuntime _bossPatternRuntime;
+        private float _bossPatternStartedAt;
+        private float _bossBaseMoveSpeed;
+        private int _bossPhase;
 
         public LaneType LocalPlayerLane => _localPlayerLane;
 
@@ -123,12 +128,62 @@ namespace MyDefense.Battle
         public event System.Action<LaneType, PlayerBattleState> OnPlayerBattleStateChanged;
         public event System.Action<MatchState> OnMatchStateChanged;
         public event System.Action<int> OnRegularWaveCompleted;
+        public event System.Action<BossPatternSpecData> OnBossPatternTriggered;
         public event System.Action OnCatalogExhausted;
 
         public int CurrentRound => _currentRound;
         public string CurrentWaveId => _currentWaveSpec?.WaveId;
         public bool IsCurrentWaveBoss => _isCurrentWaveBoss;
         public bool IsBossActive => _isBossActive;
+        public float ActiveBossTimeLimitSeconds => _activeBossTimeLimitSeconds;
+
+        public bool TryResolveBossTimeoutFromAuthority()
+        {
+            if (!HasWaveAuthority())
+                return false;
+
+            return TryResolveBossTimeout();
+        }
+
+        /// <summary>
+        /// Resolves a Boss death at the authoritative Monster callback boundary.
+        /// The instance identity check prevents a stale/non-Boss object from
+        /// advancing the wave, while HandleBossDefeated guards duplicate calls.
+        /// </summary>
+        public bool TryResolveBossDefeatFromAuthority(BattleMonsterNetworkState monster)
+        {
+            if (!HasWaveAuthority())
+                return false;
+
+            MonsterStat stat = monster == null ? null : monster.GetComponent<MonsterStat>();
+            if (stat == null || !stat.IsDead || _currentBossInstance == null || _currentBossInstance != monster.gameObject)
+                return false;
+
+            return HandleBossDefeated();
+        }
+
+        public bool TryGetCanonicalMonsterDefinition(string monsterId, out BattleMonsterDefinition definition)
+        {
+            definition = null;
+            return _monsterDefinitionProvider != null
+                && !string.IsNullOrWhiteSpace(monsterId)
+                && _monsterDefinitionProvider.TryGet(monsterId, out definition);
+        }
+
+        public bool TryGetCanonicalBasicProjectile(long alienId, out ProjectileSpecData projectile)
+        {
+            projectile = null;
+            if (!EnsureBalanceInitialized() || _battleBalanceProvider?.Catalog == null)
+                return false;
+            if (!_battleBalanceProvider.Catalog.AlienSkills.TryGet(alienId, 0, out AlienSkillLinkData link)
+                || !link.Enabled
+                || !_battleBalanceProvider.Catalog.Skills.TryGet(link.SkillId, out SkillSpecData skill)
+                || !skill.Enabled
+                || skill.SkillType != BattleSkillType.BASIC_ATTACK)
+                return false;
+            return _battleBalanceProvider.Catalog.TryGetProjectileForSkill(skill.SkillId, out projectile)
+                && projectile.Enabled;
+        }
         public bool IsWaveRunning => _isWaveRunning;
         public bool IsCatalogExhausted => _catalogExhausted;
         public string BattleBalanceContentHash => _battleBalanceProvider?.ContentHash;
@@ -137,6 +192,238 @@ namespace MyDefense.Battle
         public string BattleContentVersion => (_battleBalanceProvider as ICanonicalCompositeBattleBalanceProvider)?.BattleContentVersion;
         public string BattleContentHash => (_battleBalanceProvider as ICanonicalCompositeBattleBalanceProvider)?.BattleContentHash;
         public BattleSessionContext RuntimeSession => _runtimeSession;
+
+        public bool TryGetCanonicalSummonCost(int useCount, out int cost)
+        {
+            cost = 0;
+            if (!EnsureBalanceInitialized()
+                || _battleBalanceProvider is not ICanonicalCompositeBattleBalanceProvider canonical
+                || canonical.Summon == null)
+                return false;
+            return canonical.Summon.TryGetCost(useCount, out cost);
+        }
+
+        public bool TryGetCanonicalResonanceLevel(
+            CanonicalResonanceTrack track,
+            int level,
+            out CanonicalResonanceLevel balance)
+        {
+            balance = null;
+            if (!EnsureBalanceInitialized()
+                || _battleBalanceProvider is not ICanonicalCompositeBattleBalanceProvider canonical
+                || canonical.Resonance == null)
+                return false;
+            return canonical.Resonance.TryGet(track, level, out balance);
+        }
+
+        public bool TryApplyCanonicalResonance(
+            byte grade,
+            int normalLevel,
+            int mythicLevel,
+            AlienAttackSnapshot source,
+            out AlienAttackSnapshot result)
+        {
+            result = source;
+            if (!EnsureBalanceInitialized()
+                || _battleBalanceProvider is not ICanonicalCompositeBattleBalanceProvider canonical
+                || canonical.Resonance == null)
+                return false;
+
+            BattleResonanceStats stats = BattleResonanceCalculator.Apply(
+                canonical.Resonance,
+                grade,
+                normalLevel,
+                mythicLevel,
+                source.Damage,
+                source.AttackRate,
+                source.Range);
+            result = AlienAttackSnapshot.FromCalculatedStats(
+                source.AttackerServerId,
+                stats.Damage,
+                stats.AttackRate,
+                stats.Range,
+                source.ActiveMutationType);
+            return true;
+        }
+
+        public bool TryGetCanonicalMutationCost(bool initialActivation, int rerollCount, out int cost)
+        {
+            cost = 0;
+            if (!EnsureBalanceInitialized()
+                || _battleBalanceProvider is not ICanonicalCompositeBattleBalanceProvider canonical)
+                return false;
+            return TryGetCanonicalMutationCost(canonical.MutationConfig, initialActivation, rerollCount, out cost);
+        }
+
+        public bool TryResolveCanonicalMutation(ulong seed, string excludedMutationType, out string mutationType)
+        {
+            mutationType = null;
+            if (!EnsureBalanceInitialized()
+                || _battleBalanceProvider is not ICanonicalCompositeBattleBalanceProvider canonical)
+                return false;
+            return TryResolveCanonicalMutation(canonical.MutationSpecs, seed, excludedMutationType, out mutationType);
+        }
+
+        public bool TryGetCanonicalMutationSpec(string mutationType, out CanonicalMutationSpec mutationSpec)
+        {
+            mutationSpec = null;
+            if (string.IsNullOrWhiteSpace(mutationType) || !EnsureBalanceInitialized()
+                || _battleBalanceProvider is not ICanonicalCompositeBattleBalanceProvider canonical
+                || canonical.MutationSpecs == null)
+                return false;
+            foreach (CanonicalMutationSpec candidate in canonical.MutationSpecs)
+            {
+                if (candidate != null && candidate.Enabled
+                    && string.Equals(candidate.MutationType, mutationType, StringComparison.Ordinal))
+                {
+                    mutationSpec = candidate;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public static bool TryGetCanonicalMutationCost(
+            CanonicalMutationConfig config,
+            bool initialActivation,
+            int rerollCount,
+            out int cost)
+        {
+            cost = 0;
+            if (config == null || rerollCount < 0)
+                return false;
+            if (initialActivation)
+            {
+                cost = config.InitialActivationCost;
+                return cost >= 0;
+            }
+
+            cost = rerollCount switch
+            {
+                0 => config.RerollCost1,
+                1 => config.RerollCost2,
+                2 => config.RerollCost3,
+                3 => config.RerollCost4,
+                _ => config.RerollCostAfterMax
+            };
+            return cost >= 0;
+        }
+
+        public static bool TryResolveCanonicalMutation(
+            IReadOnlyList<CanonicalMutationSpec> mutationSpecs,
+            ulong seed,
+            string excludedMutationType,
+            out string mutationType)
+        {
+            mutationType = null;
+            if (mutationSpecs == null)
+                return false;
+
+            long totalWeight = 0;
+            foreach (CanonicalMutationSpec spec in mutationSpecs)
+            {
+                if (spec == null || !spec.Enabled || !spec.RandomActivationEnabled || spec.Weight <= 0
+                    || string.Equals(spec.MutationType, excludedMutationType, StringComparison.OrdinalIgnoreCase))
+                    continue;
+                totalWeight += spec.Weight;
+            }
+            if (totalWeight <= 0)
+                return false;
+
+            long roll = (long)(seed % (ulong)totalWeight);
+            foreach (CanonicalMutationSpec spec in mutationSpecs)
+            {
+                if (spec == null || !spec.Enabled || !spec.RandomActivationEnabled || spec.Weight <= 0
+                    || string.Equals(spec.MutationType, excludedMutationType, StringComparison.OrdinalIgnoreCase))
+                    continue;
+                if (roll < spec.Weight)
+                {
+                    mutationType = spec.MutationType;
+                    return !string.IsNullOrWhiteSpace(mutationType);
+                }
+                roll -= spec.Weight;
+            }
+            return false;
+        }
+
+        public bool TryGetCanonicalSummonAlienId(int playerSlot, int useCount, int slotIndex, out long alienId, out byte gradeCode)
+        {
+            alienId = 0;
+            gradeCode = 0;
+            if (!EnsureBalanceInitialized()
+                || _battleBalanceProvider is not ICanonicalCompositeBattleBalanceProvider canonical
+                || canonical.Summon == null
+                || string.IsNullOrWhiteSpace(canonical.Summon.ResultPoolId))
+                return false;
+            ulong seed = 1469598103934665603UL;
+            seed = MixKidnapSeed(seed, playerSlot);
+            seed = MixKidnapSeed(seed, useCount);
+            seed = MixKidnapSeed(seed, slotIndex);
+            seed = MixKidnapSeed(seed, _currentRound);
+            return BattleKidnapPoolResolver.TrySelect(canonical.SummonPools, canonical.Summon.ResultPoolId, seed, out alienId, out gradeCode);
+        }
+
+        public bool TryGetCanonicalKidnapResult(int playerSlot, int useCount, int slotIndex, out BattleKidnapPoolResolver.KidnapResult result)
+        {
+            result = default;
+            if (!EnsureBalanceInitialized()
+                || _battleBalanceProvider is not ICanonicalCompositeBattleBalanceProvider canonical
+                || canonical.Summon == null
+                || string.IsNullOrWhiteSpace(canonical.Summon.ResultPoolId)) return false;
+            ulong seed = 1469598103934665603UL;
+            seed = MixKidnapSeed(seed, playerSlot);
+            seed = MixKidnapSeed(seed, useCount);
+            seed = MixKidnapSeed(seed, slotIndex);
+            seed = MixKidnapSeed(seed, _currentRound);
+            return BattleKidnapPoolResolver.TrySelect(canonical.SummonPools, canonical.Summon.ResultPoolId, canonical.InjectorPool, seed, out result);
+        }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        public bool TryGetCanonicalTestInjectorResult(int playerSlot, int useCount, int slotIndex, out BattleKidnapPoolResolver.KidnapResult result)
+        {
+            result = default;
+            if (!EnsureBalanceInitialized()
+                || _battleBalanceProvider is not ICanonicalCompositeBattleBalanceProvider canonical
+                || canonical.InjectorPool == null)
+                return false;
+            ulong seed = 1469598103934665603UL;
+            seed = MixKidnapSeed(seed, playerSlot);
+            seed = MixKidnapSeed(seed, useCount);
+            seed = MixKidnapSeed(seed, slotIndex);
+            seed = MixKidnapSeed(seed, _currentRound);
+            return BattleKidnapPoolResolver.TrySelectForcedInjector(canonical.InjectorPool, seed, out result);
+        }
+#endif
+
+        private static ulong MixKidnapSeed(ulong value, int input)
+        {
+            return (value ^ (uint)input) * 1099511628211UL;
+        }
+
+        public bool TryGetCanonicalSessionMetadata(
+            out string canonicalBalanceVersion,
+            out string canonicalContentHash,
+            out string battleContentVersion,
+            out string battleContentHash)
+        {
+            canonicalBalanceVersion = null;
+            canonicalContentHash = null;
+            battleContentVersion = null;
+            battleContentHash = null;
+
+            if (!EnsureBalanceInitialized()
+                || _battleBalanceProvider is not ICanonicalCompositeBattleBalanceProvider canonical)
+                return false;
+
+            canonicalBalanceVersion = canonical.CanonicalBalanceVersion;
+            canonicalContentHash = canonical.CanonicalContentHash;
+            battleContentVersion = canonical.BattleContentVersion;
+            battleContentHash = canonical.BattleContentHash;
+            return !string.IsNullOrWhiteSpace(canonicalBalanceVersion)
+                && !string.IsNullOrWhiteSpace(canonicalContentHash)
+                && !string.IsNullOrWhiteSpace(battleContentVersion)
+                && !string.IsNullOrWhiteSpace(battleContentHash);
+        }
 
         private void Awake()
         {
@@ -197,10 +484,15 @@ namespace MyDefense.Battle
             _balanceInitializationAttempted = true;
             if (_battleBalanceProvider == null)
             {
+                if (!CanonicalBattleAlienIdProvider.TryCreate(out CanonicalBattleAlienIdProvider alienIds, out string alienError))
+                {
+                    FaultExecution(alienError);
+                    return false;
+                }
                 CanonicalCompositeBattleBalanceProvider canonicalProvider =
                     CanonicalCompositeBattleBalanceProvider.LoadProduction(
                         new ExistingMonsterPrefabRuntimeMapping(),
-                        EmptyBattleAlienIdProvider.Instance);
+                        alienIds);
                 _battleBalanceProvider = canonicalProvider;
                 _monsterDefinitionProvider = canonicalProvider.MonsterDefinitions;
                 _monsterPrefabResolver = new ExplicitBattleMonsterPrefabResolver(
@@ -435,6 +727,7 @@ namespace MyDefense.Battle
             _isWaveRunning = false;
             _isCurrentWaveBoss = false;
             _regularWaveSpawnCompleted = false;
+            _configuredWaveExecutionStarted = false;
             _regularWaveCompletionReported = false;
         }
 
@@ -448,6 +741,7 @@ namespace MyDefense.Battle
 
         private void ReleaseCurrentBoss()
         {
+            _bossPatternRuntime = null;
             if (_currentBossInstance == null)
             {
                 _currentBossInstance = null;
@@ -616,8 +910,56 @@ namespace MyDefense.Battle
 
         private void Start()
         {
+            NetworkObject networkObject = GetComponent<NetworkObject>();
+            if (networkObject != null && networkObject.Runner == null)
+            {
+                StartCoroutine(StartWhenNetworkSpawnedRoutine());
+                return;
+            }
+
+            StartConfiguredWaves();
+        }
+
+        private IEnumerator StartWhenNetworkSpawnedRoutine()
+        {
+            NetworkObject networkObject = GetComponent<NetworkObject>();
+            while (networkObject != null && networkObject.Runner == null)
+                yield return null;
+
+            if (!HasWaveAuthority())
+                yield break;
+
+            StartConfiguredWaves();
+        }
+
+        private void StartConfiguredWaves()
+        {
+            // Once this object is networked, only the Fusion State Authority may
+            // start the wave loop.  Keep the offline/editor path available for
+            // existing tests and local tooling where no runner is attached.
+            if (!HasWaveAuthority())
+                return;
+
+            if (_configuredWaveExecutionStarted)
+                return;
+
             if (_runtimeSession == null)
+            {
+                NetworkObject networkObject = GetComponent<NetworkObject>();
+                BattleSceneSessionAdapter sessionAdapter = GetComponent<BattleSceneSessionAdapter>();
+                if (networkObject != null
+                    && networkObject.Runner != null
+                    && sessionAdapter != null
+                    && !sessionAdapter.IsInitialized)
+                {
+                    // A networked Battle Scene receives its canonical session
+                    // from BattleSceneSessionAdapter after the roster is ready.
+                    // Do not create an empty local session before that injection.
+                    return;
+                }
+
                 InitializeSession();
+            }
 
             if (!EnsureBalanceInitialized())
             {
@@ -626,6 +968,7 @@ namespace MyDefense.Battle
 
             if (_autoStartOnPlay)
             {
+                _configuredWaveExecutionStarted = true;
                 if (_continuousWaves)
                 {
                     if (_waveLoopCoroutine != null) StopCoroutine(_waveLoopCoroutine);
@@ -638,8 +981,14 @@ namespace MyDefense.Battle
             }
         }
 
+        public void StartConfiguredWavesIfReady()
+        {
+            StartConfiguredWaves();
+        }
+
         private void Update()
         {
+            TickBossPatterns();
             if (_isBossActive && _currentBossInstance == null)
             {
                 if (_bossState == BossStatusState.Active)
@@ -711,6 +1060,7 @@ namespace MyDefense.Battle
         [ContextMenu("Start Next Wave")]
         public void StartNextWave()
         {
+            if (!HasWaveAuthority()) return;
             if (!EnsureBalanceInitialized()) return;
             if (!TryBeginNextWave()) return;
 
@@ -722,6 +1072,14 @@ namespace MyDefense.Battle
             {
                 _activeWaveCoroutine = StartCoroutine(SpawnRegularWaveRoutine());
             }
+        }
+
+        private bool HasWaveAuthority()
+        {
+            NetworkObject networkObject = GetComponent<NetworkObject>();
+            return networkObject == null
+                || networkObject.Runner == null
+                || networkObject.HasStateAuthority;
         }
 
         private bool TryBeginNextWave()
@@ -812,6 +1170,9 @@ namespace MyDefense.Battle
 
             _catalogExhaustedReported = true;
             Debug.Log($"[BattleWaveExecutor] Battle wave catalog exhausted after round {_currentRound}.");
+            // The canonical catalog, not a hard-coded round number, defines
+            // the final configured Wave and the authoritative clear result.
+            TryTransitionMatchState(MatchState.CLEARED);
             OnCatalogExhausted?.Invoke();
         }
 
@@ -975,7 +1336,10 @@ namespace MyDefense.Battle
                 $"[BattleWaveExecutor] Boss round {_currentRound} entered from wave '{_currentWaveSpec.WaveId}'.");
 
             StopBossTimer();
-            _bossTimerCoroutine = StartCoroutine(BossTimerRoutine());
+            NetworkRunner runner = NetworkRunner.GetRunnerForGameObject(gameObject)
+                ?? Object.FindFirstObjectByType<NetworkRunner>();
+            if (runner == null || !runner.IsRunning)
+                _bossTimerCoroutine = StartCoroutine(BossTimerRoutine());
             yield return null;
             _activeWaveCoroutine = null;
         }
@@ -1004,6 +1368,45 @@ namespace MyDefense.Battle
             _currentBossInstance = bossInstance;
             _isBossActive = bossInstance != null;
             _bossState = _isBossActive ? BossStatusState.Active : BossStatusState.None;
+            _bossPhase = 0;
+            BattleMonsterMovement movement = bossInstance == null ? null : bossInstance.GetComponent<BattleMonsterMovement>();
+            _bossBaseMoveSpeed = movement == null ? 0f : movement.Speed;
+            IReadOnlyList<BossPatternSpecData> patterns = _battleBalanceProvider?.Catalog?.BossPatterns
+                ?.GetByWave(_currentWaveSpec?.WaveId);
+            _bossPatternRuntime = new BattleBossPatternRuntime(patterns);
+            _bossPatternStartedAt = Time.time;
+            TickBossPatterns();
+        }
+
+        private void TickBossPatterns()
+        {
+            if (!HasWaveAuthority() || _bossState != BossStatusState.Active
+                || _currentBossInstance == null || _bossPatternRuntime == null)
+                return;
+            MonsterStat stat = _currentBossInstance.GetComponent<MonsterStat>();
+            float hpRatio = stat == null || stat.MaxHp <= 0f ? 1f : stat.CurrentHp / stat.MaxHp;
+            _bossPatternRuntime.Tick(Time.time - _bossPatternStartedAt, hpRatio, ApplyBossPattern);
+        }
+
+        private void ApplyBossPattern(BossPatternSpecData pattern)
+        {
+            if (pattern == null || _currentBossInstance == null)
+                return;
+            switch (pattern.PatternType)
+            {
+                case BossPatternType.SET_PHASE:
+                    _bossPhase = Mathf.Max(0, Mathf.RoundToInt(pattern.ParameterValue));
+                    break;
+                case BossPatternType.SET_MOVE_SPEED_MULTIPLIER:
+                    BattleMonsterMovement movement = _currentBossInstance.GetComponent<BattleMonsterMovement>();
+                    if (movement != null)
+                        movement.Speed = _bossBaseMoveSpeed * Mathf.Max(0f, pattern.ParameterValue);
+                    break;
+                case BossPatternType.CAST_SKILL:
+                case BossPatternType.WAIT:
+                    break;
+            }
+            OnBossPatternTriggered?.Invoke(pattern);
         }
 
         private IEnumerator BossTimerRoutine()
@@ -1071,10 +1474,13 @@ namespace MyDefense.Battle
                 return false;
             }
 
+            if (_bossPatternRuntime != null)
+                _bossPatternRuntime.Tick(Time.time - _bossPatternStartedAt, 0f, ApplyBossPattern);
             _bossState = BossStatusState.Defeated;
             _isBossActive = false;
             _isWaveRunning = false;
             _currentBossInstance = null;
+            _bossPatternRuntime = null;
 
             StopBossTimer();
 
@@ -1196,8 +1602,28 @@ namespace MyDefense.Battle
                 return false;
             }
 
-            float resolvedMoveSpeed = definition.MoveSpeed * spawn.MoveSpeedMultiplier;
-            float resolvedMaxHp = definition.BaseMaxHp * spawn.HpMultiplier;
+            float planetHpMultiplier = 1f;
+            float planetSpeedMultiplier = 1f;
+            float planetBossHpMultiplier = 1f;
+            if (_battleBalanceProvider is ICanonicalCompositeBattleBalanceProvider canonical)
+            {
+                string mapId = _runtimeSession?.MapId;
+                if (string.IsNullOrWhiteSpace(mapId)
+                    || canonical.PlanetBattles == null
+                    || !canonical.PlanetBattles.TryGet(mapId, out CanonicalPlanetBattle planet))
+                {
+                    DestroySpawnedInstance(spawnedInstance);
+                    spawnedInstance = null;
+                    FaultExecution("Canonical PlanetBattle is missing for session mapId '" + (mapId ?? "<null>") + "'.");
+                    return false;
+                }
+                planetHpMultiplier = planet.HpMultiplier;
+                planetSpeedMultiplier = planet.SpeedMultiplier;
+                planetBossHpMultiplier = lane == LaneType.BossSharedLane ? planet.BossHpMultiplier : 1f;
+            }
+
+            float resolvedMoveSpeed = definition.MoveSpeed * spawn.MoveSpeedMultiplier * planetSpeedMultiplier;
+            float resolvedMaxHp = definition.BaseMaxHp * spawn.HpMultiplier * planetHpMultiplier * planetBossHpMultiplier;
             BattleMonsterRuntimeContext runtimeContext = spawnedInstance.GetComponent<BattleMonsterRuntimeContext>();
             try
             {
@@ -1285,6 +1711,26 @@ namespace MyDefense.Battle
 
         private bool TryConfigureSpawnedMovement(GameObject instance, LaneType lane, float speed)
         {
+            if (instance == null)
+            {
+                FaultExecution("Cannot configure movement on a null spawned instance.");
+                return false;
+            }
+
+            NetworkRunner runner = NetworkRunner.GetRunnerForGameObject(gameObject)
+                ?? Object.FindFirstObjectByType<NetworkRunner>();
+            NetworkObject networkObject = instance.GetComponent<NetworkObject>();
+            if (runner != null && runner.IsRunning && networkObject != null
+                && instance.GetComponent<NetworkTransform>() == null)
+            {
+                string error =
+                    $"Networked monster '{instance.name}' must contain a Fusion NetworkTransform "
+                    + "to replicate authoritative lane movement. Spawn rejected.";
+                DestroySpawnedInstance(instance);
+                FaultExecution(error);
+                return false;
+            }
+
             BattleMonsterMovement[] movements = instance.GetComponents<BattleMonsterMovement>();
             if (movements.Length != 1)
             {

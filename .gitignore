@@ -7,6 +7,9 @@
 [Ll]ogs/
 [Uu]ser[Ss]ettings/
 [Mm]emoryCaptures/
+**/_localbuild/
+Client/Assets/Screenshots/
+Client/Assets/Screenshots.meta
 *.pidb.meta
 *.pdb.meta
 *.unityproj
@@ -71,4 +74,16 @@ Client/Assets/_Recovery/
 Client/Assets/_Recovery.meta
 api_log.txt
 scene_info.txt
+
+# --- Local environment and secrets ---
+.env
+.env.*
+!.env.example
+.local/
+*.local.yml
+*.local.yaml
+*.local.json
+server/config/*.yml
+!server/config/*.yml.example
+Client/Assets/Photon/Fusion/Resources/PhotonAppSettings.local.asset
 

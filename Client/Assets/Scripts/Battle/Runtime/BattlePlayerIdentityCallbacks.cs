@@ -9,12 +9,20 @@ namespace MyDefense.Battle.Runtime
     {
         private readonly BattlePlayerRoster _roster;
         private readonly string _localUserId;
+        private readonly Action<BattlePlayerIdentity> _playerJoined;
+        private readonly Action<BattlePlayerIdentity> _playerLeft;
         private readonly HashSet<string> _pendingUserIds = new(StringComparer.Ordinal);
 
-        public BattlePlayerIdentityCallbacks(BattlePlayerRoster roster, string localUserId)
+        public BattlePlayerIdentityCallbacks(
+            BattlePlayerRoster roster,
+            string localUserId,
+            Action<BattlePlayerIdentity> playerJoined = null,
+            Action<BattlePlayerIdentity> playerLeft = null)
         {
             _roster = roster ?? throw new ArgumentNullException(nameof(roster));
             _localUserId = string.IsNullOrWhiteSpace(localUserId) ? null : localUserId.Trim();
+            _playerJoined = playerJoined;
+            _playerLeft = playerLeft;
         }
 
         public void OnPlayerJoined(NetworkRunner runner, PlayerRef player)
@@ -27,11 +35,19 @@ namespace MyDefense.Battle.Runtime
             if (userId != null)
             {
                 _pendingUserIds.Remove(userId);
-                _roster.TryAdd(player, userId, out _);
+                if (_roster.TryAdd(player, userId, out BattlePlayerIdentity identity))
+                    _playerJoined?.Invoke(identity);
             }
         }
 
-        public void OnPlayerLeft(NetworkRunner runner, PlayerRef player) => _roster.Remove(player);
+        public void OnPlayerLeft(NetworkRunner runner, PlayerRef player)
+        {
+            if (_roster.TryGet(player, out BattlePlayerIdentity identity))
+            {
+                _roster.Disconnect(player);
+                _playerLeft?.Invoke(identity);
+            }
+        }
 
         public void OnConnectRequest(NetworkRunner runner, NetworkRunnerCallbackArgs.ConnectRequest request, byte[] token)
         {
@@ -40,9 +56,9 @@ namespace MyDefense.Battle.Runtime
                 request.Refuse();
                 return;
             }
-            if (_roster.Count + _pendingUserIds.Count >= 2
-                || _roster.TryGetByUserId(userId, out _)
-                || _pendingUserIds.Contains(userId))
+            if (!_roster.CanAddUser(userId)
+                || _pendingUserIds.Contains(userId)
+                || _roster.Count + _pendingUserIds.Count >= 2)
                 request.Refuse();
             else
             {
@@ -51,10 +67,10 @@ namespace MyDefense.Battle.Runtime
             }
         }
 
-        public void OnShutdown(NetworkRunner runner, ShutdownReason shutdownReason) { }
+        public void OnShutdown(NetworkRunner runner, ShutdownReason shutdownReason) => _pendingUserIds.Clear();
         public void OnConnectedToServer(NetworkRunner runner) { }
-        public void OnDisconnectedFromServer(NetworkRunner runner, NetDisconnectReason reason) { }
-        public void OnConnectFailed(NetworkRunner runner, NetAddress remoteAddress, NetConnectFailedReason reason) { }
+        public void OnDisconnectedFromServer(NetworkRunner runner, NetDisconnectReason reason) => _pendingUserIds.Clear();
+        public void OnConnectFailed(NetworkRunner runner, NetAddress remoteAddress, NetConnectFailedReason reason) => _pendingUserIds.Clear();
         public void OnInput(NetworkRunner runner, NetworkInput input) { }
         public void OnInputMissing(NetworkRunner runner, PlayerRef player, NetworkInput input) { }
         public void OnUserSimulationMessage(NetworkRunner runner, SimulationMessagePtr message) { }

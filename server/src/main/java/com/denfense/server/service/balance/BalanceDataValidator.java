@@ -13,6 +13,27 @@ import java.util.stream.Collectors;
 @Component
 public class BalanceDataValidator {
 
+    public void validateBattleReward(com.denfense.server.balance.BattleRewardBalance balance) {
+        if (balance == null || balance.maxWave() != 80 || balance.minimumRewardWave() < 1
+                || balance.failureRewardBaseGold() <= 0 || balance.failureRewardCapPercent() <= 0
+                || balance.failureRewardCapPercent() > 100) {
+            throw new IllegalStateException("Invalid BattleReward config.");
+        }
+        if (balance.checkpoints() == null || balance.checkpoints().size() != 8
+                || balance.checkpoints().stream().anyMatch(c -> c.wave() <= 0 || c.wave() > balance.maxWave()
+                || c.wave() % 10 != 0 || c.gold() < 0 || c.universalPiece() < 0)
+                || balance.checkpoints().stream().map(com.denfense.server.balance.BattleRewardBalance.Checkpoint::wave).distinct().count() != 8) {
+            throw new IllegalStateException("BattleReward checkpoints must define 10..80 exactly once.");
+        }
+        Set<String> expectedMaps = Set.of("NEPTUNE", "URANUS", "SATURN", "JUPITER", "MARS", "EARTH", "VENUS", "MERCURY", "SUN");
+        if (balance.mapFirstClears() == null || balance.mapFirstClears().size() != expectedMaps.size()
+                || balance.mapFirstClears().stream().anyMatch(c -> c.wave() != balance.maxWave() || c.diamond() <= 0
+                || c.mapId() == null || c.mapId().isBlank())
+                || !balance.mapFirstClears().stream().map(com.denfense.server.balance.BattleRewardBalance.MapFirstClear::mapId).collect(Collectors.toSet()).equals(expectedMaps)) {
+            throw new IllegalStateException("BattleReward must define nine unique planet first-clear rewards.");
+        }
+    }
+
     private static final String EACH_FIELD = "EACH_FIELD";
     private static final String BOSS_SHARED = "BOSS_SHARED";
     private static final Set<String> ALLOWED_LANE_POLICIES = Set.of(EACH_FIELD, BOSS_SHARED);
@@ -66,6 +87,54 @@ public class BalanceDataValidator {
         }
     }
 
+    public void validateResonanceBalance(List<ResonanceBalance> rows) {
+        if (rows == null || rows.size() != 10) {
+            throw new IllegalStateException("ResonanceBalance must contain exactly 10 rows.");
+        }
+
+        Set<String> allowedTracks = Set.of("NORMAL", "MYTHIC");
+        Set<String> keys = new HashSet<>();
+        Map<String, List<ResonanceBalance>> byTrack = rows.stream()
+                .collect(Collectors.groupingBy(ResonanceBalance::track));
+        if (!byTrack.keySet().equals(allowedTracks)) {
+            throw new IllegalStateException("ResonanceBalance tracks must be NORMAL and MYTHIC.");
+        }
+
+        for (ResonanceBalance row : rows) {
+            if (row == null || !allowedTracks.contains(row.track())
+                    || row.level() < 1 || row.level() > 5
+                    || !keys.add(row.track() + ":" + row.level())
+                    || row.requiredGold() <= 0
+                    || !row.enabled()
+                    || row.attackMultiplier() == null || row.attackMultiplier().compareTo(BigDecimal.ONE) <= 0
+                    || row.attackSpeedMultiplier() == null || row.attackSpeedMultiplier().compareTo(BigDecimal.ONE) <= 0
+                    || row.rangeMultiplier() == null || row.rangeMultiplier().compareTo(BigDecimal.ONE) != 0) {
+                throw new IllegalStateException("Invalid ResonanceBalance row: " + row);
+            }
+        }
+
+        for (String track : allowedTracks) {
+            List<ResonanceBalance> ordered = byTrack.get(track).stream()
+                    .sorted(java.util.Comparator.comparingInt(ResonanceBalance::level))
+                    .toList();
+            int previousGold = 0;
+            BigDecimal previousAttack = BigDecimal.ONE;
+            BigDecimal previousSpeed = BigDecimal.ONE;
+            for (int index = 0; index < ordered.size(); index++) {
+                ResonanceBalance row = ordered.get(index);
+                if (row.level() != index + 1
+                        || row.requiredGold() <= previousGold
+                        || row.attackMultiplier().compareTo(previousAttack) <= 0
+                        || row.attackSpeedMultiplier().compareTo(previousSpeed) <= 0) {
+                    throw new IllegalStateException("ResonanceBalance must increase continuously: " + track);
+                }
+                previousGold = row.requiredGold();
+                previousAttack = row.attackMultiplier();
+                previousSpeed = row.attackSpeedMultiplier();
+            }
+        }
+    }
+
     public void validateAlienLevelStats(List<AlienLevelStatBalance> stats) {
         if (stats == null || stats.isEmpty()) {
             throw new IllegalStateException("AlienLevelStat 데이터가 비어 있습니다.");
@@ -91,6 +160,20 @@ public class BalanceDataValidator {
                     || stat.atkSpeedMultiplier().compareTo(BigDecimal.ONE) != 0
                     || stat.rangeMultiplier().compareTo(BigDecimal.ONE) != 0)) {
                 throw new IllegalStateException("level 1 multiplier는 모두 1.00이어야 합니다.");
+            }
+            int completedMilestones = Math.min(stat.level() / 10, 4);
+            BigDecimal expectedAttack = BigDecimal.ONE
+                    .add(BigDecimal.valueOf(stat.level() - 1L).multiply(new BigDecimal("0.045")))
+                    .add(BigDecimal.valueOf(completedMilestones).multiply(new BigDecimal("0.08")));
+            BigDecimal expectedMp = BigDecimal.ONE
+                    .add(BigDecimal.valueOf(stat.level() - 1L).multiply(new BigDecimal("0.03")));
+            BigDecimal expectedSpeed = BigDecimal.ONE
+                    .add(BigDecimal.valueOf(stat.level() - 1L).multiply(new BigDecimal("0.005")));
+            if (stat.atkMultiplier().compareTo(expectedAttack) != 0
+                    || stat.mpMultiplier().compareTo(expectedMp) != 0
+                    || stat.atkSpeedMultiplier().compareTo(expectedSpeed) != 0) {
+                throw new IllegalStateException("AlienLevelStat multiplier does not match the canonical growth policy at level "
+                        + stat.level() + ".");
             }
         }
         for (int level = 1; level <= maxLevel; level++) {
@@ -264,7 +347,36 @@ public class BalanceDataValidator {
         }
     }
 
-    public void validateShopProduct(com.denfense.server.balance.ShopProductBalanceDocument document, com.denfense.server.balance.GachaPoolBalanceDocument poolDocument) {
+      public void validateSummonPool(com.denfense.server.balance.SummonPoolBalanceDocument document,
+                                     List<com.denfense.server.balance.AlienSpecBalance> specs) {
+          if (document == null || document.pools() == null || document.pools().isEmpty())
+              throw new IllegalStateException("SummonPool must not be empty.");
+          var gradeById = specs.stream().collect(Collectors.toMap(com.denfense.server.balance.AlienSpecBalance::alienId,
+                  com.denfense.server.balance.AlienSpecBalance::grade));
+          Set<String> poolIds = new HashSet<>();
+          for (var pool : document.pools()) {
+              if (pool == null || pool.poolId() == null || pool.poolId().isBlank() || !poolIds.add(pool.poolId()))
+                  throw new IllegalStateException("SummonPool poolId must be unique and non-blank.");
+              if (pool.active() && (pool.entries() == null || pool.entries().isEmpty()))
+                  throw new IllegalStateException("Active SummonPool must have entries: " + pool.poolId());
+              int totalWeight = 0;
+              Set<Long> ids = new HashSet<>();
+              for (var entry : pool.entries()) {
+                  if (!"NORMAL".equals(entry.grade()) || entry.weight() <= 0 || entry.alienIds() == null || entry.alienIds().isEmpty())
+                      throw new IllegalStateException("Battle SummonPool permits NORMAL entries only: " + pool.poolId());
+                  totalWeight += entry.weight();
+                  for (Long id : entry.alienIds()) {
+                      if (!ids.add(id) || !"NORMAL".equals(gradeById.get(id)))
+                          throw new IllegalStateException("SummonPool contains duplicate or non-NORMAL alienId: " + id);
+                  }
+              }
+              if (totalWeight != 10000) throw new IllegalStateException("SummonPool weights must total 10000: " + pool.poolId());
+          }
+          if (poolIds.stream().noneMatch("STANDARD_SUMMON_POOL"::equals))
+              throw new IllegalStateException("STANDARD_SUMMON_POOL is required.");
+      }
+
+      public void validateShopProduct(com.denfense.server.balance.ShopProductBalanceDocument document, com.denfense.server.balance.GachaPoolBalanceDocument poolDocument) {
         if (document == null) {
             throw new IllegalStateException("ShopProductBalanceDocument가 null입니다.");
         }
@@ -386,6 +498,9 @@ public class BalanceDataValidator {
         }
         for (Map.Entry<String, List<WaveSpecBalance>> entry : byMode.entrySet()) {
             List<Integer> waves = entry.getValue().stream().map(WaveSpecBalance::wave).sorted().toList();
+            if (waves.size() != 80) {
+                throw new IllegalStateException("COOP wave template must define exactly 80 waves for mode: " + entry.getKey());
+            }
             for (int expected = 1; expected <= waves.size(); expected++) {
                 if (waves.get(expected - 1) != expected) {
                     throw new IllegalStateException("Waves must be continuous from 1 for mode: " + entry.getKey());
@@ -393,6 +508,12 @@ public class BalanceDataValidator {
             }
             if (entry.getValue().stream().noneMatch(WaveSpecBalance::isBossWave)) {
                 throw new IllegalStateException("At least one boss wave is required for mode: " + entry.getKey());
+            }
+            for (WaveSpecBalance wave : entry.getValue()) {
+                if (wave.isBossWave() != (wave.wave() % 10 == 0)) {
+                    throw new IllegalStateException("Boss waves must be exactly waves 10,20,...,80: "
+                            + entry.getKey() + "/" + wave.wave());
+                }
             }
         }
 
@@ -473,6 +594,40 @@ public class BalanceDataValidator {
                     || limit.warningThreshold() >= limit.dangerThreshold()
                     || limit.dangerThreshold() >= limit.maxAliveMonsterCountPerField()) {
                 throw new IllegalStateException("Invalid field limit thresholds for mode: " + limit.modeId());
+            }
+        }
+    }
+
+    public void validatePlanetBattles(PlanetBattleBalanceDocument document) {
+        List<String> expectedOrder = List.of(
+                "NEPTUNE", "URANUS", "SATURN", "JUPITER", "MARS",
+                "EARTH", "VENUS", "MERCURY", "SUN");
+        List<BigDecimal> expectedHp = List.of(
+                new BigDecimal("1.00"), new BigDecimal("1.35"), new BigDecimal("1.80"),
+                new BigDecimal("2.40"), new BigDecimal("3.20"), new BigDecimal("4.30"),
+                new BigDecimal("5.80"), new BigDecimal("7.80"), new BigDecimal("11.00"));
+        List<BigDecimal> expectedSpeed = List.of(
+                new BigDecimal("1.00"), new BigDecimal("1.03"), new BigDecimal("1.06"),
+                new BigDecimal("1.09"), new BigDecimal("1.12"), new BigDecimal("1.15"),
+                new BigDecimal("1.18"), new BigDecimal("1.21"), new BigDecimal("1.25"));
+        if (document == null || document.planets() == null || document.planets().size() != expectedOrder.size()) {
+            throw new IllegalStateException("PlanetBattle must define exactly nine planets.");
+        }
+        List<PlanetBattleBalance> sorted = document.planets().stream()
+                .sorted(java.util.Comparator.comparingInt(PlanetBattleBalance::order)).toList();
+        Set<String> ids = new HashSet<>();
+        Set<Integer> orders = new HashSet<>();
+        for (int index = 0; index < sorted.size(); index++) {
+            PlanetBattleBalance planet = sorted.get(index);
+            requireText(planet.mapId(), "planet mapId");
+            if (!planet.enabled() || !ids.add(planet.mapId()) || !orders.add(planet.order())
+                    || planet.order() != index + 1 || !expectedOrder.get(index).equals(planet.mapId())
+                    || !positive(planet.hpMultiplier()) || !positive(planet.speedMultiplier())
+                    || planet.bossHpMultiplier() == null
+                    || planet.bossHpMultiplier().compareTo(new BigDecimal("3.00")) != 0
+                    || planet.hpMultiplier().compareTo(expectedHp.get(index)) != 0
+                    || planet.speedMultiplier().compareTo(expectedSpeed.get(index)) != 0) {
+                throw new IllegalStateException("Invalid PlanetBattle row: " + planet.mapId());
             }
         }
     }

@@ -39,7 +39,7 @@ public class BattleWaveExecutorStateTests
         SetExecutorInstance(_executor);
         IMonsterDefinitionProvider monsters = new StateTestMonsterProvider();
         ConfigureBalance(
-            new ResourcesBattleBalanceProvider(monsters, EmptyBattleAlienIdProvider.Instance),
+            new ResourcesBattleBalanceProvider(monsters, ProductionAlienIds()),
             monsters,
             new StateTestPrefabResolver());
         SetField("_totalMonsterGoal", 1);
@@ -175,6 +175,30 @@ public class BattleWaveExecutorStateTests
         Assert.That(_executor.MatchState, Is.EqualTo(MatchState.RUNNING));
         Assert.That(defeatEvents, Is.EqualTo(1));
         Assert.That(timeoutEvents, Is.Zero);
+    }
+
+    [Test]
+    public void AuthoritativeBossDefeat_RequiresDeadCurrentInstanceAndIsOneShot()
+    {
+        ActivateBoss();
+        MonsterStat stat = _bossObject.AddComponent<MonsterStat>();
+        FieldInfo deadField = typeof(MonsterStat).GetField("isDead", PrivateInstance);
+        deadField.SetValue(stat, true);
+        BattleMonsterNetworkState bossState = _bossObject.AddComponent<BattleMonsterNetworkState>();
+        GameObject staleObject = new GameObject("StaleBoss_Test");
+        MonsterStat staleStat = staleObject.AddComponent<MonsterStat>();
+        deadField.SetValue(staleStat, true);
+        BattleMonsterNetworkState staleState = staleObject.AddComponent<BattleMonsterNetworkState>();
+        int defeatEvents = 0;
+        _executor.OnBossDefeated += () => defeatEvents++;
+
+        Assert.That(_executor.TryResolveBossDefeatFromAuthority(staleState), Is.False);
+        Assert.That(_executor.TryResolveBossDefeatFromAuthority(bossState), Is.True);
+        Assert.That(_executor.TryResolveBossDefeatFromAuthority(bossState), Is.False);
+        Assert.That(defeatEvents, Is.EqualTo(1));
+        Assert.That(_executor.IsBossActive, Is.False);
+
+        Object.DestroyImmediate(staleObject);
     }
 
     [Test]
@@ -749,6 +773,12 @@ public class BattleWaveExecutorStateTests
         Scene scene = SceneManager.GetSceneByPath(BattleScenePath);
         openedByTest = !scene.IsValid() || !scene.isLoaded;
         return openedByTest ? EditorSceneManager.OpenScene(BattleScenePath, OpenSceneMode.Additive) : scene;
+    }
+
+    private static IAlienIdProvider ProductionAlienIds()
+    {
+        Assert.That(CanonicalBattleAlienIdProvider.TryCreate(out CanonicalBattleAlienIdProvider provider, out string error), Is.True, error);
+        return provider;
     }
 
     private static T[] GetSceneComponents<T>(Scene scene) where T : Component

@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
   "balanceVersion": "battle-v1",
-  "bundleHash": "ab535ca2986ca84b196567cefa30c2e20c8f3e277efa131df9766a24c98633bf",
+  "bundleHash": "7e3c6534c8da8b5aadaa346510f7ed169b8ab142e4b1c3f3739dcc6921fc9f55",
   "files": [
-    {"resourcePath":"Balance/Battle/alien-skill-links","contentHash":"e5191ca7829d5de41391f57b51b832aab030c30145fb8c7c4031f3cb1b07c4f4"},
-    {"resourcePath":"Balance/Battle/boss-pattern-spec","contentHash":"e5191ca7829d5de41391f57b51b832aab030c30145fb8c7c4031f3cb1b07c4f4"},
-    {"resourcePath":"Balance/Battle/projectile-spec","contentHash":"e5191ca7829d5de41391f57b51b832aab030c30145fb8c7c4031f3cb1b07c4f4"},
-    {"resourcePath":"Balance/Battle/skill-effect-spec","contentHash":"e5191ca7829d5de41391f57b51b832aab030c30145fb8c7c4031f3cb1b07c4f4"},
-    {"resourcePath":"Balance/Battle/skill-spec","contentHash":"e5191ca7829d5de41391f57b51b832aab030c30145fb8c7c4031f3cb1b07c4f4"},
+    {"resourcePath":"Balance/Battle/alien-skill-links","contentHash":"c8d2ed604775ef5576e08275540db78d4aeb6040c8d41acbfa5c43053b3e26d5"},
+    {"resourcePath":"Balance/Battle/boss-pattern-spec","contentHash":"5876e17408d28c93adeb338be3117ae516eac64c5da473c732bd109e23e29367"},
+    {"resourcePath":"Balance/Battle/projectile-spec","contentHash":"b2858cacc88107943441ef13bf036df5d83f2cf842378c9a12bb6c5f4161ef46"},
+    {"resourcePath":"Balance/Battle/skill-effect-spec","contentHash":"356d70c01ad613d6dc4e5a53c520db16aebf440d967227645c12866d7cce2d05"},
+    {"resourcePath":"Balance/Battle/skill-spec","contentHash":"0dda18570acf74cb151123dec6cda4be2606469422ba6bb2244234a1bcc3cc3a"},
     {"resourcePath":"Balance/Battle/wave-spawn-spec","contentHash":"b7dc29125ec5bca784c0c694433404c7503520be7fe8e2a4fd571611b9fb87a6"},
     {"resourcePath":"Balance/Battle/wave-spec","contentHash":"4932b9030fdd8edafe13610144069143aeaf42c899085d06da898a0b33ee26c9"}
   ]

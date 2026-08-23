@@ -99,6 +99,706 @@
       "bossTimeLimitSeconds" : 30.00,
       "spawnGroupId" : "WAVE_10_BOSS",
       "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 11,
+      "hpMultiplier" : 2.00,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_11",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 12,
+      "hpMultiplier" : 2.10,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_12",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 13,
+      "hpMultiplier" : 2.20,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_13",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 14,
+      "hpMultiplier" : 2.30,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_14",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 15,
+      "hpMultiplier" : 2.40,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_15",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 16,
+      "hpMultiplier" : 2.50,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_16",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 17,
+      "hpMultiplier" : 2.60,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_17",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 18,
+      "hpMultiplier" : 2.70,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_18",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 19,
+      "hpMultiplier" : 2.80,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_19",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 20,
+      "hpMultiplier" : 2.90,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : true,
+      "bossTimeLimitSeconds" : 30.00,
+      "spawnGroupId" : "WAVE_20_BOSS",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 21,
+      "hpMultiplier" : 3.00,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_21",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 22,
+      "hpMultiplier" : 3.10,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_22",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 23,
+      "hpMultiplier" : 3.20,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_23",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 24,
+      "hpMultiplier" : 3.30,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_24",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 25,
+      "hpMultiplier" : 3.40,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_25",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 26,
+      "hpMultiplier" : 3.50,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_26",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 27,
+      "hpMultiplier" : 3.60,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_27",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 28,
+      "hpMultiplier" : 3.70,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_28",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 29,
+      "hpMultiplier" : 3.80,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_29",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 30,
+      "hpMultiplier" : 3.90,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : true,
+      "bossTimeLimitSeconds" : 30.00,
+      "spawnGroupId" : "WAVE_30_BOSS",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 31,
+      "hpMultiplier" : 4.00,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_31",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 32,
+      "hpMultiplier" : 4.10,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_32",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 33,
+      "hpMultiplier" : 4.20,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_33",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 34,
+      "hpMultiplier" : 4.30,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_34",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 35,
+      "hpMultiplier" : 4.40,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_35",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 36,
+      "hpMultiplier" : 4.50,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_36",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 37,
+      "hpMultiplier" : 4.60,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_37",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 38,
+      "hpMultiplier" : 4.70,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_38",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 39,
+      "hpMultiplier" : 4.80,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_39",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 40,
+      "hpMultiplier" : 4.90,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : true,
+      "bossTimeLimitSeconds" : 30.00,
+      "spawnGroupId" : "WAVE_40_BOSS",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 41,
+      "hpMultiplier" : 5.00,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_41",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 42,
+      "hpMultiplier" : 5.10,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_42",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 43,
+      "hpMultiplier" : 5.20,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_43",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 44,
+      "hpMultiplier" : 5.30,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_44",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 45,
+      "hpMultiplier" : 5.40,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_45",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 46,
+      "hpMultiplier" : 5.50,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_46",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 47,
+      "hpMultiplier" : 5.60,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_47",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 48,
+      "hpMultiplier" : 5.70,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_48",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 49,
+      "hpMultiplier" : 5.80,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_49",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 50,
+      "hpMultiplier" : 5.90,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : true,
+      "bossTimeLimitSeconds" : 30.00,
+      "spawnGroupId" : "WAVE_50_BOSS",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 51,
+      "hpMultiplier" : 6.00,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_51",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 52,
+      "hpMultiplier" : 6.10,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_52",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 53,
+      "hpMultiplier" : 6.20,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_53",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 54,
+      "hpMultiplier" : 6.30,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_54",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 55,
+      "hpMultiplier" : 6.40,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_55",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 56,
+      "hpMultiplier" : 6.50,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_56",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 57,
+      "hpMultiplier" : 6.60,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_57",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 58,
+      "hpMultiplier" : 6.70,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_58",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 59,
+      "hpMultiplier" : 6.80,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_59",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 60,
+      "hpMultiplier" : 6.90,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : true,
+      "bossTimeLimitSeconds" : 30.00,
+      "spawnGroupId" : "WAVE_60_BOSS",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 61,
+      "hpMultiplier" : 7.00,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_61",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 62,
+      "hpMultiplier" : 7.10,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_62",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 63,
+      "hpMultiplier" : 7.20,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_63",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 64,
+      "hpMultiplier" : 7.30,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_64",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 65,
+      "hpMultiplier" : 7.40,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_65",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 66,
+      "hpMultiplier" : 7.50,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_66",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 67,
+      "hpMultiplier" : 7.60,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_67",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 68,
+      "hpMultiplier" : 7.70,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_68",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 69,
+      "hpMultiplier" : 7.80,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_69",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 70,
+      "hpMultiplier" : 7.90,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : true,
+      "bossTimeLimitSeconds" : 30.00,
+      "spawnGroupId" : "WAVE_70_BOSS",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 71,
+      "hpMultiplier" : 8.00,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_71",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 72,
+      "hpMultiplier" : 8.10,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_72",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 73,
+      "hpMultiplier" : 8.20,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_73",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 74,
+      "hpMultiplier" : 8.30,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_74",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 75,
+      "hpMultiplier" : 8.40,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_75",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 76,
+      "hpMultiplier" : 8.50,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_76",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 77,
+      "hpMultiplier" : 8.60,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_77",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 78,
+      "hpMultiplier" : 8.70,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_78",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 79,
+      "hpMultiplier" : 8.80,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : false,
+      "bossTimeLimitSeconds" : 0.00,
+      "spawnGroupId" : "WAVE_79",
+      "enabled" : true
+    },
+    {
+      "modeId" : "COOP_STANDARD",
+      "wave" : 80,
+      "hpMultiplier" : 8.90,
+      "interWaveDelaySeconds" : 3.00,
+      "isBossWave" : true,
+      "bossTimeLimitSeconds" : 30.00,
+      "spawnGroupId" : "WAVE_80_BOSS",
+      "enabled" : true
     }
   ]
 }

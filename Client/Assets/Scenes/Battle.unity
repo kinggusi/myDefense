@@ -670,14 +670,13 @@ GameObject:
   m_Component:
   - component: {fileID: 293221408}
   - component: {fileID: 293221407}
-  - component: {fileID: 293221409}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &293221407
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -714,24 +713,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &293221409
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 293221406}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
-  SortKey: 594085147
-  ObjectInterest: 1
-  Flags: 262145
-  NestedObjects: []
-  NetworkedBehaviours: []
-  ForceRemoteRenderTimeframe: 0
 --- !u!1 &301661576
 GameObject:
   m_ObjectHideFlags: 0
@@ -2379,6 +2360,15 @@ GameObject:
   m_Component:
   - component: {fileID: 722039117}
   - component: {fileID: 722039116}
+  - component: {fileID: 722039119}
+  - component: {fileID: 722039118}
+  - component: {fileID: 722039121}
+  - component: {fileID: 722039120}
+  - component: {fileID: 722039123}
+  - component: {fileID: 722039124}
+  - component: {fileID: 722039126}
+  - component: {fileID: 722039125}
+  - component: {fileID: 722039127}
   m_Layer: 0
   m_Name: BattleWaveExecutor
   m_TagString: Untagged
@@ -2429,6 +2419,188 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &722039118
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 722039115}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 593c1d93a38bea44b9a5ffed78bbbf32, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MyDefense.Battle.Runtime.BattleRunnerLifecycle
+  _mapId: 
+--- !u!114 &722039119
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 722039115}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e63abed07748edf4d9cd1b048c7d4a73, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MyDefense.Battle.Runtime.BattleSceneSessionAdapter
+  _runnerLifecycle: {fileID: 722039118}
+  _waveExecutor: {fileID: 722039116}
+  _stateAuthority: {fileID: 722039120}
+  _pathManager: {fileID: 273106438}
+--- !u!114 &722039120
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 722039115}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 11275b2d77a83cd4cb9627239633f72d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MyDefense.Battle.BattleWaveStateAuthority
+  _CurrentWave: 0
+  _CurrentWaveId:
+    _length: 0
+    _data:
+      Data: 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+  _CurrentWaveTypeValue: 0
+  _IsWaveRunning:
+    _value: 0
+  _MatchStateValue: 0
+  _Player1AliveMonsterCount: 0
+  _Player2AliveMonsterCount: 0
+  _PlayerMonsterLimit: 0
+  _Player1WarningReached:
+    _value: 0
+  _Player2WarningReached:
+    _value: 0
+  _Player1DangerReached:
+    _value: 0
+  _Player2DangerReached:
+    _value: 0
+  _Player1Eliminated:
+    _value: 0
+  _Player2Eliminated:
+    _value: 0
+  _Player1EliminatedWave: 0
+  _Player2EliminatedWave: 0
+  _Player1BattleStateValue: 0
+  _Player2BattleStateValue: 0
+  _Player1InGameGold: 0
+  _Player2InGameGold: 0
+  _Player1InitialInGameGold: 0
+  _Player2InitialInGameGold: 0
+  _Player1InGameGoldEarned: 0
+  _Player2InGameGoldEarned: 0
+  _Player1InGameGoldSpent: 0
+  _Player2InGameGoldSpent: 0
+  _TeamInGameGold: 0
+  _Player1KidnapCount: 0
+  _Player2KidnapCount: 0
+  _Player1UserId:
+    _length: 0
+    _data:
+      Data: 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+  _Player2UserId:
+    _length: 0
+    _data:
+      Data: 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+  _Player1ConnectionStateValue: 0
+  _Player2ConnectionStateValue: 0
+--- !u!114 &722039121
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 722039115}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+  SortKey: 1584634451
+  ObjectInterest: 1
+  Flags: 262145
+  NestedObjects: []
+  NetworkedBehaviours:
+  - {fileID: 722039120}
+  - {fileID: 722039127}
+  ForceRemoteRenderTimeframe: 0
+--- !u!114 &722039123
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 722039115}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4864ffb5d0f2a1b4a9631253032c017e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MyDefense.Battle.Presentation.BattleFieldPerspective
+  _player1Field: {fileID: 0}
+  _player2Field: {fileID: 0}
+  _runnerLifecycle: {fileID: 0}
+  _stateAuthority: {fileID: 0}
+--- !u!114 &722039124
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 722039115}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 870b47090234ad841a8b57d342055cc3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MyDefense.Battle.Presentation.FusionKidnapBoardView
+--- !u!114 &722039125
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 722039115}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7bf42a3f41839814887ec5e1369adf18, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MyDefense.Battle.Presentation.FusionBattleUiController
+  _kidnapButton: {fileID: 0}
+  _goldText: {fileID: 0}
+  _costText: {fileID: 0}
+  _runnerLifecycle: {fileID: 0}
+  _stateAuthority: {fileID: 0}
+--- !u!114 &722039126
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 722039115}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 37649ce11fde307489f16ec505ba5542, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MyDefense.Battle.BattleAutoSessionStarter
+  _startOnEnable: 1
+  _defaultSessionName: MyDefense-Dev
+--- !u!114 &722039127
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 722039115}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa303a37b02817c4ea0561b25c86c2a8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MyDefense.Battle.Combat.BattleProjectileSpawner
+  _projectilePrefab: {fileID: 1953232722895587134, guid: a1a025f5e976bc14f8d0770ea69bd1ca, type: 3}
 --- !u!1 &722481580
 GameObject:
   m_ObjectHideFlags: 0
@@ -2770,6 +2942,7 @@ GameObject:
   - component: {fileID: 831090442}
   - component: {fileID: 831090441}
   - component: {fileID: 831090444}
+  - component: {fileID: 831090445}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -2867,6 +3040,25 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4294967295
   m_MaxRayIntersections: 0
+--- !u!114 &831090445
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 831090440}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7dcd0c19aa246854cafbff0a24ad15f5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MyDefense.Battle.Presentation.BattleSpectatorCameraController
+  _camera: {fileID: 0}
+  _stateAuthority: {fileID: 0}
+  _runnerLifecycle: {fileID: 0}
+  _player1Field: {fileID: 0}
+  _player2Field: {fileID: 0}
+  _spectatorOffset: {x: 0, y: 12, z: -10}
+  _transitionSeconds: 0.35
 --- !u!1 &878823020
 GameObject:
   m_ObjectHideFlags: 0
@@ -5483,6 +5675,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MyDefense.Battle.BattleWaveHudView
   _waveExecutor: {fileID: 722039116}
+  _stateAuthority: {fileID: 0}
   _waveText: {fileID: 1541527598}
   _player1MonsterCountText: {fileID: 621008569}
   _player2MonsterCountText: {fileID: 971775381}
@@ -6777,19 +6970,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1924121962}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 293221407}
-        m_TargetAssemblyTypeName: GameManager, Assembly-CSharp
-        m_MethodName: OnClickSummon
-        m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
+      m_Calls: []
 --- !u!114 &1924121962
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7205,6 +7386,75 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 8306313535895849270, guid: c2e53bd83c550c447b6dbe6cab521fdc, type: 3}
   m_PrefabInstance: {fileID: 2090019489}
   m_PrefabAsset: {fileID: 0}
+--- !u!1001 &8992968461991688115
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 292496789042390234, guid: a1a025f5e976bc14f8d0770ea69bd1ca, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 292496789042390234, guid: a1a025f5e976bc14f8d0770ea69bd1ca, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 292496789042390234, guid: a1a025f5e976bc14f8d0770ea69bd1ca, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 292496789042390234, guid: a1a025f5e976bc14f8d0770ea69bd1ca, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 292496789042390234, guid: a1a025f5e976bc14f8d0770ea69bd1ca, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 292496789042390234, guid: a1a025f5e976bc14f8d0770ea69bd1ca, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 292496789042390234, guid: a1a025f5e976bc14f8d0770ea69bd1ca, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 292496789042390234, guid: a1a025f5e976bc14f8d0770ea69bd1ca, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 292496789042390234, guid: a1a025f5e976bc14f8d0770ea69bd1ca, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 292496789042390234, guid: a1a025f5e976bc14f8d0770ea69bd1ca, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1953232722895587134, guid: a1a025f5e976bc14f8d0770ea69bd1ca, type: 3}
+      propertyPath: m_Name
+      value: BattleProjectile
+      objectReference: {fileID: 0}
+    - target: {fileID: 4368363014413687709, guid: a1a025f5e976bc14f8d0770ea69bd1ca, type: 3}
+      propertyPath: Flags
+      value: 262145
+      objectReference: {fileID: 0}
+    - target: {fileID: 4368363014413687709, guid: a1a025f5e976bc14f8d0770ea69bd1ca, type: 3}
+      propertyPath: SortKey
+      value: 1582782018
+      objectReference: {fileID: 0}
+    - target: {fileID: 4368363014413687709, guid: a1a025f5e976bc14f8d0770ea69bd1ca, type: 3}
+      propertyPath: NetworkedBehaviours.Array.size
+      value: 2
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: a1a025f5e976bc14f8d0770ea69bd1ca, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -7224,3 +7474,4 @@ SceneRoots:
   - {fileID: 647882852}
   - {fileID: 273106437}
   - {fileID: 722039117}
+  - {fileID: 8992968461991688115}

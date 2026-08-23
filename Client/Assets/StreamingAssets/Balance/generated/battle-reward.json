@@ -1,0 +1,95 @@
+{
+  "checkpoints" : [
+    {
+      "gold" : 500,
+      "universalPiece" : 10,
+      "wave" : 10
+    },
+    {
+      "gold" : 750,
+      "universalPiece" : 15,
+      "wave" : 20
+    },
+    {
+      "gold" : 1000,
+      "universalPiece" : 20,
+      "wave" : 30
+    },
+    {
+      "gold" : 1500,
+      "universalPiece" : 25,
+      "wave" : 40
+    },
+    {
+      "gold" : 2000,
+      "universalPiece" : 30,
+      "wave" : 50
+    },
+    {
+      "gold" : 2500,
+      "universalPiece" : 35,
+      "wave" : 60
+    },
+    {
+      "gold" : 3000,
+      "universalPiece" : 40,
+      "wave" : 70
+    },
+    {
+      "gold" : 4000,
+      "universalPiece" : 50,
+      "wave" : 80
+    }
+  ],
+  "failureRewardBaseGold" : 10000,
+  "failureRewardCapPercent" : 80,
+  "mapFirstClears" : [
+    {
+      "diamond" : 8000,
+      "mapId" : "EARTH",
+      "wave" : 80
+    },
+    {
+      "diamond" : 6000,
+      "mapId" : "JUPITER",
+      "wave" : 80
+    },
+    {
+      "diamond" : 7000,
+      "mapId" : "MARS",
+      "wave" : 80
+    },
+    {
+      "diamond" : 10000,
+      "mapId" : "MERCURY",
+      "wave" : 80
+    },
+    {
+      "diamond" : 3000,
+      "mapId" : "NEPTUNE",
+      "wave" : 80
+    },
+    {
+      "diamond" : 5000,
+      "mapId" : "SATURN",
+      "wave" : 80
+    },
+    {
+      "diamond" : 11000,
+      "mapId" : "SUN",
+      "wave" : 80
+    },
+    {
+      "diamond" : 4000,
+      "mapId" : "URANUS",
+      "wave" : 80
+    },
+    {
+      "diamond" : 9000,
+      "mapId" : "VENUS",
+      "wave" : 80
+    }
+  ],
+  "maxWave" : 80,
+  "minimumRewardWave" : 10
+}

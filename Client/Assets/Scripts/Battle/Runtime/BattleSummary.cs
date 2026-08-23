@@ -12,6 +12,10 @@ namespace MyDefense.Battle.Runtime
         public int? EliminatedWave { get; }
         public int InGameGoldEarned { get; }
         public int InGameGoldSpent { get; }
+        public int PlayerSlot { get; }
+        public int InitialInGameGold { get; }
+        public int FinalInGameGold { get; }
+        public bool Abandoned { get; }
 
         public BattlePlayerSummarySeed(
             string playerId,
@@ -19,19 +23,51 @@ namespace MyDefense.Battle.Runtime
             int? eliminatedWave,
             int inGameGoldEarned,
             int inGameGoldSpent)
+            : this(
+                playerId,
+                0,
+                eliminated,
+                eliminatedWave,
+                0,
+                inGameGoldEarned,
+                inGameGoldSpent,
+                inGameGoldEarned - inGameGoldSpent,
+                false)
+        {
+        }
+
+        public BattlePlayerSummarySeed(
+            string playerId,
+            int playerSlot,
+            bool eliminated,
+            int? eliminatedWave,
+            int initialInGameGold,
+            int inGameGoldEarned,
+            int inGameGoldSpent,
+            int finalInGameGold,
+            bool abandoned = false)
         {
             PlayerId = BattleSessionContext.RequireText(playerId, nameof(playerId));
+            if (playerSlot < 0) throw new ArgumentOutOfRangeException(nameof(playerSlot));
             if (eliminated && (!eliminatedWave.HasValue || eliminatedWave.Value < 1))
                 throw new ArgumentException("Eliminated players require a positive eliminated wave.", nameof(eliminatedWave));
             if (!eliminated && eliminatedWave.HasValue)
                 throw new ArgumentException("Active players cannot have an eliminated wave.", nameof(eliminatedWave));
             if (inGameGoldEarned < 0) throw new ArgumentOutOfRangeException(nameof(inGameGoldEarned));
             if (inGameGoldSpent < 0) throw new ArgumentOutOfRangeException(nameof(inGameGoldSpent));
+            if (initialInGameGold < 0) throw new ArgumentOutOfRangeException(nameof(initialInGameGold));
+            if (finalInGameGold < 0) throw new ArgumentOutOfRangeException(nameof(finalInGameGold));
+            if ((long)initialInGameGold + inGameGoldEarned - inGameGoldSpent != finalInGameGold)
+                throw new ArgumentException("In-game Gold ledger does not balance.", nameof(finalInGameGold));
 
             Eliminated = eliminated;
             EliminatedWave = eliminatedWave;
             InGameGoldEarned = inGameGoldEarned;
             InGameGoldSpent = inGameGoldSpent;
+            PlayerSlot = playerSlot;
+            InitialInGameGold = initialInGameGold;
+            FinalInGameGold = finalInGameGold;
+            Abandoned = abandoned;
         }
     }
 
@@ -41,19 +77,29 @@ namespace MyDefense.Battle.Runtime
         public bool Eliminated { get; }
         public int? EliminatedWave { get; }
         public int Kills { get; }
+        public int SupportKills { get; }
         public int BossKills { get; }
         public int InGameGoldEarned { get; }
         public int InGameGoldSpent { get; }
+        public int PlayerSlot { get; }
+        public int InitialInGameGold { get; }
+        public int FinalInGameGold { get; }
+        public bool Abandoned { get; }
 
-        internal BattlePlayerSummary(BattlePlayerSummarySeed seed, int kills, int bossKills)
+        internal BattlePlayerSummary(BattlePlayerSummarySeed seed, int kills, int supportKills, int bossKills)
         {
             PlayerId = seed.PlayerId;
             Eliminated = seed.Eliminated;
             EliminatedWave = seed.EliminatedWave;
             Kills = kills;
+            SupportKills = supportKills;
             BossKills = bossKills;
             InGameGoldEarned = seed.InGameGoldEarned;
             InGameGoldSpent = seed.InGameGoldSpent;
+            PlayerSlot = seed.PlayerSlot;
+            InitialInGameGold = seed.InitialInGameGold;
+            FinalInGameGold = seed.FinalInGameGold;
+            Abandoned = seed.Abandoned;
         }
     }
 
@@ -61,11 +107,15 @@ namespace MyDefense.Battle.Runtime
     {
         public string MonsterId { get; }
         public int KillCount { get; }
+        public int BossKillCount { get; }
+        public int TotalKillGold { get; }
 
-        internal BattleMonsterKillSummary(string monsterId, int killCount)
+        internal BattleMonsterKillSummary(string monsterId, int killCount, int bossKillCount, int totalKillGold)
         {
             MonsterId = monsterId;
             KillCount = killCount;
+            BossKillCount = bossKillCount;
+            TotalKillGold = totalKillGold;
         }
     }
 
@@ -75,11 +125,11 @@ namespace MyDefense.Battle.Runtime
         public int KillCount { get; }
         public int AwardedGold { get; }
 
-        internal BattleLaneKillSummary(BattleMonsterLanePolicy lanePolicy, int killCount)
+        internal BattleLaneKillSummary(BattleMonsterLanePolicy lanePolicy, int killCount, int awardedGold = 0)
         {
             LanePolicy = lanePolicy;
             KillCount = killCount;
-            AwardedGold = 0;
+            AwardedGold = awardedGold;
         }
     }
 
@@ -105,6 +155,7 @@ namespace MyDefense.Battle.Runtime
         public string BattleSessionId { get; }
         public string CanonicalBalanceVersion { get; }
         public string CanonicalContentHash { get; }
+        public string MapId { get; }
         public MatchState Result { get; }
         public int FinalWave { get; }
         public IReadOnlyList<BattlePlayerSummary> Players { get; }
@@ -120,6 +171,7 @@ namespace MyDefense.Battle.Runtime
             BattleSessionId = session.BattleSessionId;
             CanonicalBalanceVersion = session.CanonicalBalanceVersion;
             CanonicalContentHash = session.CanonicalContentHash;
+            MapId = session.MapId;
             Result = result;
             FinalWave = finalWave;
             Players = players;
@@ -165,6 +217,9 @@ namespace MyDefense.Battle.Runtime
             {
                 if (!seedById.ContainsKey(record.KillerPlayerId))
                     throw new ArgumentException("Every killer must exist in the player summary.", nameof(killRecords));
+                if (!string.IsNullOrWhiteSpace(record.SupportPlayerId)
+                    && !seedById.ContainsKey(record.SupportPlayerId))
+                    throw new ArgumentException("Every support player must exist in the player summary.", nameof(killRecords));
             }
 
             var players = new List<BattlePlayerSummary>(seeds.Count);
@@ -174,20 +229,31 @@ namespace MyDefense.Battle.Runtime
                 int bossKills = orderedRecords.Count(record =>
                     string.Equals(record.KillerPlayerId, seed.PlayerId, StringComparison.Ordinal)
                     && record.LanePolicy == BattleMonsterLanePolicy.BOSS_SHARED);
-                players.Add(new BattlePlayerSummary(seed, kills, bossKills));
+                int supportKills = orderedRecords.Count(record =>
+                    string.Equals(record.SupportPlayerId, seed.PlayerId, StringComparison.Ordinal));
+                players.Add(new BattlePlayerSummary(seed, kills, supportKills, bossKills));
             }
 
             var byMonster = orderedRecords
                 .GroupBy(record => record.MonsterId, StringComparer.Ordinal)
                 .OrderBy(group => group.Key, StringComparer.Ordinal)
-                .Select(group => new BattleMonsterKillSummary(group.Key, group.Count()))
+                .Select(group => new BattleMonsterKillSummary(
+                    group.Key,
+                    group.Count(),
+                    group.Count(record => record.LanePolicy == BattleMonsterLanePolicy.BOSS_SHARED),
+                    group.Sum(record => record.KillGold)))
                 .ToList()
                 .AsReadOnly();
             var runtimeKeys = orderedRecords.Select(record => record.RuntimeKey).ToList().AsReadOnly();
             var byLane = Enum.GetValues(typeof(BattleMonsterLanePolicy))
                 .Cast<BattleMonsterLanePolicy>()
                 .OrderBy(policy => (int)policy)
-                .Select(policy => new BattleLaneKillSummary(policy, orderedRecords.Count(record => record.LanePolicy == policy)))
+                .Select(policy => new BattleLaneKillSummary(
+                    policy,
+                    orderedRecords.Count(record => record.LanePolicy == policy),
+                    orderedRecords
+                        .Where(record => record.LanePolicy == policy)
+                        .Sum(record => record.KillGold)))
                 .ToList()
                 .AsReadOnly();
 

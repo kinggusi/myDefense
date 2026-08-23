@@ -23,12 +23,15 @@ public class BalanceDataLoader implements ApplicationRunner {
 
     @Autowired
     public BalanceDataLoader(ResourceLoader resourceLoader, ObjectMapper mapper, BalanceDataValidator validator,
-                              BalanceRegistry registry, AlienUpgradeBalanceRegistry upgrade,
-                              MonsterBalanceRegistry monsters, WaveBalanceRegistry waves,
-                              BattleRuleBalanceRegistry battleRules, MythicBreedingBalanceRegistry breeding) {
+                               BalanceRegistry registry, AlienUpgradeBalanceRegistry upgrade,
+                               MonsterBalanceRegistry monsters, WaveBalanceRegistry waves,
+                               BattleRuleBalanceRegistry battleRules, MythicBreedingBalanceRegistry breeding,
+                               PlanetBattleBalanceRegistry planetBattles, ResonanceBalanceRegistry resonance) {
         this.resourceLoader=resourceLoader; this.baseObjectMapper=mapper; this.validator=validator; this.registry=registry;
         this.alienUpgradeRegistry=upgrade; this.monsterBalanceRegistry=monsters; this.waveBalanceRegistry=waves;
         this.battleRuleBalanceRegistry=battleRules; this.mythicBreedingBalanceRegistry=breeding;
+        this.planetBattleBalanceRegistry=planetBattles;
+        this.resonanceBalanceRegistry=resonance;
     }
 
     public BalanceDataLoader(ResourceLoader resourceLoader, ObjectMapper mapper, BalanceDataValidator validator,
@@ -36,7 +39,7 @@ public class BalanceDataLoader implements ApplicationRunner {
                               MonsterBalanceRegistry monsters, WaveBalanceRegistry waves,
                               BattleRuleBalanceRegistry battleRules) {
         this(resourceLoader, mapper, validator, registry, upgrade, monsters, waves, battleRules,
-                new MythicBreedingBalanceRegistry());
+                new MythicBreedingBalanceRegistry(), new PlanetBattleBalanceRegistry(), new ResonanceBalanceRegistry());
     }
 
     private final ResourceLoader resourceLoader;
@@ -48,6 +51,8 @@ public class BalanceDataLoader implements ApplicationRunner {
     private final WaveBalanceRegistry waveBalanceRegistry;
     private final BattleRuleBalanceRegistry battleRuleBalanceRegistry;
     private final MythicBreedingBalanceRegistry mythicBreedingBalanceRegistry;
+    private final PlanetBattleBalanceRegistry planetBattleBalanceRegistry;
+    private final ResonanceBalanceRegistry resonanceBalanceRegistry;
 
     @Value("${balance.reward.path:classpath:balance/generated/game-reward.json}")
     private String rewardFilePath;
@@ -76,11 +81,16 @@ public class BalanceDataLoader implements ApplicationRunner {
     @Value("${balance.wave-spawn.path:classpath:balance/generated/wave-spawn.json}")
     private String waveSpawnFilePath;
 
+    @Value("${balance.planet-battle.path:classpath:balance/generated/planet-battle-balance.json}")
+    private String planetBattleFilePath;
+
     @Value("${balance.field-limit.path:classpath:balance/generated/field-limit.json}")
     private String fieldLimitFilePath;
 
     @Value("${balance.summon.path:classpath:balance/generated/summon-balance.json}")
     private String summonFilePath;
+    @Value("${balance.summon-pool.path:classpath:balance/generated/summon-pools.json}")
+    private String summonPoolFilePath;
 
     @Value("${balance.merge-rule.path:classpath:balance/generated/merge-rules.json}")
     private String mergeRuleFilePath;
@@ -92,6 +102,12 @@ public class BalanceDataLoader implements ApplicationRunner {
     private String mythicBreedingConfigFilePath;
     @Value("${balance.mythic-breeding-results.path:classpath:balance/generated/mythic-breeding-results.json}")
     private String mythicBreedingResultsFilePath;
+
+    @Value("${balance.battle-reward.path:classpath:balance/generated/battle-reward.json}")
+    private String battleRewardFilePath;
+
+    @Value("${balance.resonance.path:classpath:balance/generated/resonance-balance.json}")
+    private String resonanceFilePath;
 
     public void setRewardFilePath(String rewardFilePath) {
         this.rewardFilePath = rewardFilePath;
@@ -120,10 +136,14 @@ public class BalanceDataLoader implements ApplicationRunner {
     public void setMonsterFilePath(String value) { this.monsterFilePath = value; }
     public void setWaveFilePath(String value) { this.waveFilePath = value; }
     public void setWaveSpawnFilePath(String value) { this.waveSpawnFilePath = value; }
+    public void setPlanetBattleFilePath(String value) { this.planetBattleFilePath = value; }
     public void setFieldLimitFilePath(String value) { this.fieldLimitFilePath = value; }
     public void setSummonFilePath(String value) { this.summonFilePath = value; }
+    public void setSummonPoolFilePath(String value) { this.summonPoolFilePath = value; }
     public void setMergeRuleFilePath(String value) { this.mergeRuleFilePath = value; }
     public void setMythicChoiceFilePath(String value) { this.mythicChoiceFilePath = value; }
+    public void setBattleRewardFilePath(String value) { this.battleRewardFilePath = value; }
+    public void setResonanceFilePath(String value) { this.resonanceFilePath = value; }
 
     @Override
     public void run(ApplicationArguments args) throws Exception {
@@ -185,24 +205,38 @@ public class BalanceDataLoader implements ApplicationRunner {
             MonsterSpecBalanceDocument monsterDoc = readDocument(strictMapper, monsterFilePath, MonsterSpecBalanceDocument.class);
             WaveSpecBalanceDocument waveDoc = readDocument(strictMapper, waveFilePath, WaveSpecBalanceDocument.class);
             WaveSpawnBalanceDocument spawnDoc = readDocument(strictMapper, waveSpawnFilePath, WaveSpawnBalanceDocument.class);
+            PlanetBattleBalanceDocument planetBattleDoc = readDocument(strictMapper, planetBattleFilePath, PlanetBattleBalanceDocument.class);
             FieldLimitBalanceDocument fieldLimitDoc = readDocument(strictMapper, fieldLimitFilePath, FieldLimitBalanceDocument.class);
             SummonBalanceDocument summonDoc = readDocument(strictMapper, summonFilePath, SummonBalanceDocument.class);
+            SummonPoolBalanceDocument summonPoolDoc = readDocument(strictMapper, summonPoolFilePath, SummonPoolBalanceDocument.class);
             MergeRuleBalanceDocument mergeRuleDoc = readDocument(strictMapper, mergeRuleFilePath, MergeRuleBalanceDocument.class);
             MythicChoiceBalanceDocument mythicChoiceDoc = readDocument(strictMapper, mythicChoiceFilePath, MythicChoiceBalanceDocument.class);
             MythicBreedingConfigBalance breedingConfig = readDocument(strictMapper, mythicBreedingConfigFilePath, MythicBreedingConfigBalance.class);
             MythicBreedingResultDocument breedingResults = readDocument(strictMapper, mythicBreedingResultsFilePath, MythicBreedingResultDocument.class);
+            BattleRewardBalance battleReward = readDocument(strictMapper, battleRewardFilePath, BattleRewardBalance.class);
+            List<ResonanceBalance> resonanceBalances = readDocument(strictMapper, resonanceFilePath,
+                    new TypeReference<List<ResonanceBalance>>() {});
 
             validator.validateBattleBalance(monsterDoc, waveDoc, spawnDoc, fieldLimitDoc, summonDoc,
                     mergeRuleDoc, mythicChoiceDoc, specs);
+            validator.validatePlanetBattles(planetBattleDoc);
+            validator.validateSummonPool(summonPoolDoc, specs);
+            if (summonDoc.summons().stream().anyMatch(s -> summonPoolDoc.pools().stream().noneMatch(p -> p.poolId().equals(s.resultPoolId()))))
+                throw new IllegalStateException("SummonBalance.resultPoolId must reference SummonPool.");
             validateBreedingBalance(breedingConfig, breedingResults, specs, poolDoc, mythicChoiceDoc);
+            validator.validateBattleReward(battleReward);
+            validator.validateResonanceBalance(resonanceBalances);
 
             alienUpgradeRegistry.init(upgradeCosts, levelStats);
             registry.init(rewardBalance, specs, productDoc.products(), poolDoc.pools());
+            registry.initBattleReward(battleReward);
             monsterBalanceRegistry.init(monsterDoc.monsters());
             waveBalanceRegistry.init(waveDoc.waves(), spawnDoc.spawns());
+            planetBattleBalanceRegistry.init(planetBattleDoc.planets());
             battleRuleBalanceRegistry.init(fieldLimitDoc.fieldLimits(), summonDoc.summons(),
-                    mergeRuleDoc.mergeRules(), mythicChoiceDoc.mythicChoices(), specs);
+                    mergeRuleDoc.mergeRules(), mythicChoiceDoc.mythicChoices(), summonPoolDoc.pools(), specs);
             mythicBreedingBalanceRegistry.init(breedingConfig, breedingResults.results());
+            resonanceBalanceRegistry.init(resonanceBalances);
 
             log.info("Balance 데이터 로딩 완료. MaxLevel: {}", maxLevel);
         } catch (Exception e) {
@@ -232,6 +266,16 @@ public class BalanceDataLoader implements ApplicationRunner {
     }
 
     private <T> T readDocument(ObjectMapper mapper, String path, Class<T> type) throws Exception {
+        Resource resource = resourceLoader.getResource(path);
+        if (!resource.exists()) {
+            throw new IllegalStateException("Balance file not found: " + path);
+        }
+        try (var input = resource.getInputStream()) {
+            return mapper.readValue(input, type);
+        }
+    }
+
+    private <T> T readDocument(ObjectMapper mapper, String path, TypeReference<T> type) throws Exception {
         Resource resource = resourceLoader.getResource(path);
         if (!resource.exists()) {
             throw new IllegalStateException("Balance file not found: " + path);

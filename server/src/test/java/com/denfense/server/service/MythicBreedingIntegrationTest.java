@@ -27,8 +27,9 @@ class MythicBreedingIntegrationTest {
     @Autowired MythicBreedingParentRepository parents;
     @Autowired BattlePlayerSettlementRepository battlePlayers;
     @Autowired BattleSettlementRepository battles;
+    @Autowired BattleRewardClaimRepository rewardClaims;
 
-    @BeforeEach void clean() { battlePlayers.deleteAllInBatch(); battles.deleteAllInBatch(); parents.deleteAllInBatch(); slots.deleteAllInBatch(); aliens.deleteAllInBatch(); users.deleteAllInBatch(); }
+    @BeforeEach void clean() { rewardClaims.deleteAllInBatch(); battlePlayers.deleteAllInBatch(); battles.deleteAllInBatch(); parents.deleteAllInBatch(); slots.deleteAllInBatch(); aliens.deleteAllInBatch(); users.deleteAllInBatch(); }
 
     @Test void initializesUnlocksAndUnlockRetryDoesNotChargeTwice() {
         User u=user("breed-unlock",1000); MythicBreedingDtos.SlotsResponse initial=service.slots(u.getUsername());
@@ -63,7 +64,8 @@ class MythicBreedingIntegrationTest {
     @Test void duplicateResultAddsFiftyPieces() throws Exception {
         User u=user("breed-duplicate",0); UserAlien a=owned(u,29), b=owned(u,30);
         service.start(u.getUsername(),1,new MythicBreedingDtos.StartRequest(a.getId(),b.getId(),"s")); MythicBreedingSlot breeding=slots.findByUserAndSlotNo(u,1).orElseThrow();
-        UserAlien result=owned(u,breeding.getResultAlienId()); result.setPieces(2); aliens.save(result); forceReady(breeding);
+        AlienSpec resultSpec = mythicSpec(breeding.getResultAlienId());
+        UserAlien result=aliens.findByUserAndAlienSpec(u,resultSpec).orElseGet(()->owned(u,breeding.getResultAlienId())); result.setPieces(2); aliens.save(result); forceReady(breeding);
         service.claim(u.getUsername(),1,new MythicBreedingDtos.ClaimRequest("c"));
         assertThat(aliens.findByUserAndAlienSpec(u,result.getAlienSpec()).orElseThrow().getPieces()).isEqualTo(52);
     }

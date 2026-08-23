@@ -1,0 +1,76 @@
+{
+  "planets" : [
+    {
+      "mapId" : "NEPTUNE",
+      "order" : 1,
+      "hpMultiplier" : 1.00,
+      "speedMultiplier" : 1.00,
+      "bossHpMultiplier" : 3.00,
+      "enabled" : true
+    },
+    {
+      "mapId" : "URANUS",
+      "order" : 2,
+      "hpMultiplier" : 1.35,
+      "speedMultiplier" : 1.03,
+      "bossHpMultiplier" : 3.00,
+      "enabled" : true
+    },
+    {
+      "mapId" : "SATURN",
+      "order" : 3,
+      "hpMultiplier" : 1.80,
+      "speedMultiplier" : 1.06,
+      "bossHpMultiplier" : 3.00,
+      "enabled" : true
+    },
+    {
+      "mapId" : "JUPITER",
+      "order" : 4,
+      "hpMultiplier" : 2.40,
+      "speedMultiplier" : 1.09,
+      "bossHpMultiplier" : 3.00,
+      "enabled" : true
+    },
+    {
+      "mapId" : "MARS",
+      "order" : 5,
+      "hpMultiplier" : 3.20,
+      "speedMultiplier" : 1.12,
+      "bossHpMultiplier" : 3.00,
+      "enabled" : true
+    },
+    {
+      "mapId" : "EARTH",
+      "order" : 6,
+      "hpMultiplier" : 4.30,
+      "speedMultiplier" : 1.15,
+      "bossHpMultiplier" : 3.00,
+      "enabled" : true
+    },
+    {
+      "mapId" : "VENUS",
+      "order" : 7,
+      "hpMultiplier" : 5.80,
+      "speedMultiplier" : 1.18,
+      "bossHpMultiplier" : 3.00,
+      "enabled" : true
+    },
+    {
+      "mapId" : "MERCURY",
+      "order" : 8,
+      "hpMultiplier" : 7.80,
+      "speedMultiplier" : 1.21,
+      "bossHpMultiplier" : 3.00,
+      "enabled" : true
+    },
+    {
+      "mapId" : "SUN",
+      "order" : 9,
+      "hpMultiplier" : 11.00,
+      "speedMultiplier" : 1.25,
+      "bossHpMultiplier" : 3.00,
+      "enabled" : true
+    }
+  ]
+}

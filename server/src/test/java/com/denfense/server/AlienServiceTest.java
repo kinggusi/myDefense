@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest
+@SpringBootTest(properties = "spring.datasource.url=jdbc:h2:mem:alien-service;MODE=MySQL")
 class AlienServiceTest {
 
     @Autowired
@@ -73,17 +73,17 @@ class AlienServiceTest {
     @Test
     @DisplayName("카드 충분 정상 강화")
     void upgrade_enoughPieces_success() {
-        // level 1 cost: 5 pieces, 100 gold, 0 cell
+        // level 1 cost: 5 pieces, 500 gold, 0 cell
         AlienUpgradeResponseDto response = alienService.upgradeAlien(testUser.getUsername(), testAlienSpec.getId().intValue());
         
         assertEquals(2, response.getAfterLevel());
         assertEquals(5, response.getUsedPieces());
         assertEquals(0, response.getUsedUniversalPiece());
-        assertEquals(100, response.getUsedGold());
+        assertEquals(500, response.getUsedGold());
         assertEquals(0, response.getUsedGrowthCell());
         
         User user = userRepository.findById(testUser.getId()).get();
-        assertEquals(9900, user.getGold()); // 10000 - 100
+        assertEquals(9500, user.getGold()); // 10000 - 500
         assertEquals(100, user.getUniversalPiece());
     }
 
@@ -121,6 +121,9 @@ class AlienServiceTest {
     @Test
     @DisplayName("골드 부족 예외")
     void upgrade_notEnoughGold_throwsException() {
+        testUserAlien.setPieces(2);
+        userAlienRepository.save(testUserAlien);
+        testUser.setUniversalPiece(3);
         testUser.setGold(50); // need 100
         userRepository.save(testUser);
         
@@ -128,6 +131,13 @@ class AlienServiceTest {
             alienService.upgradeAlien(testUser.getUsername(), testAlienSpec.getId().intValue()));
             
         assertEquals(ErrorCode.INSUFFICIENT_ACCOUNT_GOLD, ex.getErrorCode());
+
+        User unchangedUser = userRepository.findById(testUser.getId()).orElseThrow();
+        UserAlien unchangedAlien = userAlienRepository.findById(testUserAlien.getId()).orElseThrow();
+        assertEquals(3, unchangedUser.getUniversalPiece());
+        assertEquals(50, unchangedUser.getGold());
+        assertEquals(2, unchangedAlien.getPieces());
+        assertEquals(1, unchangedAlien.getLevel());
     }
 
     @Test
@@ -158,6 +168,13 @@ class AlienServiceTest {
             alienService.upgradeAlien(testUser.getUsername(), testAlienSpec.getId().intValue()));
             
         assertEquals(ErrorCode.INSUFFICIENT_GROWTH_CELL, ex.getErrorCode());
+
+        User unchangedUser = userRepository.findById(testUser.getId()).orElseThrow();
+        UserAlien unchangedAlien = userAlienRepository.findById(testUserAlien.getId()).orElseThrow();
+        assertEquals(10_000, unchangedUser.getGold());
+        assertEquals(1, unchangedUser.getGrowthCell());
+        assertEquals(50, unchangedAlien.getPieces());
+        assertEquals(10, unchangedAlien.getLevel());
     }
 
     @Test

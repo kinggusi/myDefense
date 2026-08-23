@@ -1,0 +1,5 @@
+mydefense:
+  battle:
+    # Local Photon Host/Client smoke tests use dev-host/dev-client identities.
+    # Any deployed profile keeps the secure false default from application.yml.
+    allow-anonymous-entry-snapshots: true

@@ -31,12 +31,17 @@ class BattleBalanceRegistryIntegrationTest {
             assertThat(spawn.spawnCountPerField()).isEqualTo(1);
             assertThat(spawn.monsterId()).isEqualTo("WAVE_BOSS");
         });
-        assertThat(waves.getSpawns("WAVE_05")).hasSize(2)
+        assertThat(waves.getSpawns("WAVE_11")).hasSize(2)
                 .allSatisfy(spawn -> assertThat(spawn.lanePolicy()).isEqualTo("EACH_FIELD"))
                 .extracting(spawn -> spawn.order()).containsExactly(1, 2);
 
         assertThat(rules.getFieldLimit("COOP_STANDARD").maxAliveMonsterCountPerField()).isEqualTo(100);
         assertThat(rules.getSummonBalance("COOP_STANDARD", "KIDNAP").maxUses()).isEqualTo(-1);
+        assertThat(rules.getSummonPool("STANDARD_SUMMON_POOL").entries()).singleElement().satisfies(entry -> {
+            assertThat(entry.grade()).isEqualTo("NORMAL");
+            assertThat(entry.weight()).isEqualTo(10000);
+            assertThat(entry.alienIds()).containsExactly(22L, 23L, 24L, 25L, 26L, 27L, 28L);
+        });
         assertThat(rules.getMergeRule("LEGEND").resultType()).isEqualTo("MYTHIC_CHOICE");
         assertThat(List.of("NORMAL", "EPIC", "UNIQUE", "LEGEND", "MYTHIC"))
                 .allSatisfy(grade -> assertThat(rules.getMergeRule(grade).sameSpeciesRequired()).isTrue());
@@ -46,7 +51,7 @@ class BattleBalanceRegistryIntegrationTest {
 
         List<Long> mythics = rules.getEnabledMythicAlienIds();
         assertThatThrownBy(() -> mythics.add(49L)).isInstanceOf(UnsupportedOperationException.class);
-        assertThatThrownBy(() -> waves.getSpawns("WAVE_05").add(waves.getSpawns("WAVE_05").get(0)))
+        assertThatThrownBy(() -> waves.getSpawns("WAVE_11").add(waves.getSpawns("WAVE_11").get(0)))
                 .isInstanceOf(UnsupportedOperationException.class);
     }
 

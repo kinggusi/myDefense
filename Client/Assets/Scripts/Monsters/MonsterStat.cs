@@ -2,12 +2,16 @@ using UnityEngine;
 using MyDefense.Battle;
 using MyDefense.Shared.Contracts;
 using System.Collections;
+using System.Collections.Generic;
 
 public class MonsterStat : MonoBehaviour, IDamageable
 {
     public float CurrentHp => hp;
     public float MaxHp => maxHp;
     public bool IsDead => isDead;
+    public long LastDamageAttackerId { get; private set; }
+    private readonly HashSet<long> damageAttackerIds = new();
+    public IReadOnlyCollection<long> DamageAttackerIds => damageAttackerIds;
 
     public float hp = 30f;
     public float maxHp = 30f;
@@ -33,6 +37,8 @@ public class MonsterStat : MonoBehaviour, IDamageable
         if (newMaxHp < 1f) newMaxHp = 1f;
         maxHp = newMaxHp;
         hp = newMaxHp;
+        LastDamageAttackerId = 0;
+        damageAttackerIds.Clear();
         OnHpInitialized?.Invoke(hp, maxHp);
     }
 
@@ -43,9 +49,14 @@ public class MonsterStat : MonoBehaviour, IDamageable
         battleContextInitialized = true;
     }
 
-    public void ApplyDamage(DamagePayload payload)
-    {
-        if (payload.Amount <= 0f) return;
+        public void ApplyDamage(DamagePayload payload)
+        {
+            if (!payload.IsFinitePositive()) return;
+            if (payload.AttackerId > 0)
+            {
+                LastDamageAttackerId = payload.AttackerId;
+                damageAttackerIds.Add(payload.AttackerId);
+            }
         TakeDamage(payload.Amount);
     }
 

@@ -1,6 +1,9 @@
 {
   "schemaVersion": 1,
   "balanceVersion": "battle-v1",
-  "contentHash": "e5191ca7829d5de41391f57b51b832aab030c30145fb8c7c4031f3cb1b07c4f4",
-  "items": []
+  "contentHash": "5876e17408d28c93adeb338be3117ae516eac64c5da473c732bd109e23e29367",
+  "items": [
+    {"waveId":"WAVE_010","patternOrder":1,"patternType":"SET_PHASE","triggerType":"ON_SPAWN","triggerValue":0,"cooldownSeconds":0,"skillId":"","parameterKey":"phase","parameterValue":1,"enabled":true},
+    {"waveId":"WAVE_010","patternOrder":2,"patternType":"SET_MOVE_SPEED_MULTIPLIER","triggerType":"HP_PERCENT","triggerValue":50,"cooldownSeconds":0,"skillId":"","parameterKey":"moveSpeedMultiplier","parameterValue":1.35,"enabled":true}
+  ]
 }

@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
+using MyDefense.Battle.Balance.Canonical;
 using UnityEngine;
 
 namespace MyDefense.Battle.Balance
@@ -121,6 +123,76 @@ namespace MyDefense.Battle.Balance
         public bool Contains(long alienId)
         {
             return false;
+        }
+    }
+
+    /// <summary>
+    /// Resolves the authoritative Alien ID set from canonical alien-spec.json.
+    /// Battle-owned skill links use this adapter only for cross-contract validation;
+    /// Alien stats and unlock policy remain owned by the canonical User balance.
+    /// </summary>
+    public sealed class CanonicalBattleAlienIdProvider : IAlienIdProvider
+    {
+        private readonly HashSet<long> _alienIds;
+
+        private CanonicalBattleAlienIdProvider(IEnumerable<long> alienIds)
+        {
+            _alienIds = new HashSet<long>(alienIds ?? System.Array.Empty<long>());
+        }
+
+        public static bool TryCreate(out CanonicalBattleAlienIdProvider provider, out string error)
+        {
+            provider = null;
+            error = null;
+            var source = new StreamingAssetsCanonicalBalanceFileSource();
+            if (!source.TryReadAllBytes("alien-spec.json", out byte[] bytes))
+            {
+                error = "Canonical alien-spec.json is missing.";
+                return false;
+            }
+
+            try
+            {
+                AlienSpecArray document = JsonUtility.FromJson<AlienSpecArray>(
+                    "{\"items\":" + Encoding.UTF8.GetString(bytes) + "}");
+                var ids = new HashSet<long>();
+                foreach (AlienSpec item in document?.items ?? System.Array.Empty<AlienSpec>())
+                {
+                    if (item == null || item.alienId <= 0 || !ids.Add(item.alienId))
+                    {
+                        error = "Canonical alien-spec.json contains an invalid or duplicate alienId.";
+                        return false;
+                    }
+                }
+
+                if (ids.Count == 0)
+                {
+                    error = "Canonical alien-spec.json contains no Alien IDs.";
+                    return false;
+                }
+
+                provider = new CanonicalBattleAlienIdProvider(ids);
+                return true;
+            }
+            catch (System.Exception ex)
+            {
+                error = "Canonical alien-spec.json could not be parsed: " + ex.Message;
+                return false;
+            }
+        }
+
+        public bool Contains(long alienId) => _alienIds.Contains(alienId);
+
+        [System.Serializable]
+        private sealed class AlienSpecArray
+        {
+            public AlienSpec[] items;
+        }
+
+        [System.Serializable]
+        private sealed class AlienSpec
+        {
+            public long alienId;
         }
     }
 }

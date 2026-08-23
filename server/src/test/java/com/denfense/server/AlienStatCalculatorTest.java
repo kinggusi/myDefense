@@ -28,9 +28,9 @@ class AlienStatCalculatorTest {
         spec.setRange(4.5);
 
         AlienCurrentStat level20 = calculator.calculate(spec, 20);
-        assertThat(level20.currentAtk()).isEqualByComparingTo("195.00");
+        assertThat(level20.currentAtk()).isEqualByComparingTo("201.50");
         assertThat(level20.currentMp()).isEqualByComparingTo("125.60");
-        assertThat(level20.currentAtkSpeed()).isEqualByComparingTo("1.3000");
+        assertThat(level20.currentAtkSpeed()).isEqualByComparingTo("1.3688");
         assertThat(level20.currentRange()).isEqualByComparingTo("4.5000");
 
         AlienSpec mythicWithSameBaseStats = new AlienSpec();
@@ -52,9 +52,10 @@ class AlienStatCalculatorTest {
         List<AlienLevelStatBalance> result = new ArrayList<>();
         for (int level = 1; level <= 50; level++) {
             result.add(new AlienLevelStatBalance(level,
-                    BigDecimal.ONE.add(BigDecimal.valueOf(level - 1).multiply(new BigDecimal("0.05"))),
+                    BigDecimal.ONE.add(BigDecimal.valueOf(level - 1).multiply(new BigDecimal("0.045")))
+                            .add(BigDecimal.valueOf(Math.min(level / 10, 4)).multiply(new BigDecimal("0.08"))),
                     BigDecimal.ONE.add(BigDecimal.valueOf(level - 1).multiply(new BigDecimal("0.03"))),
-                    BigDecimal.ONE.add(BigDecimal.valueOf(level / 10).multiply(new BigDecimal("0.02"))),
+                    BigDecimal.ONE.add(BigDecimal.valueOf(level - 1).multiply(new BigDecimal("0.005"))),
                     BigDecimal.ONE));
         }
         return result;

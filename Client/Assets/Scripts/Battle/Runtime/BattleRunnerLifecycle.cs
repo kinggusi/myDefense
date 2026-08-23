@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Fusion;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace MyDefense.Battle.Runtime
 {
@@ -20,10 +21,12 @@ namespace MyDefense.Battle.Runtime
     /// </summary>
     public sealed class BattleRunnerLifecycle : MonoBehaviour
     {
+        public const string DefaultMapId = "NEPTUNE";
         private NetworkRunner _runner;
         private GameObject _runnerObject;
         private BattlePlayerIdentityCallbacks _identityCallbacks;
         private Task _lifecycleTask;
+        [SerializeField] private string _mapId;
 
         public BattleRunnerLifecycleState State { get; private set; } = BattleRunnerLifecycleState.STOPPED;
         public NetworkRunner Runner => _runner;
@@ -32,6 +35,10 @@ namespace MyDefense.Battle.Runtime
         public BattleSessionContext SessionContext { get; private set; }
         public bool IsBattleStarted => MatchStart.State == BattleStartState.STARTED;
         public string LastError { get; private set; }
+        public string MapId => string.IsNullOrWhiteSpace(_mapId) ? DefaultMapId : _mapId.Trim();
+        public event Action<BattleSessionContext> SessionContextCreated;
+        public event Action<BattlePlayerIdentity> PlayerConnected;
+        public event Action<BattlePlayerIdentity> PlayerDisconnected;
 
         private void Awake()
         {
@@ -53,7 +60,8 @@ namespace MyDefense.Battle.Runtime
             string canonicalContentHash,
             string battleContentVersion,
             string battleContentHash,
-            long startedAtTick)
+            long startedAtTick,
+            string mapId = null)
         {
             SessionContext = BattleSessionContext.FromRunner(
                 _runner,
@@ -61,7 +69,9 @@ namespace MyDefense.Battle.Runtime
                 canonicalContentHash,
                 battleContentVersion,
                 battleContentHash,
-                startedAtTick);
+                startedAtTick,
+                mapId ?? MapId);
+            SessionContextCreated?.Invoke(SessionContext);
             return SessionContext;
         }
 
@@ -80,6 +90,14 @@ namespace MyDefense.Battle.Runtime
 
         public Task StartClientAsync(string sessionName, string userId, NetworkSceneInfo scene = default)
             => StartAsync(GameMode.Client, sessionName, userId, scene);
+
+        public async Task StartHostOrClientAsync(string sessionName, string userId, NetworkSceneInfo scene = default)
+        {
+            // Let Fusion perform the atomic host-or-join negotiation. Trying a
+            // Host runner first and then rebuilding it as Client emits an
+            // expected ServerAlreadyInRoom disconnect into development builds.
+            await StartAsync(GameMode.AutoHostOrClient, sessionName, userId, scene);
+        }
 
         public async Task StopAsync(ShutdownReason reason = ShutdownReason.Ok)
         {
@@ -107,9 +125,14 @@ namespace MyDefense.Battle.Runtime
             State = BattleRunnerLifecycleState.STARTING;
             LastError = null;
             _runnerObject = new GameObject("FusionRunner");
-            _runnerObject.transform.SetParent(transform, false);
+            // Fusion keeps the runner alive across network scene changes.
+            // It must remain a root object for DontDestroyOnLoad to work.
             _runner = _runnerObject.AddComponent<NetworkRunner>();
-            _identityCallbacks = new BattlePlayerIdentityCallbacks(PlayerRoster, userId);
+            _identityCallbacks = new BattlePlayerIdentityCallbacks(
+                PlayerRoster,
+                userId,
+                identity => PlayerConnected?.Invoke(identity),
+                identity => PlayerDisconnected?.Invoke(identity));
             _runner.AddCallbacks(_identityCallbacks);
             var sceneManager = _runnerObject.GetComponent<INetworkSceneManager>()
                 ?? _runnerObject.AddComponent<NetworkSceneManagerDefault>();
@@ -118,6 +141,9 @@ namespace MyDefense.Battle.Runtime
 
             try
             {
+                if (scene.SceneCount == 0)
+                    scene = CreateActiveSceneInfo();
+
                 Task<StartGameResult> startTask = _runner.StartGame(new StartGameArgs
                 {
                     GameMode = mode,
@@ -134,6 +160,8 @@ namespace MyDefense.Battle.Runtime
                 if (result.Ok)
                 {
                     State = BattleRunnerLifecycleState.RUNNING;
+                    string role = _runner.IsServer ? "호스트 생성!" : "클라이언트 생성!";
+                    Debug.Log($"[Fusion] {role} Session={sessionName} UserId={userId}");
                     return;
                 }
 
@@ -148,6 +176,21 @@ namespace MyDefense.Battle.Runtime
                 State = BattleRunnerLifecycleState.FAULTED;
                 await StopInternalAsync(ShutdownReason.Error);
             }
+        }
+
+        private static NetworkSceneInfo CreateActiveSceneInfo()
+        {
+            Scene activeScene = SceneManager.GetActiveScene();
+            if (!activeScene.IsValid() || activeScene.buildIndex < 0)
+                return default;
+
+            NetworkSceneInfo sceneInfo = default;
+            sceneInfo.AddSceneRef(
+                SceneRef.FromIndex(activeScene.buildIndex),
+                LoadSceneMode.Single,
+                LocalPhysicsMode.None,
+                activeOnLoad: true);
+            return sceneInfo;
         }
 
         private async Task StopInternalAsync(ShutdownReason reason)

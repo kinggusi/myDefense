@@ -24,8 +24,8 @@ namespace MyDefense.Battle.Tests
 
             Assert.That(result.IsValid, Is.True, JoinErrors(result.Errors));
             Assert.That(result.Bundle.Manifest.SchemaVersion, Is.EqualTo(1));
-            Assert.That(result.Bundle.Manifest.BalanceVersion, Is.EqualTo("1-5ba7976a923b7ea9"));
-            Assert.That(result.Bundle.Manifest.ContentHash, Is.EqualTo("5ba7976a923b7ea9e8fd34889b7f36871106f6f0f29cc70ac1f0bc95434705f4"));
+            Assert.That(result.Bundle.Manifest.BalanceVersion, Is.EqualTo("1-69adccef540835fe"));
+            Assert.That(result.Bundle.Manifest.ContentHash, Is.EqualTo("69adccef540835fedf5da9ee853345722df52b2dc37f0e7f5003ac7e3d9ee276"));
 
             AssertMonster(result.Bundle.MonsterDefinitions, "NORMAL_MONSTER", "NORMAL", 30f, 5f, 20, true);
             AssertMonster(result.Bundle.MonsterDefinitions, "ELITE_MONSTER", "ELITE", 60f, 4f, 40, true);
@@ -36,8 +36,26 @@ namespace MyDefense.Battle.Tests
             Assert.That(limit.MaxAliveMonsterCountPerField, Is.EqualTo(100));
             Assert.That(limit.WarningThreshold, Is.EqualTo(80));
             Assert.That(limit.DangerThreshold, Is.EqualTo(90));
-            Assert.That(result.Bundle.Waves.All.Count, Is.EqualTo(10));
+            Assert.That(result.Bundle.Waves.All.Count, Is.EqualTo(80));
             Assert.That(result.Bundle.WaveSpawns.GetByGroup("WAVE_10_BOSS").Single().LanePolicy, Is.EqualTo(CanonicalLanePolicy.BOSS_SHARED));
+            Assert.That(result.Bundle.PlanetBattles.All, Has.Count.EqualTo(9));
+            Assert.That(result.Bundle.PlanetBattles.TryGet("EARTH", out CanonicalPlanetBattle earth), Is.True);
+            Assert.That(earth.HpMultiplier, Is.EqualTo(4.3f).Within(0.001f));
+            Assert.That(earth.SpeedMultiplier, Is.EqualTo(1.15f).Within(0.001f));
+            Assert.That(earth.BossHpMultiplier, Is.EqualTo(3f));
+            Assert.That(result.Bundle.PlanetBattles.TryGet("SUN", out CanonicalPlanetBattle sun), Is.True);
+            Assert.That(sun.HpMultiplier, Is.EqualTo(11f));
+            Assert.That(sun.SpeedMultiplier, Is.EqualTo(1.25f).Within(0.001f));
+            Assert.That(result.Bundle.Summon, Is.Not.Null);
+            Assert.That(result.Bundle.Summon.TryGetCost(0, out int firstCost), Is.True);
+            Assert.That(firstCost, Is.EqualTo(50));
+            Assert.That(result.Bundle.Summon.TryGetCost(1, out int secondCost), Is.True);
+            Assert.That(secondCost, Is.EqualTo(60));
+            Assert.That(result.Bundle.SummonPools.TryGetValue("STANDARD_SUMMON_POOL", out CanonicalSummonPool pool), Is.True);
+            Assert.That(pool.Entries, Has.Count.EqualTo(1));
+            Assert.That(pool.Entries[0].Grade, Is.EqualTo("NORMAL"));
+            Assert.That(pool.Entries[0].Weight, Is.EqualTo(10000));
+            Assert.That(pool.Entries[0].AlienIds, Is.EqualTo(new long[] { 22, 23, 24, 25, 26, 27, 28 }));
         }
 
         [Test]
@@ -46,10 +64,11 @@ namespace MyDefense.Battle.Tests
             CanonicalBalanceLoadResult canonical = LoadProduction();
             var source = new RecordingBattleTextSource(new ResourcesBattleBalanceTextSource());
 
+            Assert.That(CanonicalBattleAlienIdProvider.TryCreate(out CanonicalBattleAlienIdProvider alienIds, out string alienError), Is.True, alienError);
             CanonicalCompositeBattleBalanceProvider provider = CanonicalCompositeBattleBalanceProvider.Load(
                 canonical,
                 source,
-                EmptyBattleAlienIdProvider.Instance);
+                alienIds);
 
             Assert.That(provider.IsValid, Is.True, JoinErrors(provider.ValidationErrors));
             Assert.That(source.Requested, Does.Not.Contain(BattleBalanceResourcePaths.WaveSpec));
@@ -59,8 +78,38 @@ namespace MyDefense.Battle.Tests
             Assert.That(wave.NextWaveDelaySeconds, Is.EqualTo(3f));
             WaveSpawnSpecData spawn = provider.Catalog.Waves.GetSpawns(wave.WaveId).Single();
             Assert.That(spawn.MonsterId, Is.EqualTo("NORMAL_MONSTER"));
-            Assert.That(spawn.SpawnCount, Is.EqualTo(10));
+            Assert.That(spawn.SpawnCount, Is.EqualTo(12));
             Assert.That(spawn.HpMultiplier, Is.EqualTo(1f));
+            Assert.That(provider.Catalog.BossPatterns.GetByWave("COOP_STANDARD:10"), Has.Count.EqualTo(2));
+            Assert.That(provider.Catalog.BossPatterns.GetByWave("COOP_STANDARD:80"), Has.Count.EqualTo(2));
+            Assert.That(provider.Catalog.BossPatterns.GetByWave("WAVE_010"), Is.Empty);
+        }
+
+        [Test]
+        public void KidnapPoolResolver_IsDeterministicAndUsesCanonicalIds()
+        {
+            CanonicalBalanceLoadResult result = LoadProduction();
+            Assert.That(result.IsValid, Is.True, JoinErrors(result.Errors));
+
+            bool first = BattleKidnapPoolResolver.TrySelect(
+                result.Bundle.SummonPools,
+                "STANDARD_SUMMON_POOL",
+                12345UL,
+                out long firstAlienId,
+                out byte firstGrade);
+            bool second = BattleKidnapPoolResolver.TrySelect(
+                result.Bundle.SummonPools,
+                "STANDARD_SUMMON_POOL",
+                12345UL,
+                out long secondAlienId,
+                out byte secondGrade);
+
+            Assert.That(first, Is.True);
+            Assert.That(second, Is.True);
+            Assert.That(secondAlienId, Is.EqualTo(firstAlienId));
+            Assert.That(firstGrade, Is.EqualTo(0));
+            Assert.That(secondGrade, Is.EqualTo(firstGrade));
+            Assert.That(firstAlienId, Is.InRange(22L, 28L));
         }
 
         [Test]
@@ -139,6 +188,36 @@ namespace MyDefense.Battle.Tests
         }
 
         [Test]
+        public void MergeValidation_RequiresSameAlienAndGradeBelowMythic()
+        {
+            Assert.That(BattleWaveStateAuthority.CanMerge(0, 1, true, true, 22, 22, 0, 0), Is.True);
+            Assert.That(BattleWaveStateAuthority.CanMerge(0, 1, true, true, 22, 23, 0, 0), Is.False);
+            Assert.That(BattleWaveStateAuthority.CanMerge(0, 1, true, true, 22, 22, 0, 1), Is.False);
+            Assert.That(BattleWaveStateAuthority.CanMerge(0, 1, true, true, 22, 22, 4, 4), Is.False);
+            Assert.That(BattleWaveStateAuthority.CanMerge(0, 1, true, false, 22, 22, 0, 0), Is.False);
+        }
+
+        [Test]
+        public void MergeResultResolver_UsesCanonicalNextGradePool()
+        {
+            Assert.That(BattleMergeResultResolver.TryResolveRandomNextGrade(0, 0UL, out long alienId, out byte grade), Is.True);
+            Assert.That(alienId, Is.InRange(15L, 21L));
+            Assert.That(grade, Is.EqualTo(1));
+            Assert.That(BattleMergeResultResolver.TryResolveRandomNextGrade(3, 0UL, out _, out _), Is.False);
+        }
+
+        [Test]
+        public void MissingSummonBalance_IsRejected()
+        {
+            Dictionary<string, byte[]> files = LoadProductionFiles();
+            files.Remove(CanonicalBalanceContract.SummonFileName);
+
+            CanonicalBalanceLoadResult result = Load(files);
+
+            AssertInvalidContaining(result, "summon-balance.json");
+        }
+
+        [Test]
         public void UnknownMonsterId_IsRejectedAfterIntegrityValidation()
         {
             Dictionary<string, byte[]> files = LoadProductionFiles();
@@ -187,6 +266,30 @@ namespace MyDefense.Battle.Tests
         }
 
         [Test]
+        public void StandardWaveCatalog_MustContainContinuousOneThroughEighty()
+        {
+            Dictionary<string, byte[]> files = LoadProductionFiles();
+            MutateAndRebuild(files, CanonicalBalanceContract.WaveFileName,
+                json => json.Replace("\"wave\" : 80,", "\"wave\" : 79,"));
+
+            CanonicalBalanceLoadResult result = Load(files);
+
+            AssertInvalidContaining(result, "continuous from 1 through 80");
+        }
+
+        [Test]
+        public void StandardWaveCatalog_RequiresBossExactlyEveryTenthWave()
+        {
+            Dictionary<string, byte[]> files = LoadProductionFiles();
+            MutateAndRebuild(files, CanonicalBalanceContract.WaveFileName,
+                json => json.Replace("\"isBossWave\" : true", "\"isBossWave\" : false"));
+
+            CanonicalBalanceLoadResult result = Load(files);
+
+            AssertInvalidContaining(result, "Boss waves must be exactly every tenth wave");
+        }
+
+        [Test]
         public void ProductionExecutor_UsesCanonicalProviderAndFieldLimit()
         {
             var gameObject = new GameObject("Canonical Executor Test");
@@ -206,7 +309,9 @@ namespace MyDefense.Battle.Tests
                 Assert.That(executor.MonsterLimit, Is.EqualTo(100));
                 Assert.That(executor.MonsterWarningThreshold, Is.EqualTo(80));
                 Assert.That(executor.MonsterDangerThreshold, Is.EqualTo(90));
-                Assert.That(executor.CanonicalBalanceVersion, Is.EqualTo("1-5ba7976a923b7ea9"));
+                CanonicalBalanceLoadResult production = LoadProduction();
+                Assert.That(production.IsValid, Is.True, JoinErrors(production.Errors));
+                Assert.That(executor.CanonicalBalanceVersion, Is.EqualTo(production.Bundle.Manifest.BalanceVersion));
                 Assert.That(executor.BattleContentVersion, Is.EqualTo("battle-v1"));
             }
             finally
