@@ -31,6 +31,11 @@ namespace MyDefense.Battle.Presentation
             _boardView ??= FindFirstObjectByType<FusionKidnapBoardView>();
             _kidnapButton ??= GameObject.Find("Btn_Summon")?.GetComponent<Button>();
             _goldText ??= GameObject.Find("Text_InGame_Gold")?.GetComponent<Text>();
+            if (_goldText != null)
+            {
+                _goldText.horizontalOverflow = HorizontalWrapMode.Overflow;
+                _goldText.fontSize = Mathf.Min(42, _goldText.fontSize);
+            }
             if (_costText == null && _kidnapButton != null)
                 _costText = _kidnapButton.GetComponentInChildren<Text>(true);
         }

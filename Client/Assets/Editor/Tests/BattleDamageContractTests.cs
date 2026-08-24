@@ -125,6 +125,124 @@ public sealed class BattleDamageContractTests
     }
 
     [Test]
+    public void AuthoritativeBoardStateSync_RebindsMovedAndSwappedUnitsOnlyOnce()
+    {
+        MethodInfo sync = typeof(FusionKidnapBoardView).GetMethod(
+            "ApplyAuthoritativeUnitState",
+            BindingFlags.NonPublic | BindingFlags.Static);
+        Assert.That(sync, Is.Not.Null);
+
+        GameObject sourceObject = new GameObject("source-unit-test");
+        GameObject targetObject = new GameObject("target-unit-test");
+        try
+        {
+            UnitData source = sourceObject.AddComponent<UnitData>();
+            UnitData target = targetObject.AddComponent<UnitData>();
+            ApplyAuthoritativeState(sync, source, 1, 2, 22, 0, 0, null);
+            ApplyAuthoritativeState(sync, target, 1, 5, 23, 1, 0, null);
+
+            Assert.That(ApplyAuthoritativeState(sync, source, 1, 5, 22, 0, 0, null), Is.True);
+            Assert.That(ApplyAuthoritativeState(sync, target, 1, 2, 23, 1, 0, null), Is.True);
+            Assert.That(source.serverId, Is.EqualTo(((long)1 << 32) | 6u));
+            Assert.That(target.serverId, Is.EqualTo(((long)1 << 32) | 3u));
+            Assert.That(source.specId, Is.EqualTo(22));
+            Assert.That(target.specId, Is.EqualTo(23));
+            Assert.That(source.grade, Is.EqualTo("NORMAL"));
+            Assert.That(target.grade, Is.EqualTo("EPIC"));
+
+            Assert.That(ApplyAuthoritativeState(sync, source, 1, 5, 22, 0, 0, null), Is.False);
+            Assert.That(ApplyAuthoritativeState(sync, target, 1, 2, 23, 1, 0, null), Is.False);
+        }
+        finally
+        {
+            Object.DestroyImmediate(sourceObject);
+            Object.DestroyImmediate(targetObject);
+        }
+    }
+
+    [Test]
+    public void AuthoritativeBoardStateSync_RefreshesMergeAndActiveMutationButNotPendingDna()
+    {
+        MethodInfo sync = typeof(FusionKidnapBoardView).GetMethod(
+            "ApplyAuthoritativeUnitState",
+            BindingFlags.NonPublic | BindingFlags.Static);
+        Assert.That(sync, Is.Not.Null);
+
+        GameObject unitObject = new GameObject("merged-unit-test");
+        try
+        {
+            UnitData data = unitObject.AddComponent<UnitData>();
+            Assert.That(ApplyAuthoritativeState(sync, data, 2, 7, 15, 2, 0, null), Is.True);
+            Assert.That(data.serverId, Is.EqualTo(((long)2 << 32) | 8u));
+            Assert.That(data.specId, Is.EqualTo(15));
+            Assert.That(data.grade, Is.EqualTo("UNIQUE"));
+
+            Assert.That(ApplyAuthoritativeState(sync, data, 2, 7, 15, 2, 2, "TOXIC"), Is.False);
+            Assert.That(data.pendingMutationType, Is.EqualTo("TOXIC"));
+            Assert.That(data.activeMutationType, Is.Null);
+
+            Assert.That(ApplyAuthoritativeState(sync, data, 2, 7, 29, 4, 3, "FROZEN"), Is.True);
+            Assert.That(data.specId, Is.EqualTo(29));
+            Assert.That(data.grade, Is.EqualTo("MYTHIC"));
+            Assert.That(data.pendingMutationType, Is.Null);
+            Assert.That(data.activeMutationType, Is.EqualTo("FROZEN"));
+            Assert.That(ApplyAuthoritativeState(sync, data, 2, 7, 29, 4, 3, "FROZEN"), Is.False);
+        }
+        finally
+        {
+            Object.DestroyImmediate(unitObject);
+        }
+    }
+
+    [Test]
+    public void InitialMutationVisual_ShowsOnlyActiveMutationAndSealedStateClearsIt()
+    {
+        MethodInfo applyInitial = typeof(FusionKidnapBoardView).GetMethod(
+            "ApplyInitialActiveMutationVisual",
+            BindingFlags.NonPublic | BindingFlags.Static);
+        Assert.That(applyInitial, Is.Not.Null);
+
+        GameObject unit = new GameObject("mutation-visual-state-test");
+        try
+        {
+            UnitData data = unit.AddComponent<UnitData>();
+            FusionKidnapBoardView.ApplyMutationState(data, 2, "TOXIC");
+            Assert.That((bool)applyInitial.Invoke(null, new object[] { unit }), Is.False);
+            Assert.That(unit.GetComponent<MutationAuraView>(), Is.Null);
+
+            FusionKidnapBoardView.ApplyMutationState(data, 3, "TOXIC");
+            Assert.That((bool)applyInitial.Invoke(null, new object[] { unit }), Is.True);
+            MutationAuraView aura = unit.GetComponent<MutationAuraView>();
+            Assert.That(aura, Is.Not.Null);
+            Assert.That(unit.transform.Find("MutationAura").gameObject.activeSelf, Is.True);
+            Assert.That(unit.GetComponentInChildren<TextMesh>().text, Is.EqualTo("M:T"));
+
+            FusionKidnapBoardView.ApplyMutationState(data, 4, "TOXIC");
+            Assert.That((bool)applyInitial.Invoke(null, new object[] { unit }), Is.False);
+            Assert.That(unit.transform.Find("MutationAura").gameObject.activeSelf, Is.False);
+            Assert.That(unit.GetComponentInChildren<TextMesh>().text, Is.Empty);
+        }
+        finally
+        {
+            Object.DestroyImmediate(unit);
+        }
+    }
+
+    private static bool ApplyAuthoritativeState(
+        MethodInfo method,
+        UnitData data,
+        int playerSlot,
+        int slotIndex,
+        long alienId,
+        byte grade,
+        byte mutationState,
+        string mutationType)
+        => (bool)method.Invoke(null, new object[]
+        {
+            data, playerSlot, slotIndex, alienId, grade, mutationState, mutationType
+        });
+
+    [Test]
     public void HitEventCarriesAuthorityIdentityAndRejectsInvalidDamage()
     {
         DamagePayload payload = new DamagePayload

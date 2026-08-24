@@ -152,6 +152,7 @@ namespace MyDefense.Battle.Presentation
             ConfigureUnitData(unit, playerSlot, slotIndex, alienId, grade);
             ApplyAttackSnapshot(unit, playerSlot, alienId);
             ApplyGradeVisual(unit.transform, grade, alienId);
+            ApplyInitialActiveMutationVisual(unit);
             FusionKidnapUnitDrag drag = unit.AddComponent<FusionKidnapUnitDrag>();
             drag.Initialize(this, _authority, playerSlot, slotIndex);
             Debug.Log($"[FusionKidnapBoardView] slot={playerSlot} alienId={alienId} grid={grid.name} tile={tile.name} row={row} column={column} mirrored={isMirroredField} index={slotIndex}.");
@@ -171,7 +172,6 @@ namespace MyDefense.Battle.Presentation
             if (target != null && target.Find("FusionKidnapUnit") != null)
             {
                 GameObject targetUnit = target.Find("FusionKidnapUnit").gameObject;
-                ApplyMutationVisual(targetUnit, mutationType);
                 SyncUnitRuntimeState(targetUnit, playerSlot, targetSlotIndex, _authority.GetBoardAlienId(playerSlot, targetSlotIndex));
             }
         }
@@ -214,6 +214,21 @@ namespace MyDefense.Battle.Presentation
             MutationAuraView aura = unit.GetComponent<MutationAuraView>();
             if (aura == null) aura = unit.AddComponent<MutationAuraView>();
             aura.Apply(normalized);
+        }
+
+        private static bool ApplyInitialActiveMutationVisual(GameObject unit)
+        {
+            UnitData data = unit == null ? null : unit.GetComponent<UnitData>();
+            if (data == null)
+                return false;
+            if (string.IsNullOrWhiteSpace(data.activeMutationType))
+            {
+                if (unit.GetComponent<MutationAuraView>() != null)
+                    ApplyMutationVisual(unit, null);
+                return false;
+            }
+            ApplyMutationVisual(unit, data.activeMutationType);
+            return true;
         }
 
         public Transform GetGrid(int playerSlot) => playerSlot == 1 ? _player1Grid : _player2Grid;
@@ -268,7 +283,13 @@ namespace MyDefense.Battle.Presentation
         {
             GameObject prefab = ResolveUnitPrefab();
             if (prefab != null)
-                return Object.Instantiate(prefab);
+            {
+                GameObject unit = Object.Instantiate(prefab);
+                AlienMergeHintView legacyMergeHint = unit.GetComponent<AlienMergeHintView>();
+                if (legacyMergeHint != null)
+                    legacyMergeHint.enabled = false;
+                return unit;
+            }
 
             // Keep the old primitive fallback for development scenes that do not
             // contain GameManager, but make the limitation explicit in the log.
@@ -297,10 +318,54 @@ namespace MyDefense.Battle.Presentation
             if (data == null)
                 return;
             string previousActiveMutation = data.activeMutationType;
-            ApplyMutationState(data, playerSlot, slotIndex);
-            ApplyMutationVisual(unit, data.activeMutationType);
-            if (!string.Equals(previousActiveMutation, data.activeMutationType, StringComparison.Ordinal))
+            bool snapshotChanged = ApplyAuthoritativeUnitState(
+                data,
+                playerSlot,
+                slotIndex,
+                alienId,
+                _authority.GetBoardGrade(playerSlot, slotIndex),
+                _authority.GetBoardMutationState(playerSlot, slotIndex),
+                _authority.GetBoardMutationType(playerSlot, slotIndex));
+            bool activeMutationChanged = !string.Equals(
+                previousActiveMutation,
+                data.activeMutationType,
+                StringComparison.Ordinal);
+            if (activeMutationChanged)
+                ApplyMutationVisual(unit, data.activeMutationType);
+            if (snapshotChanged)
                 ApplyAttackSnapshot(unit, playerSlot, alienId);
+        }
+
+        private static bool ApplyAuthoritativeUnitState(
+            UnitData data,
+            int playerSlot,
+            int slotIndex,
+            long alienId,
+            byte grade,
+            byte mutationState,
+            string mutationType)
+        {
+            if (data == null)
+                throw new ArgumentNullException(nameof(data));
+
+            long serverId = ((long)playerSlot << 32) | (uint)(slotIndex + 1);
+            string gradeName = GradeName(grade);
+            string previousActiveMutation = data.activeMutationType;
+            bool metadataChanged = data.serverId != serverId
+                || data.specId != alienId
+                || !string.Equals(data.grade, gradeName, StringComparison.Ordinal);
+
+            if (metadataChanged)
+            {
+                data.serverId = serverId;
+                data.specId = alienId;
+                data.grade = gradeName;
+                data.unitName = "Alien-" + alienId;
+            }
+
+            ApplyMutationState(data, mutationState, mutationType);
+            return metadataChanged
+                || !string.Equals(previousActiveMutation, data.activeMutationType, StringComparison.Ordinal);
         }
 
         private void ApplyMutationState(UnitData data, int playerSlot, int slotIndex)
@@ -389,6 +454,7 @@ namespace MyDefense.Battle.Presentation
                     ConfigureUnitData(targetUnit.gameObject, playerSlot, toSlotIndex, resultAlienId, resultGrade);
                     ApplyAttackSnapshot(targetUnit.gameObject, playerSlot, resultAlienId);
                     ApplyGradeVisual(targetUnit, resultGrade, resultAlienId);
+                    ApplyInitialActiveMutationVisual(targetUnit.gameObject);
                 }
                 Debug.Log($"[FusionKidnapBoardView] merge slot={playerSlot} source={fromSlotIndex} target={toSlotIndex} resultAlienId={resultAlienId} resultGrade={resultGrade}.");
                 return;
@@ -401,6 +467,11 @@ namespace MyDefense.Battle.Presentation
             FusionKidnapUnitDrag drag = sourceUnit.GetComponent<FusionKidnapUnitDrag>();
             if (drag != null)
                 drag.UpdateSlotIndex(toSlotIndex);
+            SyncUnitRuntimeState(
+                sourceUnit.gameObject,
+                playerSlot,
+                toSlotIndex,
+                _authority.GetBoardAlienId(playerSlot, toSlotIndex));
             Debug.Log($"[FusionKidnapBoardView] move slot={playerSlot} source={fromSlotIndex} target={toSlotIndex}.");
         }
 
@@ -420,6 +491,16 @@ namespace MyDefense.Battle.Presentation
             FusionKidnapUnitDrag targetDrag = targetUnit.GetComponent<FusionKidnapUnitDrag>();
             if (sourceDrag != null) sourceDrag.UpdateSlotIndex(targetSlotIndex);
             if (targetDrag != null) targetDrag.UpdateSlotIndex(sourceSlotIndex);
+            SyncUnitRuntimeState(
+                sourceUnit.gameObject,
+                playerSlot,
+                targetSlotIndex,
+                _authority.GetBoardAlienId(playerSlot, targetSlotIndex));
+            SyncUnitRuntimeState(
+                targetUnit.gameObject,
+                playerSlot,
+                sourceSlotIndex,
+                _authority.GetBoardAlienId(playerSlot, sourceSlotIndex));
             Debug.Log($"[FusionKidnapBoardView] swap slot={playerSlot} source={sourceSlotIndex} target={targetSlotIndex}.");
         }
 

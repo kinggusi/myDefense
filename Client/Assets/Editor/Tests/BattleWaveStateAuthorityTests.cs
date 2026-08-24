@@ -8,6 +8,7 @@ using MyDefense.Battle.Balance.Canonical;
 using MyDefense.Battle.Runtime;
 using MyDefense.Shared.Contracts;
 using NUnit.Framework;
+using UnityEngine;
 using Assert = NUnit.Framework.Assert;
 
 namespace MyDefense.Battle.Tests
@@ -109,6 +110,35 @@ namespace MyDefense.Battle.Tests
             Assert.That(rerollMethod, Is.Not.Null);
             Assert.That(typeof(BattleWaveStateAuthority).GetMethod(nameof(BattleWaveStateAuthority.RequestMythicChoice)), Is.Not.Null);
             Assert.That(typeof(BattleWaveStateAuthority).GetMethod(nameof(BattleWaveStateAuthority.RequestMythicReroll)), Is.Not.Null);
+        }
+
+        [Test]
+        public void UnitAttackDoesNotReadNetworkedMythicChoiceBeforeAuthoritySpawned()
+        {
+            GameObject authorityObject = new GameObject("unspawned-battle-authority-test");
+            GameObject unitObject = new GameObject("unit-attack-spawn-guard-test");
+            try
+            {
+                BattleWaveStateAuthority authority = authorityObject.AddComponent<BattleWaveStateAuthority>();
+                UnitData data = unitObject.AddComponent<UnitData>();
+                data.serverId = ((long)1 << 32) | 1u;
+                UnitAttack attack = unitObject.AddComponent<UnitAttack>();
+                typeof(UnitAttack).GetField("battleAuthority", BindingFlags.Instance | BindingFlags.NonPublic)
+                    ?.SetValue(attack, authority);
+                MethodInfo method = typeof(UnitAttack).GetMethod(
+                    "IsAttackSuppressedByMythicChoice",
+                    BindingFlags.Instance | BindingFlags.NonPublic);
+
+                Assert.That(authority.IsSpawnedForAccess, Is.False);
+                Assert.That(method, Is.Not.Null);
+                Assert.That(() => method.Invoke(attack, null), Throws.Nothing);
+                Assert.That(method.Invoke(attack, null), Is.False);
+            }
+            finally
+            {
+                Object.DestroyImmediate(unitObject);
+                Object.DestroyImmediate(authorityObject);
+            }
         }
 
         [Test]

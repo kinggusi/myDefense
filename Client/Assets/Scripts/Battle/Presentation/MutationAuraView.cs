@@ -22,12 +22,25 @@ namespace MyDefense.Battle.Presentation
                 aura.transform.localPosition = new Vector3(0f, -0.42f, 0f);
                 aura.transform.localScale = new Vector3(0.72f, 0.025f, 0.72f);
                 Collider collider = aura.GetComponent<Collider>();
-                if (collider != null) Destroy(collider);
+                if (collider != null)
+                {
+                    if (Application.isPlaying)
+                        Destroy(collider);
+                    else
+                        DestroyImmediate(collider);
+                }
                 _aura = aura.transform;
             }
             Renderer renderer = _aura.GetComponent<Renderer>();
             if (renderer != null)
-                renderer.material.color = ResolveColor(normalized);
+            {
+                Color color = ResolveColor(normalized);
+                var properties = new MaterialPropertyBlock();
+                renderer.GetPropertyBlock(properties);
+                properties.SetColor("_Color", color);
+                properties.SetColor("_BaseColor", color);
+                renderer.SetPropertyBlock(properties);
+            }
             _aura.gameObject.SetActive(normalized != "NONE");
         }
 
