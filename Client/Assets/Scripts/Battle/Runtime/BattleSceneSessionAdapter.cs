@@ -16,6 +16,7 @@ namespace MyDefense.Battle.Runtime
         [SerializeField] private BattleWaveExecutor _waveExecutor;
         [SerializeField] private BattleWaveStateAuthority _stateAuthority;
         [SerializeField] private PathManager _pathManager;
+        private IBattleSessionRosterRegistration _rosterRegistration;
 
         public BattleSessionContext SessionContext { get; private set; }
         public bool IsInitialized { get; private set; }
@@ -31,6 +32,11 @@ namespace MyDefense.Battle.Runtime
                 return false;
             snapshot = BattleReconnectSnapshotBuilder.Capture(SessionContext, _stateAuthority, _waveExecutor);
             return true;
+        }
+
+        public bool RetryRosterRegistration()
+        {
+            return _rosterRegistration != null && _rosterRegistration.RetryRegistration();
         }
 
         private void OnEnable()
@@ -53,6 +59,8 @@ namespace MyDefense.Battle.Runtime
                 _runnerLifecycle.PlayerConnected -= OnPlayerConnected;
                 _runnerLifecycle.PlayerDisconnected -= OnPlayerDisconnected;
             }
+            if (_rosterRegistration != null)
+                _rosterRegistration.Registered -= HandleRosterRegistered;
             ResetAdapter();
         }
 
@@ -218,11 +226,16 @@ namespace MyDefense.Battle.Runtime
 
             _pathManager?.InitializePaths();
             _waveExecutor.SetLocalPlayerLane(localPlayerLane);
-            EnsureSettlementCoordinator(sessionContext);
+            EnsureSettlementCoordinator(sessionContext, playerIdentityProvider);
             SessionContext = sessionContext;
             IsInitialized = true;
             if (_stateAuthority == null || _stateAuthority.IsAuthoritative)
-                _waveExecutor.StartConfiguredWavesIfReady();
+            {
+                if (_rosterRegistration == null || _rosterRegistration.IsRegistered)
+                    _waveExecutor.StartConfiguredWavesIfReady();
+                else
+                    _rosterRegistration.EnsureRegistered();
+            }
             return true;
         }
 
@@ -232,14 +245,29 @@ namespace MyDefense.Battle.Runtime
             IsInitialized = false;
         }
 
-        private void EnsureSettlementCoordinator(BattleSessionContext sessionContext)
+        private void EnsureSettlementCoordinator(
+            BattleSessionContext sessionContext,
+            IBattlePlayerIdentityProvider playerIdentityProvider)
         {
             if (_runnerLifecycle == null || _waveExecutor == null || _stateAuthority == null)
                 return;
+            if (_stateAuthority.IsAuthoritative)
+            {
+                _rosterRegistration = BattleSessionRosterRegistrationFactory.ResolveOrCreate(gameObject);
+                _rosterRegistration.Configure(sessionContext, playerIdentityProvider);
+                _rosterRegistration.Registered -= HandleRosterRegistered;
+                _rosterRegistration.Registered += HandleRosterRegistered;
+            }
             BattleSettlementCoordinator coordinator = GetComponent<BattleSettlementCoordinator>();
             if (coordinator == null)
                 coordinator = gameObject.AddComponent<BattleSettlementCoordinator>();
-            coordinator.Configure(_runnerLifecycle, _waveExecutor, _stateAuthority, sessionContext);
+            coordinator.Configure(_runnerLifecycle, _waveExecutor, _stateAuthority, sessionContext, _rosterRegistration);
+        }
+
+        private void HandleRosterRegistered()
+        {
+            if (_stateAuthority != null && _stateAuthority.IsAuthoritative)
+                _waveExecutor?.StartConfiguredWavesIfReady();
         }
     }
 }

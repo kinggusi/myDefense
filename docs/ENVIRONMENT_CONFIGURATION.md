@@ -91,10 +91,11 @@ Photon App ID의 `CustomPhotonAppSettings` 런타임 주입은 Fusion SDK API �
 
 ## 6. Spring Boot 개발 실행
 
-기본 실행은 local 설정을 사용한다.
+보안상 기본 Profile은 local로 자동 선택하지 않는다. 로컬 개발도 Profile을 명시한다.
 
 ```powershell
 cd server
+$env:SPRING_PROFILES_ACTIVE='local'
 \.gradlew bootRun
 ```
 
@@ -188,4 +189,20 @@ Dev와 Prod의 Photon App, DB, API는 덮어쓰지 말고 동시에 유지한다
 - `.env` 및 실제 local 설정 무시 규칙: 적용
 - Photon App ID 런타임 주입: 후속 구현 필요
 - 실제 운영 Secret 등록: CI/CD 구성 시 진행
+- Battle roster local/dev Adapter: 적용 (`/api/dev/battle/session-rosters`, loopback 전용)
+- 운영 Battle roster 인증: `IBattleSessionRosterRegistration`의 `FUTURE_AUTH_REPLACEMENT` 구현을 JWT principal + matchmaking 검증으로 교체 예정
 - commit/push: 이 문서 작업에서는 수행하지 않음
+
+## 11. Battle 인증 교체 지점
+
+현재 로컬 2인 검증은 Host의 Fusion State Authority가 두 `dev-*` 사용자와 Session 정보를 Spring에 먼저 등록한 뒤 Settlement를 보낸다. 개발 편의를 위한 사용자 자동 생성과 roster API는 명시적인 `local`/`dev` Profile 및 loopback 요청에서만 허용된다. Spring Profile을 생략하면 이 개발 API는 생성되지 않는다.
+
+운영 JWT 도입 시에는 다음만 교체한다.
+
+```text
+현재: Fusion Authority -> BattleSessionRosterRegistrar(local/dev) -> 개발용 roster API
+운영: Fusion Authority -> JwtMatchmakingRosterRegistrar(prod) -> JWT principal/매치 검증 API
+공통: trusted roster -> BattleSettlementService -> 영구 보상
+```
+
+코드 검색 표식은 `FUTURE_AUTH_REPLACEMENT`다. 운영 전 이 표식을 검색해 개발용 Adapter가 production 경로에 사용되지 않는지 점검한다. JWT 토큰이나 Secret은 Unity 소스·Scene·Git에 저장하지 않고 로그인 응답과 안전한 런타임 저장소를 통해 전달한다.

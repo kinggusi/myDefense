@@ -46,6 +46,8 @@ Spring Boot
 
 `BattleSummary`는 Unity 런타임 누적 장부이고 `BattleSettlementSummary`는 Spring 전송 DTO다. 전송 결과는 `VICTORY`, `DEFEAT`, `ABORTED`를 사용하며, nullable `eliminatedWave`를 포함한 JSON 필드는 Spring `BattleSettlementDtos`와 1:1로 유지한다.
 
+Settlement 전 참가자 신뢰 경계는 `IBattleSessionRosterRegistration`이다. local/dev에서는 Fusion State Authority가 loopback 개발 API로 roster를 등록하고, 운영에서는 동일 인터페이스 뒤의 구현을 JWT principal + matchmaking 검증 Adapter로 교체한다. 이 교체는 Settlement Summary나 보상 계산 계약을 바꾸지 않는다. 운영 Adapter가 준비되지 않은 환경은 영구 보상을 fail-closed 처리한다.
+
 ## 3. Damage Flow
 ```text
 Alien + Skill + Mutation
