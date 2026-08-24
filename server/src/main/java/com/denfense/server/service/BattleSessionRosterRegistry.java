@@ -48,6 +48,37 @@ public class BattleSessionRosterRegistry {
         });
     }
 
+    /**
+     * Atomically publishes a complete two-player roster. Unlike two calls to
+     * {@link #register}, a competing request can never leave mixed slots in
+     * this in-memory registry.
+     */
+    public void registerComplete(String battleSessionId, String mapId, String balanceVersion,
+                                 String contentHash, List<Player> requestedPlayers) {
+        purgeExpired();
+        if (blank(battleSessionId) || blank(mapId) || blank(balanceVersion) || blank(contentHash)
+                || requestedPlayers == null || requestedPlayers.size() != 2) {
+            throw new BusinessException(ErrorCode.BATTLE_PARTICIPANT_MISMATCH);
+        }
+        String sessionKey = battleSessionId.trim();
+        MutableRoster candidate = new MutableRoster(
+                mapId.trim(), balanceVersion.trim(), contentHash.trim(), nowMillis.getAsLong());
+        for (Player player : requestedPlayers) {
+            if (player == null) throw new BusinessException(ErrorCode.BATTLE_PARTICIPANT_MISMATCH);
+            candidate.register(player.playerSlot(), player.playerId(), mapId.trim(),
+                    balanceVersion.trim(), contentHash.trim());
+        }
+        Roster requested = candidate.snapshot();
+        rosters.compute(sessionKey, (key, current) -> {
+            if (current == null) return candidate;
+            Roster existing = current.snapshot();
+            if (!existing.equals(requested)) {
+                throw new BusinessException(ErrorCode.BATTLE_PARTICIPANT_MISMATCH);
+            }
+            return current;
+        });
+    }
+
     public Roster requireComplete(String battleSessionId) {
         purgeExpired();
         MutableRoster roster = rosters.get(battleSessionId);

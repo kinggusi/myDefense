@@ -6,10 +6,10 @@ P1 Mutation·공명·행성 Balance·Settlement를 실제 Fusion Host/Standalone
 
 ## 준비
 
-1. Spring Boot를 최신 코드와 canonical Balance로 `localhost:8080`에서 실행한다.
+1. `SPRING_PROFILES_ACTIVE=local`을 명시하고 Spring Boot를 최신 코드와 canonical Balance로 `localhost:8080`에서 실행한다.
 2. Unity에서 `Assets/Scenes/Battle.unity`를 열고 Console을 비운다.
 3. Host와 최신 Standalone Client를 같은 `MyDefense-Dev` Session으로 실행한다.
-4. Mutation·공명·Wave 화면 검증은 Host=`dev-host`, Client=`dev-client`로 수행할 수 있다. Settlement 영구 보상 검증은 신뢰된 matchmaking/session authority adapter가 연결된 뒤 Spring DB에 존재하는 서로 다른 두 사용자 ID로 수행한다.
+4. local/dev 검증은 Host=`dev-host`, Client=`dev-client`로 수행한다. Fusion State Authority가 두 ID를 roster로 등록하며, 명시적인 `dev-*` 사용자는 로컬 DB에만 자동 생성된다.
 5. 테스트가 끝날 때까지 Host와 Client를 명시적으로 이탈시키지 않는다.
 6. Settlement 검증 중에는 Spring Boot를 재시작하지 않는다. 현재 신뢰 roster는 최대 4시간 동안 프로세스 메모리에 보존되며, 만료 또는 재시작 시 안전하게 보상을 거부한다.
 
@@ -60,7 +60,9 @@ Host/Client가 같은 HP·Gold·상태 효과를 보고, 중복 지급이나 이
 
 ## 5. Settlement E2E
 
-> 선행 조건: 인증된 matchmaking/Fusion session 결과를 `BattleSessionRosterRegistry`에 전달하는 서버 내부 adapter가 필요하다. 공개 HTTP request parameter로 roster를 등록해서는 안 된다. adapter가 없는 현재 상태에서는 아래 정상 지급 시나리오 대신 미등록 Session이 `BATTLE_PARTICIPANT_MISMATCH`로 거부되고 영구 재화가 변하지 않는 안전 실패를 확인한다.
+> local/dev에서는 Fusion State Authority가 loopback 전용 개발 Adapter로 trusted roster를 등록한다. production에서는 이 경로가 비활성화되고 JWT/matchmaking Adapter로 교체되어야 한다. Console에서 `[BattleRoster] registered trusted local roster`가 Wave 시작보다 먼저 출력되어야 한다.
+
+등록이 일시 실패하면 `BattleSceneSessionAdapter.RetryRosterRegistration()`을 Feature Test Hub 또는 MCP에서 명시적으로 한 번 호출한다. 무한 자동 Retry는 하지 않는다.
 
 1. 한 전투는 Wave 80 클리어, 다른 전투는 중도 패배로 종료한다.
 2. Host가 종료 Summary를 정확히 한 번 전송하는지 확인한다.
@@ -70,6 +72,8 @@ Host/Client가 같은 HP·Gold·상태 효과를 보고, 중복 지급이나 이
 6. 명시적 이탈 또는 120초 초과 미복귀 플레이어는 보상에서 제외되는지 확인한다.
 7. Host/Client의 최종 Wave·Kill·Gold Summary와 서버 저장값이 일치하는지 확인한다.
 8. 등록되지 않은 Session 또는 canonical 완료 Wave별 Spawn/Kill 총계와 맞지 않는 Summary는 보상 없이 거부되는지 확인한다.
+9. `dev-host`, `dev-client`의 Lobby API 또는 DB 영구 Gold·Universal Piece·Diamond가 응답의 `rewards` 합계만큼 증가했는지 확인한다.
+10. 같은 `requestId`/`summaryHash`를 다시 보낼 때 `alreadyProcessed=true`이고 영구 재화가 두 번 증가하지 않는지 확인한다.
 
 ## 최종 합격 기준
 

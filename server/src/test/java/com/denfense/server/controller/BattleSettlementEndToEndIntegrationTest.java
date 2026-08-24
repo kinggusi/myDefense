@@ -3,19 +3,21 @@ package com.denfense.server.controller;
 import com.denfense.server.domain.BattleSettlement;
 import com.denfense.server.domain.User;
 import com.denfense.server.dto.battle.BattleSettlementDtos;
+import com.denfense.server.dto.battle.BattleSessionRosterDtos;
 import com.denfense.server.repository.BattlePlayerSettlementRepository;
 import com.denfense.server.repository.BattleSettlementRepository;
 import com.denfense.server.repository.UserRepository;
-import com.denfense.server.service.BattleSessionRosterRegistry;
 import com.denfense.server.service.balance.BalanceVersionRegistry;
 import com.denfense.server.service.balance.MonsterBalanceRegistry;
 import com.denfense.server.service.balance.WaveBalanceRegistry;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -30,6 +32,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@ActiveProfiles("local")
 class BattleSettlementEndToEndIntegrationTest {
     @Autowired MockMvc mockMvc;
     @Autowired ObjectMapper objectMapper;
@@ -37,7 +40,6 @@ class BattleSettlementEndToEndIntegrationTest {
     @Autowired BattleSettlementRepository settlements;
     @Autowired BattlePlayerSettlementRepository playerSettlements;
     @Autowired BalanceVersionRegistry versions;
-    @Autowired BattleSessionRosterRegistry rosters;
     @Autowired WaveBalanceRegistry waves;
     @Autowired MonsterBalanceRegistry monsters;
 
@@ -50,10 +52,20 @@ class BattleSettlementEndToEndIntegrationTest {
         String requestId = "e2e-request-" + suffix;
         String summaryHash = "e2e-hash-" + suffix;
         LocalDateTime startedAt = LocalDateTime.of(2026, 8, 2, 12, 0);
-        rosters.register(sessionId, 1, playerOne.getUsername(), "NEPTUNE",
-                versions.getBalanceVersion(), versions.getContentHash());
-        rosters.register(sessionId, 2, playerTwo.getUsername(), "NEPTUNE",
-                versions.getBalanceVersion(), versions.getContentHash());
+        var rosterRequest = new BattleSessionRosterDtos.RegisterRequest(
+                sessionId,
+                "NEPTUNE",
+                versions.getBalanceVersion(),
+                versions.getContentHash(),
+                List.of(
+                        new BattleSessionRosterDtos.Player(1, playerOne.getUsername()),
+                        new BattleSessionRosterDtos.Player(2, playerTwo.getUsername())));
+        mockMvc.perform(post("/api/dev/battle/session-rosters")
+                        .with(http -> { http.setRemoteAddr("127.0.0.1"); return http; })
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(rosterRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("REGISTERED"));
 
         Map<String, Integer> counts = expectedCounts(80);
         List<BattleSettlementDtos.Monster> monsterKills = counts.entrySet().stream()
@@ -76,14 +88,40 @@ class BattleSettlementEndToEndIntegrationTest {
                                 secondKills, 0, 0, 100, 0, 0, 100, false)),
                 monsterKills, summaryHash);
 
-        mockMvc.perform(post("/api/battle/settlements")
+        String firstResponse = mockMvc.perform(post("/api/battle/settlements")
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.battleSessionId").value(sessionId))
                 .andExpect(jsonPath("$.status").value("ACCEPTED"))
                 .andExpect(jsonPath("$.alreadyProcessed").value(false))
+                .andExpect(jsonPath("$.rewards").isArray())
+                .andReturn().getResponse().getContentAsString();
+
+        JsonNode firstRewards = objectMapper.readTree(firstResponse).path("rewards");
+        assertThat(firstRewards).hasSize(20);
+        assertThat(users.findById(playerOne.getId()).orElseThrow())
+                .extracting(User::getGold, User::getUniversalPiece, User::getDiamond)
+                .containsExactly(25_250, 225, 3_000);
+        assertThat(users.findById(playerTwo.getId()).orElseThrow())
+                .extracting(User::getGold, User::getUniversalPiece, User::getDiamond)
+                .containsExactly(25_250, 225, 3_000);
+
+        mockMvc.perform(post("/api/battle/settlements")
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.battleSessionId").value(sessionId))
+                .andExpect(jsonPath("$.status").value("ACCEPTED"))
+                .andExpect(jsonPath("$.alreadyProcessed").value(true))
                 .andExpect(jsonPath("$.rewards").isArray());
+
+        assertThat(users.findById(playerOne.getId()).orElseThrow())
+                .extracting(User::getGold, User::getUniversalPiece, User::getDiamond)
+                .containsExactly(25_250, 225, 3_000);
+        assertThat(users.findById(playerTwo.getId()).orElseThrow())
+                .extracting(User::getGold, User::getUniversalPiece, User::getDiamond)
+                .containsExactly(25_250, 225, 3_000);
 
         BattleSettlement saved = settlements.findByBattleSessionId(sessionId).orElseThrow();
         assertThat(saved.getFinalWave()).isEqualTo(80);
@@ -91,6 +129,7 @@ class BattleSettlementEndToEndIntegrationTest {
         assertThat(playerSettlements.findByBattleSettlementId(saved.getId()))
                 .extracting(entry -> entry.getUser().getId())
                 .containsExactlyInAnyOrder(playerOne.getId(), playerTwo.getId());
+        assertThat(settlements.count()).isGreaterThanOrEqualTo(1);
     }
 
     private Map<String, Integer> expectedCounts(int finalWave) {

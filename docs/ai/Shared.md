@@ -17,12 +17,22 @@ User/System과 Battle이 함께 사용하는 계약만 둡니다.
 ## Battle Settlement Contract
 - Unity 런타임 누적 장부 `BattleSummary`와 서버 전송 계약 `BattleSettlementSummary`를 분리한다.
 - 전송 결과 문자열은 `VICTORY`, `DEFEAT`, `ABORTED`만 허용한다.
-- 최상위 필드: `requestId`, `battleSessionId`, `balanceVersion`, `contentHash`, `result`, `finalWave`, `startedAt`, `finishedAt`, `players`, `monsterKills`, `summaryHash`
-- 참가자 필드: `playerId`, `playerSlot`, `eliminated`, `eliminatedWave`, `kills`, `supportKills`, `bossKills`, `initialInGameGold`, `inGameGoldEarned`, `inGameGoldSpent`, `finalInGameGold`
+- 최상위 필드: `requestId`, `battleSessionId`, `balanceVersion`, `contentHash`, `result`, `finalWave`, `mapId`, `startedAt`, `finishedAt`, `players`, `monsterKills`, `summaryHash`
+- 참가자 필드: `playerId`, `playerSlot`, `eliminated`, `eliminatedWave`, `kills`, `supportKills`, `bossKills`, `initialInGameGold`, `inGameGoldEarned`, `inGameGoldSpent`, `finalInGameGold`, `abandoned`
 - Monster 필드: `monsterSpecId`, `totalKills`, `bossKills`, `totalKillGold`
+- 응답 필드: `battleSessionId`, `status`, `alreadyProcessed`, `rewards`
+- 보상 필드: `userId`, `rewardKey`, `rewardType`, `gold`, `universalPiece`, `diamond`
 - `eliminatedWave`는 미탈락 시 JSON `null`, 탈락 시 양의 정수다.
 - 시간 필드는 ISO-8601 local date-time 문자열로 전송한다.
 - Unity `JsonUtility`는 nullable 정수를 지원하지 않으므로 `BattleSettlementSummaryJson`을 사용한다.
+
+## Trusted Battle Roster Registration
+- Settlement 전 Spring은 `battleSessionId`, `mapId`, Balance version/hash, 정확한 두 참가자와 slot을 신뢰 roster로 등록받아야 한다.
+- Unity Settlement는 `IBattleSessionRosterRegistration`에만 의존한다.
+- local/dev에서는 Fusion State Authority가 `/api/dev/battle/session-rosters`로 등록하며, 이 경로는 local/dev Profile과 loopback 요청에서만 활성화한다.
+- `dev-*` 사용자의 자동 생성은 로컬 2인 E2E 검증 전용이다. 운영 계정을 이 방식으로 만들지 않는다.
+- `FUTURE_AUTH_REPLACEMENT`: 운영 인증 도입 시 이 인터페이스의 구현만 JWT principal과 matchmaking 결과를 검증하는 Adapter로 교체한다. Settlement DTO, Summary hash, 보상 Transaction은 변경하지 않는다.
+- production에서 JWT Adapter가 없으면 roster 등록과 영구 보상은 안전하게 거부되어야 한다.
 
 ## Battle State
 - PlayerBattleState: `ACTIVE → ELIMINATED → SPECTATING`

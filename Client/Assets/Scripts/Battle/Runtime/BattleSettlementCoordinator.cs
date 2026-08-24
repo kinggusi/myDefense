@@ -21,6 +21,7 @@ namespace MyDefense.Battle.Runtime
         private BattleWaveExecutor _waveExecutor;
         private BattleWaveStateAuthority _stateAuthority;
         private BattleSessionContext _session;
+        private IBattleSessionRosterRegistration _rosterRegistration;
         private DateTime _startedAtUtc;
         private bool _configured;
         private bool _submitted;
@@ -36,7 +37,8 @@ namespace MyDefense.Battle.Runtime
             BattleRunnerLifecycle runnerLifecycle,
             BattleWaveExecutor waveExecutor,
             BattleWaveStateAuthority stateAuthority,
-            BattleSessionContext session)
+            BattleSessionContext session,
+            IBattleSessionRosterRegistration rosterRegistration = null)
         {
             if (runnerLifecycle == null) throw new ArgumentNullException(nameof(runnerLifecycle));
             if (waveExecutor == null) throw new ArgumentNullException(nameof(waveExecutor));
@@ -51,6 +53,7 @@ namespace MyDefense.Battle.Runtime
             _waveExecutor = waveExecutor;
             _stateAuthority = stateAuthority;
             _session = session;
+            _rosterRegistration = rosterRegistration;
             _startedAtUtc = DateTime.UtcNow;
             _submitted = false;
             _requestInFlight = false;
@@ -106,6 +109,13 @@ namespace MyDefense.Battle.Runtime
 
         private void SendPendingSettlement()
         {
+            if (_rosterRegistration != null && !_rosterRegistration.IsRegistered)
+            {
+                _requestInFlight = false;
+                LastError = _rosterRegistration.LastError ?? "Trusted Battle roster is not registered.";
+                Debug.LogError("[BattleSettlement] " + LastError);
+                return;
+            }
             if (_pendingSummary == null || NetworkManager.Instance == null)
             {
                 _requestInFlight = false;
