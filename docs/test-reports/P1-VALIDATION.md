@@ -484,3 +484,20 @@ Projectile 원점·Monster 크기·Client 버벅임의 최종 판정은 R3 동�
 - R7 전체 파일 크기: 158,713,827 bytes.
 
 최종 사람 확인에서는 `NONE/FROZEN`은 지정 대상 외 HP 불변, `GIANT`은 지정 대상 primary와 반경 내 splash만 발생, `TOXIC`은 먼저 맞은 동일 대상에만 지연 피해가 이어지는지를 구분해 기록한다.
+
+## 17. NEPTUNE W009 Player Lane 표시 경로 보완 (2026-08-27)
+
+- 사용자 검증 Session: `P1VAL-NEPTUNE-W009-8b77af0c16c5`.
+- Host/Client 위치·HP, 평균 처치시간, 모서리와 closing edge 이동은 PASS였다.
+- 각 관점에서 자기 Monster는 자기 Field `좌하→좌상→우상→우하`, 상대 Monster는 상대 Field `좌상→좌하→우하→우상` 순서로 이동해야 한다는 표시 계약을 확정했다.
+- Unity Editor API로 `Player2Lane_WaypointGroup` 자식 순서를 `Wp1→Wp0→Wp3→Wp2`로 변경했다. Unity YAML은 직접 수정하지 않았다.
+- Host/Client 양쪽에서 자기/상대 시작점과 전체 네 모서리 순서, 마지막→첫 Waypoint 무정지·무점프를 사용자가 PASS했다.
+- 경로 EditMode 14/14, 전체 EditMode 427/427, R10 Battle Scene 단독 Windows Development Build PASS.
+- 출력: `Client/_localbuild/P1Integrated_20260827_R10/Client.exe`.
+- 독립 리뷰: blocker 0, major 0, 조건부 PASS.
+
+보류/미완료:
+
+- P1-4-6 9행성/Boss 체감 난이도와 실제 2PC 장시간·재접속은 사용자 요청으로 후속 보류한다.
+- P1-5-6은 Mutation 검증에 사용한 `P1VAL-*` Session에서 Settlement가 비활성화되므로 PASS가 아니다. 최신 Roster가 등록된 새 non-P1VAL 2인 terminal Summary POST·응답 대조가 남아 있다.
+- HP 0 Fade 중 Monster 재타깃 현상은 별도 소유권 협의 항목이며 이번 Player Lane 수정에는 포함하지 않았다.
