@@ -27,6 +27,9 @@ namespace MyDefense.Battle.Runtime
         private BattlePlayerIdentityCallbacks _identityCallbacks;
         private Task _lifecycleTask;
         [SerializeField] private string _mapId;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        private BattleP1ValidationSessionProfile _p1ValidationProfile;
+#endif
 
         public BattleRunnerLifecycleState State { get; private set; } = BattleRunnerLifecycleState.STOPPED;
         public NetworkRunner Runner => _runner;
@@ -35,7 +38,20 @@ namespace MyDefense.Battle.Runtime
         public BattleSessionContext SessionContext { get; private set; }
         public bool IsBattleStarted => MatchStart.State == BattleStartState.STARTED;
         public string LastError { get; private set; }
-        public string MapId => string.IsNullOrWhiteSpace(_mapId) ? DefaultMapId : _mapId.Trim();
+        public string MapId
+        {
+            get
+            {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                if (_p1ValidationProfile != null)
+                    return _p1ValidationProfile.MapId;
+#endif
+                return string.IsNullOrWhiteSpace(_mapId) ? DefaultMapId : _mapId.Trim();
+            }
+        }
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        public BattleP1ValidationSessionProfile P1ValidationProfile => _p1ValidationProfile;
+#endif
         public event Action<BattleSessionContext> SessionContextCreated;
         public event Action<BattlePlayerIdentity> PlayerConnected;
         public event Action<BattlePlayerIdentity> PlayerDisconnected;
@@ -63,6 +79,16 @@ namespace MyDefense.Battle.Runtime
             long startedAtTick,
             string mapId = null)
         {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (_p1ValidationProfile != null && SessionContext != null)
+                throw new InvalidOperationException("A P1 validation session context may only be created once.");
+            if (_p1ValidationProfile != null
+                && mapId != null
+                && !string.Equals(mapId.Trim(), _p1ValidationProfile.MapId, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException("Explicit mapId does not match the immutable P1 validation profile.");
+            }
+#endif
             SessionContext = BattleSessionContext.FromRunner(
                 _runner,
                 canonicalBalanceVersion,
@@ -70,7 +96,11 @@ namespace MyDefense.Battle.Runtime
                 battleContentVersion,
                 battleContentHash,
                 startedAtTick,
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                _p1ValidationProfile != null ? _p1ValidationProfile.MapId : mapId ?? MapId);
+#else
                 mapId ?? MapId);
+#endif
             SessionContextCreated?.Invoke(SessionContext);
             return SessionContext;
         }
@@ -121,6 +151,15 @@ namespace MyDefense.Battle.Runtime
                 throw new InvalidOperationException("A runner lifecycle operation is already in progress.");
             if (_runner != null && !_runner.IsShutdown)
                 throw new InvalidOperationException("A Fusion runner is already active.");
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (!TryPrepareP1ValidationSession(
+                    sessionName,
+                    mode == GameMode.Host || mode == GameMode.Client,
+                    out string validationReason))
+            {
+                throw new InvalidOperationException(validationReason);
+            }
+#endif
 
             State = BattleRunnerLifecycleState.STARTING;
             LastError = null;
@@ -204,6 +243,9 @@ namespace MyDefense.Battle.Runtime
             PlayerRoster.Clear();
             SessionContext = null;
             MatchStart.Reset();
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            _p1ValidationProfile = null;
+#endif
             if (runner != null && !runner.IsShutdown)
                 await runner.Shutdown(true, reason);
             else if (runnerObject != null)
@@ -211,6 +253,41 @@ namespace MyDefense.Battle.Runtime
             State = BattleRunnerLifecycleState.STOPPED;
             _lifecycleTask = null;
         }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        public bool TryPrepareP1ValidationSession(
+            string sessionName,
+            bool explicitHostOrClientRole,
+            out string reason)
+        {
+            reason = string.Empty;
+            if (State != BattleRunnerLifecycleState.STOPPED
+                || _runner != null
+                || SessionContext != null
+                || _p1ValidationProfile != null)
+            {
+                reason = "P1 validation profile must be bound exactly once before a new runner starts.";
+                return false;
+            }
+
+            BattleP1ValidationParseState state = BattleP1ValidationSessionProfile.Parse(
+                sessionName,
+                out BattleP1ValidationSessionProfile profile,
+                out reason);
+            if (state == BattleP1ValidationParseState.NotValidation)
+                return true;
+            if (state == BattleP1ValidationParseState.Malformed)
+                return false;
+            if (!explicitHostOrClientRole)
+            {
+                reason = "P1 validation sessions require an explicit Host or Client role.";
+                return false;
+            }
+
+            _p1ValidationProfile = profile;
+            return true;
+        }
+#endif
 
         private void OnDestroy()
         {

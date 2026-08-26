@@ -18,6 +18,8 @@ namespace MyDefense.Battle.Presentation
     /// </summary>
     public sealed class FusionKidnapBoardView : MonoBehaviour
     {
+        public static FusionKidnapBoardView Active { get; private set; }
+
         private BattleWaveStateAuthority _authority;
         private Transform _player1Grid;
         private Transform _player2Grid;
@@ -34,6 +36,7 @@ namespace MyDefense.Battle.Presentation
 
         private void OnEnable()
         {
+            Active = this;
             _authority = FindFirstObjectByType<BattleWaveStateAuthority>();
             if (_authority == null) return;
             _player1Grid = GameObject.Find("GridManager")?.transform;
@@ -50,6 +53,8 @@ namespace MyDefense.Battle.Presentation
 
         private void OnDisable()
         {
+            if (Active == this)
+                Active = null;
             if (_authority != null)
             {
                 _authority.KidnapApplied -= ApplyKidnap;
@@ -196,24 +201,58 @@ namespace MyDefense.Battle.Presentation
         private static void ApplyMutationVisual(GameObject unit, string mutationType)
         {
             if (unit == null) return;
-            TextMesh label = unit.GetComponentInChildren<TextMesh>();
-            if (label == null)
-            {
-                GameObject labelObject = new GameObject("GradeLabel");
-                labelObject.transform.SetParent(unit.transform, false);
-                labelObject.transform.localPosition = new Vector3(0f, 0f, -0.6f);
-                labelObject.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
-                labelObject.transform.localScale = Vector3.one * 0.18f;
-                label = labelObject.AddComponent<TextMesh>();
-                label.anchor = TextAnchor.MiddleCenter; label.alignment = TextAlignment.Center; label.characterSize = 1f; label.fontSize = 40; label.color = Color.white;
-            }
             string normalized = string.IsNullOrWhiteSpace(mutationType)
                 ? "NONE"
                 : mutationType.Trim().ToUpperInvariant();
-            label.text = normalized == "NONE" ? string.Empty : "M:" + normalized[0];
+            string marker = MutationAuraView.ResolveMarker(normalized);
+            bool active = !string.IsNullOrEmpty(marker);
+            TextMesh label = FindUnitLabel(unit.transform, "MutationLabel");
+            if (active)
+            {
+                label ??= CreateUnitLabel(
+                    unit.transform,
+                    "MutationLabel",
+                    new Vector3(0f, 0f, -0.86f),
+                    36,
+                    0.14f);
+                label.text = "M:" + marker;
+                label.gameObject.SetActive(true);
+            }
+            else if (label != null)
+            {
+                label.text = string.Empty;
+                label.gameObject.SetActive(false);
+            }
+
             MutationAuraView aura = unit.GetComponent<MutationAuraView>();
-            if (aura == null) aura = unit.AddComponent<MutationAuraView>();
-            aura.Apply(normalized);
+            if (active)
+            {
+                aura ??= unit.AddComponent<MutationAuraView>();
+                aura.Apply(normalized);
+            }
+            else if (aura != null)
+            {
+                aura.Apply(null);
+            }
+        }
+
+        public bool TryGetUnitTransform(long serverId, out Transform unit)
+        {
+            unit = null;
+            if (!TryDecodeUnitServerId(serverId, out int playerSlot, out int slotIndex))
+                return false;
+
+            Transform grid = playerSlot == 1 ? _player1Grid : _player2Grid;
+            Transform tile = ResolveTile(grid, slotIndex);
+            unit = tile == null ? null : tile.Find("FusionKidnapUnit");
+            return unit != null;
+        }
+
+        public static bool TryDecodeUnitServerId(long serverId, out int playerSlot, out int slotIndex)
+        {
+            playerSlot = (int)(serverId >> 32);
+            slotIndex = (int)((uint)serverId - 1);
+            return (playerSlot == 1 || playerSlot == 2) && slotIndex >= 0 && slotIndex < 24;
         }
 
         private static bool ApplyInitialActiveMutationVisual(GameObject unit)
@@ -223,8 +262,7 @@ namespace MyDefense.Battle.Presentation
                 return false;
             if (string.IsNullOrWhiteSpace(data.activeMutationType))
             {
-                if (unit.GetComponent<MutationAuraView>() != null)
-                    ApplyMutationVisual(unit, null);
+                ApplyMutationVisual(unit, null);
                 return false;
             }
             ApplyMutationVisual(unit, data.activeMutationType);
@@ -519,24 +557,46 @@ namespace MyDefense.Battle.Presentation
         {
             if (unit == null) return;
             Renderer renderer = unit.GetComponentInChildren<Renderer>();
-            if (renderer == null) return;
-            renderer.material.color = ColorForAlien(alienId);
-            TextMesh label = unit.GetComponentInChildren<TextMesh>();
-            if (label == null)
+            if (renderer != null)
             {
-                GameObject labelObject = new GameObject("GradeLabel");
-                labelObject.transform.SetParent(unit, false);
-                labelObject.transform.localPosition = new Vector3(0f, 0f, -0.6f);
-                labelObject.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
-                labelObject.transform.localScale = Vector3.one * 0.18f;
-                label = labelObject.AddComponent<TextMesh>();
-                label.anchor = TextAnchor.MiddleCenter;
-                label.alignment = TextAlignment.Center;
-                label.characterSize = 1f;
-                label.fontSize = 48;
-                label.color = Color.white;
+                Color color = ColorForAlien(alienId);
+                var properties = new MaterialPropertyBlock();
+                renderer.GetPropertyBlock(properties);
+                properties.SetColor("_Color", color);
+                properties.SetColor("_BaseColor", color);
+                renderer.SetPropertyBlock(properties);
             }
+            TextMesh label = FindUnitLabel(unit, "GradeLabel")
+                ?? CreateUnitLabel(unit, "GradeLabel", new Vector3(0f, 0f, -0.58f), 48, 0.18f);
+            label.gameObject.SetActive(true);
             label.text = grade switch { 1 => "E", 2 => "U", 3 => "L", 4 => "M", _ => "N" };
+        }
+
+        private static TextMesh FindUnitLabel(Transform unit, string labelName)
+        {
+            Transform labelTransform = unit == null ? null : unit.Find(labelName);
+            return labelTransform == null ? null : labelTransform.GetComponent<TextMesh>();
+        }
+
+        private static TextMesh CreateUnitLabel(
+            Transform unit,
+            string labelName,
+            Vector3 localPosition,
+            int fontSize,
+            float localScale)
+        {
+            GameObject labelObject = new GameObject(labelName);
+            labelObject.transform.SetParent(unit, false);
+            labelObject.transform.localPosition = localPosition;
+            labelObject.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            labelObject.transform.localScale = Vector3.one * localScale;
+            TextMesh label = labelObject.AddComponent<TextMesh>();
+            label.anchor = TextAnchor.MiddleCenter;
+            label.alignment = TextAlignment.Center;
+            label.characterSize = 1f;
+            label.fontSize = fontSize;
+            label.color = Color.white;
+            return label;
         }
 
         private static Color ColorForAlien(long alienId)

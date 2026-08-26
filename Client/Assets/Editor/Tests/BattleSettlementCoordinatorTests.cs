@@ -5,6 +5,8 @@ using System.Reflection;
 using MyDefense.Battle.Runtime;
 using MyDefense.Shared.Contracts;
 using NUnit.Framework;
+using UnityEngine;
+using UnityEngine.TestTools;
 
 namespace MyDefense.Battle.Tests
 {
@@ -20,6 +22,51 @@ namespace MyDefense.Battle.Tests
             Assert.That(typeof(BattleSettlementReward).GetField(nameof(BattleSettlementReward.rewardKey)), Is.Not.Null);
             Assert.That(typeof(BattleSettlementReward).GetField(nameof(BattleSettlementReward.universalPiece)), Is.Not.Null);
             Assert.That(typeof(BattleSettlementReward).GetField(nameof(BattleSettlementReward.diamond)), Is.Not.Null);
+        }
+
+        [Test]
+        public void SendPendingSettlement_FailsClosedBeforeNetworkWhenRosterIsUnregistered()
+        {
+            var hostObject = new GameObject("SettlementRosterGuardTest");
+            try
+            {
+                BattleSettlementCoordinator coordinator = hostObject.AddComponent<BattleSettlementCoordinator>();
+                typeof(BattleSettlementCoordinator)
+                    .GetField("_rosterRegistration", BindingFlags.Instance | BindingFlags.NonPublic)
+                    ?.SetValue(coordinator, new UnregisteredRoster());
+
+                LogAssert.Expect(LogType.Error, "[BattleSettlement] roster not registered");
+                typeof(BattleSettlementCoordinator)
+                    .GetMethod("SendPendingSettlement", BindingFlags.Instance | BindingFlags.NonPublic)
+                    ?.Invoke(coordinator, null);
+
+                Assert.That(coordinator.LastError, Is.EqualTo("roster not registered"));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(hostObject);
+            }
+        }
+
+        [Test]
+        public void SendPendingSettlement_FailsClosedBeforeNetworkWhenRosterIsMissing()
+        {
+            var hostObject = new GameObject("SettlementMissingRosterGuardTest");
+            try
+            {
+                BattleSettlementCoordinator coordinator = hostObject.AddComponent<BattleSettlementCoordinator>();
+
+                LogAssert.Expect(LogType.Error, "[BattleSettlement] Trusted Battle roster is not registered.");
+                typeof(BattleSettlementCoordinator)
+                    .GetMethod("SendPendingSettlement", BindingFlags.Instance | BindingFlags.NonPublic)
+                    ?.Invoke(coordinator, null);
+
+                Assert.That(coordinator.LastError, Is.EqualTo("Trusted Battle roster is not registered."));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(hostObject);
+            }
         }
 
         [Test]
@@ -98,6 +145,17 @@ namespace MyDefense.Battle.Tests
                     1, 1, killGold: 20)
             };
             return BattleSummaryBuilder.Build(session, MatchState.CLEARED, 1, seeds, records);
+        }
+
+        private sealed class UnregisteredRoster : IBattleSessionRosterRegistration
+        {
+            public bool IsRegistered => false;
+            public bool IsRequestInFlight => false;
+            public string LastError => "roster not registered";
+            public event Action Registered { add { } remove { } }
+            public void Configure(BattleSessionContext session, IBattlePlayerIdentityProvider identities) { }
+            public void EnsureRegistered() { }
+            public bool RetryRegistration() => false;
         }
     }
 }

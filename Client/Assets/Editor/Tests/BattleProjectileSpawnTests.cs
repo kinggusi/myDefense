@@ -1,5 +1,6 @@
 using MyDefense.Battle.Balance;
 using MyDefense.Battle.Combat;
+using MyDefense.Battle.Presentation;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -26,9 +27,10 @@ public sealed class BattleProjectileSpawnTests
         {
             ProjectileId = "PROJ_BASIC",
             BattleSessionId = "battle-test",
-            RuntimeProjectileId = 1,
-            AttackerServerId = 17,
-            Damage = 25f,
+                RuntimeProjectileId = 1,
+                AttackerServerId = 17,
+                TargetNetworkId = new Fusion.NetworkId { Raw = 101 },
+                Damage = 25f,
             Origin = Vector3.zero,
             Direction = Vector3.forward
         };
@@ -72,9 +74,14 @@ public sealed class BattleProjectileSpawnTests
 
         invalid = ValidSpawn();
         invalid.Direction = Vector3.zero;
-        Assert.That(BattleProjectileSpawnValidator.TryValidate(MovingSpec(), invalid, out error), Is.False);
-        Assert.That(error, Does.Contain("direction"));
-    }
+            Assert.That(BattleProjectileSpawnValidator.TryValidate(MovingSpec(), invalid, out error), Is.False);
+            Assert.That(error, Does.Contain("direction"));
+
+            invalid = ValidSpawn();
+            invalid.TargetNetworkId = default;
+            Assert.That(BattleProjectileSpawnValidator.TryValidate(MovingSpec(), invalid, out error), Is.False);
+            Assert.That(error, Does.Contain("TargetNetworkId"));
+        }
 
     [Test]
     public void SpawnerCannotCreateProjectileWithoutStateAuthorityRunnerOrPrefab()
@@ -88,6 +95,53 @@ public sealed class BattleProjectileSpawnTests
         Assert.That(projectile, Is.Null);
 
         Object.DestroyImmediate(host);
+    }
+
+    [TestCase(true, 2, false)]
+    [TestCase(false, 1, false)]
+    [TestCase(false, 2, true)]
+    [TestCase(false, 0, false)]
+    public void ProjectilePerspectiveRemap_IsProxyOnlyForPlayerTwo(
+        bool hasStateAuthority,
+        int localPlayerSlot,
+        bool expected)
+    {
+        Assert.That(
+            BattleProjectileNetworkState.RequiresLocalPerspectiveRemap(hasStateAuthority, localPlayerSlot),
+            Is.EqualTo(expected));
+    }
+
+    [Test]
+    public void ProjectilePerspectiveRemap_DecodesAuthoritativeAttackerSlot()
+    {
+        Assert.That(BattleProjectileNetworkState.ResolveAttackerPlayerSlot((1L << 32) | 1L), Is.EqualTo(1));
+        Assert.That(BattleProjectileNetworkState.ResolveAttackerPlayerSlot((2L << 32) | 24L), Is.EqualTo(2));
+        Assert.That(BattleProjectileNetworkState.ResolveAttackerPlayerSlot(29L), Is.Zero);
+    }
+
+    [Test]
+    public void ProjectilePerspectiveRemap_DecodesBoardUnitWithoutSceneSearch()
+    {
+        Assert.That(
+            FusionKidnapBoardView.TryDecodeUnitServerId((2L << 32) | 24L, out int playerSlot, out int slotIndex),
+            Is.True);
+        Assert.That(playerSlot, Is.EqualTo(2));
+        Assert.That(slotIndex, Is.EqualTo(23));
+        Assert.That(FusionKidnapBoardView.TryDecodeUnitServerId((2L << 32) | 25L, out _, out _), Is.False);
+        Assert.That(FusionKidnapBoardView.TryDecodeUnitServerId(1L, out _, out _), Is.False);
+    }
+
+    [Test]
+    public void TargetBoundProjectile_DoesNotLetAnotherMonsterColliderStealPrimaryHit()
+    {
+        var intended = new Fusion.NetworkId { Raw = 101 };
+        var otherMonster = new Fusion.NetworkId { Raw = 102 };
+
+        Assert.That(BattleProjectileNetworkState.IsIntendedPrimaryTarget(intended, intended), Is.True);
+        Assert.That(BattleProjectileNetworkState.IsIntendedPrimaryTarget(intended, otherMonster), Is.False);
+        Assert.That(BattleProjectileNetworkState.IsIntendedPrimaryTarget(intended, default), Is.False);
+        Assert.That(BattleProjectileNetworkState.IsIntendedPrimaryTarget(default, otherMonster), Is.True,
+            "Untargeted legacy projectiles may still resolve their first valid collision.");
     }
 
 }

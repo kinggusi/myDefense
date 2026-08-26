@@ -38,6 +38,12 @@ namespace MyDefense.Battle.Presentation
             }
             if (_costText == null && _kidnapButton != null)
                 _costText = _kidnapButton.GetComponentInChildren<Text>(true);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            DevelopmentMythicMutationFixturePanel fixturePanel =
+                GetComponent<DevelopmentMythicMutationFixturePanel>()
+                ?? gameObject.AddComponent<DevelopmentMythicMutationFixturePanel>();
+            fixturePanel.Initialize(_stateAuthority);
+#endif
         }
 
         private void OnEnable()

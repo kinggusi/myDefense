@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Fusion;
 using MyDefense.Battle.Balance;
+using MyDefense.Battle.Presentation;
 using MyDefense.Battle.Runtime;
 using MyDefense.Shared.Contracts;
 using UnityEngine;
@@ -45,7 +46,16 @@ namespace MyDefense.Battle.Combat
         [Networked] public int MoveTypeValue { get; private set; }
 
         private readonly HashSet<NetworkId> _hitTargets = new();
+        private BattleWaveStateAuthority _waveAuthority;
+        private Transform _presentationAttacker;
+        private bool _hasProxyPresentationPosition;
+        private Vector3 _proxyPresentationPosition;
         public event Action<HitEvent> AuthoritativeHit;
+
+        public override void Spawned()
+        {
+            ResetProxyPresentation();
+        }
 
         public bool InitializeFromAuthority(
             BattleProjectileSpawnData spawnData,
@@ -140,9 +150,93 @@ namespace MyDefense.Battle.Combat
             transform.position += Direction * Speed * Runner.DeltaTime;
         }
 
+        private void LateUpdate()
+        {
+            if (HasStateAuthority)
+                return;
+
+            _waveAuthority ??= FindFirstObjectByType<BattleWaveStateAuthority>();
+            if (_waveAuthority == null || _waveAuthority.Runner == null
+                || _waveAuthority.Object == null || !_waveAuthority.Object.IsValid)
+                return;
+
+            int localSlot = _waveAuthority.GetNetworkedPlayerSlot(_waveAuthority.Runner.LocalPlayer);
+            if (!RequiresLocalPerspectiveRemap(false, localSlot))
+                return;
+
+            if (!_hasProxyPresentationPosition)
+            {
+                _presentationAttacker ??= FindPresentationAttacker();
+                if (_presentationAttacker == null)
+                    return;
+
+                _proxyPresentationPosition = _presentationAttacker.position + Vector3.up;
+                _hasProxyPresentationPosition = true;
+            }
+
+            Vector3 targetPosition = ResolvePresentationTargetPosition();
+            float presentationSpeed = Mathf.Max(0f, Speed);
+            _proxyPresentationPosition = Vector3.MoveTowards(
+                _proxyPresentationPosition,
+                targetPosition,
+                presentationSpeed * Time.deltaTime);
+            transform.position = _proxyPresentationPosition;
+
+            Vector3 direction = targetPosition - _proxyPresentationPosition;
+            if (direction.sqrMagnitude > 0.000001f)
+                transform.rotation = Quaternion.LookRotation(direction.normalized);
+        }
+
+        public static bool RequiresLocalPerspectiveRemap(bool hasStateAuthority, int localPlayerSlot)
+            => !hasStateAuthority && localPlayerSlot == 2;
+
+        public static int ResolveAttackerPlayerSlot(long attackerServerId)
+        {
+            int playerSlot = (int)(attackerServerId >> 32);
+            return playerSlot == 1 || playerSlot == 2 ? playerSlot : 0;
+        }
+
+        private Transform FindPresentationAttacker()
+        {
+            if (ResolveAttackerPlayerSlot(AttackerServerId) == 0)
+                return null;
+
+            FusionKidnapBoardView boardView = FusionKidnapBoardView.Active;
+            return boardView != null && boardView.TryGetUnitTransform(AttackerServerId, out Transform unit)
+                ? unit
+                : null;
+        }
+
+        private Vector3 ResolvePresentationTargetPosition()
+        {
+            if (Runner == null || !TargetNetworkId.IsValid
+                || !Runner.TryFindObject(TargetNetworkId, out NetworkObject targetObject)
+                || targetObject == null || !targetObject.IsValid)
+                return _proxyPresentationPosition + Direction;
+
+            BattleMonsterNetworkState monster = targetObject.GetComponent<BattleMonsterNetworkState>();
+            return monster != null && monster.TryGetPresentationPosition(out Vector3 presentationPosition)
+                ? presentationPosition
+                : targetObject.transform.position;
+        }
+
+        private void ResetProxyPresentation()
+        {
+            _waveAuthority = null;
+            _presentationAttacker = null;
+            _hasProxyPresentationPosition = false;
+            _proxyPresentationPosition = default;
+        }
+
         public bool TryApplyAuthoritativeHit(IDamageable target, NetworkId targetId, bool isCritical = false)
         {
             if (!HasStateAuthority || IsConsumed || target == null || !targetId.IsValid)
+                return false;
+            // A homing/basic attack is bound to the authoritative target chosen at
+            // spawn time. Physics callbacks may overlap another Monster while the
+            // projectile travels through a crowded lane; that collider must not
+            // steal the primary hit. Explicit GIANT splash is applied separately.
+            if (!IsIntendedPrimaryTarget(TargetNetworkId, targetId))
                 return false;
             if (targetId.IsValid && !_hitTargets.Add(targetId))
                 return false;
@@ -198,6 +292,10 @@ namespace MyDefense.Battle.Combat
                 ConsumeAndDespawn();
             return true;
         }
+
+        public static bool IsIntendedPrimaryTarget(NetworkId expectedTargetId, NetworkId collidedTargetId)
+            => collidedTargetId.IsValid
+                && (!expectedTargetId.IsValid || expectedTargetId == collidedTargetId);
 
         private AlienAttackSnapshot BuildMutationSnapshot()
         {
@@ -286,6 +384,7 @@ namespace MyDefense.Battle.Combat
         public override void Despawned(NetworkRunner runner, bool hasState)
         {
             _hitTargets.Clear();
+            ResetProxyPresentation();
         }
 
         private void ConsumeAndDespawn()
@@ -322,6 +421,9 @@ namespace MyDefense.Battle.Combat
                 return Fail("Projectile damage must be finite and greater than zero.", out error);
             if (spawnData.Direction.sqrMagnitude <= 0.000001f)
                 return Fail("Projectile direction must be non-zero.", out error);
+            if ((spec.MoveType == ProjectileMoveType.HOMING || spec.MoveType == ProjectileMoveType.INSTANT)
+                && !spawnData.TargetNetworkId.IsValid)
+                return Fail("A target-bound projectile requires a valid TargetNetworkId.", out error);
             if (spawnData.SplashRadius < 0f || spawnData.SplashDamageMultiplier < 0f
                 || spawnData.BossDamageMultiplier < 0f || spawnData.DotDamagePerTick < 0f
                 || spawnData.DotTickCount < 0 || spawnData.DotTickIntervalSeconds < 0f

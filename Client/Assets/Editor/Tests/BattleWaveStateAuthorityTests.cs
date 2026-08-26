@@ -64,6 +64,34 @@ namespace MyDefense.Battle.Tests
             Assert.That(typeof(BattleWaveStateAuthority).GetMethod(nameof(BattleWaveStateAuthority.IsBoardSlotLockedForMythicChoice)), Is.Not.Null);
         }
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        [Test]
+        public void P1ValidationConsumedWave_IsRejectedAtPublicAuthorityBoundary()
+        {
+            GameObject gameObject = new GameObject("p1-validation-authority-one-shot-test");
+            try
+            {
+                BattleWaveExecutor executor = gameObject.AddComponent<BattleWaveExecutor>();
+                BattleWaveStateAuthority authority = gameObject.AddComponent<BattleWaveStateAuthority>();
+                typeof(BattleWaveStateAuthority).GetField("_executor", BindingFlags.Instance | BindingFlags.NonPublic)
+                    ?.SetValue(authority, executor);
+                typeof(BattleWaveExecutor).GetField("_p1ValidationArmed", BindingFlags.Instance | BindingFlags.NonPublic)
+                    ?.SetValue(executor, true);
+                typeof(BattleWaveExecutor).GetField("_p1ValidationStartConsumed", BindingFlags.Instance | BindingFlags.NonPublic)
+                    ?.SetValue(executor, true);
+
+                Assert.That(authority.ValidateWaveStart(out string reason), Is.False);
+                Assert.That(reason, Does.Contain("already started"));
+                Assert.That(authority.TryStartNextWave(), Is.False);
+                Assert.That(executor.CurrentRound, Is.Zero);
+            }
+            finally
+            {
+                Object.DestroyImmediate(gameObject);
+            }
+        }
+#endif
+
         [TestCase(1, 0, 1)]
         [TestCase(1, 1, 0)]
         [TestCase(1, 2, 0)]

@@ -1,6 +1,7 @@
 using MyDefense.Battle.Runtime;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.TestTools;
 
 namespace MyDefense.Battle.Tests
 {
@@ -63,6 +64,116 @@ namespace MyDefense.Battle.Tests
             Assert.That(_adapter.IsInitialized, Is.False);
             Assert.That(_adapter.SessionContext, Is.Null);
         }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        [TestCase(false)]
+        [TestCase(true)]
+        public void P1ValidationSession_DoesNotCreateAndDisablesExistingSettlementCoordinator(
+            bool addExistingCoordinator)
+        {
+            BattleRunnerLifecycle lifecycle = _adapterObject.AddComponent<BattleRunnerLifecycle>();
+            BattleWaveStateAuthority stateAuthority = _adapterObject.AddComponent<BattleWaveStateAuthority>();
+            SetAdapterField("_runnerLifecycle", lifecycle);
+            SetAdapterField("_stateAuthority", stateAuthority);
+            const string sessionName = "P1VAL-EARTH-W009-0123456789ab";
+            Assert.That(lifecycle.TryPrepareP1ValidationSession(sessionName, true, out string reason), Is.True, reason);
+
+            BattleSettlementCoordinator existing = addExistingCoordinator
+                ? _adapterObject.AddComponent<BattleSettlementCoordinator>()
+                : null;
+            if (existing != null)
+                Assert.That(existing.enabled, Is.True);
+            var session = new BattleSessionContext(
+                sessionName, "balance", "content", "battle", "battle-hash", 1, "EARTH");
+
+            Assert.That(_adapter.Initialize(
+                session,
+                new BattlePlayerIdentityMap("p1", "p2"),
+                LaneType.Player2Lane), Is.True);
+
+            Assert.That(_adapterObject.GetComponents<BattleSettlementCoordinator>(),
+                Has.Length.EqualTo(addExistingCoordinator ? 1 : 0));
+            if (existing != null)
+            {
+                Assert.That(existing.enabled, Is.False);
+                Assert.That(existing.IsConfigured, Is.False);
+            }
+        }
+
+        [Test]
+        public void NormalSession_StillCreatesAndConfiguresSettlementCoordinator()
+        {
+            BattleRunnerLifecycle lifecycle = _adapterObject.AddComponent<BattleRunnerLifecycle>();
+            BattleWaveStateAuthority stateAuthority = _adapterObject.AddComponent<BattleWaveStateAuthority>();
+            SetAdapterField("_runnerLifecycle", lifecycle);
+            SetAdapterField("_stateAuthority", stateAuthority);
+            var session = new BattleSessionContext(
+                "normal-session", "balance", "content", "battle", "battle-hash", 1, "NEPTUNE");
+
+            Assert.That(_adapter.Initialize(
+                session,
+                new BattlePlayerIdentityMap("p1", "p2"),
+                LaneType.Player1Lane), Is.True);
+
+            BattleSettlementCoordinator coordinator = _adapterObject.GetComponent<BattleSettlementCoordinator>();
+            Assert.That(coordinator, Is.Not.Null);
+            Assert.That(coordinator.enabled, Is.True);
+            Assert.That(coordinator.IsConfigured, Is.True);
+        }
+
+        [Test]
+        public void NormalSession_ReenablesPreviouslySuppressedSettlementCoordinator()
+        {
+            BattleRunnerLifecycle lifecycle = _adapterObject.AddComponent<BattleRunnerLifecycle>();
+            BattleWaveStateAuthority stateAuthority = _adapterObject.AddComponent<BattleWaveStateAuthority>();
+            BattleSettlementCoordinator coordinator = _adapterObject.AddComponent<BattleSettlementCoordinator>();
+            coordinator.enabled = false;
+            SetAdapterField("_runnerLifecycle", lifecycle);
+            SetAdapterField("_stateAuthority", stateAuthority);
+            var session = new BattleSessionContext(
+                "normal-session-after-validation", "balance", "content", "battle", "battle-hash", 1, "NEPTUNE");
+
+            Assert.That(_adapter.Initialize(
+                session,
+                new BattlePlayerIdentityMap("p1", "p2"),
+                LaneType.Player1Lane), Is.True);
+
+            Assert.That(coordinator.enabled, Is.True);
+            Assert.That(coordinator.IsConfigured, Is.True);
+        }
+
+        [Test]
+        public void P1ValidationInitializationFailure_StillDisablesExistingSettlementCoordinator()
+        {
+            BattleRunnerLifecycle lifecycle = _adapterObject.AddComponent<BattleRunnerLifecycle>();
+            BattleWaveStateAuthority stateAuthority = _adapterObject.AddComponent<BattleWaveStateAuthority>();
+            BattleSettlementCoordinator coordinator = _adapterObject.AddComponent<BattleSettlementCoordinator>();
+            SetAdapterField("_runnerLifecycle", lifecycle);
+            SetAdapterField("_stateAuthority", stateAuthority);
+            const string sessionName = "P1VAL-EARTH-W009-0123456789ab";
+            Assert.That(lifecycle.TryPrepareP1ValidationSession(sessionName, true, out string reason), Is.True, reason);
+            var mismatchedSession = new BattleSessionContext(
+                sessionName, "balance", "content", "battle", "battle-hash", 1, "SUN");
+
+            LogAssert.Expect(LogType.Error, "[P1Validation] Session context does not match the bound validation profile.");
+            Assert.That(_adapter.Initialize(
+                mismatchedSession,
+                new BattlePlayerIdentityMap("p1", "p2"),
+                LaneType.Player1Lane), Is.False);
+
+            Assert.That(coordinator.enabled, Is.False);
+            Assert.That(coordinator.IsConfigured, Is.False);
+        }
+
+        private void SetAdapterField(string name, object value)
+        {
+            var field = typeof(BattleSceneSessionAdapter).GetField(
+                name,
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            Assert.That(field, Is.Not.Null);
+            field.SetValue(_adapter, value);
+        }
+#endif
 
     }
 }

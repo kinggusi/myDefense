@@ -89,6 +89,12 @@ namespace MyDefense.Battle
         private float _bossPatternStartedAt;
         private float _bossBaseMoveSpeed;
         private int _bossPhase;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        private bool _p1ValidationArmed;
+        private bool _p1ValidationStartConsumed;
+        private int _p1ValidationTargetWave;
+        private int _p1ValidationLookupCursor;
+#endif
 
         public LaneType LocalPlayerLane => _localPlayerLane;
 
@@ -136,6 +142,11 @@ namespace MyDefense.Battle
         public bool IsCurrentWaveBoss => _isCurrentWaveBoss;
         public bool IsBossActive => _isBossActive;
         public float ActiveBossTimeLimitSeconds => _activeBossTimeLimitSeconds;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        public bool IsP1ValidationArmed => _p1ValidationArmed;
+        public bool IsP1ValidationStartConsumed => _p1ValidationStartConsumed;
+        public int P1ValidationTargetWave => _p1ValidationTargetWave;
+#endif
 
         public bool TryResolveBossTimeoutFromAuthority()
         {
@@ -875,9 +886,87 @@ namespace MyDefense.Battle
             _catalogExhausted = false;
             _catalogExhaustedReported = false;
             _activeBossTimeLimitSeconds = 0f;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            _p1ValidationArmed = false;
+            _p1ValidationStartConsumed = false;
+            _p1ValidationTargetWave = 0;
+            _p1ValidationLookupCursor = 0;
+#endif
             PublishSessionState();
             Debug.Log("[BattleWaveExecutor] Battle session initialized.");
         }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        public bool TryArmP1ValidationInitialWave(
+            BattleP1ValidationSessionProfile profile,
+            out string reason)
+        {
+            if (profile == null)
+                return FailP1Validation("P1 validation profile is required.", out reason);
+            if (!HasWaveAuthority())
+                return FailP1Validation("Only Fusion State Authority may arm a P1 validation Wave.", out reason);
+            if (_runtimeSession == null
+                || !string.Equals(_runtimeSession.BattleSessionId, profile.SessionName, StringComparison.Ordinal)
+                || !string.Equals(_runtimeSession.MapId, profile.MapId, StringComparison.Ordinal))
+            {
+                return FailP1Validation("P1 validation profile does not match the initialized Battle session.", out reason);
+            }
+            if (_p1ValidationArmed
+                || _p1ValidationStartConsumed
+                || _configuredWaveExecutionStarted
+                || _currentRound != 0
+                || _isWaveRunning
+                || _isBossActive
+                || _currentBossInstance != null
+                || SpawnedMonsterCount != 0
+                || _waveLoopCoroutine != null
+                || _activeWaveCoroutine != null
+                || _bossTimerCoroutine != null)
+            {
+                return FailP1Validation("P1 validation Wave may only be armed once before any Wave or Monster exists.", out reason);
+            }
+            if (!EnsureBalanceInitialized())
+                return FailP1Validation("Canonical Battle balance is unavailable.", out reason);
+            if (_battleBalanceProvider is not ICanonicalCompositeBattleBalanceProvider canonical
+                || canonical.PlanetBattles == null
+                || !canonical.PlanetBattles.TryGet(profile.MapId, out _))
+            {
+                return FailP1Validation("P1 validation mapId is not present in the canonical planet registry.", out reason);
+            }
+
+            WaveCatalog waves = _battleBalanceProvider.Catalog.Waves;
+            if (!waves.TryGetByRound(profile.InitialWave, out WaveSpecData target) || !target.Enabled)
+                return FailP1Validation("P1 validation Wave is not enabled in the canonical Wave registry.", out reason);
+
+            int previousEnabledRound = 0;
+            for (int index = 0; index < waves.All.Count; index++)
+            {
+                WaveSpecData candidate = waves.All[index];
+                if (candidate.Enabled && candidate.RoundNumber < target.RoundNumber)
+                    previousEnabledRound = candidate.RoundNumber;
+            }
+            if (!waves.TryGetNextEnabledWave(previousEnabledRound, out WaveSpecData resolved)
+                || !ReferenceEquals(resolved, target))
+            {
+                return FailP1Validation("Canonical Wave cursor could not resolve the requested initial Wave exactly.", out reason);
+            }
+
+            _p1ValidationLookupCursor = previousEnabledRound;
+            _p1ValidationTargetWave = target.RoundNumber;
+            _p1ValidationArmed = true;
+            reason = string.Empty;
+            Debug.Log(
+                $"[P1Validation] Armed session={profile.SessionName} map={profile.MapId} "
+                + $"targetWave={profile.InitialWave:D3}; automatic Wave start is paused.");
+            return true;
+        }
+
+        private static bool FailP1Validation(string message, out string reason)
+        {
+            reason = message;
+            return false;
+        }
+#endif
 
         private void PublishSessionState()
         {
@@ -966,6 +1055,16 @@ namespace MyDefense.Battle
                 return;
             }
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (_p1ValidationArmed)
+            {
+                _configuredWaveExecutionStarted = true;
+                Debug.Log(
+                    $"[P1Validation] Automatic Wave loop paused at target {_p1ValidationTargetWave:D3}. "
+                    + "Call StartNextWave once to begin validation.");
+                return;
+            }
+#endif
             if (_autoStartOnPlay)
             {
                 _configuredWaveExecutionStarted = true;
@@ -1088,6 +1187,13 @@ namespace MyDefense.Battle
             if (_matchState != MatchState.RUNNING) return false;
             if (CheckGameOverState()) return false;
             if (!EnsureRuntimeSessionReady()) return false;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (_p1ValidationArmed && _p1ValidationStartConsumed)
+            {
+                Debug.LogWarning("[P1Validation] Additional Wave start rejected for this synthetic session.");
+                return false;
+            }
+#endif
 
             if (AreAllPlayersEliminated)
             {
@@ -1115,7 +1221,12 @@ namespace MyDefense.Battle
             }
 
             WaveSpecData nextWave;
-            if (!_battleBalanceProvider.Catalog.Waves.TryGetNextEnabledWave(_currentRound, out nextWave))
+            int waveLookupCursor = _currentRound;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (_p1ValidationArmed && !_p1ValidationStartConsumed)
+                waveLookupCursor = _p1ValidationLookupCursor;
+#endif
+            if (!_battleBalanceProvider.Catalog.Waves.TryGetNextEnabledWave(waveLookupCursor, out nextWave))
             {
                 ReportCatalogExhausted();
                 return false;
@@ -1153,6 +1264,18 @@ namespace MyDefense.Battle
             _currentWaveSpec = nextWave;
             _currentWaveSpawns = spawns;
             _currentRound = nextWave.RoundNumber;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (_p1ValidationArmed)
+            {
+                if (_currentRound != _p1ValidationTargetWave)
+                {
+                    FaultExecution(
+                        $"P1 validation cursor resolved Wave {_currentRound}, expected {_p1ValidationTargetWave}.");
+                    return false;
+                }
+                _p1ValidationStartConsumed = true;
+            }
+#endif
             BeginWaveExecution(nextWave.WaveType == WaveType.BOSS);
 
             OnRoundChanged?.Invoke(_currentRound);
@@ -1638,7 +1761,10 @@ namespace MyDefense.Battle
 
                 BattleMonsterNetworkState networkState = spawnedInstance.GetComponent<BattleMonsterNetworkState>();
                 if (networkState != null)
+                {
                     networkState.InitializeRuntimeIdentity(runtimeContext.Identity);
+                    networkState.InitializePresentationScale(scale);
+                }
             }
             catch (Exception exception)
             {

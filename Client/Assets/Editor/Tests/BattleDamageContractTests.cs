@@ -200,31 +200,172 @@ public sealed class BattleDamageContractTests
         MethodInfo applyInitial = typeof(FusionKidnapBoardView).GetMethod(
             "ApplyInitialActiveMutationVisual",
             BindingFlags.NonPublic | BindingFlags.Static);
+        MethodInfo applyGrade = typeof(FusionKidnapBoardView).GetMethod(
+            "ApplyGradeVisual",
+            BindingFlags.NonPublic | BindingFlags.Static);
         Assert.That(applyInitial, Is.Not.Null);
+        Assert.That(applyGrade, Is.Not.Null);
 
         GameObject unit = new GameObject("mutation-visual-state-test");
         try
         {
             UnitData data = unit.AddComponent<UnitData>();
+            applyGrade.Invoke(null, new object[] { unit.transform, (byte)4, 29L });
             FusionKidnapBoardView.ApplyMutationState(data, 2, "TOXIC");
             Assert.That((bool)applyInitial.Invoke(null, new object[] { unit }), Is.False);
             Assert.That(unit.GetComponent<MutationAuraView>(), Is.Null);
+            Assert.That(unit.transform.Find("GradeLabel").GetComponent<TextMesh>().text, Is.EqualTo("M"));
+            Assert.That(unit.transform.Find("MutationLabel"), Is.Null);
 
             FusionKidnapBoardView.ApplyMutationState(data, 3, "TOXIC");
             Assert.That((bool)applyInitial.Invoke(null, new object[] { unit }), Is.True);
             MutationAuraView aura = unit.GetComponent<MutationAuraView>();
             Assert.That(aura, Is.Not.Null);
             Assert.That(unit.transform.Find("MutationAura").gameObject.activeSelf, Is.True);
-            Assert.That(unit.GetComponentInChildren<TextMesh>().text, Is.EqualTo("M:T"));
+            Assert.That(unit.transform.Find("GradeLabel").GetComponent<TextMesh>().text, Is.EqualTo("M"));
+            Assert.That(unit.transform.Find("MutationLabel").GetComponent<TextMesh>().text, Is.EqualTo("M:TOX"));
 
             FusionKidnapBoardView.ApplyMutationState(data, 4, "TOXIC");
             Assert.That((bool)applyInitial.Invoke(null, new object[] { unit }), Is.False);
             Assert.That(unit.transform.Find("MutationAura").gameObject.activeSelf, Is.False);
-            Assert.That(unit.GetComponentInChildren<TextMesh>().text, Is.Empty);
+            Assert.That(unit.transform.Find("GradeLabel").GetComponent<TextMesh>().text, Is.EqualTo("M"));
+            TextMesh mutationLabel = unit.transform.Find("MutationLabel").GetComponent<TextMesh>();
+            Assert.That(mutationLabel.text, Is.Empty);
+            Assert.That(mutationLabel.gameObject.activeSelf, Is.False);
         }
         finally
         {
             Object.DestroyImmediate(unit);
+        }
+    }
+
+    [Test]
+    public void MutationProfiles_HaveUniqueMarkersAndStaticProceduralShapes()
+    {
+        string[] mutationTypes =
+        {
+            "GIANT", "BERSERK", "SWIFT", "TOXIC", "GREEDY", "OBESE", "FROZEN", "BLANK"
+        };
+        string[] expectedMarkers = { "GIA", "BER", "SWI", "TOX", "GRE", "OBE", "FRO", "BLK" };
+        var markers = new HashSet<string>();
+        var colors = new HashSet<Color>();
+        var staticShapes = new HashSet<string>();
+        GameObject unit = new GameObject("mutation-profile-test");
+        try
+        {
+            MutationAuraView aura = unit.AddComponent<MutationAuraView>();
+            int stableHierarchyCount = -1;
+            Renderer[] stableRenderers = null;
+            Material[] stableMaterials = null;
+
+            for (int index = 0; index < mutationTypes.Length; index++)
+            {
+                string mutationType = mutationTypes[index];
+                Assert.That(MutationAuraView.ResolveMarker(mutationType), Is.EqualTo(expectedMarkers[index]));
+                Assert.That(markers.Add(MutationAuraView.ResolveMarker(mutationType)), Is.True);
+                Assert.That(colors.Add(MutationAuraView.ResolveColor(mutationType)), Is.True);
+
+                aura.Apply(mutationType);
+                Transform root = unit.transform.Find("MutationAura");
+                Assert.That(root, Is.Not.Null);
+                Assert.That(root.gameObject.activeSelf, Is.True);
+                Assert.That(aura.ActiveMutationType, Is.EqualTo(mutationType));
+
+                Transform activeGroup = root.Find("Profile_" + mutationType);
+                Assert.That(activeGroup, Is.Not.Null);
+                Assert.That(activeGroup.gameObject.activeSelf, Is.True);
+                Assert.That(Enumerable.Range(0, root.childCount)
+                    .Count(childIndex => root.GetChild(childIndex).gameObject.activeSelf), Is.EqualTo(1));
+
+                string shape = string.Join("|", Enumerable.Range(0, activeGroup.childCount)
+                    .Select(childIndex =>
+                    {
+                        Transform child = activeGroup.GetChild(childIndex);
+                        MeshFilter mesh = child.GetComponent<MeshFilter>();
+                        return $"{mesh?.sharedMesh?.name}:{child.localPosition}:{child.localScale}:{child.localEulerAngles}";
+                    }));
+                Assert.That(staticShapes.Add(shape), Is.True, mutationType + " must have a unique static silhouette.");
+
+                int hierarchyCount = unit.GetComponentsInChildren<Transform>(true).Length;
+                if (stableHierarchyCount < 0)
+                {
+                    stableHierarchyCount = hierarchyCount;
+                    stableRenderers = unit.GetComponentsInChildren<Renderer>(true);
+                    stableMaterials = stableRenderers.Select(renderer => renderer.sharedMaterial).ToArray();
+                }
+                Assert.That(hierarchyCount, Is.EqualTo(stableHierarchyCount));
+                Assert.That(unit.GetComponentsInChildren<Collider>(true), Is.Empty);
+            }
+
+            for (int pass = 0; pass < 4; pass++)
+                foreach (string mutationType in mutationTypes)
+                    aura.Apply(mutationType);
+
+            Assert.That(unit.GetComponentsInChildren<Transform>(true).Length, Is.EqualTo(stableHierarchyCount));
+            Renderer[] repeatedRenderers = unit.GetComponentsInChildren<Renderer>(true);
+            Assert.That(repeatedRenderers, Has.Length.EqualTo(stableRenderers.Length));
+            for (int index = 0; index < repeatedRenderers.Length; index++)
+                Assert.That(repeatedRenderers[index].sharedMaterial, Is.SameAs(stableMaterials[index]));
+
+            aura.Apply(null);
+            Assert.That(aura.ActiveMutationType, Is.EqualTo("NONE"));
+            Assert.That(unit.transform.Find("MutationAura").gameObject.activeSelf, Is.False);
+            Assert.That(unit.GetComponentsInChildren<Transform>(true).Length, Is.EqualTo(stableHierarchyCount));
+        }
+        finally
+        {
+            Object.DestroyImmediate(unit);
+        }
+    }
+
+    [Test]
+    public void MutationLabel_IsDedicatedAndClearsWithoutChangingGradeAcrossMoveAndReconnect()
+    {
+        MethodInfo applyGrade = typeof(FusionKidnapBoardView).GetMethod(
+            "ApplyGradeVisual",
+            BindingFlags.NonPublic | BindingFlags.Static);
+        MethodInfo applyMutation = typeof(FusionKidnapBoardView).GetMethod(
+            "ApplyMutationVisual",
+            BindingFlags.NonPublic | BindingFlags.Static);
+        Assert.That(applyGrade, Is.Not.Null);
+        Assert.That(applyMutation, Is.Not.Null);
+
+        GameObject firstTile = new GameObject("first-tile");
+        GameObject secondTile = new GameObject("second-tile");
+        GameObject unit = new GameObject("mutation-label-test");
+        try
+        {
+            unit.transform.SetParent(firstTile.transform, false);
+            applyGrade.Invoke(null, new object[] { unit.transform, (byte)4, 29L });
+            applyMutation.Invoke(null, new object[] { unit, "GIANT" });
+            int stableHierarchyCount = unit.GetComponentsInChildren<Transform>(true).Length;
+
+            Assert.That(unit.transform.Find("GradeLabel").GetComponent<TextMesh>().text, Is.EqualTo("M"));
+            Assert.That(unit.transform.Find("MutationLabel").GetComponent<TextMesh>().text, Is.EqualTo("M:GIA"));
+
+            unit.transform.SetParent(secondTile.transform, false);
+            applyMutation.Invoke(null, new object[] { unit, "GREEDY" });
+            Assert.That(unit.transform.Find("GradeLabel").GetComponent<TextMesh>().text, Is.EqualTo("M"));
+            Assert.That(unit.transform.Find("MutationLabel").GetComponent<TextMesh>().text, Is.EqualTo("M:GRE"));
+            Assert.That(unit.GetComponentsInChildren<Transform>(true).Length, Is.EqualTo(stableHierarchyCount));
+
+            applyMutation.Invoke(null, new object[] { unit, null });
+            Assert.That(unit.transform.Find("GradeLabel").GetComponent<TextMesh>().text, Is.EqualTo("M"));
+            TextMesh mutationLabel = unit.transform.Find("MutationLabel").GetComponent<TextMesh>();
+            Assert.That(mutationLabel.text, Is.Empty);
+            Assert.That(mutationLabel.gameObject.activeSelf, Is.False);
+            Assert.That(unit.transform.Find("MutationAura").gameObject.activeSelf, Is.False);
+
+            applyMutation.Invoke(null, new object[] { unit, "FROZEN" });
+            Assert.That(unit.transform.Find("GradeLabel").GetComponent<TextMesh>().text, Is.EqualTo("M"));
+            Assert.That(unit.transform.Find("MutationLabel").GetComponent<TextMesh>().text, Is.EqualTo("M:FRO"));
+            Assert.That(unit.GetComponentsInChildren<Transform>(true).Length, Is.EqualTo(stableHierarchyCount));
+        }
+        finally
+        {
+            Object.DestroyImmediate(unit);
+            Object.DestroyImmediate(firstTile);
+            Object.DestroyImmediate(secondTile);
         }
     }
 
