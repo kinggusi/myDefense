@@ -110,11 +110,12 @@ public class UnitAttack : MonoBehaviour, IAlienAttackSnapshotConsumer
             return;
         }
 
-        // Drop inactive, destroyed, or out-of-range targets.
+        // Drop inactive, dead, destroyed, or out-of-range targets. A dead
+        // Monster remains active while its fade presentation finishes.
         float currentRange = Mathf.Max(0f, IsSnapshotValid() ? attackSnapshot.Range : range);
         if (target != null)
         {
-            if (!target.gameObject.activeInHierarchy || Vector3.Distance(transform.position, target.position) > currentRange)
+            if (!IsTargetAlive(target) || Vector3.Distance(transform.position, target.position) > currentRange)
             {
                 target = null;
             }
@@ -169,7 +170,7 @@ public class UnitAttack : MonoBehaviour, IAlienAttackSnapshotConsumer
 
         foreach (GameObject enemy in enemies)
         {
-            if (enemy == null || !enemy.activeInHierarchy) continue;
+            if (enemy == null || !IsTargetAlive(enemy.transform)) continue;
 
             float distanceToEnemy = Vector3.Distance(transform.position, enemy.transform.position);
             if (distanceToEnemy < shortestDistance)
@@ -187,7 +188,8 @@ public class UnitAttack : MonoBehaviour, IAlienAttackSnapshotConsumer
 
     void Shoot()
     {
-        if (cachedUnitData == null || target == null) {
+        if (cachedUnitData == null || !IsTargetAlive(target)) {
+            target = null;
             return;
         }
 
@@ -219,6 +221,14 @@ public class UnitAttack : MonoBehaviour, IAlienAttackSnapshotConsumer
 
     private bool TryShootAuthoritativeProjectile(Vector3 spawnPosition)
     {
+        // Revalidate immediately before resolving the NetworkObject. Another
+        // authoritative hit may have killed this target since target search.
+        if (!IsTargetAlive(target))
+        {
+            target = null;
+            return false;
+        }
+
         if (battleAuthority == null)
             battleAuthority = FindFirstObjectByType<BattleWaveStateAuthority>();
         if (battleAuthority == null || !battleAuthority.IsSpawnedForAccess || !battleAuthority.IsAuthoritative)
@@ -255,5 +265,28 @@ public class UnitAttack : MonoBehaviour, IAlienAttackSnapshotConsumer
             missingProjectilePipelineLogged = false;
         return spawned;
     }
+
+    private static bool IsTargetAlive(Transform candidate)
+    {
+        if (candidate == null || !candidate.gameObject.activeInHierarchy)
+            return false;
+
+        IDamageable damageable = ResolveDamageable(candidate);
+        if (damageable == null || damageable.IsDead)
+            return false;
+
+        BattleMonsterNetworkState networkState = candidate.GetComponentInParent<BattleMonsterNetworkState>()
+            ?? candidate.GetComponentInChildren<BattleMonsterNetworkState>();
+        bool hasNetworkState = networkState != null
+            && networkState.Object != null
+            && networkState.Object.IsValid;
+        return !hasNetworkState || !networkState.IsDead;
+    }
+
+    private static IDamageable ResolveDamageable(Transform candidate)
+        => candidate == null
+            ? null
+            : candidate.GetComponentInParent<IDamageable>()
+                ?? candidate.GetComponentInChildren<IDamageable>();
 
 }

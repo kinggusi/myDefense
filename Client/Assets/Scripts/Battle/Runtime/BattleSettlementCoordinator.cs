@@ -109,10 +109,10 @@ namespace MyDefense.Battle.Runtime
 
         private void SendPendingSettlement()
         {
-            if (_rosterRegistration != null && !_rosterRegistration.IsRegistered)
+            if (_rosterRegistration == null || !_rosterRegistration.IsRegistered)
             {
                 _requestInFlight = false;
-                LastError = _rosterRegistration.LastError ?? "Trusted Battle roster is not registered.";
+                LastError = _rosterRegistration?.LastError ?? "Trusted Battle roster is not registered.";
                 Debug.LogError("[BattleSettlement] " + LastError);
                 return;
             }

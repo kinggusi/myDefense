@@ -49,14 +49,14 @@ public class MonsterStat : MonoBehaviour, IDamageable
         battleContextInitialized = true;
     }
 
-        public void ApplyDamage(DamagePayload payload)
+    public void ApplyDamage(DamagePayload payload)
+    {
+        if (isDead || !payload.IsFinitePositive()) return;
+        if (payload.AttackerId > 0)
         {
-            if (!payload.IsFinitePositive()) return;
-            if (payload.AttackerId > 0)
-            {
-                LastDamageAttackerId = payload.AttackerId;
-                damageAttackerIds.Add(payload.AttackerId);
-            }
+            LastDamageAttackerId = payload.AttackerId;
+            damageAttackerIds.Add(payload.AttackerId);
+        }
         TakeDamage(payload.Amount);
     }
 

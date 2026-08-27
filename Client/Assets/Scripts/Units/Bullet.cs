@@ -23,7 +23,7 @@ public class Bullet : MonoBehaviour
 
     void Update()
     {
-        if (target == null || !target.gameObject.activeInHierarchy)
+        if (!IsTargetAlive(target))
         {
             Destroy(gameObject); // 목표가 사라지면 총알도 삭제
             return;
@@ -49,10 +49,10 @@ public class Bullet : MonoBehaviour
         if (hasHit) return;
         hasHit = true;
         // 몬스터의 체력 깎기
-        if (target != null && target.gameObject.activeInHierarchy)
+        if (IsTargetAlive(target))
         {
-            IDamageable damageable = target.GetComponent<IDamageable>();
-            if (damageable != null)
+            IDamageable damageable = ResolveDamageable(target);
+            if (damageable != null && !damageable.IsDead)
             {
                 DamagePayload payload = hasDamagePayload
                     ? damagePayload
@@ -67,4 +67,19 @@ public class Bullet : MonoBehaviour
         }
         Destroy(gameObject); // 총알 삭제
     }
+
+    private static bool IsTargetAlive(Transform candidate)
+    {
+        if (candidate == null || !candidate.gameObject.activeInHierarchy)
+            return false;
+
+        IDamageable damageable = ResolveDamageable(candidate);
+        return damageable != null && !damageable.IsDead;
+    }
+
+    private static IDamageable ResolveDamageable(Transform candidate)
+        => candidate == null
+            ? null
+            : candidate.GetComponentInParent<IDamageable>()
+                ?? candidate.GetComponentInChildren<IDamageable>();
 }

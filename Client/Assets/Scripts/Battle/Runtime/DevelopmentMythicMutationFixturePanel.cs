@@ -21,6 +21,16 @@ namespace MyDefense.Battle.Runtime
 
         public static IReadOnlyList<string> Mutations => MutationIds;
 
+        public static bool CanStartValidationWave(
+            bool isSpawned,
+            bool isStateAuthority,
+            bool isValidationArmed,
+            bool isValidationStartConsumed)
+            => isSpawned
+                && isStateAuthority
+                && isValidationArmed
+                && !isValidationStartConsumed;
+
         public static bool TryNormalize(
             long alienId,
             string mutationType,
@@ -93,7 +103,7 @@ namespace MyDefense.Battle.Runtime
                 return;
 
             const float panelWidth = 420f;
-            const float panelHeight = 390f;
+            const float panelHeight = 440f;
             Rect panel = new Rect(12f, 58f, panelWidth, panelHeight);
             GUI.Box(panel, "P1 MYTHIC / MUTATION FIXTURE");
 
@@ -145,7 +155,27 @@ namespace MyDefense.Battle.Runtime
             }
             GUI.enabled = previousEnabled;
 
-            GUI.Label(new Rect(panel.x + 16f, panel.y + 304f, panelWidth - 32f, 64f),
+            BattleWaveExecutor executor = _authority.Executor;
+            if (executor != null && executor.IsP1ValidationArmed)
+            {
+                bool canStartWave = DevelopmentMythicFixtureRules.CanStartValidationWave(
+                    _authority.IsSpawnedForAccess,
+                    _authority.IsAuthoritative,
+                    executor.IsP1ValidationArmed,
+                    executor.IsP1ValidationStartConsumed);
+                previousEnabled = GUI.enabled;
+                GUI.enabled = canStartWave;
+                if (GUI.Button(new Rect(panel.x + 16f, panel.y + 304f, panelWidth - 32f, 44f),
+                        $"Start P1 Wave {executor.P1ValidationTargetWave:D3} (Host only)"))
+                {
+                    _status = _authority.TryStartNextWave()
+                        ? $"P1 Wave {executor.P1ValidationTargetWave:D3} started."
+                        : "P1 Wave start was rejected by State Authority.";
+                }
+                GUI.enabled = previousEnabled;
+            }
+
+            GUI.Label(new Rect(panel.x + 16f, panel.y + 360f, panelWidth - 32f, 64f),
                 _authority.IsSpawnedForAccess
                     ? _status
                     : "Waiting for Fusion NetworkObject.Spawned().");

@@ -61,6 +61,7 @@ namespace MyDefense.Battle.Runtime
             }
             if (_rosterRegistration != null)
                 _rosterRegistration.Registered -= HandleRosterRegistered;
+            _rosterRegistration = null;
             ResetAdapter();
         }
 
@@ -202,12 +203,39 @@ namespace MyDefense.Battle.Runtime
             if (localPlayerLane != LaneType.Player1Lane && localPlayerLane != LaneType.Player2Lane)
                 return false;
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            BattleP1ValidationSessionProfile p1ValidationProfile = _runnerLifecycle?.P1ValidationProfile;
+            bool isP1ValidationSession = p1ValidationProfile != null;
+            if (isP1ValidationSession)
+                SuppressP1ValidationSettlement();
+            if (isP1ValidationSession
+                && (!string.Equals(sessionContext.BattleSessionId, p1ValidationProfile.SessionName, StringComparison.Ordinal)
+                    || !string.Equals(sessionContext.MapId, p1ValidationProfile.MapId, StringComparison.Ordinal)))
+            {
+                Debug.LogError("[P1Validation] Session context does not match the bound validation profile.");
+                return false;
+            }
+            if (isP1ValidationSession && _stateAuthority == null)
+            {
+                Debug.LogError("[P1Validation] Fusion State Authority component is required.");
+                return false;
+            }
+#endif
+
             if (_stateAuthority != null)
             {
                 if (_stateAuthority.IsAuthoritative)
                 {
                     if (!_stateAuthority.InitializeSession(sessionContext, playerIdentityProvider))
                         return false;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                    if (isP1ValidationSession
+                        && !_waveExecutor.TryArmP1ValidationInitialWave(p1ValidationProfile, out string reason))
+                    {
+                        Debug.LogError("[P1Validation] " + reason);
+                        return false;
+                    }
+#endif
                 }
                 else
                 {
@@ -226,11 +254,21 @@ namespace MyDefense.Battle.Runtime
 
             _pathManager?.InitializePaths();
             _waveExecutor.SetLocalPlayerLane(localPlayerLane);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (!isP1ValidationSession)
+#endif
             EnsureSettlementCoordinator(sessionContext, playerIdentityProvider);
             SessionContext = sessionContext;
             IsInitialized = true;
             if (_stateAuthority == null || _stateAuthority.IsAuthoritative)
             {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                if (isP1ValidationSession)
+                {
+                    _waveExecutor.StartConfiguredWavesIfReady();
+                }
+                else
+#endif
                 if (_rosterRegistration == null || _rosterRegistration.IsRegistered)
                     _waveExecutor.StartConfiguredWavesIfReady();
                 else
@@ -253,6 +291,8 @@ namespace MyDefense.Battle.Runtime
                 return;
             if (_stateAuthority.IsAuthoritative)
             {
+                if (_rosterRegistration != null)
+                    _rosterRegistration.Registered -= HandleRosterRegistered;
                 _rosterRegistration = BattleSessionRosterRegistrationFactory.ResolveOrCreate(gameObject);
                 _rosterRegistration.Configure(sessionContext, playerIdentityProvider);
                 _rosterRegistration.Registered -= HandleRosterRegistered;
@@ -261,7 +301,13 @@ namespace MyDefense.Battle.Runtime
             BattleSettlementCoordinator coordinator = GetComponent<BattleSettlementCoordinator>();
             if (coordinator == null)
                 coordinator = gameObject.AddComponent<BattleSettlementCoordinator>();
-            coordinator.Configure(_runnerLifecycle, _waveExecutor, _stateAuthority, sessionContext, _rosterRegistration);
+            coordinator.enabled = true;
+            coordinator.Configure(
+                _runnerLifecycle,
+                _waveExecutor,
+                _stateAuthority,
+                sessionContext,
+                _rosterRegistration);
         }
 
         private void HandleRosterRegistered()
@@ -269,5 +315,18 @@ namespace MyDefense.Battle.Runtime
             if (_stateAuthority != null && _stateAuthority.IsAuthoritative)
                 _waveExecutor?.StartConfiguredWavesIfReady();
         }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        private void SuppressP1ValidationSettlement()
+        {
+            if (_rosterRegistration != null)
+                _rosterRegistration.Registered -= HandleRosterRegistered;
+            _rosterRegistration = null;
+            BattleSettlementCoordinator coordinator = GetComponent<BattleSettlementCoordinator>();
+            if (coordinator != null)
+                coordinator.enabled = false;
+            Debug.Log("[P1Validation] Settlement coordinator creation and POST are disabled for this session.");
+        }
+#endif
     }
 }

@@ -75,6 +75,23 @@ namespace MyDefense.Battle.Tests
         }
 
         [Test]
+        public void BattleScene_Player2LaneStartsAtRemoteFieldUpperLeft()
+        {
+            Scene scene = GetBattleScene(out bool openedByTest);
+            try
+            {
+                WaypointGroup player2 = GetActiveGroups(scene).Single(x => x.Lane == LaneType.Player2Lane);
+                Assert.That(
+                    player2.Waypoints.Select(waypoint => waypoint.name),
+                    Is.EqualTo(new[] { "Wp1", "Wp0", "Wp3", "Wp2" }));
+            }
+            finally
+            {
+                if (openedByTest) EditorSceneManager.CloseScene(scene, true);
+            }
+        }
+
+        [Test]
         public void DuplicateLaneGroup_IsRejected()
         {
             PathManager manager = CreateInactivePathManager();

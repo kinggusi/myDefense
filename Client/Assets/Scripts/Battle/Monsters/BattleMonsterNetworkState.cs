@@ -24,6 +24,7 @@ namespace MyDefense.Battle
         [Networked] public float CurrentHp { get; private set; }
         [Networked] public float MaxHp { get; private set; }
         [Networked] public NetworkBool IsDead { get; private set; }
+        [Networked] public float PresentationScale { get; private set; }
         [Networked] public float MutationMoveSpeedMultiplier { get; private set; }
         [Networked] private float MutationDotDamage { get; set; }
         [Networked] private int MutationDotTicksRemaining { get; set; }
@@ -35,8 +36,10 @@ namespace MyDefense.Battle
 
         private MonsterStat _monsterStat;
         private BattleWaveStateAuthority _waveAuthority;
-        private bool _presentationMappingReported;
+        private NetworkTransform _networkTransform;
+        private static readonly HashSet<int> ReportedPresentationMappings = new();
         private bool _hasPresentationPosition;
+        private bool _presentationMappingReported;
         private Vector3 _lastPresentationPosition;
 
         public BattleMonsterLanePolicy LanePolicy => (BattleMonsterLanePolicy)LanePolicyValue;
@@ -46,6 +49,7 @@ namespace MyDefense.Battle
         public override void Spawned()
         {
             _hasPresentationPosition = false;
+            _networkTransform = GetComponent<NetworkTransform>();
             _monsterStat = GetComponent<MonsterStat>();
             if (_monsterStat == null)
                 return;
@@ -82,8 +86,17 @@ namespace MyDefense.Battle
                 Amount = MutationDotDamage,
                 ActiveMutationType = MutationDotType.ToString()
             });
-            MutationDotTicksRemaining--;
-            MutationDotTimer = MutationDotTicksRemaining > 0
+
+            bool targetDied = IsDead || _monsterStat == null || _monsterStat.IsDead;
+            DotTickPlan tickPlan = ResolveDotTickAfterDamage(targetDied, MutationDotTicksRemaining);
+            if (tickPlan.ClearAllEffects)
+            {
+                ClearMutationEffects();
+                return;
+            }
+
+            MutationDotTicksRemaining = tickPlan.RemainingTicks;
+            MutationDotTimer = tickPlan.ScheduleTimer
                 ? TickTimer.CreateFromSeconds(Runner, MutationDotIntervalSeconds)
                 : default;
         }
@@ -118,6 +131,7 @@ namespace MyDefense.Battle
         public override void Despawned(NetworkRunner runner, bool hasState)
         {
             _hasPresentationPosition = false;
+            _networkTransform = null;
             if (_monsterStat == null)
                 return;
 
@@ -129,10 +143,11 @@ namespace MyDefense.Battle
 
         public override void Render()
         {
-            if (HasStateAuthority || _monsterStat == null)
+            if (HasStateAuthority)
                 return;
 
-            _monsterStat.ApplyNetworkState(CurrentHp, MaxHp, IsDead);
+            transform.localScale = Vector3.one * ResolvePresentationScale(PresentationScale);
+            _monsterStat?.ApplyNetworkState(CurrentHp, MaxHp, IsDead);
         }
 
         /// <summary>
@@ -178,41 +193,93 @@ namespace MyDefense.Battle
             if (sourcePath == null || targetPath == null || sourcePath.Count < 2 || targetPath.Count < 2)
                 return;
 
-            // NetworkTransform may leave the presentation value untouched on a
-            // render frame where no new snapshot was applied. Re-projecting that
-            // already remapped value against the canonical source path collapses
-            // multiple monsters onto the same waypoint and makes them appear to
-            // disappear. Only remap when Fusion has supplied a new canonical
-            // position since the previous presentation pass.
-            Vector3 canonicalPosition = transform.position;
-            if (_hasPresentationPosition &&
-                (canonicalPosition - _lastPresentationPosition).sqrMagnitude <= 0.000001f)
+            // Read the canonical interpolated snapshot directly. The root Transform
+            // is overwritten below for Player 2 presentation, so using its current
+            // value as the next canonical sample can intermittently freeze or fold
+            // the proxy path when Fusion does not write a new Transform that frame.
+            if (!TryGetCanonicalRenderPosition(out Vector3 canonicalPosition))
                 return;
 
-            float progress = ProjectProgress(canonicalPosition, sourcePath);
-            _lastPresentationPosition = EvaluateProgress(targetPath, progress);
+            // Regular lanes are closed loops. Include the last-to-first segment;
+            // omitting it pins the remapped proxy to a corner while the authority
+            // monster traverses that closing edge.
+            float progress = ProjectProgress(canonicalPosition, sourcePath, true);
+            _lastPresentationPosition = EvaluateProgress(targetPath, progress, true);
             _hasPresentationPosition = true;
             transform.position = _lastPresentationPosition;
             if (!_presentationMappingReported)
             {
                 _presentationMappingReported = true;
-                Debug.Log($"[BattleMonsterNetworkState] Local lane presentation remapped: owner={ownerId}, source={sourceLane}, target={targetLane}.");
+                int mappingKey = ((int)sourceLane << 8) | (int)targetLane;
+                if (ReportedPresentationMappings.Add(mappingKey))
+                    Debug.Log($"[BattleMonsterNetworkState] Local lane presentation remapped: source={sourceLane}, target={targetLane}.");
             }
         }
 
-        private static float ProjectProgress(Vector3 position, List<Transform> path)
+        private bool TryGetCanonicalRenderPosition(out Vector3 position)
         {
-            float totalLength = PathLength(path);
+            _networkTransform ??= GetComponent<NetworkTransform>();
+            if (_networkTransform == null)
+            {
+                position = transform.position;
+                return false;
+            }
+
+            if (_networkTransform.TryGetSnapshotsBuffers(
+                    out NetworkBehaviourBuffer fromBuffer,
+                    out NetworkBehaviourBuffer toBuffer,
+                    out float interpolationAlpha))
+            {
+                NetworkTRSPData from = fromBuffer.ReinterpretState<NetworkTRSPData>();
+                NetworkTRSPData to = toBuffer.ReinterpretState<NetworkTRSPData>();
+                position = InterpolateCanonicalPosition(from.Position, to.Position, interpolationAlpha);
+                return true;
+            }
+
+            if (_networkTransform.StateBufferIsValid)
+            {
+                position = _networkTransform.Data.Position;
+                return true;
+            }
+
+            position = transform.position;
+            return false;
+        }
+
+        public static Vector3 InterpolateCanonicalPosition(Vector3 from, Vector3 to, float alpha)
+            => Vector3.Lerp(from, to, Mathf.Clamp01(alpha));
+
+        public bool TryGetPresentationPosition(out Vector3 position)
+        {
+            if (_hasPresentationPosition)
+            {
+                position = _lastPresentationPosition;
+                return true;
+            }
+
+            position = transform.position;
+            return false;
+        }
+
+        public static float ResolvePresentationScale(float replicatedScale)
+            => replicatedScale > 0f && !float.IsNaN(replicatedScale) && !float.IsInfinity(replicatedScale)
+                ? replicatedScale
+                : 1f;
+
+        public static float ProjectProgress(Vector3 position, IReadOnlyList<Transform> path, bool closedLoop)
+        {
+            float totalLength = PathLength(path, closedLoop);
             if (totalLength <= 0.0001f)
                 return 0f;
 
             float walked = 0f;
             float bestDistance = float.MaxValue;
             float bestProgress = 0f;
-            for (int i = 0; i < path.Count - 1; i++)
+            int segmentCount = closedLoop ? path.Count : path.Count - 1;
+            for (int i = 0; i < segmentCount; i++)
             {
                 Vector3 start = path[i].position;
-                Vector3 end = path[i + 1].position;
+                Vector3 end = path[(i + 1) % path.Count].position;
                 Vector3 segment = end - start;
                 float segmentLength = segment.magnitude;
                 if (segmentLength <= 0.0001f)
@@ -229,20 +296,21 @@ namespace MyDefense.Battle
             return Mathf.Clamp01(bestProgress);
         }
 
-        private static Vector3 EvaluateProgress(List<Transform> path, float progress)
+        public static Vector3 EvaluateProgress(IReadOnlyList<Transform> path, float progress, bool closedLoop)
         {
-            float totalLength = PathLength(path);
+            float totalLength = PathLength(path, closedLoop);
             if (totalLength <= 0.0001f)
                 return path[0].position;
 
             float targetDistance = Mathf.Clamp01(progress) * totalLength;
             float walked = 0f;
-            for (int i = 0; i < path.Count - 1; i++)
+            int segmentCount = closedLoop ? path.Count : path.Count - 1;
+            for (int i = 0; i < segmentCount; i++)
             {
                 Vector3 start = path[i].position;
-                Vector3 end = path[i + 1].position;
+                Vector3 end = path[(i + 1) % path.Count].position;
                 float segmentLength = Vector3.Distance(start, end);
-                if (targetDistance <= walked + segmentLength || i == path.Count - 2)
+                if (targetDistance <= walked + segmentLength || i == segmentCount - 1)
                 {
                     float t = segmentLength <= 0.0001f ? 0f : (targetDistance - walked) / segmentLength;
                     return Vector3.Lerp(start, end, Mathf.Clamp01(t));
@@ -252,11 +320,12 @@ namespace MyDefense.Battle
             return path[path.Count - 1].position;
         }
 
-        private static float PathLength(List<Transform> path)
+        public static float PathLength(IReadOnlyList<Transform> path, bool closedLoop)
         {
             float length = 0f;
-            for (int i = 0; i < path.Count - 1; i++)
-                length += Vector3.Distance(path[i].position, path[i + 1].position);
+            int segmentCount = closedLoop ? path.Count : path.Count - 1;
+            for (int i = 0; i < segmentCount; i++)
+                length += Vector3.Distance(path[i].position, path[(i + 1) % path.Count].position);
             return length;
         }
 
@@ -271,6 +340,16 @@ namespace MyDefense.Battle
             LanePolicyValue = (int)identity.LanePolicy;
             FieldOwnerPlayerId = identity.FieldOwnerPlayerId ?? string.Empty;
             SpawnWave = identity.SpawnWave;
+            return true;
+        }
+
+        public bool InitializePresentationScale(float scale)
+        {
+            if (!HasStateAuthority || scale <= 0f || float.IsNaN(scale) || float.IsInfinity(scale))
+                return false;
+
+            PresentationScale = scale;
+            transform.localScale = Vector3.one * scale;
             return true;
         }
 
@@ -292,6 +371,7 @@ namespace MyDefense.Battle
             CurrentHp = currentHp;
             MaxHp = maxHp;
             IsDead = false;
+            ClearMutationEffects();
         }
 
         private void HandleHpChanged(float currentHp, float maxHp)
@@ -309,11 +389,50 @@ namespace MyDefense.Battle
                 return;
 
             IsDead = true;
+            ClearMutationEffects();
             BattleWaveStateAuthority authority = FindFirstObjectByType<BattleWaveStateAuthority>();
             if (authority == null)
                 return;
 
             authority.TryAwardMonsterKill(this);
+        }
+
+        private void ClearMutationEffects()
+        {
+            MutationDotDamage = 0f;
+            MutationDotTicksRemaining = 0;
+            MutationDotTimer = default;
+            MutationDotIntervalSeconds = 0f;
+            MutationDotAttackerId = 0;
+            MutationDotType = "NONE";
+            MutationSlowTimer = default;
+            MutationMoveSpeedMultiplier = 1f;
+        }
+
+        private static DotTickPlan ResolveDotTickAfterDamage(bool targetDied, int ticksRemainingBeforeHit)
+        {
+            if (targetDied)
+                return new DotTickPlan(0, scheduleTimer: false, clearAllEffects: true);
+
+            int remainingTicks = Mathf.Max(0, ticksRemainingBeforeHit - 1);
+            return new DotTickPlan(
+                remainingTicks,
+                scheduleTimer: remainingTicks > 0,
+                clearAllEffects: false);
+        }
+
+        private readonly struct DotTickPlan
+        {
+            public DotTickPlan(int remainingTicks, bool scheduleTimer, bool clearAllEffects)
+            {
+                RemainingTicks = remainingTicks;
+                ScheduleTimer = scheduleTimer;
+                ClearAllEffects = clearAllEffects;
+            }
+
+            public int RemainingTicks { get; }
+            public bool ScheduleTimer { get; }
+            public bool ClearAllEffects { get; }
         }
     }
 }

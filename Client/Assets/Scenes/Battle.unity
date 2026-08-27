@@ -2461,6 +2461,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MyDefense.Battle.BattleWaveStateAuthority
   _CurrentWave: 0
+  _HighestClearedWave: 0
   _CurrentWaveId:
     _length: 0
     _data:
@@ -2509,6 +2510,10 @@ MonoBehaviour:
       Data: 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
   _Player1ConnectionStateValue: 0
   _Player2ConnectionStateValue: 0
+  _Player1NormalResonanceLevel: 0
+  _Player1MythicResonanceLevel: 0
+  _Player2NormalResonanceLevel: 0
+  _Player2MythicResonanceLevel: 0
 --- !u!114 &722039121
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2574,6 +2579,7 @@ MonoBehaviour:
   _costText: {fileID: 0}
   _runnerLifecycle: {fileID: 0}
   _stateAuthority: {fileID: 0}
+  _boardView: {fileID: 0}
 --- !u!114 &722039126
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4933,10 +4939,10 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 1649192862}
   - {fileID: 11160321}
-  - {fileID: 1805842018}
+  - {fileID: 1649192862}
   - {fileID: 1170663541}
+  - {fileID: 1805842018}
   m_Father: {fileID: 273106437}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1377311326
