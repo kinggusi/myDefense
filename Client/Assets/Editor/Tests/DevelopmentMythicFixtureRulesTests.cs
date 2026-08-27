@@ -53,7 +53,6 @@ namespace MyDefense.Tests.EditMode
                 29, "UNKNOWN", out _, out string reason), Is.False);
             StringAssert.Contains("not supported", reason);
         }
-
         [TestCase(true, true, true, false, true)]
         [TestCase(false, true, true, false, false)]
         [TestCase(true, false, true, false, false)]

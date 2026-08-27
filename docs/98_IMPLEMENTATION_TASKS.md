@@ -393,12 +393,14 @@ P0-1-1~4 → P0-1-5 → P0-1-6
 | P1-5-3 | jjangash | 완료 | 관전·이탈·미복귀 자격 판정 구현 |
 | P1-5-4 | jjangash | 완료 | 영구 재화 지급 Transaction 구현 |
 | P1-5-5 | jjangash | 완료 | 기존 멱등 저장을 영구 보상 중복 지급 방지까지 확장 |
-| P1-5-6 | kinggusi | 부분 완료 | 실제 전투 종료 결과와 서버 응답 대조 테스트 | P1-5-7 |
-| P1-5-7 | Shared | 대기 | 인증된 matchmaking/Fusion Session authority를 Spring trusted roster adapter에 연결 | 인증·매치 Session 계약 |
+| P1-5-6 | kinggusi | 검증 대기 | 실제 전투 종료 결과와 서버 응답 대조 테스트 | local/dev 자동 E2E 완료, 실제 Host/Client 종료 수동 게이트 |
+| P1-5-7 | Shared | 부분 완료 | 인증된 matchmaking/Fusion Session authority를 Spring trusted roster adapter에 연결 | local/dev Adapter 완료, production JWT Adapter 선행 필요 |
 
 > 8-1 보상 정책 구현 메모: 행성별 80 Wave를 기준으로 `highestClearedWave`(마지막으로 완전히 클리어한 Wave)에 따라 패배/재클리어 Gold를 계산한다. Wave 10~80 체크포인트는 최초 1회만 Gold·Universal Piece를 지급하고, Wave 80 최초 클리어는 행성별 Diamond를 1회 지급한다. 관전자와 연결이 유지된 탈락자는 지급 대상이며, 명시적 이탈/120초 초과 미복귀는 지급하지 않는다. 보상 Balance는 `BattleReward` Excel 시트와 `battle-reward.json`으로 관리한다. 현재 Settlement 서버는 Runtime이 확정한 `abandoned` 플래그를 영속화하므로, 실제 연결·120초 미복귀 판정은 P1-5-6의 authoritative Fusion Summary 연동에서 검증해야 한다. P1-5-6은 Unity/Fusion 실제 종료 Summary와 이 서버 계약의 종단 간 대조가 남아 있다.
 
 > P1 자동 구현·검증 기록(2026-08-02): Mutation 활성화/재변이/Injector, 8종 전투 효과, 영구 강화 Balance, 일반·신화 공명, 9행성·80 Wave·10 Wave 간격 Boss, Settlement HTTP 계약을 구현했다. Boss 공통 패턴 템플릿은 모든 canonical Boss Wave ID로 확장되며 Spawn 시 phase 1, HP 50%에서 이동속도 1.35배가 적용된다. Settlement는 신뢰된 matchmaking/session authority가 사전 등록한 2인 roster와 canonical 완료 Wave별 Spawn/Kill 총계를 대조한 뒤에만 영구 보상을 지급한다. 공개 Attack Snapshot API는 roster를 등록하지 않으며, 신뢰된 provider가 없는 현재 런타임에서는 안전하게 보상을 거부한다. 이미 저장된 동일 정산은 roster 만료·서버 재시작 후에도 기존 결과를 멱등 반환한다. Server 296/296, BalanceTool 70/70, Unity EditMode 359/359, Battle Scene validate issue 0을 통과했다. 실제 Fusion Host/Standalone Client에서의 Mutation·공명·행성 난이도는 `docs/P1_INTEGRATION_TEST_SCENARIO.md` 사용자 통합 게이트로 남기며, 정상 Settlement E2E는 P1-5-7 선행 후 수행한다.
+
+> P1-5-6/7 구현 기록(2026-08-24): Unity Settlement는 `IBattleSessionRosterRegistration` 교체 경계에만 의존한다. local/dev에서는 Fusion State Authority의 두 참가자를 loopback 개발 API로 Spring trusted roster에 원자 등록하고, 등록 성공 후 Wave와 Settlement를 진행한다. 자동 E2E는 roster 등록 → Wave 80 Summary 저장 → 두 사용자 영구 Gold/Universal Piece/Diamond 지급 → 동일 요청 재전송 무중복 지급을 검증한다. Spring Profile 생략/prod에서는 개발 Adapter가 생성되지 않는다. `FUTURE_AUTH_REPLACEMENT` 표식은 production에서 JWT principal + matchmaking 검증 Adapter로 바꿀 위치이며, 운영 Adapter가 없으면 fail-closed한다. Server 310/310, BalanceTool 77/77, Unity EditMode 378/378, Battle Scene validate issue 0. 실제 Fusion Host/Standalone Client 종료 검증 전까지 P1-5-6은 `검증 대기`, production 인증 Adapter 전까지 P1-5-7은 `부분 완료`다.
 
 ---
 

@@ -148,7 +148,7 @@ public class UnitAttack : MonoBehaviour, IAlienAttackSnapshotConsumer
             return false;
         if (battleAuthority == null)
             battleAuthority = FindFirstObjectByType<BattleWaveStateAuthority>();
-        if (battleAuthority == null || !battleAuthority.IsSpawnedForAccess)
+        if (battleAuthority == null)
             return false;
 
         int playerSlot = (int)(cachedUnitData.serverId >> 32);

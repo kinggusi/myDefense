@@ -5,6 +5,7 @@ import com.denfense.server.exception.ErrorCode;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -25,5 +26,24 @@ class BattleSessionRosterRegistryTest {
                 BusinessException.class,
                 () -> registry.requireComplete("session"));
         assertEquals(ErrorCode.BATTLE_PARTICIPANT_MISMATCH, exception.getErrorCode());
+    }
+
+    @Test
+    void completeRosterConflictNeverLeavesMixedPlayerSlots() {
+        BattleSessionRosterRegistry registry = new BattleSessionRosterRegistry();
+        registry.registerComplete("session", "NEPTUNE", "version", "hash", List.of(
+                new BattleSessionRosterRegistry.Player(1, "player-a"),
+                new BattleSessionRosterRegistry.Player(2, "player-b")));
+
+        BusinessException exception = assertThrows(BusinessException.class, () ->
+                registry.registerComplete("session", "NEPTUNE", "version", "hash", List.of(
+                        new BattleSessionRosterRegistry.Player(1, "player-c"),
+                        new BattleSessionRosterRegistry.Player(2, "player-d"))));
+
+        assertEquals(ErrorCode.BATTLE_PARTICIPANT_MISMATCH, exception.getErrorCode());
+        assertEquals(List.of(
+                new BattleSessionRosterRegistry.Player(1, "player-a"),
+                new BattleSessionRosterRegistry.Player(2, "player-b")),
+                registry.requireComplete("session").players());
     }
 }

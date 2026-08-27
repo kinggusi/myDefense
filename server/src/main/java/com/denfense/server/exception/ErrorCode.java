@@ -45,6 +45,8 @@ public enum ErrorCode {
     MYTHIC_BREEDING_NOT_READY(HttpStatus.CONFLICT, "교배 보상이 아직 준비되지 않았습니다."),
     MYTHIC_BREEDING_REQUEST_CONFLICT(HttpStatus.CONFLICT, "교배 요청이 충돌했습니다."),
     MYTHIC_BREEDING_RESULT_NOT_FOUND(HttpStatus.INTERNAL_SERVER_ERROR, "교배 결과를 찾을 수 없습니다."),
+    BATTLE_ROSTER_REGISTRATION_FORBIDDEN(HttpStatus.FORBIDDEN, "개발용 Battle 참가자 등록은 로컬 환경에서만 허용됩니다."),
+    BATTLE_ROSTER_REGISTRATION_INVALID(HttpStatus.BAD_REQUEST, "Battle 참가자 등록 정보가 유효하지 않습니다."),
     BATTLE_SETTLEMENT_CONFLICT(HttpStatus.CONFLICT,"Battle settlement conflict"), BATTLE_SUMMARY_INVALID(HttpStatus.BAD_REQUEST,"Invalid battle summary"), BATTLE_PARTICIPANT_MISMATCH(HttpStatus.BAD_REQUEST,"Invalid participants"), BATTLE_BALANCE_VERSION_MISMATCH(HttpStatus.CONFLICT,"Balance version mismatch"), BATTLE_CONTENT_HASH_MISMATCH(HttpStatus.CONFLICT,"Balance content hash mismatch"), BATTLE_UNKNOWN_MONSTER(HttpStatus.BAD_REQUEST,"Unknown monster"), BATTLE_REQUEST_CONFLICT(HttpStatus.CONFLICT,"Battle request conflict"),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "예상치 못한 서버 에러가 발생했습니다.");
 
