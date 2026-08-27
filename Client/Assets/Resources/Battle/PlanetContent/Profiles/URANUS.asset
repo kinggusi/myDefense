@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fd0a7275a5e5b444a8a6a67018ba1661, type: 3}
+  m_Name: URANUS
+  m_EditorClassIdentifier: Assembly-CSharp::MyDefense.Battle.Runtime.PlanetContentProfile
+  _mapId: URANUS
+  _enabled: 1
+  _environmentPrefab: {fileID: 7480303009607781708, guid: 051d8cd0b0aa25344bc191d5cfee9cb9, type: 3}
+  _backgroundSprite: {fileID: 0}
+  _backgroundColor: {r: 0.0625, g: 0.1875, b: 0.205, a: 0.25}
+  _environmentMaterial: {fileID: 2100000, guid: 04fde61ab4d432f449ccee2a7e568fba, type: 2}
+  _lighting:
+    _ambientColor: {r: 0.4125, g: 0.5875, b: 0.612, a: 1}
+    _ambientIntensity: 0.8
+    _directionalColor: {r: 0.73749995, g: 0.9125, b: 0.937, a: 1}
+    _directionalIntensity: 1
+    _directionalEulerAngles: {x: 50, y: -30, z: 0}
+  _environmentEffects:
+  - {fileID: 3604560650837840007, guid: c35441ac5d0cb064c9a16bfa8bc60553, type: 3}

@@ -2,6 +2,7 @@ using System;
 using UnityEngine;
 using Fusion;
 using MyDefense.Battle;
+using MyDefense.Battle.Balance.Canonical;
 
 namespace MyDefense.Battle.Runtime
 {
@@ -16,13 +17,17 @@ namespace MyDefense.Battle.Runtime
         [SerializeField] private BattleWaveExecutor _waveExecutor;
         [SerializeField] private BattleWaveStateAuthority _stateAuthority;
         [SerializeField] private PathManager _pathManager;
+        [SerializeField] private PlanetContentApplicator _planetContentApplicator;
         private IBattleSessionRosterRegistration _rosterRegistration;
+        private string _planetContentFailureKey;
 
         public BattleSessionContext SessionContext { get; private set; }
         public bool IsInitialized { get; private set; }
 
         public BattleRunnerLifecycle RunnerLifecycle => _runnerLifecycle;
         public BattleWaveExecutor WaveExecutor => _waveExecutor;
+        public PlanetContentApplicator PlanetContentApplicator => _planetContentApplicator;
+        public string LastInitializationError { get; private set; }
 
         public bool TryCaptureReconnectSnapshot(out MyDefense.Shared.Contracts.BattleSessionSnapshot snapshot)
         {
@@ -112,9 +117,42 @@ namespace MyDefense.Battle.Runtime
             // The callback may have completed initialization before this call
             // resumes, so do not initialize the same session a second time.
             if (IsInitialized
-                && ReferenceEquals(SessionContext, _runnerLifecycle.SessionContext)
-                && (_stateAuthority == null || _stateAuthority.IsSpawnedForAccess))
+                && ReferenceEquals(SessionContext, _runnerLifecycle.SessionContext))
+            {
+                bool runnerIsRunning = _runnerLifecycle.Runner != null && _runnerLifecycle.Runner.IsRunning;
+                if (RequiresSpawnedAuthorityMap(
+                        runnerIsRunning,
+                        _stateAuthority != null,
+                        _stateAuthority != null && _stateAuthority.IsSpawnedForAccess))
+                {
+                    LastInitializationError = "Waiting for BattleWaveStateAuthority network spawn.";
+                    return false;
+                }
+                if (_stateAuthority == null || !_stateAuthority.IsSpawnedForAccess)
+                    return true;
+                if (!_stateAuthority.TryResolveMapForInitialization(
+                        SessionContext.MapId,
+                        out string alreadyBoundMapId,
+                        out bool shouldRetryExistingMap,
+                        out string existingMapReason))
+                {
+                    if (shouldRetryExistingMap)
+                    {
+                        LastInitializationError = existingMapReason;
+                        return false;
+                    }
+                    ReportPlanetContentFailure(SessionContext, existingMapReason);
+                    return false;
+                }
+                if (!string.Equals(alreadyBoundMapId, SessionContext.MapId, StringComparison.Ordinal))
+                {
+                    ReportPlanetContentFailure(
+                        SessionContext,
+                        "Already initialized Session mapId no longer matches authoritative mapId.");
+                    return false;
+                }
                 return true;
+            }
 
             BattlePlayerRoster roster = _runnerLifecycle.PlayerRoster;
             if (roster == null || _runnerLifecycle.Runner == null)
@@ -202,6 +240,14 @@ namespace MyDefense.Battle.Runtime
                 return false;
             if (localPlayerLane != LaneType.Player1Lane && localPlayerLane != LaneType.Player2Lane)
                 return false;
+            if (RequiresSpawnedAuthorityMap(
+                    _runnerLifecycle?.Runner != null && _runnerLifecycle.Runner.IsRunning,
+                    _stateAuthority != null,
+                    _stateAuthority != null && _stateAuthority.IsSpawnedForAccess))
+            {
+                LastInitializationError = "Waiting for BattleWaveStateAuthority network spawn.";
+                return false;
+            }
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             BattleP1ValidationSessionProfile p1ValidationProfile = _runnerLifecycle?.P1ValidationProfile;
@@ -221,6 +267,51 @@ namespace MyDefense.Battle.Runtime
                 return false;
             }
 #endif
+
+            _planetContentApplicator ??= GetComponent<PlanetContentApplicator>();
+            _planetContentApplicator ??= gameObject.AddComponent<PlanetContentApplicator>();
+            string authoritativeMapId = sessionContext.MapId;
+            if (_stateAuthority != null && _stateAuthority.IsSpawnedForAccess)
+            {
+                if (!_stateAuthority.TryResolveMapForInitialization(
+                        sessionContext.MapId,
+                        out authoritativeMapId,
+                        out bool shouldRetryMapBinding,
+                        out string mapBindingReason))
+                {
+                    if (shouldRetryMapBinding)
+                    {
+                        LastInitializationError = mapBindingReason;
+                        return false;
+                    }
+                    ReportPlanetContentFailure(sessionContext, mapBindingReason);
+                    return false;
+                }
+                if (!string.Equals(authoritativeMapId, sessionContext.MapId, StringComparison.Ordinal))
+                {
+                    ReportPlanetContentFailure(
+                        sessionContext,
+                        "Resolved authoritative mapId does not match the immutable BattleSessionContext.MapId.");
+                    return false;
+                }
+            }
+            if (!_waveExecutor.TryGetCanonicalPlanetBattles(out CanonicalPlanetBattleRegistry canonicalPlanets))
+            {
+                ReportPlanetContentFailure(
+                    sessionContext,
+                    "Canonical PlanetBattle registry is unavailable or invalid.");
+                return false;
+            }
+            if (!_planetContentApplicator.TryApply(
+                    authoritativeMapId,
+                    canonicalPlanets,
+                    out string planetContentError))
+            {
+                ReportPlanetContentFailure(sessionContext, planetContentError);
+                return false;
+            }
+            _planetContentFailureKey = null;
+            LastInitializationError = null;
 
             if (_stateAuthority != null)
             {
@@ -279,8 +370,33 @@ namespace MyDefense.Battle.Runtime
 
         public void ResetAdapter()
         {
+            _planetContentApplicator?.Clear();
             SessionContext = null;
             IsInitialized = false;
+            _planetContentFailureKey = null;
+            LastInitializationError = null;
+        }
+
+        public static bool RequiresSpawnedAuthorityMap(
+            bool runnerIsRunning,
+            bool hasStateAuthorityComponent,
+            bool stateAuthorityIsSpawned)
+        {
+            return runnerIsRunning && (!hasStateAuthorityComponent || !stateAuthorityIsSpawned);
+        }
+
+        private void ReportPlanetContentFailure(BattleSessionContext sessionContext, string reason)
+        {
+            LastInitializationError = reason;
+            string key = sessionContext.BattleSessionId + "\n" + sessionContext.MapId + "\n" + reason;
+            if (string.Equals(_planetContentFailureKey, key, StringComparison.Ordinal))
+                return;
+
+            _planetContentFailureKey = key;
+            Debug.LogError(
+                "[PlanetContent] Battle initialization failed closed for session='"
+                + sessionContext.BattleSessionId + "', mapId='"
+                + (sessionContext.MapId ?? "<null>") + "': " + reason);
         }
 
         private void EnsureSettlementCoordinator(

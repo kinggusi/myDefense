@@ -411,7 +411,7 @@ P0-1-1~4 → P0-1-5 → P0-1-6
 | Task ID | 담당 | 상태 | Codex 작업 |
 |---|---|---|---|
 | P2-1-1 | jjangash | 정책 선행 | 행성 Stage 해금·입장·보상 서버 구현 |
-| P2-1-2 | kinggusi | 정책 선행 | 행성별 Map·Waypoint·Boss Scene 구현 |
+| P2-1-2 | kinggusi | 검증 대기 | 단일 Battle Scene의 `PlanetContentProfile + 환경 Prefab` 기반 행성 Presentation 구현 — local/dev 자동검증 PASS, 사람 비주얼·2클라이언트 검증 대기 |
 | P2-2-1 | jjangash | 정책 선행 | 일일 콘텐츠 횟수·초기화·보상 서버 구현 |
 | P2-2-2 | kinggusi | 정책 선행 | 배양 구역 5 Stage Battle 구현 |
 | P2-2-3 | kinggusi | 정책 선행 | 변이 연구소 5 Stage Battle 구현 |
@@ -423,6 +423,10 @@ P0-1-1~4 → P0-1-5 → P0-1-6
 | P2-5-1 | jjangash | 부분 완료 | Breeding Unity UI·API 연결 |
 | P2-6-1 | jjangash | 정책 선행 | Shop·스킨·편의 상품 서버·UI 구현 |
 | P2-6-2 | kinggusi | 대기 | 스킨·Projectile·처치 Effect 적용 |
+
+> P2-1 정책 확정(2026-08-27): 행성 자체를 Stage로 사용하고 서버가 trusted roster에서 확정한 canonical `mapId`를 Fusion Session/Snapshot/Settlement까지 고정한다. Battle은 단일 `Battle.unity`와 공통 Board/Lane/Waypoint/Boss Runtime을 유지하며 `PlanetContentProfile`과 presentation-only 환경 Prefab으로 배경·재질·조명·Particle/환경 Effect만 교체한다. Additive Scene과 행성 고유 기믹·Boss 패턴·컷신은 1차 범위에서 제외한다. 알 수 없거나 비활성인 mapId, canonical PlanetBattle 대비 Profile 누락·중복·비활성은 fallback 없이 Wave 시작 전에 fail-closed한다. local/dev 구현은 진행하되 production 완료 판정에는 P1-5-7 JWT/matchmaking Adapter와 실제 2클라이언트 Smoke Test가 필요하다.
+
+> P2-1-2 local/dev 구현 기록(2026-08-27): authoritative `NetworkString<_16>` mapId 최초 고정, Client 복제 대기·불일치 fail-closed, Spawn 초기화 race 차단, 9개 canonical Profile/환경 Prefab/Material/Effect placeholder 및 presentation allowlist 검증을 구현했다. PlanetContent targeted 14/14, Unity 전체 EditMode 455/455, compile error 0, 독립 리뷰 Blocker 0/Major 0으로 PASS했다. 현재 Shared `BattleSessionSnapshot`에는 mapId가 없으므로 Snapshot schema 확장은 Shared 담당 후속 의존성으로 남긴다. 최종 상태는 사람 비주얼 검증, 실제 2클라이언트 Smoke, P1-5-7 production Adapter 전까지 `검증 대기`다.
 
 ---
 

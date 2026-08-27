@@ -25,6 +25,9 @@ namespace MyDefense.Battle.Tests
             Assert.That(typeof(BattleWaveStateAuthority).GetMethod(nameof(BattleWaveStateAuthority.ValidateWaveEnd)), Is.Not.Null);
             Assert.That(typeof(BattleWaveStateAuthority).GetMethod(nameof(BattleWaveStateAuthority.ValidateMatchState)), Is.Not.Null);
             Assert.That(typeof(BattleWaveStateAuthority).GetProperty(nameof(BattleWaveStateAuthority.CurrentWave)), Is.Not.Null);
+            Assert.That(typeof(BattleWaveStateAuthority).GetProperty(nameof(BattleWaveStateAuthority.AuthoritativeMapId)), Is.Not.Null);
+            Assert.That(typeof(BattleWaveStateAuthority).GetProperty(nameof(BattleWaveStateAuthority.AuthoritativeMapId)).PropertyType,
+                Is.EqualTo(typeof(NetworkString<_16>)));
             Assert.That(typeof(BattleWaveStateAuthority).GetProperty(nameof(BattleWaveStateAuthority.HighestClearedWave)), Is.Not.Null);
             Assert.That(typeof(BattleWaveStateAuthority).GetProperty(nameof(BattleWaveStateAuthority.Player1DisconnectGraceTimer)), Is.Not.Null);
             Assert.That(typeof(BattleWaveStateAuthority).GetProperty(nameof(BattleWaveStateAuthority.Player2DisconnectGraceTimer)), Is.Not.Null);
@@ -62,6 +65,39 @@ namespace MyDefense.Battle.Tests
             Assert.That(typeof(BattleWaveStateAuthority).GetProperty(nameof(BattleWaveStateAuthority.Player2BattleState)), Is.Not.Null);
             Assert.That(typeof(BattleWaveStateAuthority).GetMethod(nameof(BattleWaveStateAuthority.IsPlayerActionAllowed)), Is.Not.Null);
             Assert.That(typeof(BattleWaveStateAuthority).GetMethod(nameof(BattleWaveStateAuthority.IsBoardSlotLockedForMythicChoice)), Is.Not.Null);
+        }
+
+        [Test]
+        public void AuthoritativeMapBinding_IsImmutableAndRejectsMismatch()
+        {
+            Assert.That(BattleWaveStateAuthority.TryResolveAuthoritativeMapBinding(
+                true, "EARTH", null, out string first, out bool retry, out string reason), Is.True, reason);
+            Assert.That(first, Is.EqualTo("EARTH"));
+            Assert.That(retry, Is.False);
+
+            Assert.That(BattleWaveStateAuthority.TryResolveAuthoritativeMapBinding(
+                true, "MARS", "EARTH", out _, out retry, out reason), Is.False);
+            Assert.That(retry, Is.False);
+            Assert.That(reason, Does.Contain("cannot change"));
+        }
+
+        [Test]
+        public void ClientMapBinding_WaitsForReplicationAndRejectsLocalMismatch()
+        {
+            Assert.That(BattleWaveStateAuthority.TryResolveAuthoritativeMapBinding(
+                false, "EARTH", null, out _, out bool retry, out string reason), Is.False);
+            Assert.That(retry, Is.True);
+            Assert.That(reason, Does.Contain("Waiting"));
+
+            Assert.That(BattleWaveStateAuthority.TryResolveAuthoritativeMapBinding(
+                false, "EARTH", "MARS", out _, out retry, out reason), Is.False);
+            Assert.That(retry, Is.False);
+            Assert.That(reason, Does.Contain("does not match"));
+
+            Assert.That(BattleWaveStateAuthority.TryResolveAuthoritativeMapBinding(
+                false, "EARTH", "EARTH", out string resolved, out retry, out reason), Is.True, reason);
+            Assert.That(resolved, Is.EqualTo("EARTH"));
+            Assert.That(retry, Is.False);
         }
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD

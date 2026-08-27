@@ -51,6 +51,7 @@ namespace MyDefense.Battle
         [Networked] public int CurrentWave { get; private set; }
         [Networked] public int HighestClearedWave { get; private set; }
         [Networked] public NetworkString<_32> CurrentWaveId { get; private set; }
+        [Networked] public NetworkString<_16> AuthoritativeMapId { get; private set; }
         [Networked] public int CurrentWaveTypeValue { get; private set; }
         [Networked] public NetworkBool IsWaveRunning { get; private set; }
         [Networked] public int MatchStateValue { get; private set; }
@@ -1315,11 +1316,108 @@ namespace MyDefense.Battle
         {
             if (!HasStateAuthority || _executor == null)
                 return false;
+            if (!TryResolveMapForInitialization(
+                    sessionContext?.MapId,
+                    out _,
+                    out _,
+                    out string mapReason))
+            {
+                Debug.LogError("[BattleMap] " + mapReason);
+                return false;
+            }
             HighestClearedWave = 0;
             _executor.InitializeSession(sessionContext, playerIdentityProvider);
             ResetFieldLimitEvents();
             SyncPlayerBattleStates();
             SyncAliveMonsterCounts();
+            return true;
+        }
+
+        public bool TryResolveMapForInitialization(
+            string localSessionMapId,
+            out string authoritativeMapId,
+            out bool shouldRetry,
+            out string reason)
+        {
+            authoritativeMapId = null;
+            shouldRetry = false;
+            reason = null;
+            if (!IsSpawnedForAccess)
+            {
+                authoritativeMapId = localSessionMapId;
+                return !string.IsNullOrWhiteSpace(authoritativeMapId);
+            }
+
+            string replicatedMapId = AuthoritativeMapId.ToString();
+            if (!TryResolveAuthoritativeMapBinding(
+                    HasStateAuthority,
+                    localSessionMapId,
+                    replicatedMapId,
+                    out authoritativeMapId,
+                    out shouldRetry,
+                    out reason))
+                return false;
+
+            if (HasStateAuthority && string.IsNullOrWhiteSpace(replicatedMapId))
+                AuthoritativeMapId = authoritativeMapId;
+            return true;
+        }
+
+        public static bool TryResolveAuthoritativeMapBinding(
+            bool isStateAuthority,
+            string localSessionMapId,
+            string replicatedMapId,
+            out string authoritativeMapId,
+            out bool shouldRetry,
+            out string reason)
+        {
+            authoritativeMapId = null;
+            shouldRetry = false;
+            reason = null;
+            if (string.IsNullOrWhiteSpace(localSessionMapId))
+            {
+                reason = "Local BattleSessionContext.MapId is required.";
+                return false;
+            }
+
+            string local = localSessionMapId;
+            if (!string.Equals(local, local.Trim(), StringComparison.Ordinal))
+            {
+                reason = "Local BattleSessionContext.MapId must match canonical text exactly.";
+                return false;
+            }
+            string replicated = string.IsNullOrWhiteSpace(replicatedMapId) ? null : replicatedMapId;
+            if (replicated != null && !string.Equals(replicated, replicated.Trim(), StringComparison.Ordinal))
+            {
+                reason = "Replicated authoritative mapId is not canonical exact text.";
+                return false;
+            }
+            if (isStateAuthority)
+            {
+                if (replicated != null && !string.Equals(replicated, local, StringComparison.Ordinal))
+                {
+                    reason = "State Authority mapId is already fixed to '" + replicated
+                        + "' and cannot change to '" + local + "'.";
+                    return false;
+                }
+                authoritativeMapId = replicated ?? local;
+                return true;
+            }
+
+            if (replicated == null)
+            {
+                shouldRetry = true;
+                reason = "Waiting for replicated authoritative mapId.";
+                return false;
+            }
+            if (!string.Equals(replicated, local, StringComparison.Ordinal))
+            {
+                reason = "Local BattleSessionContext.MapId '" + local
+                    + "' does not match replicated authoritative mapId '" + replicated + "'.";
+                return false;
+            }
+
+            authoritativeMapId = replicated;
             return true;
         }
 
