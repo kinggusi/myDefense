@@ -114,13 +114,19 @@ namespace MyDefense.Battle.Combat
 
             if (targetObject != null && targetObject.IsValid)
             {
+                BattleMonsterNetworkState targetMonster = targetObject.GetComponent<BattleMonsterNetworkState>();
+                IDamageable damageable = targetObject.GetComponentInChildren<IDamageable>();
+                if (ShouldConsumeInFlightTarget(targetMonster, damageable))
+                {
+                    ConsumeAndDespawn();
+                    return;
+                }
+
                 Vector3 targetPosition = targetObject.transform.position;
                 Vector3 delta = targetPosition - transform.position;
                 if (delta.sqrMagnitude <= Mathf.Max(0.05f, HitRadius) * Mathf.Max(0.05f, HitRadius))
                 {
-                    IDamageable damageable = targetObject.GetComponentInChildren<IDamageable>();
-                    if (damageable != null)
-                        TryApplyAuthoritativeHit(damageable, targetObject.Id);
+                    TryApplyAuthoritativeHit(damageable, targetObject.Id);
                     return;
                 }
                 if ((ProjectileMoveType)MoveTypeValue == ProjectileMoveType.HOMING)
@@ -137,8 +143,11 @@ namespace MyDefense.Battle.Combat
                 if (targetObject != null)
                 {
                     IDamageable damageable = targetObject.GetComponentInChildren<IDamageable>();
-                    if (damageable != null)
+                    BattleMonsterNetworkState targetMonster = targetObject.GetComponent<BattleMonsterNetworkState>();
+                    if (!ShouldConsumeInFlightTarget(targetMonster, damageable))
                         TryApplyAuthoritativeHit(damageable, targetObject.Id);
+                    else
+                        ConsumeAndDespawn();
                 }
                 else
                 {
@@ -238,10 +247,11 @@ namespace MyDefense.Battle.Combat
             // steal the primary hit. Explicit GIANT splash is applied separately.
             if (!IsIntendedPrimaryTarget(TargetNetworkId, targetId))
                 return false;
+
+            BattleMonsterNetworkState monster = (target as Component)?.GetComponentInParent<BattleMonsterNetworkState>();
             if (targetId.IsValid && !_hitTargets.Add(targetId))
                 return false;
 
-            BattleMonsterNetworkState monster = (target as Component)?.GetComponentInParent<BattleMonsterNetworkState>();
             ulong targetRuntimeId = monster == null ? 0UL : monster.RuntimeMonsterId;
             AlienAttackSnapshot mutationSnapshot = BuildMutationSnapshot();
             float resolvedDamage = MutationAttackSnapshotCalculator.ResolveDeterministicDamage(
@@ -258,8 +268,25 @@ namespace MyDefense.Battle.Combat
                 IsCritical = isCritical,
                 ActiveMutationType = ActiveMutationType.ToString()
             };
-            target.ApplyDamage(payload);
-            if (monster != null)
+
+            bool hasNetworkState = HasValidNetworkState(monster);
+            HitTransactionPlan transaction = ResolveHitTransaction(
+                target,
+                hasNetworkState,
+                hasNetworkState && monster.IsDead,
+                payload,
+                hasMutationEffect: monster != null && HasMutationStatusEffect(),
+                hasSplashEffect: monster != null && SplashRadius > 0f && SplashDamageMultiplier > 0f,
+                hasGoldEffect: GoldPerHit > 0,
+                hasHitEventIdentity: targetRuntimeId != 0);
+            if (!transaction.Accepted)
+            {
+                if (transaction.ConsumeCount > 0)
+                    ConsumeAndDespawn();
+                return false;
+            }
+
+            if (transaction.MutationCount > 0)
             {
                 monster.ApplyMutationEffect(
                     DotDamagePerTick,
@@ -269,10 +296,12 @@ namespace MyDefense.Battle.Combat
                     SlowDurationSeconds,
                     AttackerServerId,
                     ActiveMutationType.ToString());
-                ApplySplashDamage(monster, payload);
             }
-            AwardMutationHitGold();
-            if (targetRuntimeId != 0)
+            if (transaction.SplashCount > 0)
+                ApplySplashDamage(monster, payload);
+            if (transaction.GoldCount > 0)
+                AwardMutationHitGold();
+            if (transaction.HitEventCount > 0)
             {
                 try
                 {
@@ -296,6 +325,42 @@ namespace MyDefense.Battle.Combat
         public static bool IsIntendedPrimaryTarget(NetworkId expectedTargetId, NetworkId collidedTargetId)
             => collidedTargetId.IsValid
                 && (!expectedTargetId.IsValid || expectedTargetId == collidedTargetId);
+
+        private static bool IsEligibleLivingTarget(
+            IDamageable target,
+            bool hasAuthoritativeNetworkState,
+            bool authoritativeIsDead)
+            => target != null
+                && !target.IsDead
+                && (!hasAuthoritativeNetworkState || !authoritativeIsDead);
+
+        private static HitTransactionPlan ResolveHitTransaction(
+            IDamageable target,
+            bool hasAuthoritativeNetworkState,
+            bool authoritativeIsDead,
+            DamagePayload payload,
+            bool hasMutationEffect,
+            bool hasSplashEffect,
+            bool hasGoldEffect,
+            bool hasHitEventIdentity)
+        {
+            if (!IsEligibleLivingTarget(target, hasAuthoritativeNetworkState, authoritativeIsDead))
+                return HitTransactionPlan.RejectedDeadTarget;
+
+            target.ApplyDamage(payload);
+            bool killedByThisHit = target.IsDead;
+            return new HitTransactionPlan(
+                accepted: true,
+                mutationCount: !killedByThisHit && hasMutationEffect ? 1 : 0,
+                splashCount: hasSplashEffect ? 1 : 0,
+                goldCount: hasGoldEffect ? 1 : 0,
+                hitEventCount: hasHitEventIdentity ? 1 : 0,
+                consumeCount: 0);
+        }
+
+        private bool HasMutationStatusEffect()
+            => (DotDamagePerTick > 0f && DotTickCount > 0 && DotTickIntervalSeconds > 0f)
+                || (SlowMultiplier > 0f && SlowMultiplier < 1f && SlowDurationSeconds > 0f);
 
         private AlienAttackSnapshot BuildMutationSnapshot()
         {
@@ -331,11 +396,11 @@ namespace MyDefense.Battle.Combat
                 BattleMonsterNetworkState nearby = hits[index] == null
                     ? null
                     : hits[index].GetComponentInParent<BattleMonsterNetworkState>();
-                if (nearby == null || nearby == primary || nearby.Object == null || !nearby.Object.IsValid
-                    || !_hitTargets.Add(nearby.Object.Id))
+                if (nearby == null || nearby == primary || nearby.Object == null || !nearby.Object.IsValid)
                     continue;
                 IDamageable nearbyDamageable = nearby.GetComponentInChildren<IDamageable>();
-                if (nearbyDamageable == null)
+                if (!IsEligibleLivingTarget(nearby, nearbyDamageable)
+                    || !_hitTargets.Add(nearby.Object.Id))
                     continue;
                 DamagePayload splash = primaryPayload;
                 splash.TargetRuntimeId = nearby.RuntimeMonsterId;
@@ -379,6 +444,67 @@ namespace MyDefense.Battle.Combat
                 return false;
 
             return TryApplyAuthoritativeHit(target, targetObject.Id);
+        }
+
+        private static bool IsEligibleLivingTarget(BattleMonsterNetworkState monster, IDamageable target)
+        {
+            bool hasNetworkState = HasValidNetworkState(monster);
+            return IsEligibleLivingTarget(
+                target,
+                hasNetworkState,
+                hasNetworkState && monster.IsDead);
+        }
+
+        private static bool ShouldConsumeInFlightTarget(BattleMonsterNetworkState monster, IDamageable target)
+        {
+            bool hasNetworkState = HasValidNetworkState(monster);
+            return ShouldConsumeInFlightTarget(
+                target,
+                hasNetworkState,
+                hasNetworkState && monster.IsDead);
+        }
+
+        private static bool ShouldConsumeInFlightTarget(
+            IDamageable target,
+            bool hasAuthoritativeNetworkState,
+            bool authoritativeIsDead)
+            => !IsEligibleLivingTarget(target, hasAuthoritativeNetworkState, authoritativeIsDead);
+
+        private static bool HasValidNetworkState(BattleMonsterNetworkState monster)
+            => monster != null && monster.Object != null && monster.Object.IsValid;
+
+        private readonly struct HitTransactionPlan
+        {
+            public static readonly HitTransactionPlan RejectedDeadTarget = new(
+                accepted: false,
+                mutationCount: 0,
+                splashCount: 0,
+                goldCount: 0,
+                hitEventCount: 0,
+                consumeCount: 1);
+
+            public HitTransactionPlan(
+                bool accepted,
+                int mutationCount,
+                int splashCount,
+                int goldCount,
+                int hitEventCount,
+                int consumeCount)
+            {
+                Accepted = accepted;
+                MutationCount = mutationCount;
+                SplashCount = splashCount;
+                GoldCount = goldCount;
+                HitEventCount = hitEventCount;
+                ConsumeCount = consumeCount;
+            }
+
+            public bool Accepted { get; }
+            public int MutationCount { get; }
+            public int SplashCount { get; }
+            public int GoldCount { get; }
+            public int HitEventCount { get; }
+            public int ConsumeCount { get; }
         }
 
         public override void Despawned(NetworkRunner runner, bool hasState)

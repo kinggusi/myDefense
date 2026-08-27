@@ -125,6 +125,191 @@ public sealed class BattleDamageContractTests
     }
 
     [Test]
+    public void UnitAttack_TargetSearchSkipsActiveDeadFadeMonster()
+    {
+        GameObject unitObject = new GameObject("dead-target-search-unit");
+        GameObject deadMonster = new GameObject("dead-fade-monster");
+        GameObject livingMonster = new GameObject("living-monster");
+        try
+        {
+            unitObject.AddComponent<UnitData>();
+            UnitAttack attack = unitObject.AddComponent<UnitAttack>();
+            deadMonster.tag = "Monster";
+            livingMonster.tag = "Monster";
+            deadMonster.transform.position = Vector3.right;
+            livingMonster.transform.position = Vector3.right * 2f;
+            deadMonster.AddComponent<MonsterStat>().ApplyNetworkState(0f, 10f, true);
+            livingMonster.AddComponent<MonsterStat>().ApplyNetworkState(10f, 10f, false);
+
+            MethodInfo updateTarget = typeof(UnitAttack).GetMethod(
+                "UpdateTarget",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            FieldInfo targetField = typeof(UnitAttack).GetField(
+                "target",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(updateTarget, Is.Not.Null);
+            Assert.That(targetField, Is.Not.Null);
+
+            updateTarget.Invoke(attack, new object[] { 10f });
+
+            Assert.That(targetField.GetValue(attack), Is.EqualTo(livingMonster.transform));
+            Assert.That(deadMonster.activeInHierarchy, Is.True, "Fade presentation remains active during this check.");
+        }
+        finally
+        {
+            Object.DestroyImmediate(livingMonster);
+            Object.DestroyImmediate(deadMonster);
+            Object.DestroyImmediate(unitObject);
+        }
+    }
+
+    [Test]
+    public void UnitAttack_AndLegacyBulletResolveChildOnlyDamageable()
+    {
+        GameObject unitObject = new GameObject("child-damageable-unit");
+        GameObject monsterRoot = new GameObject("child-damageable-monster-root");
+        GameObject monsterChild = new GameObject("child-damageable-monster-child");
+        try
+        {
+            unitObject.AddComponent<UnitData>();
+            UnitAttack attack = unitObject.AddComponent<UnitAttack>();
+            monsterRoot.tag = "Monster";
+            monsterRoot.transform.position = Vector3.right;
+            monsterChild.transform.SetParent(monsterRoot.transform, false);
+            MonsterStat childStat = monsterChild.AddComponent<MonsterStat>();
+            childStat.ApplyNetworkState(10f, 10f, false);
+
+            MethodInfo updateTarget = typeof(UnitAttack).GetMethod(
+                "UpdateTarget",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            FieldInfo targetField = typeof(UnitAttack).GetField(
+                "target",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            MethodInfo bulletTargetAlive = typeof(Bullet).GetMethod(
+                "IsTargetAlive",
+                BindingFlags.Static | BindingFlags.NonPublic);
+            Assert.That(updateTarget, Is.Not.Null);
+            Assert.That(targetField, Is.Not.Null);
+            Assert.That(bulletTargetAlive, Is.Not.Null);
+
+            updateTarget.Invoke(attack, new object[] { 10f });
+
+            Assert.That(targetField.GetValue(attack), Is.EqualTo(monsterRoot.transform));
+            Assert.That((bool)bulletTargetAlive.Invoke(null, new object[] { monsterRoot.transform }), Is.True);
+
+            childStat.ApplyNetworkState(0f, 10f, true);
+            Assert.That((bool)bulletTargetAlive.Invoke(null, new object[] { monsterRoot.transform }), Is.False);
+        }
+        finally
+        {
+            Object.DestroyImmediate(monsterRoot);
+            Object.DestroyImmediate(unitObject);
+        }
+    }
+
+    [Test]
+    public void UnitAttack_ReleasesMaintainedTargetWhenItDies()
+    {
+        GameObject unitObject = new GameObject("dead-maintained-target-unit");
+        GameObject monsterObject = new GameObject("dead-maintained-target-monster");
+        try
+        {
+            unitObject.AddComponent<UnitData>();
+            UnitAttack attack = unitObject.AddComponent<UnitAttack>();
+            MonsterStat monster = monsterObject.AddComponent<MonsterStat>();
+            monster.ApplyNetworkState(10f, 10f, false);
+
+            FieldInfo targetField = typeof(UnitAttack).GetField(
+                "target",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            FieldInfo nextSearchField = typeof(UnitAttack).GetField(
+                "nextTargetSearchTime",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            MethodInfo update = typeof(UnitAttack).GetMethod(
+                "Update",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(targetField, Is.Not.Null);
+            Assert.That(nextSearchField, Is.Not.Null);
+            Assert.That(update, Is.Not.Null);
+            targetField.SetValue(attack, monsterObject.transform);
+            nextSearchField.SetValue(attack, float.MaxValue);
+
+            monster.ApplyNetworkState(0f, 10f, true);
+            update.Invoke(attack, null);
+
+            Assert.That(targetField.GetValue(attack), Is.Null);
+        }
+        finally
+        {
+            Object.DestroyImmediate(monsterObject);
+            Object.DestroyImmediate(unitObject);
+        }
+    }
+
+    [Test]
+    public void UnitAttack_AndLegacyBulletRejectTargetThatDiesBeforeFire()
+    {
+        GameObject unitObject = new GameObject("dead-before-fire-unit");
+        GameObject monsterObject = new GameObject("dead-before-fire-monster");
+        try
+        {
+            unitObject.AddComponent<UnitData>();
+            UnitAttack attack = unitObject.AddComponent<UnitAttack>();
+            MonsterStat monster = monsterObject.AddComponent<MonsterStat>();
+            monster.ApplyNetworkState(0f, 10f, true);
+
+            FieldInfo targetField = typeof(UnitAttack).GetField(
+                "target",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            MethodInfo shoot = typeof(UnitAttack).GetMethod(
+                "Shoot",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            MethodInfo bulletTargetAlive = typeof(Bullet).GetMethod(
+                "IsTargetAlive",
+                BindingFlags.Static | BindingFlags.NonPublic);
+            Assert.That(targetField, Is.Not.Null);
+            Assert.That(shoot, Is.Not.Null);
+            Assert.That(bulletTargetAlive, Is.Not.Null);
+            targetField.SetValue(attack, monsterObject.transform);
+
+            shoot.Invoke(attack, null);
+
+            Assert.That(targetField.GetValue(attack), Is.Null);
+            Assert.That((bool)bulletTargetAlive.Invoke(null, new object[] { monsterObject.transform }), Is.False);
+        }
+        finally
+        {
+            Object.DestroyImmediate(monsterObject);
+            Object.DestroyImmediate(unitObject);
+        }
+    }
+
+    [Test]
+    public void MonsterStat_DeadTargetDoesNotChangeDamageAuditState()
+    {
+        GameObject monsterObject = new GameObject("dead-damage-audit-monster");
+        try
+        {
+            MonsterStat monster = monsterObject.AddComponent<MonsterStat>();
+            monster.ApplyNetworkState(0f, 10f, true);
+
+            monster.ApplyDamage(new DamagePayload
+            {
+                AttackerId = 99,
+                Amount = 5f
+            });
+
+            Assert.That(monster.LastDamageAttackerId, Is.Zero);
+            Assert.That(monster.DamageAttackerIds, Is.Empty);
+            Assert.That(monster.CurrentHp, Is.Zero);
+        }
+        finally
+        {
+            Object.DestroyImmediate(monsterObject);
+        }
+    }
+
+    [Test]
     public void AuthoritativeBoardStateSync_RebindsMovedAndSwappedUnitsOnlyOnce()
     {
         MethodInfo sync = typeof(FusionKidnapBoardView).GetMethod(

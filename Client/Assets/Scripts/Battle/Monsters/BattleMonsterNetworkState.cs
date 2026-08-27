@@ -86,8 +86,17 @@ namespace MyDefense.Battle
                 Amount = MutationDotDamage,
                 ActiveMutationType = MutationDotType.ToString()
             });
-            MutationDotTicksRemaining--;
-            MutationDotTimer = MutationDotTicksRemaining > 0
+
+            bool targetDied = IsDead || _monsterStat == null || _monsterStat.IsDead;
+            DotTickPlan tickPlan = ResolveDotTickAfterDamage(targetDied, MutationDotTicksRemaining);
+            if (tickPlan.ClearAllEffects)
+            {
+                ClearMutationEffects();
+                return;
+            }
+
+            MutationDotTicksRemaining = tickPlan.RemainingTicks;
+            MutationDotTimer = tickPlan.ScheduleTimer
                 ? TickTimer.CreateFromSeconds(Runner, MutationDotIntervalSeconds)
                 : default;
         }
@@ -362,6 +371,7 @@ namespace MyDefense.Battle
             CurrentHp = currentHp;
             MaxHp = maxHp;
             IsDead = false;
+            ClearMutationEffects();
         }
 
         private void HandleHpChanged(float currentHp, float maxHp)
@@ -379,11 +389,50 @@ namespace MyDefense.Battle
                 return;
 
             IsDead = true;
+            ClearMutationEffects();
             BattleWaveStateAuthority authority = FindFirstObjectByType<BattleWaveStateAuthority>();
             if (authority == null)
                 return;
 
             authority.TryAwardMonsterKill(this);
+        }
+
+        private void ClearMutationEffects()
+        {
+            MutationDotDamage = 0f;
+            MutationDotTicksRemaining = 0;
+            MutationDotTimer = default;
+            MutationDotIntervalSeconds = 0f;
+            MutationDotAttackerId = 0;
+            MutationDotType = "NONE";
+            MutationSlowTimer = default;
+            MutationMoveSpeedMultiplier = 1f;
+        }
+
+        private static DotTickPlan ResolveDotTickAfterDamage(bool targetDied, int ticksRemainingBeforeHit)
+        {
+            if (targetDied)
+                return new DotTickPlan(0, scheduleTimer: false, clearAllEffects: true);
+
+            int remainingTicks = Mathf.Max(0, ticksRemainingBeforeHit - 1);
+            return new DotTickPlan(
+                remainingTicks,
+                scheduleTimer: remainingTicks > 0,
+                clearAllEffects: false);
+        }
+
+        private readonly struct DotTickPlan
+        {
+            public DotTickPlan(int remainingTicks, bool scheduleTimer, bool clearAllEffects)
+            {
+                RemainingTicks = remainingTicks;
+                ScheduleTimer = scheduleTimer;
+                ClearAllEffects = clearAllEffects;
+            }
+
+            public int RemainingTicks { get; }
+            public bool ScheduleTimer { get; }
+            public bool ClearAllEffects { get; }
         }
     }
 }

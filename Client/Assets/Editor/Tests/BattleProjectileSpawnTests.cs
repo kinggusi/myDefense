@@ -1,6 +1,8 @@
+using System.Reflection;
 using MyDefense.Battle.Balance;
 using MyDefense.Battle.Combat;
 using MyDefense.Battle.Presentation;
+using MyDefense.Shared.Contracts;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -142,6 +144,180 @@ public sealed class BattleProjectileSpawnTests
         Assert.That(BattleProjectileNetworkState.IsIntendedPrimaryTarget(intended, default), Is.False);
         Assert.That(BattleProjectileNetworkState.IsIntendedPrimaryTarget(default, otherMonster), Is.True,
             "Untargeted legacy projectiles may still resolve their first valid collision.");
+    }
+
+    [Test]
+    public void HitTransaction_PreDeadTargetHasNoDamageOrSideEffects()
+    {
+        var target = new FakeDamageable(0f);
+        object plan = ResolveHitTransaction(target, authoritativeIsDead: true, damage: 10f);
+
+        Assert.That(PlanValue<bool>(plan, "Accepted"), Is.False);
+        Assert.That(target.ApplyCount, Is.Zero);
+        Assert.That(PlanValue<int>(plan, "MutationCount"), Is.Zero);
+        Assert.That(PlanValue<int>(plan, "SplashCount"), Is.Zero);
+        Assert.That(PlanValue<int>(plan, "GoldCount"), Is.Zero);
+        Assert.That(PlanValue<int>(plan, "HitEventCount"), Is.Zero);
+        Assert.That(PlanValue<int>(plan, "ConsumeCount"), Is.EqualTo(1));
+    }
+
+    [Test]
+    public void HitTransaction_LivingLethalHitRunsFatalSideEffectsExactlyOnceWithoutMutationRegistration()
+    {
+        var target = new FakeDamageable(5f);
+        object plan = ResolveHitTransaction(target, authoritativeIsDead: false, damage: 5f);
+
+        Assert.That(PlanValue<bool>(plan, "Accepted"), Is.True);
+        Assert.That(target.ApplyCount, Is.EqualTo(1));
+        Assert.That(target.IsDead, Is.True);
+        Assert.That(PlanValue<int>(plan, "MutationCount"), Is.Zero);
+        Assert.That(PlanValue<int>(plan, "SplashCount"), Is.EqualTo(1));
+        Assert.That(PlanValue<int>(plan, "GoldCount"), Is.EqualTo(1));
+        Assert.That(PlanValue<int>(plan, "HitEventCount"), Is.EqualTo(1));
+        Assert.That(PlanValue<int>(plan, "ConsumeCount"), Is.Zero);
+    }
+
+    [Test]
+    public void HitTransaction_LivingNonlethalHitRunsMutationAndOtherSideEffectsExactlyOnce()
+    {
+        var target = new FakeDamageable(10f);
+        object plan = ResolveHitTransaction(target, authoritativeIsDead: false, damage: 4f);
+
+        Assert.That(PlanValue<bool>(plan, "Accepted"), Is.True);
+        Assert.That(target.ApplyCount, Is.EqualTo(1));
+        Assert.That(target.IsDead, Is.False);
+        Assert.That(PlanValue<int>(plan, "MutationCount"), Is.EqualTo(1));
+        Assert.That(PlanValue<int>(plan, "SplashCount"), Is.EqualTo(1));
+        Assert.That(PlanValue<int>(plan, "GoldCount"), Is.EqualTo(1));
+        Assert.That(PlanValue<int>(plan, "HitEventCount"), Is.EqualTo(1));
+        Assert.That(PlanValue<int>(plan, "ConsumeCount"), Is.Zero);
+    }
+
+    [Test]
+    public void InFlightPolicy_ConsumesLocalOrAuthoritativeDeadTarget()
+    {
+        var deadTarget = new FakeDamageable(0f);
+        var locallyLivingNetworkDeadTarget = new FakeDamageable(10f);
+
+        Assert.That(ShouldConsumeInFlightTarget(deadTarget, false, false), Is.True);
+        Assert.That(ShouldConsumeInFlightTarget(locallyLivingNetworkDeadTarget, true, true), Is.True);
+        Assert.That(ShouldConsumeInFlightTarget(locallyLivingNetworkDeadTarget, true, false), Is.False);
+    }
+
+    [Test]
+    public void SplashEligibility_ExcludesDeadNeighborAndKeepsLivingNeighbor()
+    {
+        var deadNeighbor = new FakeDamageable(0f);
+        var livingNeighbor = new FakeDamageable(10f);
+
+        Assert.That(IsEligibleLivingTarget(deadNeighbor, false, false), Is.False);
+        Assert.That(IsEligibleLivingTarget(livingNeighbor, true, false), Is.True);
+        Assert.That(IsEligibleLivingTarget(livingNeighbor, true, true), Is.False);
+    }
+
+    [Test]
+    public void DotTickPolicy_LethalTickClearsRemainingTicksAndDoesNotScheduleTimer()
+    {
+        MethodInfo resolve = typeof(MyDefense.Battle.BattleMonsterNetworkState).GetMethod(
+            "ResolveDotTickAfterDamage",
+            BindingFlags.Static | BindingFlags.NonPublic);
+        Assert.That(resolve, Is.Not.Null);
+
+        object plan = resolve.Invoke(null, new object[] { true, 3 });
+
+        Assert.That(PlanValue<int>(plan, "RemainingTicks"), Is.Zero);
+        Assert.That(PlanValue<bool>(plan, "ScheduleTimer"), Is.False);
+        Assert.That(PlanValue<bool>(plan, "ClearAllEffects"), Is.True);
+    }
+
+    private static object ResolveHitTransaction(
+        IDamageable target,
+        bool authoritativeIsDead,
+        float damage)
+    {
+        MethodInfo resolve = typeof(BattleProjectileNetworkState).GetMethod(
+            "ResolveHitTransaction",
+            BindingFlags.Static | BindingFlags.NonPublic);
+        Assert.That(resolve, Is.Not.Null);
+        return resolve.Invoke(null, new object[]
+        {
+            target,
+            true,
+            authoritativeIsDead,
+            new DamagePayload { AttackerId = 17, Amount = damage },
+            true,
+            true,
+            true,
+            true
+        });
+    }
+
+    private static bool ShouldConsumeInFlightTarget(
+        IDamageable target,
+        bool hasAuthoritativeNetworkState,
+        bool authoritativeIsDead)
+    {
+        MethodInfo policy = typeof(BattleProjectileNetworkState).GetMethod(
+            "ShouldConsumeInFlightTarget",
+            BindingFlags.Static | BindingFlags.NonPublic,
+            null,
+            new[] { typeof(IDamageable), typeof(bool), typeof(bool) },
+            null);
+        Assert.That(policy, Is.Not.Null);
+        return (bool)policy.Invoke(null, new object[]
+        {
+            target,
+            hasAuthoritativeNetworkState,
+            authoritativeIsDead
+        });
+    }
+
+    private static bool IsEligibleLivingTarget(
+        IDamageable target,
+        bool hasAuthoritativeNetworkState,
+        bool authoritativeIsDead)
+    {
+        MethodInfo policy = typeof(BattleProjectileNetworkState).GetMethod(
+            "IsEligibleLivingTarget",
+            BindingFlags.Static | BindingFlags.NonPublic,
+            null,
+            new[] { typeof(IDamageable), typeof(bool), typeof(bool) },
+            null);
+        Assert.That(policy, Is.Not.Null);
+        return (bool)policy.Invoke(null, new object[]
+        {
+            target,
+            hasAuthoritativeNetworkState,
+            authoritativeIsDead
+        });
+    }
+
+    private static T PlanValue<T>(object plan, string propertyName)
+    {
+        Assert.That(plan, Is.Not.Null);
+        PropertyInfo property = plan.GetType().GetProperty(
+            propertyName,
+            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        Assert.That(property, Is.Not.Null, propertyName);
+        return (T)property.GetValue(plan);
+    }
+
+    private sealed class FakeDamageable : IDamageable
+    {
+        public FakeDamageable(float hp)
+        {
+            CurrentHp = hp;
+        }
+
+        public float CurrentHp { get; private set; }
+        public bool IsDead => CurrentHp <= 0f;
+        public int ApplyCount { get; private set; }
+
+        public void ApplyDamage(DamagePayload payload)
+        {
+            ApplyCount++;
+            CurrentHp = Mathf.Max(0f, CurrentHp - payload.Amount);
+        }
     }
 
 }
