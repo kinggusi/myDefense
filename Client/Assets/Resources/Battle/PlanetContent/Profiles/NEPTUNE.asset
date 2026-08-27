@@ -16,12 +16,12 @@ MonoBehaviour:
   _enabled: 1
   _environmentPrefab: {fileID: 1379607647417544058, guid: 58dfae73cd84e1a449fd3a55dadb14f6, type: 3}
   _backgroundSprite: {fileID: 0}
-  _backgroundColor: {r: 0.02, g: 0.07, b: 0.1375, a: 0.25}
+  _backgroundColor: {r: 0.01, g: 0.045, b: 0.155, a: 1}
   _environmentMaterial: {fileID: 2100000, guid: e3f5c18c7f01f044ab08fa4dc9341b57, type: 2}
   _lighting:
-    _ambientColor: {r: 0.353, g: 0.423, b: 0.5175, a: 1}
+    _ambientColor: {r: 0.339, g: 0.38799998, b: 0.542, a: 1}
     _ambientIntensity: 0.8
-    _directionalColor: {r: 0.678, g: 0.74799997, b: 0.8425, a: 1}
+    _directionalColor: {r: 0.664, g: 0.713, b: 0.867, a: 1}
     _directionalIntensity: 1
     _directionalEulerAngles: {x: 50, y: -30, z: 0}
   _environmentEffects:

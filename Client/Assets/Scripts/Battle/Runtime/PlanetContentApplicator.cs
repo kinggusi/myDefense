@@ -186,8 +186,16 @@ namespace MyDefense.Battle.Runtime
             Renderer[] renderers = environment.GetComponentsInChildren<Renderer>(true);
             for (int index = 0; index < renderers.Length; index++)
             {
-                if (renderers[index] is not ParticleSystemRenderer)
-                    renderers[index].sharedMaterial = material;
+                Renderer renderer = renderers[index];
+                if (renderer is ParticleSystemRenderer)
+                    continue;
+
+                bool isBackground = string.Equals(
+                    renderer.gameObject.name,
+                    "PlanetBackground",
+                    StringComparison.Ordinal);
+                if (isBackground || renderer.sharedMaterial == null)
+                    renderer.sharedMaterial = material;
             }
         }
 

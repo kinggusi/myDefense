@@ -6,6 +6,7 @@ using MyDefense.Battle.Runtime;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.TestTools;
 
 namespace MyDefense.Battle.Tests
@@ -127,6 +128,39 @@ namespace MyDefense.Battle.Tests
                     Is.EqualTo("Assets/Materials/Battle/PlanetContent/" + mapId + "_Environment.mat"));
                 Assert.That(PlanetContentValidator.ValidatePresentationPrefab(environment), Is.Empty);
                 Assert.That(PlanetContentValidator.ValidatePresentationPrefab(effect), Is.Empty);
+
+                AssertGeneratedPresentationIsSafe(mapId, environment, effect);
+                AssertPlanetFeatureSignature(mapId, environment);
+            }
+        }
+
+        [Test]
+        public void ResourcesPlanetPlaceholders_UseCameraSafeGutterAndHorizontalBackground()
+        {
+            foreach (string mapId in PlanetContentCatalog.CanonicalMapIds)
+            {
+                GameObject environment = AssetDatabase.LoadAssetAtPath<GameObject>(
+                    "Assets/Prefabs/Battle/PlanetContent/" + mapId + "_Environment.prefab");
+                Assert.That(environment, Is.Not.Null, mapId);
+
+                Transform background = environment.transform.Find("PlanetBackground");
+                Assert.That(background, Is.Not.Null, mapId + " needs an XZ background.");
+                Assert.That(Mathf.DeltaAngle(background.localEulerAngles.x, 90f),
+                    Is.EqualTo(0f).Within(0.1f), mapId + " background must face the top-down camera.");
+                Assert.That(background.localPosition.y, Is.LessThan(-0.5f));
+
+                Renderer[] renderers = environment.GetComponentsInChildren<Renderer>(true);
+                foreach (Renderer renderer in renderers)
+                {
+                    if (renderer.gameObject.name == "PlanetBackground")
+                        continue;
+
+                    Bounds bounds = renderer.bounds;
+                    Assert.That(bounds.min.x, Is.GreaterThanOrEqualTo(4.9f),
+                        mapId + "/" + renderer.name + " intrudes into the reserved Board/Lane region.");
+                    Assert.That(bounds.max.x, Is.LessThanOrEqualTo(10.6f),
+                        mapId + "/" + renderer.name + " can be cropped by a 4:3 camera.");
+                }
             }
         }
 
@@ -193,6 +227,115 @@ namespace MyDefense.Battle.Tests
             {
                 UnityEngine.Object.DestroyImmediate(root);
             }
+        }
+
+        private static void AssertGeneratedPresentationIsSafe(
+            string mapId,
+            GameObject environment,
+            GameObject effect)
+        {
+            Assert.That(environment.GetComponentsInChildren<Collider>(true), Is.Empty,
+                mapId + " environment must be presentation-only and collider-free.");
+            Assert.That(effect.GetComponentsInChildren<Collider>(true), Is.Empty,
+                mapId + " effect must be presentation-only and collider-free.");
+
+            foreach (GameObject root in new[] { environment, effect })
+            {
+                MonoBehaviour[] behaviours = root.GetComponentsInChildren<MonoBehaviour>(true);
+                Assert.That(behaviours.All(value => value is PlanetEnvironmentContent), Is.True,
+                    mapId + " generated content contains a gameplay/network MonoBehaviour.");
+
+                foreach (Renderer renderer in root.GetComponentsInChildren<Renderer>(true))
+                {
+                    Assert.That(renderer.sharedMaterial, Is.Not.Null,
+                        mapId + "/" + renderer.name + " has no material and can render pink.");
+                    Assert.That(renderer.sharedMaterial.shader, Is.Not.Null,
+                        mapId + "/" + renderer.name + " has no shader.");
+                    Assert.That(renderer.sharedMaterial.shader.name,
+                        Is.Not.EqualTo("Hidden/InternalErrorShader"), mapId + "/" + renderer.name);
+                    Assert.That(renderer.sharedMaterial.shader.isSupported, Is.True,
+                        mapId + "/" + renderer.name + " uses an unsupported shader.");
+                }
+            }
+
+            ParticleSystemRenderer particles = effect.GetComponent<ParticleSystemRenderer>();
+            Assert.That(particles, Is.Not.Null, mapId + " effect needs a ParticleSystemRenderer.");
+            Assert.That(AssetDatabase.GetAssetPath(particles.sharedMaterial),
+                Is.EqualTo("Assets/Materials/Battle/PlanetContent/" + mapId + "_Particle.mat"));
+
+            Material particleMaterial = particles.sharedMaterial;
+            Assert.That(particleMaterial.GetTag("RenderType", false), Is.EqualTo("Transparent"), mapId);
+            Assert.That(particleMaterial.renderQueue, Is.EqualTo((int)RenderQueue.Transparent), mapId);
+            Assert.That(particleMaterial.HasProperty("_ZWrite"), Is.True, mapId);
+            Assert.That(particleMaterial.GetFloat("_ZWrite"), Is.EqualTo(0f), mapId);
+            Assert.That(particleMaterial.HasProperty("_DstBlend"), Is.True, mapId);
+            Assert.That(particleMaterial.GetFloat("_DstBlend"),
+                Is.EqualTo((float)BlendMode.OneMinusSrcAlpha), mapId);
+            if (particleMaterial.HasProperty("_Mode"))
+            {
+                Assert.That(particleMaterial.GetFloat("_Mode"), Is.EqualTo(3f),
+                    mapId + " built-in particle material must use Transparent mode.");
+                Assert.That(particleMaterial.GetFloat("_SrcBlend"), Is.EqualTo((float)BlendMode.One), mapId);
+                Assert.That(particleMaterial.IsKeywordEnabled("_ALPHAPREMULTIPLY_ON"), Is.True, mapId);
+            }
+        }
+
+        private static void AssertPlanetFeatureSignature(string mapId, GameObject environment)
+        {
+            Transform[] transforms = environment.GetComponentsInChildren<Transform>(true);
+            Assert.That(transforms.Count(value => value.name == "PlanetBody"), Is.EqualTo(1), mapId);
+
+            switch (mapId)
+            {
+                case "NEPTUNE":
+                    AssertPrefixCount(transforms, "StormBand_", 2, mapId);
+                    AssertPrefixCount(transforms, "AtmosphereSegment_", 12, mapId);
+                    break;
+                case "URANUS":
+                    AssertPrefixCount(transforms, "IceBand_", 1, mapId);
+                    AssertPrefixCount(transforms, "PolarRingSegment_", 12, mapId);
+                    break;
+                case "SATURN":
+                    AssertPrefixCount(transforms, "RingSegment_", 16, mapId);
+                    AssertPrefixCount(transforms, "InnerRingSegment_", 12, mapId);
+                    break;
+                case "JUPITER":
+                    AssertPrefixCount(transforms, "Band_", 4, mapId);
+                    Assert.That(transforms.Any(value => value.name == "GreatRedSpot"), Is.True, mapId);
+                    break;
+                case "MARS":
+                    AssertPrefixCount(transforms, "Crater_", 2, mapId);
+                    Assert.That(transforms.Any(value => value.name == "PolarCap"), Is.True, mapId);
+                    break;
+                case "EARTH":
+                    AssertPrefixCount(transforms, "Land_", 2, mapId);
+                    AssertPrefixCount(transforms, "CloudBand_", 1, mapId);
+                    break;
+                case "VENUS":
+                    AssertPrefixCount(transforms, "CloudBand_", 3, mapId);
+                    AssertPrefixCount(transforms, "AtmosphereSegment_", 12, mapId);
+                    break;
+                case "MERCURY":
+                    AssertPrefixCount(transforms, "Crater_", 3, mapId);
+                    break;
+                case "SUN":
+                    AssertPrefixCount(transforms, "CoronaSegment_", 16, mapId);
+                    AssertPrefixCount(transforms, "OuterCoronaSegment_", 16, mapId);
+                    break;
+                default:
+                    Assert.Fail("Missing generated feature assertion for " + mapId);
+                    break;
+            }
+        }
+
+        private static void AssertPrefixCount(
+            IEnumerable<Transform> transforms,
+            string prefix,
+            int minimum,
+            string mapId)
+        {
+            Assert.That(transforms.Count(value => value.name.StartsWith(prefix, StringComparison.Ordinal)),
+                Is.GreaterThanOrEqualTo(minimum), mapId + " missing visual feature " + prefix);
         }
     }
 
@@ -280,6 +423,62 @@ namespace MyDefense.Battle.Tests
             {
                 UnityEngine.Object.DestroyImmediate(cameraObject);
                 UnityEngine.Object.DestroyImmediate(lightObject);
+            }
+        }
+
+        [Test]
+        public void Apply_PreservesExplicitAccentAndFillsOnlyBackgroundOrMissingMaterial()
+        {
+            Shader shader = Shader.Find("Unlit/Color") ?? Shader.Find("Sprites/Default");
+            Assert.That(shader, Is.Not.Null);
+            var fallback = new Material(shader) { name = "PlanetFallback_Test" };
+            var accent = new Material(shader) { name = "PlanetAccent_Test" };
+            PlanetContentProfile profile = _fixture.Profiles.Single(value => value.MapId == "NEPTUNE");
+            GameObject source = profile.EnvironmentPrefab;
+            var background = new GameObject("PlanetBackground");
+            var explicitAccent = new GameObject("ExplicitAccent");
+            var missingMaterial = new GameObject("MissingMaterial");
+            try
+            {
+                background.transform.SetParent(source.transform, false);
+                background.AddComponent<MeshFilter>();
+                background.AddComponent<MeshRenderer>().sharedMaterial = accent;
+                explicitAccent.transform.SetParent(source.transform, false);
+                explicitAccent.AddComponent<MeshFilter>();
+                explicitAccent.AddComponent<MeshRenderer>().sharedMaterial = accent;
+                missingMaterial.transform.SetParent(source.transform, false);
+                missingMaterial.AddComponent<MeshFilter>();
+                missingMaterial.AddComponent<MeshRenderer>().sharedMaterial = null;
+                profile.ConfigureForEditor(
+                    profile.MapId,
+                    profile.Enabled,
+                    profile.EnvironmentPrefab,
+                    profile.BackgroundSprite,
+                    profile.BackgroundColor,
+                    fallback,
+                    profile.Lighting,
+                    profile.EnvironmentEffects);
+
+                Assert.That(_applicator.TryApply(
+                    "NEPTUNE",
+                    PlanetContentTestFactory.LoadCanonicalPlanets(),
+                    out string error), Is.True, error);
+
+                Renderer appliedBackground = _applicator.ActiveEnvironment.transform
+                    .Find("PlanetBackground").GetComponent<Renderer>();
+                Renderer appliedAccent = _applicator.ActiveEnvironment.transform
+                    .Find("ExplicitAccent").GetComponent<Renderer>();
+                Renderer appliedMissing = _applicator.ActiveEnvironment.transform
+                    .Find("MissingMaterial").GetComponent<Renderer>();
+                Assert.That(appliedBackground.sharedMaterial, Is.SameAs(fallback));
+                Assert.That(appliedAccent.sharedMaterial, Is.SameAs(accent));
+                Assert.That(appliedMissing.sharedMaterial, Is.SameAs(fallback));
+            }
+            finally
+            {
+                _applicator.Clear();
+                UnityEngine.Object.DestroyImmediate(fallback);
+                UnityEngine.Object.DestroyImmediate(accent);
             }
         }
     }
