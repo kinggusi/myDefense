@@ -416,13 +416,15 @@ P0-1-1~4 → P0-1-5 → P0-1-6
 | P2-2-2 | kinggusi | 정책 선행 | 배양 구역 5 Stage Battle 구현 |
 | P2-2-3 | kinggusi | 정책 선행 | 변이 연구소 5 Stage Battle 구현 |
 | P2-3-1 | jjangash | 정책 선행 | Quest·Achievement 조건·보상 서버 구현 |
-| P2-3-2 | kinggusi | 대기 | Battle Quest 진행 이벤트 제공 |
+| P2-3-2 | kinggusi | 부분 완료 | 기존 Settlement Summary의 Quest 입력 사실 자동 검증 완료; Spring partial-wave Kill 검증 충돌과 QuestSettlementProcessor 선행 필요 |
 | P2-4-1 | jjangash | 정책 선행 | 무한 Wave 시즌·랭킹·구간 보상 서버 구현 |
 | P2-4-2 | kinggusi | 정책 선행 | 무한 Wave 전투 모드 구현 |
 | P2-4-3 | kinggusi | 정책 선행 | 무한 Wave 난이도 증가 공식 구현 |
 | P2-5-1 | jjangash | 부분 완료 | Breeding Unity UI·API 연결 |
 | P2-6-1 | jjangash | 정책 선행 | Shop·스킨·편의 상품 서버·UI 구현 |
 | P2-6-2 | kinggusi | 대기 | 스킨·Projectile·처치 Effect 적용 |
+
+> P2-3-2 Battle 입력 사실 검증(2026-08-28): 신규 전투 중 HTTP/Shared DTO/UI를 만들지 않고 기존 `BattleSummary` → `BattleSettlementSummary`가 개인 Kill/Support/Boss Kill, 팀 Monster Kill, `finalWave`, result, `mapId`, `abandoned`, Runtime Monster 중복 제거를 정확히 보존하는지 전용 EditMode 10/10 및 Unity 전체 EditMode 449/449로 고정했다. `FAILED`, `finalWave=69`에서도 진행 중 Wave 70의 State Authority 확정 Kill은 유지하며 Battle에서 `SpawnWave > finalWave` 필터를 추가하지 않는다. 현재 Spring `expectedKillsThrough(finalWave)`는 이 정상 partial-wave Kill을 거절하므로 User/System + Server의 Settlement 검증 계약 및 QuestSettlementProcessor 구현 전까지 production E2E가 차단되어 상태를 `부분 완료`로 유지한다. 상세: `docs/test-reports/P2-3-2.md`.
 
 ---
 
