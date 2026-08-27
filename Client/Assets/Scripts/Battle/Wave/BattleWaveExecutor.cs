@@ -1582,6 +1582,10 @@ namespace MyDefense.Battle
                 return false;
             }
 
+            // A timed-out Boss is not a kill, but it must not remain replicated
+            // after the terminal transition. Release it only after FAILED is
+            // committed so the existing Settlement/event ordering is preserved.
+            ReleaseCurrentBoss();
             OnBossTimerTick?.Invoke(0f);
             Debug.Log(
                 $"[BattleWaveExecutor] Boss limit {_activeBossTimeLimitSeconds}s exceeded. "
