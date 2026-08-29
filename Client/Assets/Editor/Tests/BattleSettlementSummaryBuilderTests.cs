@@ -30,6 +30,7 @@ namespace MyDefense.Battle.Tests
             Assert.That(settlement.monsterKills.Single(item => item.monsterSpecId == "NORMAL_MONSTER").totalKillGold, Is.EqualTo(40));
             Assert.That(settlement.monsterKills.Single(item => item.monsterSpecId == "WAVE_BOSS").bossKills, Is.EqualTo(1));
             Assert.That(settlement.monsterKills.Single(item => item.monsterSpecId == "WAVE_BOSS").totalKillGold, Is.EqualTo(200));
+            Assert.That(settlement.partialWaveKills, Is.Empty);
         }
 
         [Test]
@@ -112,6 +113,61 @@ namespace MyDefense.Battle.Tests
             Assert.That(summary.Players.Sum(player => player.SupportKills), Is.EqualTo(1));
             Assert.That(summary.Kills.ByLanePolicy.Sum(item => item.AwardedGold), Is.EqualTo(240));
             Assert.That(summary.Kills.ByMonster.Sum(item => item.TotalKillGold), Is.EqualTo(240));
+        }
+
+        [Test]
+        public void ComputeSummaryHash_MatchesSpringCrossRuntimeFixture()
+        {
+            var summary = new BattleSettlementSummary
+            {
+                requestId = "r",
+                battleSessionId = "s",
+                balanceVersion = "v",
+                contentHash = "h",
+                result = BattleSettlementResultValues.Defeat,
+                finalWave = 0,
+                mapId = "EARTH",
+                startedAt = "2026-08-29T01:02:03",
+                finishedAt = "2026-08-29T01:03:04",
+                players = new[]
+                {
+                    new BattleSettlementPlayerSummary
+                    {
+                        playerId = "a", playerSlot = 1, eliminated = true, eliminatedWave = 1,
+                        kills = 1, supportKills = 0, bossKills = 0, initialInGameGold = 100,
+                        inGameGoldEarned = 20, inGameGoldSpent = 0, finalInGameGold = 120
+                    },
+                    new BattleSettlementPlayerSummary
+                    {
+                        playerId = "b", playerSlot = 2, eliminated = false, eliminatedWave = null,
+                        kills = 0, supportKills = 1, bossKills = 0, initialInGameGold = 100,
+                        inGameGoldEarned = 0, inGameGoldSpent = 0, finalInGameGold = 100
+                    }
+                },
+                monsterKills = new[]
+                {
+                    new BattleSettlementMonsterSummary
+                    {
+                        monsterSpecId = "NORMAL_MONSTER", totalKills = 1, bossKills = 0, totalKillGold = 20
+                    }
+                },
+                partialWaveKills = new[]
+                {
+                    new BattleSettlementPartialWaveKillSummary
+                    {
+                        runtimeMonsterId = "18446744073709551615", spawnWave = 1,
+                        monsterSpecId = "NORMAL_MONSTER", lanePolicy = "EACH_FIELD", playerSlot = 1,
+                        spawnOrder = 1, spawnOrdinal = 1, killerPlayerId = "a", supportPlayerId = "b",
+                        killedAtTick = 42
+                    }
+                },
+                summaryHash = "ignored"
+            };
+
+            Assert.That(
+                BattleSettlementCoordinator.ComputeSummaryHash(summary),
+                Is.EqualTo("21f0cfff90eec02ab6b1bdd6cdbff6cca51ba4e83ccef37ffd5e9f8cd0578895"));
+            Assert.That(summary.summaryHash, Is.EqualTo("ignored"));
         }
 
         private static BattleSummary CreateSummary(MatchState result = MatchState.CLEARED)

@@ -17,14 +17,30 @@ User/System과 Battle이 함께 사용하는 계약만 둡니다.
 ## Battle Settlement Contract
 - Unity 런타임 누적 장부 `BattleSummary`와 서버 전송 계약 `BattleSettlementSummary`를 분리한다.
 - 전송 결과 문자열은 `VICTORY`, `DEFEAT`, `ABORTED`만 허용한다.
-- 최상위 필드: `requestId`, `battleSessionId`, `balanceVersion`, `contentHash`, `result`, `finalWave`, `mapId`, `startedAt`, `finishedAt`, `players`, `monsterKills`, `summaryHash`
+- 최상위 필드: `requestId`, `battleSessionId`, `balanceVersion`, `contentHash`, `result`, `finalWave`, `mapId`, `startedAt`, `finishedAt`, `players`, `monsterKills`, `partialWaveKills`, `summaryHash`
 - 참가자 필드: `playerId`, `playerSlot`, `eliminated`, `eliminatedWave`, `kills`, `supportKills`, `bossKills`, `initialInGameGold`, `inGameGoldEarned`, `inGameGoldSpent`, `finalInGameGold`, `abandoned`
 - Monster 필드: `monsterSpecId`, `totalKills`, `bossKills`, `totalKillGold`
+- 미완료 Wave 처치 필드: `runtimeMonsterId`, `spawnWave`, `monsterSpecId`, `lanePolicy`, nullable `playerSlot`, `spawnOrder`, `spawnOrdinal`, `killerPlayerId`, nullable `supportPlayerId`, `killedAtTick`
 - 응답 필드: `battleSessionId`, `status`, `alreadyProcessed`, `rewards`
 - 보상 필드: `userId`, `rewardKey`, `rewardType`, `gold`, `universalPiece`, `diamond`
 - `eliminatedWave`는 미탈락 시 JSON `null`, 탈락 시 양의 정수다.
 - 시간 필드는 ISO-8601 local date-time 문자열로 전송한다.
 - Unity `JsonUtility`는 nullable 정수를 지원하지 않으므로 `BattleSettlementSummaryJson`을 사용한다.
+- `partialWaveKills`는 `DEFEAT`에서 `spawnWave == finalWave + 1`인 미완료 Wave 처치만 담는다. `VICTORY`와 `ABORTED`에서는 빈 배열이어야 한다.
+- `runtimeMonsterId`는 Fusion `ulong` 전체 범위를 보존하기 위해 JSON decimal string으로 전송하며, 0이 아닌 정규 decimal 표현을 사용한다.
+- 미완료 Wave 장부는 unsigned `runtimeMonsterId` 오름차순으로 정렬한다. 서버는 Runtime ID, canonical Spawn 위치(`spawnOrder`, `spawnOrdinal`, `playerSlot`) 중복을 모두 거부한다.
+- `EACH_FIELD`는 `playerSlot`이 필수이고 해당 Wave에 활성 Lane이어야 한다. `BOSS_SHARED`는 `playerSlot=null`이고 공용 Spawn 수량을 따른다.
+- `DEFEAT`의 `eliminatedWave`는 미완료 시도 Wave인 `finalWave + 1`까지 허용한다. 이후 완료 Wave Kill 기대치는 탈락 Wave 다음부터 해당 Lane을 제외한다.
+- 완료 Wave의 개인 Kill/Support/Boss 귀속은 Photon State Authority의 집계값을 신뢰한다. 서버는 canonical 팀 총계, Boss 총계, Monster별 killGold와 미완료 Wave Spawn 증거를 검증한다.
+- 미완료 Wave 장부의 killer/support/Boss 개인별 건수는 각 `players` 집계 이하이어야 한다. 따라서 partial 증거와 Player 집계가 서로 다른 귀속을 주장할 수 없다.
+- Spring은 Fusion의 실제 Spawn 이력을 독립 보유하지 않으므로 `runtimeMonsterId`가 실제 생성됐다는 사실 자체와 개인 귀속은 trusted State Authority를 신뢰한다. 대신 canonical Wave의 허용 Monster/Lane/Spawn row/ordinal 상한과 중복을 검증해 임의 범위를 제한한다.
+
+### Settlement Canonical JSON / Hash
+- JSON 필드 순서는 위 최상위 필드 순서를 고정하고 `partialWaveKills`는 `monsterKills` 다음, `summaryHash` 전에 둔다.
+- `summaryHash` 계산 시 해당 필드 값만 빈 문자열로 바꾼 정확한 UTF-8 JSON 바이트의 SHA-256 lowercase hex를 사용한다.
+- 배열 순서도 hash 입력이다. Player/Monster 기존 정렬과 `partialWaveKills`의 unsigned Runtime ID 정렬을 전송 전에 고정한다.
+- Spring은 동일 규칙으로 hash를 재계산하고 canonical payload 불일치 또는 구버전 직렬화 계약을 `BATTLE_SUMMARY_INVALID`로 거부한다. 이 무키 SHA-256은 인증 수단이 아니며, 송신자 신뢰는 JWT와 trusted roster/State Authority 경계에서 별도로 보장해야 한다.
+- 이 필드 추가는 Unity와 Spring의 동시 배포가 필요한 전송 Breaking Change다. 구버전 Client는 새 서버 Settlement를 전송할 수 없다.
 
 ## Trusted Battle Roster Registration
 - Settlement 전 Spring은 `battleSessionId`, `mapId`, Balance version/hash, 정확한 두 참가자와 slot을 신뢰 roster로 등록받아야 한다.
