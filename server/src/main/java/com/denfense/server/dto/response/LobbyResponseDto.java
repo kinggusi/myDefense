@@ -18,6 +18,7 @@ public class LobbyResponseDto {
         private int heart;
         private int universalPiece;
         private int growthCell;
+        private int accountLevel;
         private java.time.LocalDateTime nextHeartRecoveryAt;
     }
 

@@ -1,24 +1,3546 @@
 {
-  "results": [
-    {"alienId":29,"acquisitionType":"STANDARD","weight":100,"enabled":true},
-    {"alienId":30,"acquisitionType":"STANDARD","weight":100,"enabled":true},
-    {"alienId":31,"acquisitionType":"STANDARD","weight":100,"enabled":true},
-    {"alienId":32,"acquisitionType":"STANDARD","weight":100,"enabled":true},
-    {"alienId":33,"acquisitionType":"STANDARD","weight":100,"enabled":true},
-    {"alienId":34,"acquisitionType":"STANDARD","weight":100,"enabled":true},
-    {"alienId":35,"acquisitionType":"STANDARD","weight":100,"enabled":true},
-    {"alienId":36,"acquisitionType":"STANDARD","weight":100,"enabled":true},
-    {"alienId":37,"acquisitionType":"STANDARD","weight":100,"enabled":true},
-    {"alienId":38,"acquisitionType":"STANDARD","weight":100,"enabled":true},
-    {"alienId":39,"acquisitionType":"STANDARD","weight":100,"enabled":true},
-    {"alienId":40,"acquisitionType":"STANDARD","weight":100,"enabled":true},
-    {"alienId":41,"acquisitionType":"STANDARD","weight":100,"enabled":true},
-    {"alienId":42,"acquisitionType":"STANDARD","weight":100,"enabled":true},
-    {"alienId":43,"acquisitionType":"STANDARD","weight":100,"enabled":true},
-    {"alienId":44,"acquisitionType":"STANDARD","weight":100,"enabled":true},
-    {"alienId":45,"acquisitionType":"STANDARD","weight":100,"enabled":true},
-    {"alienId":46,"acquisitionType":"STANDARD","weight":100,"enabled":true},
-    {"alienId":47,"acquisitionType":"BREEDING_EXCLUSIVE","weight":100,"enabled":true},
-    {"alienId":48,"acquisitionType":"BREEDING_EXCLUSIVE","weight":100,"enabled":true}
+  "recipes" : [
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 29,
+      "parentAlienIdB" : 30,
+      "recipeKey" : "M01_M02",
+      "standardResultAlienIds" : [
+        29,
+        30,
+        31,
+        38,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 29,
+      "parentAlienIdB" : 31,
+      "recipeKey" : "M01_M03",
+      "standardResultAlienIds" : [
+        29,
+        31,
+        37,
+        39,
+        45
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 29,
+      "parentAlienIdB" : 32,
+      "recipeKey" : "M01_M04",
+      "standardResultAlienIds" : [
+        29,
+        32,
+        36,
+        43,
+        44
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 29,
+      "parentAlienIdB" : 33,
+      "recipeKey" : "M01_M05",
+      "standardResultAlienIds" : [
+        29,
+        33,
+        34,
+        35,
+        42
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 29,
+      "parentAlienIdB" : 34,
+      "recipeKey" : "M01_M06",
+      "standardResultAlienIds" : [
+        29,
+        33,
+        34,
+        40,
+        41
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 29,
+      "parentAlienIdB" : 35,
+      "recipeKey" : "M01_M07",
+      "standardResultAlienIds" : [
+        29,
+        32,
+        35,
+        39,
+        40
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 29,
+      "parentAlienIdB" : 36,
+      "recipeKey" : "M01_M08",
+      "standardResultAlienIds" : [
+        29,
+        36,
+        38,
+        45,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 29,
+      "parentAlienIdB" : 37,
+      "recipeKey" : "M01_M09",
+      "standardResultAlienIds" : [
+        29,
+        30,
+        37,
+        41,
+        44
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 29,
+      "parentAlienIdB" : 38,
+      "recipeKey" : "M01_M10",
+      "standardResultAlienIds" : [
+        29,
+        35,
+        38,
+        42,
+        43
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 29,
+      "parentAlienIdB" : 39,
+      "recipeKey" : "M01_M11",
+      "standardResultAlienIds" : [
+        29,
+        34,
+        39,
+        42,
+        43
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 29,
+      "parentAlienIdB" : 40,
+      "recipeKey" : "M01_M12",
+      "standardResultAlienIds" : [
+        29,
+        33,
+        36,
+        40,
+        41
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 29,
+      "parentAlienIdB" : 41,
+      "recipeKey" : "M01_M13",
+      "standardResultAlienIds" : [
+        29,
+        31,
+        32,
+        41,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 29,
+      "parentAlienIdB" : 42,
+      "recipeKey" : "M01_M14",
+      "standardResultAlienIds" : [
+        29,
+        30,
+        42,
+        44,
+        45
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 29,
+      "parentAlienIdB" : 43,
+      "recipeKey" : "M01_M15",
+      "standardResultAlienIds" : [
+        29,
+        36,
+        37,
+        43,
+        44
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 29,
+      "parentAlienIdB" : 44,
+      "recipeKey" : "M01_M16",
+      "standardResultAlienIds" : [
+        29,
+        30,
+        35,
+        37,
+        44
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 29,
+      "parentAlienIdB" : 45,
+      "recipeKey" : "M01_M17",
+      "standardResultAlienIds" : [
+        29,
+        31,
+        34,
+        38,
+        45
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 29,
+      "parentAlienIdB" : 46,
+      "recipeKey" : "M01_M18",
+      "standardResultAlienIds" : [
+        29,
+        32,
+        33,
+        40,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 29,
+      "parentAlienIdB" : 47,
+      "recipeKey" : "M01_M19",
+      "standardResultAlienIds" : [
+        29,
+        31,
+        32,
+        39,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 29,
+      "parentAlienIdB" : 48,
+      "recipeKey" : "M01_M20",
+      "standardResultAlienIds" : [
+        29,
+        30,
+        37,
+        38,
+        45
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 30,
+      "parentAlienIdB" : 31,
+      "recipeKey" : "M02_M03",
+      "standardResultAlienIds" : [
+        30,
+        31,
+        35,
+        42,
+        43
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 30,
+      "parentAlienIdB" : 32,
+      "recipeKey" : "M02_M04",
+      "standardResultAlienIds" : [
+        30,
+        32,
+        33,
+        34,
+        41
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 30,
+      "parentAlienIdB" : 33,
+      "recipeKey" : "M02_M05",
+      "standardResultAlienIds" : [
+        30,
+        33,
+        36,
+        39,
+        40
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 30,
+      "parentAlienIdB" : 34,
+      "recipeKey" : "M02_M06",
+      "standardResultAlienIds" : [
+        30,
+        34,
+        38,
+        39,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 30,
+      "parentAlienIdB" : 35,
+      "recipeKey" : "M02_M07",
+      "standardResultAlienIds" : [
+        30,
+        35,
+        37,
+        44,
+        45
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 30,
+      "parentAlienIdB" : 36,
+      "recipeKey" : "M02_M08",
+      "standardResultAlienIds" : [
+        30,
+        36,
+        40,
+        41,
+        43
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 30,
+      "parentAlienIdB" : 37,
+      "recipeKey" : "M02_M09",
+      "standardResultAlienIds" : [
+        30,
+        34,
+        35,
+        37,
+        42
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 30,
+      "parentAlienIdB" : 38,
+      "recipeKey" : "M02_M10",
+      "standardResultAlienIds" : [
+        30,
+        33,
+        38,
+        40,
+        41
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 30,
+      "parentAlienIdB" : 39,
+      "recipeKey" : "M02_M11",
+      "standardResultAlienIds" : [
+        30,
+        32,
+        39,
+        42,
+        43
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 30,
+      "parentAlienIdB" : 40,
+      "recipeKey" : "M02_M12",
+      "standardResultAlienIds" : [
+        30,
+        31,
+        40,
+        45,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 30,
+      "parentAlienIdB" : 41,
+      "recipeKey" : "M02_M13",
+      "standardResultAlienIds" : [
+        30,
+        36,
+        37,
+        41,
+        44
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 30,
+      "parentAlienIdB" : 42,
+      "recipeKey" : "M02_M14",
+      "standardResultAlienIds" : [
+        30,
+        35,
+        36,
+        42,
+        43
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 30,
+      "parentAlienIdB" : 43,
+      "recipeKey" : "M02_M15",
+      "standardResultAlienIds" : [
+        30,
+        34,
+        43,
+        44,
+        45
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 30,
+      "parentAlienIdB" : 44,
+      "recipeKey" : "M02_M16",
+      "standardResultAlienIds" : [
+        30,
+        31,
+        33,
+        38,
+        44
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 30,
+      "parentAlienIdB" : 45,
+      "recipeKey" : "M02_M17",
+      "standardResultAlienIds" : [
+        30,
+        32,
+        39,
+        45,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 30,
+      "parentAlienIdB" : 46,
+      "recipeKey" : "M02_M18",
+      "standardResultAlienIds" : [
+        30,
+        31,
+        37,
+        38,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 30,
+      "parentAlienIdB" : 47,
+      "recipeKey" : "M02_M19",
+      "standardResultAlienIds" : [
+        30,
+        32,
+        36,
+        39,
+        40
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 30,
+      "parentAlienIdB" : 48,
+      "recipeKey" : "M02_M20",
+      "standardResultAlienIds" : [
+        30,
+        33,
+        35,
+        41,
+        42
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 31,
+      "parentAlienIdB" : 32,
+      "recipeKey" : "M03_M04",
+      "standardResultAlienIds" : [
+        31,
+        32,
+        34,
+        38,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 31,
+      "parentAlienIdB" : 33,
+      "recipeKey" : "M03_M05",
+      "standardResultAlienIds" : [
+        31,
+        33,
+        37,
+        39,
+        45
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 31,
+      "parentAlienIdB" : 34,
+      "recipeKey" : "M03_M06",
+      "standardResultAlienIds" : [
+        31,
+        34,
+        36,
+        43,
+        44
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 31,
+      "parentAlienIdB" : 35,
+      "recipeKey" : "M03_M07",
+      "standardResultAlienIds" : [
+        31,
+        35,
+        40,
+        41,
+        42
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 31,
+      "parentAlienIdB" : 36,
+      "recipeKey" : "M03_M08",
+      "standardResultAlienIds" : [
+        31,
+        33,
+        34,
+        36,
+        41
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 31,
+      "parentAlienIdB" : 37,
+      "recipeKey" : "M03_M09",
+      "standardResultAlienIds" : [
+        31,
+        32,
+        37,
+        39,
+        40
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 31,
+      "parentAlienIdB" : 38,
+      "recipeKey" : "M03_M10",
+      "standardResultAlienIds" : [
+        31,
+        35,
+        38,
+        42,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 31,
+      "parentAlienIdB" : 39,
+      "recipeKey" : "M03_M11",
+      "standardResultAlienIds" : [
+        31,
+        39,
+        43,
+        44,
+        45
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 31,
+      "parentAlienIdB" : 40,
+      "recipeKey" : "M03_M12",
+      "standardResultAlienIds" : [
+        31,
+        35,
+        36,
+        40,
+        43
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 31,
+      "parentAlienIdB" : 41,
+      "recipeKey" : "M03_M13",
+      "standardResultAlienIds" : [
+        31,
+        34,
+        41,
+        42,
+        44
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 31,
+      "parentAlienIdB" : 42,
+      "recipeKey" : "M03_M14",
+      "standardResultAlienIds" : [
+        31,
+        33,
+        37,
+        42,
+        45
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 31,
+      "parentAlienIdB" : 43,
+      "recipeKey" : "M03_M15",
+      "standardResultAlienIds" : [
+        31,
+        32,
+        38,
+        43,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 31,
+      "parentAlienIdB" : 44,
+      "recipeKey" : "M03_M16",
+      "standardResultAlienIds" : [
+        31,
+        38,
+        44,
+        45,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 31,
+      "parentAlienIdB" : 45,
+      "recipeKey" : "M03_M17",
+      "standardResultAlienIds" : [
+        31,
+        36,
+        37,
+        39,
+        45
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 31,
+      "parentAlienIdB" : 46,
+      "recipeKey" : "M03_M18",
+      "standardResultAlienIds" : [
+        31,
+        32,
+        35,
+        40,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 31,
+      "parentAlienIdB" : 47,
+      "recipeKey" : "M03_M19",
+      "standardResultAlienIds" : [
+        31,
+        33,
+        34,
+        41,
+        42
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 31,
+      "parentAlienIdB" : 48,
+      "recipeKey" : "M03_M20",
+      "standardResultAlienIds" : [
+        31,
+        32,
+        33,
+        40,
+        41
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 32,
+      "parentAlienIdB" : 33,
+      "recipeKey" : "M04_M05",
+      "standardResultAlienIds" : [
+        32,
+        33,
+        35,
+        36,
+        43
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 32,
+      "parentAlienIdB" : 34,
+      "recipeKey" : "M04_M06",
+      "standardResultAlienIds" : [
+        32,
+        34,
+        37,
+        38,
+        44
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 32,
+      "parentAlienIdB" : 35,
+      "recipeKey" : "M04_M07",
+      "standardResultAlienIds" : [
+        32,
+        35,
+        39,
+        40,
+        41
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 32,
+      "parentAlienIdB" : 36,
+      "recipeKey" : "M04_M08",
+      "standardResultAlienIds" : [
+        32,
+        36,
+        38,
+        39,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 32,
+      "parentAlienIdB" : 37,
+      "recipeKey" : "M04_M09",
+      "standardResultAlienIds" : [
+        32,
+        34,
+        37,
+        44,
+        45
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 32,
+      "parentAlienIdB" : 38,
+      "recipeKey" : "M04_M10",
+      "standardResultAlienIds" : [
+        32,
+        36,
+        38,
+        42,
+        43
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 32,
+      "parentAlienIdB" : 39,
+      "recipeKey" : "M04_M11",
+      "standardResultAlienIds" : [
+        32,
+        34,
+        35,
+        39,
+        42
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 32,
+      "parentAlienIdB" : 40,
+      "recipeKey" : "M04_M12",
+      "standardResultAlienIds" : [
+        32,
+        33,
+        40,
+        41,
+        43
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 32,
+      "parentAlienIdB" : 41,
+      "recipeKey" : "M04_M13",
+      "standardResultAlienIds" : [
+        32,
+        37,
+        41,
+        44,
+        45
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 32,
+      "parentAlienIdB" : 42,
+      "recipeKey" : "M04_M14",
+      "standardResultAlienIds" : [
+        32,
+        38,
+        42,
+        45,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 32,
+      "parentAlienIdB" : 43,
+      "recipeKey" : "M04_M15",
+      "standardResultAlienIds" : [
+        32,
+        37,
+        43,
+        44,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 32,
+      "parentAlienIdB" : 44,
+      "recipeKey" : "M04_M16",
+      "standardResultAlienIds" : [
+        32,
+        35,
+        36,
+        39,
+        44
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 32,
+      "parentAlienIdB" : 45,
+      "recipeKey" : "M04_M17",
+      "standardResultAlienIds" : [
+        32,
+        33,
+        34,
+        40,
+        45
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 32,
+      "parentAlienIdB" : 46,
+      "recipeKey" : "M04_M18",
+      "standardResultAlienIds" : [
+        32,
+        33,
+        40,
+        41,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 32,
+      "parentAlienIdB" : 47,
+      "recipeKey" : "M04_M19",
+      "standardResultAlienIds" : [
+        32,
+        34,
+        35,
+        39,
+        42
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 32,
+      "parentAlienIdB" : 48,
+      "recipeKey" : "M04_M20",
+      "standardResultAlienIds" : [
+        32,
+        36,
+        37,
+        38,
+        43
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 33,
+      "parentAlienIdB" : 34,
+      "recipeKey" : "M05_M06",
+      "standardResultAlienIds" : [
+        33,
+        34,
+        39,
+        40,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 33,
+      "parentAlienIdB" : 35,
+      "recipeKey" : "M05_M07",
+      "standardResultAlienIds" : [
+        33,
+        35,
+        37,
+        38,
+        45
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 33,
+      "parentAlienIdB" : 36,
+      "recipeKey" : "M05_M08",
+      "standardResultAlienIds" : [
+        33,
+        36,
+        41,
+        43,
+        44
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 33,
+      "parentAlienIdB" : 37,
+      "recipeKey" : "M05_M09",
+      "standardResultAlienIds" : [
+        33,
+        35,
+        37,
+        42,
+        43
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 33,
+      "parentAlienIdB" : 38,
+      "recipeKey" : "M05_M10",
+      "standardResultAlienIds" : [
+        33,
+        34,
+        38,
+        41,
+        42
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 33,
+      "parentAlienIdB" : 39,
+      "recipeKey" : "M05_M11",
+      "standardResultAlienIds" : [
+        29,
+        33,
+        36,
+        39,
+        40
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 33,
+      "parentAlienIdB" : 40,
+      "recipeKey" : "M05_M12",
+      "standardResultAlienIds" : [
+        33,
+        40,
+        44,
+        45,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 33,
+      "parentAlienIdB" : 41,
+      "recipeKey" : "M05_M13",
+      "standardResultAlienIds" : [
+        29,
+        33,
+        37,
+        41,
+        44
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 33,
+      "parentAlienIdB" : 42,
+      "recipeKey" : "M05_M14",
+      "standardResultAlienIds" : [
+        33,
+        36,
+        42,
+        43,
+        45
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 33,
+      "parentAlienIdB" : 43,
+      "recipeKey" : "M05_M15",
+      "standardResultAlienIds" : [
+        33,
+        34,
+        35,
+        38,
+        43
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 33,
+      "parentAlienIdB" : 44,
+      "recipeKey" : "M05_M16",
+      "standardResultAlienIds" : [
+        33,
+        39,
+        40,
+        44,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 33,
+      "parentAlienIdB" : 45,
+      "recipeKey" : "M05_M17",
+      "standardResultAlienIds" : [
+        33,
+        34,
+        39,
+        41,
+        45
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 33,
+      "parentAlienIdB" : 46,
+      "recipeKey" : "M05_M18",
+      "standardResultAlienIds" : [
+        33,
+        35,
+        38,
+        42,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 33,
+      "parentAlienIdB" : 47,
+      "recipeKey" : "M05_M19",
+      "standardResultAlienIds" : [
+        29,
+        33,
+        36,
+        37,
+        44
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 33,
+      "parentAlienIdB" : 48,
+      "recipeKey" : "M05_M20",
+      "standardResultAlienIds" : [
+        29,
+        33,
+        35,
+        36,
+        43
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 34,
+      "parentAlienIdB" : 35,
+      "recipeKey" : "M06_M07",
+      "standardResultAlienIds" : [
+        34,
+        35,
+        37,
+        42,
+        45
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 34,
+      "parentAlienIdB" : 36,
+      "recipeKey" : "M06_M08",
+      "standardResultAlienIds" : [
+        34,
+        36,
+        38,
+        41,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 34,
+      "parentAlienIdB" : 37,
+      "recipeKey" : "M06_M09",
+      "standardResultAlienIds" : [
+        34,
+        37,
+        39,
+        40,
+        41
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 34,
+      "parentAlienIdB" : 38,
+      "recipeKey" : "M06_M10",
+      "standardResultAlienIds" : [
+        34,
+        38,
+        39,
+        40,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 34,
+      "parentAlienIdB" : 39,
+      "recipeKey" : "M06_M11",
+      "standardResultAlienIds" : [
+        30,
+        34,
+        39,
+        42,
+        45
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 34,
+      "parentAlienIdB" : 40,
+      "recipeKey" : "M06_M12",
+      "standardResultAlienIds" : [
+        29,
+        34,
+        40,
+        43,
+        44
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 34,
+      "parentAlienIdB" : 41,
+      "recipeKey" : "M06_M13",
+      "standardResultAlienIds" : [
+        34,
+        35,
+        41,
+        42,
+        43
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 34,
+      "parentAlienIdB" : 42,
+      "recipeKey" : "M06_M14",
+      "standardResultAlienIds" : [
+        29,
+        34,
+        36,
+        42,
+        44
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 34,
+      "parentAlienIdB" : 43,
+      "recipeKey" : "M06_M15",
+      "standardResultAlienIds" : [
+        30,
+        34,
+        37,
+        43,
+        45
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 34,
+      "parentAlienIdB" : 44,
+      "recipeKey" : "M06_M16",
+      "standardResultAlienIds" : [
+        34,
+        38,
+        44,
+        45,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 34,
+      "parentAlienIdB" : 45,
+      "recipeKey" : "M06_M17",
+      "standardResultAlienIds" : [
+        29,
+        30,
+        34,
+        37,
+        45
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 34,
+      "parentAlienIdB" : 46,
+      "recipeKey" : "M06_M18",
+      "standardResultAlienIds" : [
+        34,
+        35,
+        36,
+        38,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 34,
+      "parentAlienIdB" : 47,
+      "recipeKey" : "M06_M19",
+      "standardResultAlienIds" : [
+        34,
+        39,
+        40,
+        41,
+        42
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 34,
+      "parentAlienIdB" : 48,
+      "recipeKey" : "M06_M20",
+      "standardResultAlienIds" : [
+        34,
+        35,
+        40,
+        41,
+        43
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 35,
+      "parentAlienIdB" : 36,
+      "recipeKey" : "M07_M08",
+      "standardResultAlienIds" : [
+        31,
+        35,
+        36,
+        39,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 35,
+      "parentAlienIdB" : 37,
+      "recipeKey" : "M07_M09",
+      "standardResultAlienIds" : [
+        29,
+        30,
+        35,
+        37,
+        38
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 35,
+      "parentAlienIdB" : 38,
+      "recipeKey" : "M07_M10",
+      "standardResultAlienIds" : [
+        35,
+        36,
+        38,
+        43,
+        44
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 35,
+      "parentAlienIdB" : 39,
+      "recipeKey" : "M07_M11",
+      "standardResultAlienIds" : [
+        29,
+        35,
+        39,
+        42,
+        44
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 35,
+      "parentAlienIdB" : 40,
+      "recipeKey" : "M07_M12",
+      "standardResultAlienIds" : [
+        30,
+        35,
+        37,
+        40,
+        41
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 35,
+      "parentAlienIdB" : 41,
+      "recipeKey" : "M07_M13",
+      "standardResultAlienIds" : [
+        31,
+        35,
+        41,
+        45,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 35,
+      "parentAlienIdB" : 42,
+      "recipeKey" : "M07_M14",
+      "standardResultAlienIds" : [
+        31,
+        35,
+        38,
+        42,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 35,
+      "parentAlienIdB" : 43,
+      "recipeKey" : "M07_M15",
+      "standardResultAlienIds" : [
+        29,
+        35,
+        37,
+        43,
+        44
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 35,
+      "parentAlienIdB" : 44,
+      "recipeKey" : "M07_M16",
+      "standardResultAlienIds" : [
+        30,
+        35,
+        36,
+        44,
+        45
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 35,
+      "parentAlienIdB" : 45,
+      "recipeKey" : "M07_M17",
+      "standardResultAlienIds" : [
+        35,
+        39,
+        40,
+        42,
+        45
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 35,
+      "parentAlienIdB" : 46,
+      "recipeKey" : "M07_M18",
+      "standardResultAlienIds" : [
+        35,
+        40,
+        41,
+        43,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 35,
+      "parentAlienIdB" : 47,
+      "recipeKey" : "M07_M19",
+      "standardResultAlienIds" : [
+        29,
+        35,
+        36,
+        37,
+        39
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 35,
+      "parentAlienIdB" : 48,
+      "recipeKey" : "M07_M20",
+      "standardResultAlienIds" : [
+        30,
+        31,
+        35,
+        38,
+        45
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 36,
+      "parentAlienIdB" : 37,
+      "recipeKey" : "M08_M09",
+      "standardResultAlienIds" : [
+        29,
+        36,
+        37,
+        42,
+        43
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 36,
+      "parentAlienIdB" : 38,
+      "recipeKey" : "M08_M10",
+      "standardResultAlienIds" : [
+        30,
+        36,
+        38,
+        41,
+        44
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 36,
+      "parentAlienIdB" : 39,
+      "recipeKey" : "M08_M11",
+      "standardResultAlienIds" : [
+        31,
+        32,
+        36,
+        39,
+        40
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 36,
+      "parentAlienIdB" : 40,
+      "recipeKey" : "M08_M12",
+      "standardResultAlienIds" : [
+        31,
+        36,
+        38,
+        40,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 36,
+      "parentAlienIdB" : 41,
+      "recipeKey" : "M08_M13",
+      "standardResultAlienIds" : [
+        30,
+        36,
+        37,
+        41,
+        45
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 36,
+      "parentAlienIdB" : 42,
+      "recipeKey" : "M08_M14",
+      "standardResultAlienIds" : [
+        29,
+        36,
+        42,
+        43,
+        44
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 36,
+      "parentAlienIdB" : 43,
+      "recipeKey" : "M08_M15",
+      "standardResultAlienIds" : [
+        32,
+        36,
+        39,
+        43,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 36,
+      "parentAlienIdB" : 44,
+      "recipeKey" : "M08_M16",
+      "standardResultAlienIds" : [
+        29,
+        36,
+        41,
+        42,
+        44
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 36,
+      "parentAlienIdB" : 45,
+      "recipeKey" : "M08_M17",
+      "standardResultAlienIds" : [
+        32,
+        36,
+        39,
+        40,
+        45
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 36,
+      "parentAlienIdB" : 46,
+      "recipeKey" : "M08_M18",
+      "standardResultAlienIds" : [
+        31,
+        36,
+        37,
+        38,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 36,
+      "parentAlienIdB" : 47,
+      "recipeKey" : "M08_M19",
+      "standardResultAlienIds" : [
+        29,
+        30,
+        36,
+        37,
+        44
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 36,
+      "parentAlienIdB" : 48,
+      "recipeKey" : "M08_M20",
+      "standardResultAlienIds" : [
+        30,
+        36,
+        38,
+        43,
+        45
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 37,
+      "parentAlienIdB" : 38,
+      "recipeKey" : "M09_M10",
+      "standardResultAlienIds" : [
+        31,
+        37,
+        38,
+        39,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 37,
+      "parentAlienIdB" : 39,
+      "recipeKey" : "M09_M11",
+      "standardResultAlienIds" : [
+        32,
+        33,
+        37,
+        39,
+        40
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 37,
+      "parentAlienIdB" : 40,
+      "recipeKey" : "M09_M12",
+      "standardResultAlienIds" : [
+        29,
+        37,
+        40,
+        41,
+        42
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 37,
+      "parentAlienIdB" : 41,
+      "recipeKey" : "M09_M13",
+      "standardResultAlienIds" : [
+        37,
+        41,
+        42,
+        43,
+        44
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 37,
+      "parentAlienIdB" : 42,
+      "recipeKey" : "M09_M14",
+      "standardResultAlienIds" : [
+        30,
+        33,
+        37,
+        42,
+        45
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 37,
+      "parentAlienIdB" : 43,
+      "recipeKey" : "M09_M15",
+      "standardResultAlienIds" : [
+        31,
+        32,
+        37,
+        43,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 37,
+      "parentAlienIdB" : 44,
+      "recipeKey" : "M09_M16",
+      "standardResultAlienIds" : [
+        31,
+        37,
+        38,
+        44,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 37,
+      "parentAlienIdB" : 45,
+      "recipeKey" : "M09_M17",
+      "standardResultAlienIds" : [
+        30,
+        32,
+        37,
+        39,
+        45
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 37,
+      "parentAlienIdB" : 46,
+      "recipeKey" : "M09_M18",
+      "standardResultAlienIds" : [
+        29,
+        33,
+        37,
+        40,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 37,
+      "parentAlienIdB" : 47,
+      "recipeKey" : "M09_M19",
+      "standardResultAlienIds" : [
+        34,
+        37,
+        41,
+        42,
+        43
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 37,
+      "parentAlienIdB" : 48,
+      "recipeKey" : "M09_M20",
+      "standardResultAlienIds" : [
+        29,
+        33,
+        37,
+        41,
+        44
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 38,
+      "parentAlienIdB" : 39,
+      "recipeKey" : "M10_M11",
+      "standardResultAlienIds" : [
+        30,
+        31,
+        38,
+        39,
+        45
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 38,
+      "parentAlienIdB" : 40,
+      "recipeKey" : "M10_M12",
+      "standardResultAlienIds" : [
+        32,
+        34,
+        38,
+        40,
+        41
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 38,
+      "parentAlienIdB" : 41,
+      "recipeKey" : "M10_M13",
+      "standardResultAlienIds" : [
+        32,
+        33,
+        38,
+        40,
+        41
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 38,
+      "parentAlienIdB" : 42,
+      "recipeKey" : "M10_M14",
+      "standardResultAlienIds" : [
+        31,
+        38,
+        39,
+        42,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 38,
+      "parentAlienIdB" : 43,
+      "recipeKey" : "M10_M15",
+      "standardResultAlienIds" : [
+        29,
+        30,
+        38,
+        43,
+        45
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 38,
+      "parentAlienIdB" : 44,
+      "recipeKey" : "M10_M16",
+      "standardResultAlienIds" : [
+        29,
+        30,
+        38,
+        43,
+        44
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 38,
+      "parentAlienIdB" : 45,
+      "recipeKey" : "M10_M17",
+      "standardResultAlienIds" : [
+        31,
+        38,
+        42,
+        44,
+        45
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 38,
+      "parentAlienIdB" : 46,
+      "recipeKey" : "M10_M18",
+      "standardResultAlienIds" : [
+        33,
+        34,
+        38,
+        39,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 38,
+      "parentAlienIdB" : 47,
+      "recipeKey" : "M10_M19",
+      "standardResultAlienIds" : [
+        32,
+        33,
+        38,
+        39,
+        40
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 38,
+      "parentAlienIdB" : 48,
+      "recipeKey" : "M10_M20",
+      "standardResultAlienIds" : [
+        31,
+        32,
+        38,
+        40,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 39,
+      "parentAlienIdB" : 40,
+      "recipeKey" : "M11_M12",
+      "standardResultAlienIds" : [
+        34,
+        39,
+        40,
+        41,
+        42
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 39,
+      "parentAlienIdB" : 41,
+      "recipeKey" : "M11_M13",
+      "standardResultAlienIds" : [
+        30,
+        39,
+        41,
+        43,
+        45
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 39,
+      "parentAlienIdB" : 42,
+      "recipeKey" : "M11_M14",
+      "standardResultAlienIds" : [
+        29,
+        30,
+        39,
+        42,
+        44
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 39,
+      "parentAlienIdB" : 43,
+      "recipeKey" : "M11_M15",
+      "standardResultAlienIds" : [
+        29,
+        35,
+        39,
+        43,
+        44
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 39,
+      "parentAlienIdB" : 44,
+      "recipeKey" : "M11_M16",
+      "standardResultAlienIds" : [
+        31,
+        34,
+        39,
+        44,
+        45
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 39,
+      "parentAlienIdB" : 45,
+      "recipeKey" : "M11_M17",
+      "standardResultAlienIds" : [
+        32,
+        33,
+        39,
+        45,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 39,
+      "parentAlienIdB" : 46,
+      "recipeKey" : "M11_M18",
+      "standardResultAlienIds" : [
+        31,
+        32,
+        39,
+        40,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 39,
+      "parentAlienIdB" : 47,
+      "recipeKey" : "M11_M19",
+      "standardResultAlienIds" : [
+        30,
+        33,
+        34,
+        39,
+        41
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 39,
+      "parentAlienIdB" : 48,
+      "recipeKey" : "M11_M20",
+      "standardResultAlienIds" : [
+        29,
+        35,
+        39,
+        42,
+        43
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 40,
+      "parentAlienIdB" : 41,
+      "recipeKey" : "M12_M13",
+      "standardResultAlienIds" : [
+        35,
+        36,
+        40,
+        41,
+        43
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 40,
+      "parentAlienIdB" : 42,
+      "recipeKey" : "M12_M14",
+      "standardResultAlienIds" : [
+        29,
+        34,
+        40,
+        42,
+        44
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 40,
+      "parentAlienIdB" : 43,
+      "recipeKey" : "M12_M15",
+      "standardResultAlienIds" : [
+        30,
+        32,
+        33,
+        40,
+        43
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 40,
+      "parentAlienIdB" : 44,
+      "recipeKey" : "M12_M16",
+      "standardResultAlienIds" : [
+        31,
+        40,
+        44,
+        45,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 40,
+      "parentAlienIdB" : 45,
+      "recipeKey" : "M12_M17",
+      "standardResultAlienIds" : [
+        30,
+        31,
+        40,
+        45,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 40,
+      "parentAlienIdB" : 46,
+      "recipeKey" : "M12_M18",
+      "standardResultAlienIds" : [
+        29,
+        32,
+        36,
+        40,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 40,
+      "parentAlienIdB" : 47,
+      "recipeKey" : "M12_M19",
+      "standardResultAlienIds" : [
+        33,
+        35,
+        40,
+        41,
+        42
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 40,
+      "parentAlienIdB" : 48,
+      "recipeKey" : "M12_M20",
+      "standardResultAlienIds" : [
+        33,
+        34,
+        40,
+        41,
+        42
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 41,
+      "parentAlienIdB" : 42,
+      "recipeKey" : "M13_M14",
+      "standardResultAlienIds" : [
+        31,
+        32,
+        34,
+        41,
+        42
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 41,
+      "parentAlienIdB" : 43,
+      "recipeKey" : "M13_M15",
+      "standardResultAlienIds" : [
+        30,
+        35,
+        41,
+        43,
+        45
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 41,
+      "parentAlienIdB" : 44,
+      "recipeKey" : "M13_M16",
+      "standardResultAlienIds" : [
+        29,
+        36,
+        37,
+        41,
+        44
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 41,
+      "parentAlienIdB" : 45,
+      "recipeKey" : "M13_M17",
+      "standardResultAlienIds" : [
+        35,
+        36,
+        41,
+        43,
+        45
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 41,
+      "parentAlienIdB" : 46,
+      "recipeKey" : "M13_M18",
+      "standardResultAlienIds" : [
+        29,
+        34,
+        41,
+        44,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 41,
+      "parentAlienIdB" : 47,
+      "recipeKey" : "M13_M19",
+      "standardResultAlienIds" : [
+        30,
+        31,
+        32,
+        33,
+        41
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 41,
+      "parentAlienIdB" : 48,
+      "recipeKey" : "M13_M20",
+      "standardResultAlienIds" : [
+        31,
+        32,
+        38,
+        41,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 42,
+      "parentAlienIdB" : 43,
+      "recipeKey" : "M14_M15",
+      "standardResultAlienIds" : [
+        29,
+        35,
+        36,
+        42,
+        43
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 42,
+      "parentAlienIdB" : 44,
+      "recipeKey" : "M14_M16",
+      "standardResultAlienIds" : [
+        30,
+        34,
+        37,
+        42,
+        44
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 42,
+      "parentAlienIdB" : 45,
+      "recipeKey" : "M14_M17",
+      "standardResultAlienIds" : [
+        33,
+        34,
+        35,
+        42,
+        45
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 42,
+      "parentAlienIdB" : 46,
+      "recipeKey" : "M14_M18",
+      "standardResultAlienIds" : [
+        31,
+        32,
+        33,
+        42,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 42,
+      "parentAlienIdB" : 47,
+      "recipeKey" : "M14_M19",
+      "standardResultAlienIds" : [
+        30,
+        37,
+        38,
+        42,
+        45
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 42,
+      "parentAlienIdB" : 48,
+      "recipeKey" : "M14_M20",
+      "standardResultAlienIds" : [
+        29,
+        36,
+        42,
+        43,
+        44
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 43,
+      "parentAlienIdB" : 44,
+      "recipeKey" : "M15_M16",
+      "standardResultAlienIds" : [
+        31,
+        32,
+        43,
+        44,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 43,
+      "parentAlienIdB" : 45,
+      "recipeKey" : "M15_M17",
+      "standardResultAlienIds" : [
+        30,
+        33,
+        38,
+        43,
+        45
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 43,
+      "parentAlienIdB" : 46,
+      "recipeKey" : "M15_M18",
+      "standardResultAlienIds" : [
+        29,
+        36,
+        37,
+        43,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 43,
+      "parentAlienIdB" : 47,
+      "recipeKey" : "M15_M19",
+      "standardResultAlienIds" : [
+        29,
+        34,
+        35,
+        36,
+        43
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 43,
+      "parentAlienIdB" : 48,
+      "recipeKey" : "M15_M20",
+      "standardResultAlienIds" : [
+        34,
+        35,
+        37,
+        43,
+        44
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 44,
+      "parentAlienIdB" : 45,
+      "recipeKey" : "M16_M17",
+      "standardResultAlienIds" : [
+        30,
+        31,
+        38,
+        44,
+        45
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 44,
+      "parentAlienIdB" : 46,
+      "recipeKey" : "M16_M18",
+      "standardResultAlienIds" : [
+        32,
+        33,
+        39,
+        44,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 44,
+      "parentAlienIdB" : 47,
+      "recipeKey" : "M16_M19",
+      "standardResultAlienIds" : [
+        33,
+        34,
+        35,
+        40,
+        44
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 44,
+      "parentAlienIdB" : 48,
+      "recipeKey" : "M16_M20",
+      "standardResultAlienIds" : [
+        31,
+        32,
+        36,
+        39,
+        44
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 45,
+      "parentAlienIdB" : 46,
+      "recipeKey" : "M17_M18",
+      "standardResultAlienIds" : [
+        29,
+        30,
+        37,
+        45,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 45,
+      "parentAlienIdB" : 47,
+      "recipeKey" : "M17_M19",
+      "standardResultAlienIds" : [
+        30,
+        31,
+        38,
+        39,
+        45
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 45,
+      "parentAlienIdB" : 48,
+      "recipeKey" : "M17_M20",
+      "standardResultAlienIds" : [
+        29,
+        36,
+        37,
+        38,
+        45
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 46,
+      "parentAlienIdB" : 47,
+      "recipeKey" : "M18_M19",
+      "standardResultAlienIds" : [
+        32,
+        33,
+        35,
+        40,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 46,
+      "parentAlienIdB" : 48,
+      "recipeKey" : "M18_M20",
+      "standardResultAlienIds" : [
+        34,
+        35,
+        41,
+        42,
+        46
+      ],
+      "standardWeightEach" : 192
+    },
+    {
+      "enabled" : true,
+      "exclusive19AlienId" : 47,
+      "exclusive19Weight" : 20,
+      "exclusive20AlienId" : 48,
+      "exclusive20Weight" : 20,
+      "parentAlienIdA" : 47,
+      "parentAlienIdB" : 48,
+      "recipeKey" : "M19_M20",
+      "standardResultAlienIds" : [
+        32,
+        33,
+        34,
+        39,
+        40
+      ],
+      "standardWeightEach" : 192
+    }
+  ],
+  "results" : [
+    {
+      "acquisitionType" : "STANDARD",
+      "alienId" : 29,
+      "enabled" : true,
+      "weight" : 0
+    },
+    {
+      "acquisitionType" : "STANDARD",
+      "alienId" : 30,
+      "enabled" : true,
+      "weight" : 0
+    },
+    {
+      "acquisitionType" : "STANDARD",
+      "alienId" : 31,
+      "enabled" : true,
+      "weight" : 0
+    },
+    {
+      "acquisitionType" : "STANDARD",
+      "alienId" : 32,
+      "enabled" : true,
+      "weight" : 0
+    },
+    {
+      "acquisitionType" : "STANDARD",
+      "alienId" : 33,
+      "enabled" : true,
+      "weight" : 0
+    },
+    {
+      "acquisitionType" : "STANDARD",
+      "alienId" : 34,
+      "enabled" : true,
+      "weight" : 0
+    },
+    {
+      "acquisitionType" : "STANDARD",
+      "alienId" : 35,
+      "enabled" : true,
+      "weight" : 0
+    },
+    {
+      "acquisitionType" : "STANDARD",
+      "alienId" : 36,
+      "enabled" : true,
+      "weight" : 0
+    },
+    {
+      "acquisitionType" : "STANDARD",
+      "alienId" : 37,
+      "enabled" : true,
+      "weight" : 0
+    },
+    {
+      "acquisitionType" : "STANDARD",
+      "alienId" : 38,
+      "enabled" : true,
+      "weight" : 0
+    },
+    {
+      "acquisitionType" : "STANDARD",
+      "alienId" : 39,
+      "enabled" : true,
+      "weight" : 0
+    },
+    {
+      "acquisitionType" : "STANDARD",
+      "alienId" : 40,
+      "enabled" : true,
+      "weight" : 0
+    },
+    {
+      "acquisitionType" : "STANDARD",
+      "alienId" : 41,
+      "enabled" : true,
+      "weight" : 0
+    },
+    {
+      "acquisitionType" : "STANDARD",
+      "alienId" : 42,
+      "enabled" : true,
+      "weight" : 0
+    },
+    {
+      "acquisitionType" : "STANDARD",
+      "alienId" : 43,
+      "enabled" : true,
+      "weight" : 0
+    },
+    {
+      "acquisitionType" : "STANDARD",
+      "alienId" : 44,
+      "enabled" : true,
+      "weight" : 0
+    },
+    {
+      "acquisitionType" : "STANDARD",
+      "alienId" : 45,
+      "enabled" : true,
+      "weight" : 0
+    },
+    {
+      "acquisitionType" : "STANDARD",
+      "alienId" : 46,
+      "enabled" : true,
+      "weight" : 0
+    },
+    {
+      "acquisitionType" : "BREEDING_EXCLUSIVE",
+      "alienId" : 47,
+      "enabled" : true,
+      "weight" : 20
+    },
+    {
+      "acquisitionType" : "BREEDING_EXCLUSIVE",
+      "alienId" : 48,
+      "enabled" : true,
+      "weight" : 20
+    }
   ]
 }

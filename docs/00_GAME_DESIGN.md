@@ -69,12 +69,18 @@
 - Mythic 20
 
 Normal~Legendary는 등급별 7종이며 세부 역할 분배는 별도 밸런스 문서에서 확정한다.
+신규 계정은 Normal~Legendary 28종을 각 1회 기본 해금하며, Mythic만 별도 획득 콘텐츠로 해금한다.
 
 ### Mythic 영구 획득 풀
 - 상점 Gacha: 일반 Mythic 18종
 - 로비 Breeding: Mythic 20종
 - Breeding 전용 Mythic 2종은 Gacha에서 등장하지 않음
 - Breeding 전용 Mythic 2종은 낮은 확률로 등장하며 전용 연출을 사용
+- 부모 조합은 20종 중 서로 다른 2종을 고르는 무순서 조합이며, 190개 조합표를 공개한다.
+- 각 조합은 일반 Mythic 후보 5종(각 19.2%)과 Breeding 전용 2종(각 2%)으로 구성된다.
+- 부모는 소모되지 않고 Battle·강화·상세 이용에 영향을 받지 않으며, 다른 Breeding 슬롯의 부모로만 중복 참여할 수 없다.
+- 중복 결과는 해당 Mythic 조각 30개를 지급한다.
+- 기본 시간은 24시간이며 10분당 Diamond 100개로 단축할 수 있다.
 - Mythic 미해금 상태에서 조각을 획득하면 해금 정책에 따라 해금하고, 초과 조각은 누적 보관
 
 ## 7. Merge

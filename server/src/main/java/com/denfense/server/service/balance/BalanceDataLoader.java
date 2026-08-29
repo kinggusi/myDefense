@@ -235,7 +235,7 @@ public class BalanceDataLoader implements ApplicationRunner {
             planetBattleBalanceRegistry.init(planetBattleDoc.planets());
             battleRuleBalanceRegistry.init(fieldLimitDoc.fieldLimits(), summonDoc.summons(),
                     mergeRuleDoc.mergeRules(), mythicChoiceDoc.mythicChoices(), summonPoolDoc.pools(), specs);
-            mythicBreedingBalanceRegistry.init(breedingConfig, breedingResults.results());
+            mythicBreedingBalanceRegistry.init(breedingConfig, breedingResults.results(), breedingResults.recipes());
             resonanceBalanceRegistry.init(resonanceBalances);
 
             log.info("Balance 데이터 로딩 완료. MaxLevel: {}", maxLevel);
@@ -248,21 +248,59 @@ public class BalanceDataLoader implements ApplicationRunner {
     private void validateBreedingBalance(MythicBreedingConfigBalance config, MythicBreedingResultDocument document,
                                          List<AlienSpecBalance> specs, GachaPoolBalanceDocument pools,
                                          MythicChoiceBalanceDocument choices) {
-        if (config.durationSeconds() != 86400 || config.slotCount() != 3 || config.slot2GemPrice() <= 0 || config.slot3GemPrice() <= 0)
+        if (!config.enabled() || config.durationSeconds() != 86400 || config.slotCount() != 3
+                || config.slot2UnlockLevel() != 30 || config.slot2GemPrice() != 5000 || config.slot3GemPrice() != 10000
+                || config.duplicateRewardPieces() != 30 || config.accelerationUnitSeconds() != 600
+                || config.accelerationUnitDiamondCost() != 100)
             throw new IllegalStateException("Invalid mythic breeding config");
         if (document.results().size() != 20 || document.results().stream().map(MythicBreedingResultBalance::alienId).distinct().count() != 20)
             throw new IllegalStateException("Mythic breeding must define 20 unique results");
         var specById = specs.stream().collect(java.util.stream.Collectors.toMap(AlienSpecBalance::alienId, java.util.function.Function.identity()));
         long standard = document.results().stream().filter(r -> "STANDARD".equals(r.acquisitionType())).count();
         long exclusiveCount = document.results().stream().filter(r -> "BREEDING_EXCLUSIVE".equals(r.acquisitionType())).count();
-        if (standard != 18 || exclusiveCount != 2 || document.results().stream().anyMatch(r -> r.weight() <= 0 || specById.get(r.alienId()) == null || !"MYTHIC".equals(specById.get(r.alienId()).grade())))
+        if (standard != 18 || exclusiveCount != 2 || document.results().stream().anyMatch(r -> r.weight() < 0 || !r.enabled() || specById.get(r.alienId()) == null || !"MYTHIC".equals(specById.get(r.alienId()).grade())))
             throw new IllegalStateException("Invalid mythic breeding result contract");
         var gachaIds = pools.pools().stream().flatMap(p -> p.gradeEntries().stream()).flatMap(e -> e.alienIds().stream()).collect(java.util.stream.Collectors.toSet());
         if (document.results().stream().filter(r -> "BREEDING_EXCLUSIVE".equals(r.acquisitionType())).anyMatch(r -> gachaIds.contains(r.alienId())))
             throw new IllegalStateException("Breeding-exclusive Mythics cannot be in gacha pool");
         var exclusiveIds = document.results().stream().filter(r -> "BREEDING_EXCLUSIVE".equals(r.acquisitionType())).map(MythicBreedingResultBalance::alienId).collect(java.util.stream.Collectors.toSet());
-        if (!exclusiveIds.equals(new java.util.HashSet<>(choices.excludedAlienIds())) || choices.excludedAlienIds().stream().anyMatch(id -> !specById.containsKey(id)))
+        if (choices.excludedAlienIds().size() != new java.util.HashSet<>(choices.excludedAlienIds()).size()
+                || !exclusiveIds.equals(new java.util.HashSet<>(choices.excludedAlienIds()))
+                || choices.excludedAlienIds().stream().anyMatch(id -> !specById.containsKey(id)))
             throw new IllegalStateException("Battle Mythic Choice pool must explicitly exclude breeding-exclusive results");
+        validateBreedingRecipes(document, specById, exclusiveIds);
+    }
+
+    private void validateBreedingRecipes(MythicBreedingResultDocument document,
+                                         java.util.Map<Long, AlienSpecBalance> specById,
+                                         java.util.Set<Long> exclusiveIds) {
+        if (document.recipes() == null || document.recipes().size() != 190)
+            throw new IllegalStateException("Mythic breeding must define all 190 parent combinations");
+        java.util.Set<String> pairs = new java.util.HashSet<>();
+        java.util.Set<Long> resultIds = document.results().stream().map(MythicBreedingResultBalance::alienId)
+                .collect(java.util.stream.Collectors.toSet());
+        java.util.Set<Long> standardIds = document.results().stream()
+                .filter(r -> "STANDARD".equals(r.acquisitionType())).map(MythicBreedingResultBalance::alienId)
+                .collect(java.util.stream.Collectors.toSet());
+        java.util.List<Long> exclusive = exclusiveIds.stream().sorted().toList();
+        for (var recipe : document.recipes()) {
+            if (!recipe.enabled() || recipe.parentAlienIdA() >= recipe.parentAlienIdB()
+                    || !resultIds.contains(recipe.parentAlienIdA()) || !resultIds.contains(recipe.parentAlienIdB()))
+                throw new IllegalStateException("Invalid breeding parent pair: " + recipe.recipeKey());
+            String pair = recipe.parentAlienIdA() + ":" + recipe.parentAlienIdB();
+            if (!pairs.add(pair) || recipe.standardResultAlienIds() == null
+                    || recipe.standardResultAlienIds().size() != 5
+                    || recipe.standardResultAlienIds().stream().distinct().count() != 5
+                    || !standardIds.containsAll(recipe.standardResultAlienIds())
+                    || recipe.standardWeightEach() != 192
+                    || recipe.exclusive19Weight() != 20 || recipe.exclusive20Weight() != 20
+                    || recipe.exclusive19AlienId() != exclusive.get(0)
+                    || recipe.exclusive20AlienId() != exclusive.get(1)
+                    || recipe.standardWeightEach() * 5 + recipe.exclusive19Weight() + recipe.exclusive20Weight() != 1000)
+                throw new IllegalStateException("Invalid breeding recipe: " + recipe.recipeKey());
+        }
+        if (pairs.size() != 190 || specById.values().stream().filter(s -> "MYTHIC".equals(s.grade())).count() != 20)
+            throw new IllegalStateException("Breeding recipe coverage mismatch");
     }
 
     private <T> T readDocument(ObjectMapper mapper, String path, Class<T> type) throws Exception {

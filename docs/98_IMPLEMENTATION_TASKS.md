@@ -230,7 +230,7 @@ P0-1-1~4 → P0-1-5 → P0-1-6
 | Task ID | 담당 | 상태 | Codex 작업 | 선행 |
 |---|---|---|---|---|
 | P0-5-1 | jjangash | 검증 대기 | 플레이어별 Networked inGameGold 구현 | P0-2-3 |
-| P0-5-2 | jjangash | 검증 대기 | canonical killGold 기반 인게임 Gold 권위 지급(개인 필드 소유자/BOSS_SHARED 팀 지갑) | P0-5-1 |
+| P0-5-2 | jjangash | 검증 대기 | canonical killGold를 두 플레이어의 독립 개인 지갑에 동일하게 권위 지급 | P0-5-1 |
 | P0-5-3 | jjangash | 완료 | State Authority Kidnap 요청·검증 RPC 구현 | P0-5-1 |
 | P0-5-4 | jjangash | 검증 대기 | 기존 24칸·첫 빈칸·누적 비용 규칙을 Fusion 검증으로 이전 | P0-5-3 |
 | P0-5-5 | jjangash | 검증 대기 | State Authority 일반 Merge 요청·검증 RPC 및 동일 종·등급 권한 검증 구현 | P0-5-1 |
@@ -333,7 +333,7 @@ P0-1-1~4 → P0-1-5 → P0-1-6
 - 사용자 통합 게이트: uGUI 포인터 입력(Kidnap/Drag/Merge/Mythic 선택), Boss 처치·시간 초과, 재접속, Match 종료 Settlement는 `docs/P0_INTEGRATION_TEST_SCENARIO.md`로 최종 확인한다.
 - P0-8-2 실동작 증거: 실제 Fusion Host/Standalone Client에서 양쪽 player catalog 48종을 서버로부터 로드했고, Kidnap된 Unit이 서버 계산 snapshot을 적용했다. Fusion 전투에서는 유효 snapshot 전까지 공격하지 않으며 Battle Runtime은 계산식을 복제하거나 임시 피해 fallback을 사용하지 않는다.
 - 릴리스 전 보안 위험: 현재 프로젝트 전반에 인증 계층이 없어 기존 username을 요청 파라미터로 위조할 수 있다. anonymous 개발 identity 허용은 `local` profile에만 한정했지만, 운영 배포 전 인증 principal과 playerId 바인딩이 필요하다.
-- 운영 설정 위험: base 설정의 default profile이 `local`이므로 운영 실행 시 active production profile을 반드시 명시해야 한다. 출시 전에는 profile 누락을 시작 단계에서 차단하는 guard가 필요하다.
+- 운영 설정 안전장치: base 설정에는 default profile을 두지 않는다. local 개발은 `SPRING_PROFILES_ACTIVE=local`, 운영은 production profile을 반드시 명시하며, profile 생략/prod에서는 local roster Controller와 Adapter가 생성되지 않는 통합 테스트를 유지한다.
 - 복구성 위험: attack catalog HTTP 실패는 현재 세션에서 fault latch로 고정된다. 자동 Retry를 금지하는 현재 P0 정책에는 맞지만, 후속 단계에서 사용자 명시 Retry 또는 제한된 재시도 UX를 결정해야 한다.
 
 ---
@@ -420,7 +420,7 @@ P0-1-1~4 → P0-1-5 → P0-1-6
 | P2-4-1 | jjangash | 정책 선행 | 무한 Wave 시즌·랭킹·구간 보상 서버 구현 |
 | P2-4-2 | kinggusi | 정책 선행 | 무한 Wave 전투 모드 구현 |
 | P2-4-3 | kinggusi | 정책 선행 | 무한 Wave 난이도 증가 공식 구현 |
-| P2-5-1 | jjangash | 부분 완료 | Breeding Unity UI·API 연결 |
+| P2-5-1 | jjangash | 검증 대기 | Breeding Unity UI·API 연결 — 190조합 Excel/JSON·공개 조합표, 서버 조합 추첨·3슬롯·사용자 단위 요청 멱등 이력·가속 구현. Unity API로 정식 Screen/Shortcut Prefab을 생성하고 Unit 탭 전용 진입, 보상 준비 상태, 조합표를 연결했다. NORMAL~LEGEND 28종 기본 보유, 24시간 타이머, 10분당 Diamond 100 가속 계약을 반영했다. Server 310/310, BalanceTool 77/77, Unity EditMode 396/396, Scene validate 0. 실제 계정의 부모 선택·시작·가속·수령 Play 검증과 최종 아트 적용이 남음 |
 | P2-6-1 | jjangash | 정책 선행 | Shop·스킨·편의 상품 서버·UI 구현 |
 | P2-6-2 | kinggusi | 대기 | 스킨·Projectile·처치 Effect 적용 |
 
@@ -620,7 +620,7 @@ Task 상태만 바꾸는 커밋은 구현 커밋에 함께 포함할 수 있다.
 
 - P0-2-5/P0-2-6: Host/Client 양쪽 Session Adapter 초기화와 두 개인 필드·공용 Lane 초기화.
 - P0-5-1: 플레이어별 Networked in-game Gold의 독립 차감 및 동기화.
-- P0-5-2: canonical `killGold` 기반 EACH_FIELD 개인 지갑/BOSS_SHARED 팀 지갑 지급.
+- P0-5-2: Lane과 마지막 공격자에 관계없이 canonical `killGold`를 두 플레이어의 독립 개인 지갑에 동일하게 지급.
 - P0-5-4: 24칸 첫 빈 슬롯·누적 비용 Kidnap 권위 검증.
 - P0-5-5/P0-5-6: 동일 종·등급 Merge, 다음 등급 승급, 불가 조합 Swap.
 - P0-5-7: Mutation Injector 사용과 Pending DNA 계승.
@@ -656,11 +656,11 @@ Task 상태만 바꾸는 커밋은 구현 커밋에 함께 포함할 수 있다.
 ### 처치 Gold 계약 현행화
 
 - `monster-spec.json.killGold`가 인게임 Gold의 유일한 수치 원천이다. 클라이언트 입력이나 계정 Gold를 처치 이벤트에 사용하지 않는다.
-- `EACH_FIELD` 몬스터는 Spawn 시 고정된 `fieldOwnerPlayerId`의 개인 인게임 지갑에 정확히 1회 지급한다. `killerPlayerId`는 보상 대상이 아니라 통계용이다.
-- `BOSS_SHARED` 몬스터는 팀 공용 인게임 지갑에 정확히 1회 지급하며 두 개인 지갑에 복제하지 않는다.
+- `EACH_FIELD`와 `BOSS_SHARED` 모두 canonical `killGold`를 두 플레이어의 개인 지갑에 각각 동일하게 1회 지급한다.
+- `fieldOwnerPlayerId`와 `killerPlayerId`는 지급 대상 결정에 사용하지 않고 필드·처치 통계와 감사 정보에만 사용한다.
 - 지급 중복 키는 `(battleSessionId, runtimeMonsterId)`이고 State Authority에서만 소비 처리한다. 기존 레거시 `/game/enemy/kill`은 신규 Battle 흐름에서 사용하지 않는다.
 - 현재 P0-5 구현의 중복 키 보관은 State Authority 메모리 장부이며, Host migration/재접속 이후 복구는 P0-9 Snapshot에서 영속화한다. 그 전까지 동일 Session의 Authority 교체는 최종 통합 검증에서 명시적으로 제외하고 위험으로 기록한다.
-- `BOSS_SHARED` 팀 지갑의 소비/Settlement 반영은 P0-10 계정 보상 계약에서 확정한다. 현재는 개인 지갑 복제 없이 팀 지갑 누적만 수행한다.
+- 처치 Gold 소비는 플레이어별 개인 지갑에서 독립적으로 처리하며, `TeamInGameGold`는 처치 보상에 사용하지 않는다.
 - P0/P1/P2 전체 통합 완료 기준은 단위·회귀 테스트 통과만이 아니라, 변경 Task의 독립 리뷰와 Host/Client 수동 Smoke Test 기록까지 포함한다.
 
 ## Codex 작업 오케스트레이션 및 기록 규칙 (2026-07-23)

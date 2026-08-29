@@ -137,8 +137,8 @@ public sealed class GachaShopController : MonoBehaviour
         }
 
         revealState.Close();
-        resultArea.SetActive(false);
         currentResponse = null;
+        ClearResultPresentation();
         SetPurchaseButtons(true);
         backButton.interactable = true;
 
@@ -155,14 +155,7 @@ public sealed class GachaShopController : MonoBehaviour
         revealState.Close();
         currentResponse = null;
         lobbyRefreshPending = false;
-        resultArea.SetActive(false);
-        singleResultContainer.SetActive(false);
-        tenResultGrid.SetActive(false);
-        singleResultCard.Hide();
-        foreach (GachaResultCardView card in tenResultCards)
-        {
-            card.Hide();
-        }
+        ClearResultPresentation();
 
         SetFlashAlpha(0f);
         mascotRect.anchoredPosition = Vector2.zero;
@@ -177,6 +170,7 @@ public sealed class GachaShopController : MonoBehaviour
             return;
         }
 
+        ClearResultPresentation();
         SendCurrentRequest();
     }
 
@@ -412,12 +406,26 @@ public sealed class GachaShopController : MonoBehaviour
 
     private void ShowRequesting()
     {
+        ClearResultPresentation();
         SetPurchaseButtons(false);
         backButton.interactable = false;
         retryButton.gameObject.SetActive(false);
         loadingIndicator.SetActive(true);
         errorText.gameObject.SetActive(false);
+    }
+
+    private void ClearResultPresentation()
+    {
         resultArea.SetActive(false);
+        singleResultContainer.SetActive(false);
+        tenResultGrid.SetActive(false);
+        singleResultCard.Hide();
+        foreach (GachaResultCardView card in tenResultCards)
+        {
+            card.Hide();
+        }
+
+        resultSummaryText.text = string.Empty;
     }
 
     private void ShowRetryableError(string message)
