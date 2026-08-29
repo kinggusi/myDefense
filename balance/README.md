@@ -14,7 +14,7 @@ cd server
 .\gradlew test
 ```
 
-`convertBalance`는 Excel 전체를 검증한 뒤 16개 JSON과 manifest를 한 묶음으로 교체합니다.
+`convertBalance`는 Excel 전체를 검증한 뒤 canonical JSON과 manifest를 한 묶음으로 교체합니다.
 검증이나 파일 생성이 실패하면 기존 정상 generated 파일과 manifest를 유지합니다.
 
 ## Excel 시트
@@ -37,6 +37,13 @@ cd server
 - `SummonBalance`: Kidnap 비용 증가 및 결과 Pool 식별자
 - `MergeRule`: 등급별 Merge 재료 수와 결과 방식
 - `MythicChoiceBalance`: LEGEND Merge의 MYTHIC 후보·Reroll·제한 시간 정책
+
+로비 신화 교배 계약:
+
+- `MythicBreedingConfig`: 24시간, 슬롯 해금, 중복 조각, 10분당 Diamond 100 가속 비용
+- `MythicBreedingResult`: 신화 20종의 일반/교배 전용 획득 구분
+- `MythicBreedingRecipe`: 무순서 부모 조합 190개의 일반 후보 5종과 확률 가중치
+- `BreedingCombinationPublic`: 공개용 조합표이며 서버 JSON에는 포함하지 않음
 
 숫자는 Excel `NUMERIC`, 플래그는 `BOOLEAN` 타입이어야 합니다. 병합 셀, 중복 헤더, 필수 값 누락,
 문자열로 저장된 숫자와 Boolean은 변환 실패 대상입니다.
@@ -127,12 +134,17 @@ Wave 70 submits 70. Re-clears receive repeatable victory/failure Gold only.
 - `mythic-choice-balance.json`
 - `battle-reward.json`
 
+로비 신화 교배 2종:
+
+- `mythic-breeding-config.json`
+- `mythic-breeding-results.json` (`results`와 `recipes` 포함)
+
 전투 계약 JSON은 Unity parser 호환성을 위해 배열을 직접 root로 사용하지 않고 wrapper object를 사용합니다.
 모든 JSON은 UTF-8(BOM 없음), LF, 결정적 파일명·행 순서와 기존 pretty-print 규칙을 사용합니다.
 
 ## Manifest 규칙
 
-`balance-manifest.json`은 위 16개 JSON의 파일명, byte 크기, SHA-256과 전체 `contentHash`를 기록합니다.
+`balance-manifest.json`은 모든 canonical JSON의 파일명, byte 크기, SHA-256과 전체 `contentHash`를 기록합니다.
 manifest 자신은 `files`에서 제외하고 timestamp, OS, 사용자나 빌드 환경 정보는 포함하지 않습니다.
 서버는 시작할 때 manifest와 실제 파일을 검증한 뒤에만 Registry를 초기화합니다.
 
@@ -140,4 +152,4 @@ manifest 자신은 `files`에서 제외하고 timestamp, OS, 사용자나 빌드
 
 현재 canonical 산출물 위치는 `server/src/main/resources/balance/generated`입니다. 8-1I-D에서 검증된
 Gradle sync task가 manifest와 generated 파일을 `Client/Assets/StreamingAssets/Balance/generated`로
-byte-for-byte 복사할 예정입니다. 이번 단계에서는 Unity 파일이나 sync task를 추가하지 않습니다.
+byte-for-byte 복사합니다.

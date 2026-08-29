@@ -10,8 +10,13 @@ public final class MythicBreedingDtos {
     public record UnlockRequest(String requestId) {}
     public record StartRequest(Long parentUserAlienIdA, Long parentUserAlienIdB, String requestId) {}
     public record ClaimRequest(String requestId) {}
-    public record SlotsResponse(List<Slot> slots) {}
+    public record AccelerateRequest(String requestId, int units) {}
+    public record SlotsResponse(List<Slot> slots, int accountLevel, int diamond, int slot2UnlockLevel,
+                                int slot2GemPrice, int slot3GemPrice, int durationSeconds,
+                                int accelerationUnitSeconds, int accelerationUnitDiamondCost) {}
     public record CandidatesResponse(List<Candidate> candidates) {}
     public record StartResponse(int slotNo, String status, Instant readyAt) {}
     public record ClaimResponse(int slotNo, long resultAlienId, String status, Instant claimedAt) {}
+    public record AccelerateResponse(int slotNo, String status, int requestedUnits, int appliedUnits,
+                                     int spentDiamond, int remainingDiamond, Instant readyAt) {}
 }

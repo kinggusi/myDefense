@@ -1,7 +1,7 @@
 {
   "schemaVersion" : 1,
-  "balanceVersion" : "1-69adccef540835fe",
-  "contentHash" : "69adccef540835fedf5da9ee853345722df52b2dc37f0e7f5003ac7e3d9ee276",
+  "balanceVersion" : "1-50da09ac4ade04f8",
+  "contentHash" : "50da09ac4ade04f8630987b89af7cc1c9a48a79a29212199c415aafc82f3a2ba",
   "files" : [ {
     "name" : "alien-level-stat.json",
     "sha256" : "2afc3bb0d4e009c185e35cf76e56cf942e7925b288f77577eb20722b906a6f8f",
@@ -52,12 +52,12 @@
     "size" : 5733
   }, {
     "name" : "mythic-breeding-config.json",
-    "sha256" : "42ead0a4f253583b822ed6d87ea99004f9be97649b8e4b89e558de9fe4f1b49d",
-    "size" : 155
+    "sha256" : "7972991e4daf59331086f5a3148864c703948ec3beafd39ff5d5f3e728fd7012",
+    "size" : 257
   }, {
     "name" : "mythic-breeding-results.json",
-    "sha256" : "4a777408ee4b3fedf823c10670010797e2df7a3f4f477c18a3b7ec1e86f5afa1",
-    "size" : 1582
+    "sha256" : "24f8c3250dca0e57bc601e1eb5872153fb93291da058ad643994e61906b01adc",
+    "size" : 76865
   }, {
     "name" : "mythic-choice-balance.json",
     "sha256" : "37fbd4f365648052c82a7d64cd3fd74309b76455a0c534f64adc6b1ce089e9ce",

@@ -1,8 +1,11 @@
 {
-  "durationSeconds": 86400,
-  "slotCount": 3,
-  "slot2UnlockLevel": 15,
-  "slot2GemPrice": 500,
-  "slot3GemPrice": 1000,
-  "duplicateRewardPieces": 50
+  "accelerationUnitDiamondCost" : 100,
+  "accelerationUnitSeconds" : 600,
+  "duplicateRewardPieces" : 30,
+  "durationSeconds" : 86400,
+  "enabled" : true,
+  "slot2GemPrice" : 5000,
+  "slot2UnlockLevel" : 30,
+  "slot3GemPrice" : 10000,
+  "slotCount" : 3
 }

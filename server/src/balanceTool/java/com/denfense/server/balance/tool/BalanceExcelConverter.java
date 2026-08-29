@@ -49,11 +49,6 @@ public class BalanceExcelConverter {
                 writer.replaceFile(temp, entry.getKey());
             }
 
-            // Breeding balance is currently maintained as canonical JSON (Excel integration is a
-            // follow-up). Preserve those resources in the conversion staging set so the manifest
-            // remains complete and deterministic instead of failing on missing required files.
-            copyCanonicalJsonResources(stagingDirectory);
-
             new BalanceManifestGenerator().generate(stagingDirectory);
 
             Map<Path, Path> stagedToTarget = new LinkedHashMap<>();
@@ -66,6 +61,12 @@ public class BalanceExcelConverter {
             stagedToTarget.put(
                     stagingDirectory.resolve("battle-reward.json"),
                     generatedDirectory.resolve("battle-reward.json"));
+            stagedToTarget.put(
+                    stagingDirectory.resolve("mythic-breeding-config.json"),
+                    generatedDirectory.resolve("mythic-breeding-config.json"));
+            stagedToTarget.put(
+                    stagingDirectory.resolve("mythic-breeding-results.json"),
+                    generatedDirectory.resolve("mythic-breeding-results.json"));
             writer.replaceFilesAtomically(stagedToTarget);
 
             System.out.println("Conversion successful. Generated files: " + stagedToTarget.size());
@@ -110,6 +111,8 @@ public class BalanceExcelConverter {
         validator.validatePlanetBattles(new PlanetBattleBalanceDocument(data.planetBattles()));
         validator.validateResonanceBalance(data.resonanceBalances());
         validateMutationBalance(data);
+        validateBreedingBalance(data, poolDocument, new MythicChoiceBalanceDocument(data.mythicChoices(),
+                readCanonicalMythicChoiceExcludedAlienIdsUnchecked()));
     }
 
     private static Map<Path, Object> documents(
@@ -139,7 +142,57 @@ public class BalanceExcelConverter {
         documents.put(directory.resolve("mutation-config.json"), data.mutationConfig());
         documents.put(directory.resolve("injector-pool.json"), data.injectorPools());
         documents.put(directory.resolve("resonance-balance.json"), data.resonanceBalances());
+        documents.put(directory.resolve("mythic-breeding-config.json"), data.mythicBreedingConfig());
+        documents.put(directory.resolve("mythic-breeding-results.json"),
+                new MythicBreedingResultDocument(data.mythicBreedingResults(), data.mythicBreedingRecipes()));
         return documents;
+    }
+
+    public static void validateBreedingBalance(ExcelBalanceReader.BalanceData data,
+                                               GachaPoolBalanceDocument pools,
+                                               MythicChoiceBalanceDocument choices) {
+        MythicBreedingConfigBalance config = data.mythicBreedingConfig();
+        if (config == null || !config.enabled() || config.durationSeconds() != 86400 || config.slotCount() != 3
+                || config.slot2UnlockLevel() != 30 || config.slot2GemPrice() != 5000 || config.slot3GemPrice() != 10000
+                || config.duplicateRewardPieces() != 30 || config.accelerationUnitSeconds() != 600
+                || config.accelerationUnitDiamondCost() != 100)
+            throw new IllegalStateException("Invalid MythicBreedingConfig");
+        var results = data.mythicBreedingResults();
+        if (results == null || results.size() != 20 || results.stream().map(MythicBreedingResultBalance::alienId).distinct().count() != 20
+                || results.stream().anyMatch(r -> !r.enabled() || r.weight() < 0))
+            throw new IllegalStateException("MythicBreedingResult must define 20 unique enabled Mythics");
+        var specs = data.alienSpecs().stream().collect(java.util.stream.Collectors.toMap(AlienSpecBalance::alienId, java.util.function.Function.identity()));
+        if (results.stream().anyMatch(r -> specs.get(r.alienId()) == null || !"MYTHIC".equals(specs.get(r.alienId()).grade())))
+            throw new IllegalStateException("Breeding results must reference MYTHIC AlienSpec");
+        var standard = results.stream().filter(r -> "STANDARD".equals(r.acquisitionType())).map(MythicBreedingResultBalance::alienId).collect(java.util.stream.Collectors.toSet());
+        var exclusive = results.stream().filter(r -> "BREEDING_EXCLUSIVE".equals(r.acquisitionType())).map(MythicBreedingResultBalance::alienId).collect(java.util.stream.Collectors.toSet());
+        if (standard.size() != 18 || exclusive.size() != 2)
+            throw new IllegalStateException("Breeding results must contain STANDARD 18 and BREEDING_EXCLUSIVE 2");
+        var gachaIds = pools.pools().stream().flatMap(p -> p.gradeEntries().stream()).flatMap(e -> e.alienIds().stream()).collect(java.util.stream.Collectors.toSet());
+        if (exclusive.stream().anyMatch(gachaIds::contains)
+                || choices.excludedAlienIds().size() != new java.util.HashSet<>(choices.excludedAlienIds()).size()
+                || !exclusive.equals(new java.util.HashSet<>(choices.excludedAlienIds())))
+            throw new IllegalStateException("Breeding-exclusive Mythics must be excluded from Gacha and Battle Mythic Choice");
+        var recipes = data.mythicBreedingRecipes();
+        if (recipes == null || recipes.size() != 190) throw new IllegalStateException("All 190 breeding recipes are required");
+        java.util.Set<Long> resultIds = results.stream().map(MythicBreedingResultBalance::alienId).collect(java.util.stream.Collectors.toSet());
+        java.util.Set<String> pairs = new java.util.HashSet<>();
+        java.util.List<Long> exclusiveIds = exclusive.stream().sorted().toList();
+        for (var recipe : recipes) {
+            String pair = recipe.parentAlienIdA() + ":" + recipe.parentAlienIdB();
+            if (!recipe.enabled() || recipe.parentAlienIdA() >= recipe.parentAlienIdB() || !pairs.add(pair)
+                    || !resultIds.contains(recipe.parentAlienIdA()) || !resultIds.contains(recipe.parentAlienIdB())
+                    || recipe.standardResultAlienIds().size() != 5 || recipe.standardResultAlienIds().stream().distinct().count() != 5
+                    || !standard.containsAll(recipe.standardResultAlienIds()) || recipe.standardWeightEach() != 192
+                    || recipe.exclusive19AlienId() != exclusiveIds.get(0) || recipe.exclusive20AlienId() != exclusiveIds.get(1)
+                    || recipe.exclusive19Weight() != 20 || recipe.exclusive20Weight() != 20)
+                throw new IllegalStateException("Invalid breeding recipe: " + recipe.recipeKey());
+        }
+    }
+
+    private static List<Long> readCanonicalMythicChoiceExcludedAlienIdsUnchecked() {
+        try { return readCanonicalMythicChoiceExcludedAlienIds(); }
+        catch (IOException e) { throw new IllegalStateException("Failed to read Mythic Choice exclusions", e); }
     }
 
     private static void validateMutationBalance(ExcelBalanceReader.BalanceData data) {
@@ -251,19 +304,6 @@ public class BalanceExcelConverter {
             }
         }
         return directory;
-    }
-
-    private static void copyCanonicalJsonResources(Path stagingDirectory) throws IOException {
-        for (String fileName : List.of("mythic-breeding-config.json", "mythic-breeding-results.json")) {
-            String resourceName = "/balance/generated/" + fileName;
-            Path target = stagingDirectory.resolve(fileName);
-            try (InputStream resource = BalanceExcelConverter.class.getResourceAsStream(resourceName)) {
-                if (resource == null) {
-                    throw new IllegalStateException("Canonical balance resource is missing: " + fileName);
-                }
-                Files.copy(resource, target, StandardCopyOption.REPLACE_EXISTING);
-            }
-        }
     }
 
     private static void deleteDirectoryQuietly(Path directory) {

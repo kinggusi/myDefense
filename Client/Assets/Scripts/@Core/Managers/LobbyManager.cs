@@ -29,11 +29,18 @@ public class LobbyManager : MonoBehaviour
     public GameObject unitCardPrefab; // 만들어둔 Level_Block 프리팹
     [Header("Alien 상세 화면")]
     public AlienDetailController alienDetailController;
+    private MythicBreedingController mythicBreedingController;
 
 
 
     void Start()
     {
+        mythicBreedingController = GetComponent<MythicBreedingController>();
+        if (mythicBreedingController == null)
+        {
+            mythicBreedingController = gameObject.AddComponent<MythicBreedingController>();
+        }
+        mythicBreedingController.Initialize(this);
         // 1. 처음엔 메인 화면(2번 탭) 띄우기
         OpenTab(2);
 
@@ -46,6 +53,10 @@ public class LobbyManager : MonoBehaviour
         for (int i = 0; i < viewObjects.Length; i++)
         {
             viewObjects[i].SetActive(i == index);
+        }
+        if (mythicBreedingController != null)
+        {
+            mythicBreedingController.SetLobbyTab(index);
         }
         Debug.Log($"{index}번 탭으로 이동했습니다.");
     }
@@ -70,6 +81,8 @@ public class LobbyManager : MonoBehaviour
                 // 2. 유닛 목록 생성
                 SpawnMyUnits(data.aliens);
 
+                mythicBreedingController?.RefreshStatus();
+
                 Debug.Log($"{data.user.username}님 로비 로드 성공!");
                 onCompleted?.Invoke(true);
             }, 
@@ -89,8 +102,7 @@ public class LobbyManager : MonoBehaviour
     void UpdateTopBarUI(UserDto user)
     {
         text_UserName.text = user.username;
-        // 서버 UserDto에 level이 없다면 일단 1로 고정하거나 추가해야 합니다.
-        text_UserLevel.text = "1"; 
+        text_UserLevel.text = user.accountLevel.ToString();
         text_Heart.text = user.heart.ToString();
         text_Gold.text = user.gold.ToString("N0"); // 1,000 단위 콤마
         text_Diamond.text = user.diamond.ToString("N0");

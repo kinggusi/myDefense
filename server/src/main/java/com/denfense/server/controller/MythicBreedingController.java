@@ -11,4 +11,5 @@ public class MythicBreedingController {
  @PostMapping("/slots/{slotNo}/unlock") public MythicBreedingDtos.Slot unlock(@RequestParam String username,@PathVariable int slotNo,@RequestBody MythicBreedingDtos.UnlockRequest req){return service.unlock(username,slotNo,req.requestId());}
  @PostMapping("/slots/{slotNo}/start") public MythicBreedingDtos.StartResponse start(@RequestParam String username,@PathVariable int slotNo,@RequestBody MythicBreedingDtos.StartRequest req){return service.start(username,slotNo,req);}
  @PostMapping("/slots/{slotNo}/claim") public MythicBreedingDtos.ClaimResponse claim(@RequestParam String username,@PathVariable int slotNo,@RequestBody MythicBreedingDtos.ClaimRequest req){return service.claim(username,slotNo,req);}
+ @PostMapping("/slots/{slotNo}/accelerate") public MythicBreedingDtos.AccelerateResponse accelerate(@RequestParam String username,@PathVariable int slotNo,@RequestBody MythicBreedingDtos.AccelerateRequest req){return service.accelerate(username,slotNo,req);}
 }

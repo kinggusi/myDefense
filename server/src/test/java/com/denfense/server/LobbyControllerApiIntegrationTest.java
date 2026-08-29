@@ -103,16 +103,16 @@ public class LobbyControllerApiIntegrationTest {
                 .andExpect(jsonPath("$.aliens[0].level").value(3))
                 .andExpect(jsonPath("$.aliens[0].pieces").value(7))
                 .andExpect(jsonPath("$.aliens[0].requiredPieces").value(15))
-                // 4. 미보유 Alien 검증 (ID 2)
-                .andExpect(jsonPath("$.aliens[1].owned").value(false))
-                .andExpect(jsonPath("$.aliens[1].level").value(0))
+                // 4. NORMAL~LEGEND는 첫 로비 조회에서 기본 1레벨 해금
+                .andExpect(jsonPath("$.aliens[1].owned").value(true))
+                .andExpect(jsonPath("$.aliens[1].level").value(1))
                 .andExpect(jsonPath("$.aliens[1].pieces").value(0))
-                .andExpect(jsonPath("$.aliens[1].requiredPieces").value(0))
+                .andExpect(jsonPath("$.aliens[1].requiredPieces").value(5))
                 // 5. specLocked는 출시 메타데이터, legacy locked는 미보유 여부만 표현
                 .andExpect(jsonPath("$.aliens[0].specLocked").isBoolean())
                 .andExpect(jsonPath("$.aliens[0].locked").value(false))
                 .andExpect(jsonPath("$.aliens[1].specLocked").isBoolean())
-                .andExpect(jsonPath("$.aliens[1].locked").value(true))
+                .andExpect(jsonPath("$.aliens[1].locked").value(false))
                 // 6. 기본 스탯 반환 검증
                 .andExpect(jsonPath("$.aliens[0].baseAtk").isNumber())
                 .andExpect(jsonPath("$.aliens[0].baseMp").isNumber())
@@ -144,14 +144,21 @@ public class LobbyControllerApiIntegrationTest {
     }
 
     @Test
-    @DisplayName("9. 보유 Alien이 0건인 사용자 검증")
+    @DisplayName("9. 보유 Alien이 0건인 사용자도 기본 28종을 한 번씩 해금")
     void getLobbyInfo_emptyUser() throws Exception {
-        int specCount = alienSpecRepository.findAll().size();
+        List<AlienSpec> specs = alienSpecRepository.findAll();
+        specs.sort(java.util.Comparator.comparing(AlienSpec::getId));
+        int firstMythicIndex = 28;
         mockMvc.perform(get("/api/lobby/info/emptyUser"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.user.username").value("emptyUser"))
-                .andExpect(jsonPath("$.aliens[0].owned").value(false))
-                .andExpect(jsonPath("$.aliens[" + (specCount - 1) + "].owned").value(false));
+                .andExpect(jsonPath("$.aliens[0].owned").value(true))
+                .andExpect(jsonPath("$.aliens[27].owned").value(true))
+                .andExpect(jsonPath("$.aliens[" + firstMythicIndex + "].owned").value(false));
+
+        assertThat(userAlienRepository.findAllByUser(emptyUser)).hasSize(28);
+        mockMvc.perform(get("/api/lobby/info/emptyUser")).andExpect(status().isOk());
+        assertThat(userAlienRepository.findAllByUser(emptyUser)).hasSize(28);
     }
 
     @Test

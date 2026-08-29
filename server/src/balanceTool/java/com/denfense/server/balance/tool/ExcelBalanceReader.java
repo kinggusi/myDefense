@@ -51,10 +51,14 @@ public class ExcelBalanceReader {
             com.denfense.server.balance.MutationConfigBalance mutationConfig = readMutationConfigSheet(workbook);
             List<com.denfense.server.balance.InjectorPoolBalance> injectorPools = readInjectorPoolSheet(workbook);
             List<com.denfense.server.balance.ResonanceBalance> resonanceBalances = readResonanceBalanceSheet(workbook);
+            com.denfense.server.balance.MythicBreedingConfigBalance breedingConfig = readMythicBreedingConfigSheet(workbook);
+            List<com.denfense.server.balance.MythicBreedingResultBalance> breedingResults = readMythicBreedingResultSheet(workbook);
+            List<com.denfense.server.balance.MythicBreedingRecipeBalance> breedingRecipes = readMythicBreedingRecipeSheet(workbook);
 
             return new BalanceData(reward, battleReward, upgradeCosts, levelStats, alienSpecs, shopProducts, gachaPools, summonPools,
                     monsters, waves, waveSpawns, planetBattles, fieldLimits, summons, mergeRules, mythicChoices,
-                    mutationSpecs, mutationConfig, injectorPools, resonanceBalances);
+                    mutationSpecs, mutationConfig, injectorPools, resonanceBalances,
+                    breedingConfig, breedingResults, breedingRecipes);
 
         } catch (IOException e) {
             throw new BalanceConversionException("파일을 읽는 중 오류가 발생했습니다: " + filePath, e);
@@ -984,6 +988,71 @@ public class ExcelBalanceReader {
         return result;
     }
 
+    private com.denfense.server.balance.MythicBreedingConfigBalance readMythicBreedingConfigSheet(Workbook workbook) {
+        Sheet sheet = getSheetOrThrow(workbook, "MythicBreedingConfig");
+        List<String> headers = requiredHeaders(sheet, "durationSeconds", "slotCount", "slot2UnlockLevel",
+                "slot2GemPrice", "slot3GemPrice", "duplicateRewardPieces", "accelerationUnitSeconds",
+                "accelerationUnitDiamondCost", "enabled");
+        Row row = sheet.getRow(1);
+        if (row == null) throw new BalanceConversionException("[MythicBreedingConfig] data row is missing.");
+        return new com.denfense.server.balance.MythicBreedingConfigBalance(
+                readIntCell(sheet.getSheetName(), 1, "durationSeconds", row.getCell(headers.indexOf("durationSeconds"))),
+                readIntCell(sheet.getSheetName(), 1, "slotCount", row.getCell(headers.indexOf("slotCount"))),
+                readIntCell(sheet.getSheetName(), 1, "slot2UnlockLevel", row.getCell(headers.indexOf("slot2UnlockLevel"))),
+                readIntCell(sheet.getSheetName(), 1, "slot2GemPrice", row.getCell(headers.indexOf("slot2GemPrice"))),
+                readIntCell(sheet.getSheetName(), 1, "slot3GemPrice", row.getCell(headers.indexOf("slot3GemPrice"))),
+                readIntCell(sheet.getSheetName(), 1, "duplicateRewardPieces", row.getCell(headers.indexOf("duplicateRewardPieces"))),
+                readIntCell(sheet.getSheetName(), 1, "accelerationUnitSeconds", row.getCell(headers.indexOf("accelerationUnitSeconds"))),
+                readIntCell(sheet.getSheetName(), 1, "accelerationUnitDiamondCost", row.getCell(headers.indexOf("accelerationUnitDiamondCost"))),
+                readBooleanCell(sheet.getSheetName(), 1, "enabled", row.getCell(headers.indexOf("enabled"))));
+    }
+
+    private List<com.denfense.server.balance.MythicBreedingResultBalance> readMythicBreedingResultSheet(Workbook workbook) {
+        Sheet sheet = getSheetOrThrow(workbook, "MythicBreedingResult");
+        List<String> headers = requiredHeaders(sheet, "mythicNo", "alienId", "acquisitionType", "globalWeight", "enabled");
+        List<com.denfense.server.balance.MythicBreedingResultBalance> results = new ArrayList<>();
+        for (int rowIndex = 1; rowIndex <= sheet.getLastRowNum(); rowIndex++) {
+            Row row = sheet.getRow(rowIndex);
+            if (row == null || isBlankRow(row, headers.size())) continue;
+            results.add(new com.denfense.server.balance.MythicBreedingResultBalance(
+                    readLongCell(sheet.getSheetName(), rowIndex, "alienId", row.getCell(headers.indexOf("alienId"))),
+                    readStringCell(sheet.getSheetName(), rowIndex, "acquisitionType", row.getCell(headers.indexOf("acquisitionType"))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "globalWeight", row.getCell(headers.indexOf("globalWeight"))),
+                    readBooleanCell(sheet.getSheetName(), rowIndex, "enabled", row.getCell(headers.indexOf("enabled")))));
+        }
+        return results;
+    }
+
+    private List<com.denfense.server.balance.MythicBreedingRecipeBalance> readMythicBreedingRecipeSheet(Workbook workbook) {
+        Sheet sheet = getSheetOrThrow(workbook, "MythicBreedingRecipe");
+        List<String> headers = requiredHeaders(sheet, "recipeKey", "parentMythicNoA", "parentAlienIdA",
+                "parentMythicNoB", "parentAlienIdB", "candidate1AlienId", "candidate2AlienId", "candidate3AlienId",
+                "candidate4AlienId", "candidate5AlienId", "standardWeightEach", "exclusive19Weight",
+                "exclusive20Weight", "enabled");
+        List<com.denfense.server.balance.MythicBreedingRecipeBalance> recipes = new ArrayList<>();
+        for (int rowIndex = 1; rowIndex <= sheet.getLastRowNum(); rowIndex++) {
+            Row row = sheet.getRow(rowIndex);
+            if (row == null || isBlankRow(row, headers.size())) continue;
+            recipes.add(new com.denfense.server.balance.MythicBreedingRecipeBalance(
+                    readStringCell(sheet.getSheetName(), rowIndex, "recipeKey", row.getCell(headers.indexOf("recipeKey"))),
+                    readLongCell(sheet.getSheetName(), rowIndex, "parentAlienIdA", row.getCell(headers.indexOf("parentAlienIdA"))),
+                    readLongCell(sheet.getSheetName(), rowIndex, "parentAlienIdB", row.getCell(headers.indexOf("parentAlienIdB"))),
+                    List.of(
+                            readLongCell(sheet.getSheetName(), rowIndex, "candidate1AlienId", row.getCell(headers.indexOf("candidate1AlienId"))),
+                            readLongCell(sheet.getSheetName(), rowIndex, "candidate2AlienId", row.getCell(headers.indexOf("candidate2AlienId"))),
+                            readLongCell(sheet.getSheetName(), rowIndex, "candidate3AlienId", row.getCell(headers.indexOf("candidate3AlienId"))),
+                            readLongCell(sheet.getSheetName(), rowIndex, "candidate4AlienId", row.getCell(headers.indexOf("candidate4AlienId"))),
+                            readLongCell(sheet.getSheetName(), rowIndex, "candidate5AlienId", row.getCell(headers.indexOf("candidate5AlienId")))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "standardWeightEach", row.getCell(headers.indexOf("standardWeightEach"))),
+                    47L,
+                    readIntCell(sheet.getSheetName(), rowIndex, "exclusive19Weight", row.getCell(headers.indexOf("exclusive19Weight"))),
+                    48L,
+                    readIntCell(sheet.getSheetName(), rowIndex, "exclusive20Weight", row.getCell(headers.indexOf("exclusive20Weight"))),
+                    readBooleanCell(sheet.getSheetName(), rowIndex, "enabled", row.getCell(headers.indexOf("enabled")))));
+        }
+        return recipes;
+    }
+
     private List<String> requiredHeaders(Sheet sheet, String... expected) {
         Row header = sheet.getRow(0);
         if (header == null) {
@@ -1012,6 +1081,9 @@ public class ExcelBalanceReader {
         , List<com.denfense.server.balance.MutationSpecBalance> mutationSpecs,
         com.denfense.server.balance.MutationConfigBalance mutationConfig,
         List<com.denfense.server.balance.InjectorPoolBalance> injectorPools,
-        List<com.denfense.server.balance.ResonanceBalance> resonanceBalances
+        List<com.denfense.server.balance.ResonanceBalance> resonanceBalances,
+        com.denfense.server.balance.MythicBreedingConfigBalance mythicBreedingConfig,
+        List<com.denfense.server.balance.MythicBreedingResultBalance> mythicBreedingResults,
+        List<com.denfense.server.balance.MythicBreedingRecipeBalance> mythicBreedingRecipes
     ) {}
 }
