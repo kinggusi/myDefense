@@ -122,7 +122,8 @@ class BattleSettlementIntegrationTest {
                 first.initialInGameGold(), first.inGameGoldEarned(), first.inGameGoldSpent(), 99, first.abandoned());
         var invalid = new BattleSettlementDtos.Request(valid.requestId(), valid.battleSessionId(), valid.balanceVersion(),
                 valid.contentHash(), valid.result(), valid.finalWave(), valid.mapId(), valid.startedAt(), valid.finishedAt(),
-                List.of(invalidPlayer, valid.players().get(1)), valid.monsterKills(), valid.summaryHash());
+                List.of(invalidPlayer, valid.players().get(1)), valid.monsterKills(), valid.partialWaveKills(),
+                valid.summaryHash());
         assertThatThrownBy(() -> service.settle(invalid)).isInstanceOf(BusinessException.class);
     }
 
@@ -132,7 +133,7 @@ class BattleSettlementIntegrationTest {
         var valid = valid("bad-result", "result-session", "result-hash", a, b);
         var invalid = new BattleSettlementDtos.Request(valid.requestId(), valid.battleSessionId(), valid.balanceVersion(),
                 valid.contentHash(), "CLEARED", valid.finalWave(), valid.mapId(), valid.startedAt(), valid.finishedAt(),
-                valid.players(), valid.monsterKills(), valid.summaryHash());
+                valid.players(), valid.monsterKills(), valid.partialWaveKills(), valid.summaryHash());
         assertThatThrownBy(() -> service.settle(invalid))
                 .isInstanceOfSatisfying(BusinessException.class,
                         error -> assertThat(error.getErrorCode()).isEqualTo(ErrorCode.BATTLE_SUMMARY_INVALID));
@@ -213,6 +214,155 @@ class BattleSettlementIntegrationTest {
                 .allMatch(claim -> claim.getUser().getId().equals(a.getId()));
     }
 
+    @Test
+    void failedMatchAcceptsCanonicalPartialWaveKillAndEliminationAtNextWave() {
+        User a = user("partial-a"), b = user("partial-b");
+        register("partial-session", a, b, "EARTH");
+        LocalDateTime now = LocalDateTime.now().withNano(0);
+        var partial = new BattleSettlementDtos.PartialWaveKill(
+                "18446744073709551615", 1, "NORMAL_MONSTER", "EACH_FIELD", 1,
+                1, 1, a.getUsername(), b.getUsername(), 42L);
+        var unsigned = new BattleSettlementDtos.Request(
+                "partial-request", "partial-session", versions.getBalanceVersion(), versions.getContentHash(),
+                "DEFEAT", 0, "EARTH", now.minusMinutes(1), now,
+                List.of(
+                        new BattleSettlementDtos.Player(a.getUsername(), 1, true, 1, 1, 0, 0,
+                                100, 20, 0, 120, false),
+                        new BattleSettlementDtos.Player(b.getUsername(), 2, false, null, 0, 1, 0,
+                                100, 0, 0, 100, false)),
+                List.of(new BattleSettlementDtos.Monster("NORMAL_MONSTER", 1, 0, 20)),
+                List.of(partial), "");
+
+        var response = service.settle(signed(unsigned));
+
+        assertThat(response.status()).isEqualTo("ACCEPTED");
+        assertThat(settlements.count()).isEqualTo(1);
+        assertThat(playerSettlements.count()).isEqualTo(2);
+    }
+
+    @Test
+    void victoryRejectsPartialWaveLedger() {
+        User a = user("victory-partial-a"), b = user("victory-partial-b");
+        var valid = valid("victory-partial", "victory-partial-session", "ignored", a, b,
+                "VICTORY", 80, "EARTH");
+        var partial = new BattleSettlementDtos.PartialWaveKill(
+                "1", 80, "WAVE_BOSS", "BOSS_SHARED", null,
+                1, 1, a.getUsername(), null, 10L);
+        var invalid = signed(new BattleSettlementDtos.Request(
+                valid.requestId(), valid.battleSessionId(), valid.balanceVersion(), valid.contentHash(),
+                valid.result(), valid.finalWave(), valid.mapId(), valid.startedAt(), valid.finishedAt(),
+                valid.players(), valid.monsterKills(), List.of(partial), ""));
+
+        assertThatThrownBy(() -> service.settle(invalid))
+                .isInstanceOfSatisfying(BusinessException.class,
+                        error -> assertThat(error.getErrorCode()).isEqualTo(ErrorCode.BATTLE_SUMMARY_INVALID));
+    }
+
+    @Test
+    void duplicateRuntimeMonsterIdAndSpawnPositionAreRejected() {
+        User a = user("duplicate-partial-a"), b = user("duplicate-partial-b");
+        register("duplicate-partial-session", a, b, "EARTH");
+        LocalDateTime now = LocalDateTime.now().withNano(0);
+        var first = new BattleSettlementDtos.PartialWaveKill(
+                "1", 1, "NORMAL_MONSTER", "EACH_FIELD", 1,
+                1, 1, a.getUsername(), null, 1L);
+        var duplicate = new BattleSettlementDtos.PartialWaveKill(
+                "1", 1, "NORMAL_MONSTER", "EACH_FIELD", 1,
+                1, 1, b.getUsername(), null, 2L);
+        var invalid = signed(new BattleSettlementDtos.Request(
+                "duplicate-partial", "duplicate-partial-session", versions.getBalanceVersion(), versions.getContentHash(),
+                "DEFEAT", 0, "EARTH", now.minusMinutes(1), now,
+                List.of(player(a, 1, 1, 0, false), player(b, 2, 1, 0, false)),
+                List.of(new BattleSettlementDtos.Monster("NORMAL_MONSTER", 2, 0, 40)),
+                List.of(first, duplicate), ""));
+
+        assertThatThrownBy(() -> service.settle(invalid))
+                .isInstanceOfSatisfying(BusinessException.class,
+                        error -> assertThat(error.getErrorCode()).isEqualTo(ErrorCode.BATTLE_SUMMARY_INVALID));
+    }
+
+    @Test
+    void changedPayloadWithOldSummaryHashIsRejected() {
+        User a = user("hash-a"), b = user("hash-b");
+        var valid = valid("hash-request", "hash-session", "ignored", a, b);
+        var first = valid.players().get(0);
+        var changed = new BattleSettlementDtos.Player(
+                first.playerId(), first.playerSlot(), first.eliminated(), first.eliminatedWave(),
+                first.kills(), first.supportKills() + 1, first.bossKills(), first.initialInGameGold(),
+                first.inGameGoldEarned(), first.inGameGoldSpent(), first.finalInGameGold(), first.abandoned());
+        var tampered = new BattleSettlementDtos.Request(
+                valid.requestId(), valid.battleSessionId(), valid.balanceVersion(), valid.contentHash(),
+                valid.result(), valid.finalWave(), valid.mapId(), valid.startedAt(), valid.finishedAt(),
+                List.of(changed, valid.players().get(1)), valid.monsterKills(), valid.partialWaveKills(),
+                valid.summaryHash());
+
+        assertThatThrownBy(() -> service.settle(tampered))
+                .isInstanceOfSatisfying(BusinessException.class,
+                        error -> assertThat(error.getErrorCode()).isEqualTo(ErrorCode.BATTLE_SUMMARY_INVALID));
+    }
+
+    @Test
+    void completedWaveExpectationExcludesLaneAfterEliminationWave() {
+        User a = user("lane-a"), b = user("lane-b");
+        register("lane-session", a, b, "EARTH");
+        LocalDateTime now = LocalDateTime.now().withNano(0);
+        var unsigned = new BattleSettlementDtos.Request(
+                "lane-request", "lane-session", versions.getBalanceVersion(), versions.getContentHash(),
+                "DEFEAT", 2, "EARTH", now.minusMinutes(2), now,
+                List.of(
+                        new BattleSettlementDtos.Player(a.getUsername(), 1, true, 1, 20, 0, 0,
+                                100, 0, 0, 100, false),
+                        new BattleSettlementDtos.Player(b.getUsername(), 2, false, null, 17, 0, 0,
+                                100, 0, 0, 100, false)),
+                List.of(new BattleSettlementDtos.Monster("NORMAL_MONSTER", 37, 0, 740)),
+                List.of(), "");
+
+        assertThat(service.settle(signed(unsigned)).status()).isEqualTo("ACCEPTED");
+    }
+
+    @Test
+    void partialWaveRuntimeIdsMustBeStrictlyUnsignedAscending() {
+        User a = user("order-a"), b = user("order-b");
+        register("order-session", a, b, "EARTH");
+        LocalDateTime now = LocalDateTime.now().withNano(0);
+        var second = new BattleSettlementDtos.PartialWaveKill(
+                "2", 1, "NORMAL_MONSTER", "EACH_FIELD", 1,
+                1, 1, a.getUsername(), null, 1L);
+        var first = new BattleSettlementDtos.PartialWaveKill(
+                "1", 1, "NORMAL_MONSTER", "EACH_FIELD", 1,
+                1, 2, b.getUsername(), null, 2L);
+        var invalid = signed(new BattleSettlementDtos.Request(
+                "order-request", "order-session", versions.getBalanceVersion(), versions.getContentHash(),
+                "DEFEAT", 0, "EARTH", now.minusMinutes(1), now,
+                List.of(player(a, 1, 1, 0, false), player(b, 2, 1, 0, false)),
+                List.of(new BattleSettlementDtos.Monster("NORMAL_MONSTER", 2, 0, 40)),
+                List.of(second, first), ""));
+
+        assertThatThrownBy(() -> service.settle(invalid))
+                .isInstanceOfSatisfying(BusinessException.class,
+                        error -> assertThat(error.getErrorCode()).isEqualTo(ErrorCode.BATTLE_SUMMARY_INVALID));
+    }
+
+    @Test
+    void partialWaveAttributionMustBeIncludedInPlayerAggregates() {
+        User a = user("attribution-a"), b = user("attribution-b");
+        register("attribution-session", a, b, "EARTH");
+        LocalDateTime now = LocalDateTime.now().withNano(0);
+        var partial = new BattleSettlementDtos.PartialWaveKill(
+                "1", 1, "NORMAL_MONSTER", "EACH_FIELD", 1,
+                1, 1, a.getUsername(), b.getUsername(), 1L);
+        var invalid = signed(new BattleSettlementDtos.Request(
+                "attribution-request", "attribution-session", versions.getBalanceVersion(), versions.getContentHash(),
+                "DEFEAT", 0, "EARTH", now.minusMinutes(1), now,
+                List.of(player(a, 1, 0, 0, false), player(b, 2, 1, 0, false)),
+                List.of(new BattleSettlementDtos.Monster("NORMAL_MONSTER", 1, 0, 20)),
+                List.of(partial), ""));
+
+        assertThatThrownBy(() -> service.settle(invalid))
+                .isInstanceOfSatisfying(BusinessException.class,
+                        error -> assertThat(error.getErrorCode()).isEqualTo(ErrorCode.BATTLE_SUMMARY_INVALID));
+    }
+
     private BattleSettlementDtos.Request valid(String requestId, String sessionId, String hash, User a, User b) {
         return valid(requestId, sessionId, hash, a, b, "DEFEAT", 1, "EARTH");
     }
@@ -246,13 +396,21 @@ class BattleSettlementIntegrationTest {
         int secondKills = totalKills / 2;
         int firstBossKills = Math.min(firstKills, bossKills);
         int secondBossKills = bossKills - firstBossKills;
-        LocalDateTime now = LocalDateTime.now();
-        return new BattleSettlementDtos.Request(
+        LocalDateTime now = LocalDateTime.now().withNano(0);
+        return signed(new BattleSettlementDtos.Request(
                 requestId, sessionId, versions.getBalanceVersion(), versions.getContentHash(), result, wave, map,
                 now.minusMinutes(20), now,
                 List.of(player(a, 1, firstKills, firstBossKills, abandonedA),
                         player(b, 2, secondKills, secondBossKills, abandonedB)),
-                monsterSummaries, hash);
+                monsterSummaries, List.of(), ""));
+    }
+
+    private BattleSettlementDtos.Request signed(BattleSettlementDtos.Request request) {
+        String hash = BattleSettlementSummaryHasher.compute(request);
+        return new BattleSettlementDtos.Request(
+                request.requestId(), request.battleSessionId(), request.balanceVersion(), request.contentHash(),
+                request.result(), request.finalWave(), request.mapId(), request.startedAt(), request.finishedAt(),
+                request.players(), request.monsterKills(), request.partialWaveKills(), hash);
     }
 
     private Map<String, Integer> expectedCounts(int finalWave) {

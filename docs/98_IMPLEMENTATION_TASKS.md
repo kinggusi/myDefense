@@ -416,13 +416,15 @@ P0-1-1~4 → P0-1-5 → P0-1-6
 | P2-2-2 | kinggusi | 정책 선행 | 배양 구역 5 Stage Battle 구현 |
 | P2-2-3 | kinggusi | 정책 선행 | 변이 연구소 5 Stage Battle 구현 |
 | P2-3-1 | jjangash | 정책 선행 | Quest·Achievement 조건·보상 서버 구현 |
-| P2-3-2 | kinggusi | 대기 | Battle Quest 진행 이벤트 제공 |
+| P2-3-2 | kinggusi | 부분 완료 | Battle Quest 진행 이벤트 제공 |
 | P2-4-1 | jjangash | 정책 선행 | 무한 Wave 시즌·랭킹·구간 보상 서버 구현 |
 | P2-4-2 | kinggusi | 정책 선행 | 무한 Wave 전투 모드 구현 |
 | P2-4-3 | kinggusi | 정책 선행 | 무한 Wave 난이도 증가 공식 구현 |
 | P2-5-1 | jjangash | 부분 완료 | Breeding Unity UI·API 연결 |
 | P2-6-1 | jjangash | 정책 선행 | Shop·스킨·편의 상품 서버·UI 구현 |
 | P2-6-2 | kinggusi | 대기 | 스킨·Projectile·처치 Effect 적용 |
+
+> P2-3-2 Shared 선행 계약(2026-08-29): FAILED 매치에서 `finalWave + 1` 미완료 Wave의 정상 처치를 보존하도록 Unity/Spring `BattleSettlementSummary.partialWaveKills`를 추가했다. Fusion `ulong runtimeMonsterId`는 decimal string으로 전송하고 canonical Spawn 위치·Lane·활성 player slot·중복·unsigned 정렬을 Spring이 검증한다. `DEFEAT`의 `eliminatedWave=finalWave+1`과 탈락 이후 Lane Spawn 제외를 반영했으며, 양 런타임은 동일 canonical JSON/SHA-256 fixture로 계약을 고정한다. Battle State Authority의 실제 Kill 장부 투영과 Quest 영속 Processor 연결은 후속 구현·2클라이언트 검증 전까지 남아 있어 `부분 완료`다.
 
 ---
 

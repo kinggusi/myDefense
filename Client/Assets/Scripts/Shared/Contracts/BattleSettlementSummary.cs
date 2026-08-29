@@ -41,6 +41,7 @@ namespace MyDefense.Shared.Contracts
         public string finishedAt;
         public BattleSettlementPlayerSummary[] players;
         public BattleSettlementMonsterSummary[] monsterKills;
+        public BattleSettlementPartialWaveKillSummary[] partialWaveKills;
         public string summaryHash;
     }
 
@@ -76,6 +77,26 @@ namespace MyDefense.Shared.Contracts
         public int totalKills;
         public int bossKills;
         public int totalKillGold;
+    }
+
+    /// <summary>
+    /// State Authority evidence for kills made in a FAILED match's unfinished
+    /// wave. runtimeMonsterId is a decimal string so the full Fusion ulong
+    /// range survives the Java/JSON boundary without signed overflow.
+    /// </summary>
+    [Serializable]
+    public sealed class BattleSettlementPartialWaveKillSummary
+    {
+        public string runtimeMonsterId;
+        public int spawnWave;
+        public string monsterSpecId;
+        public string lanePolicy;
+        public int? playerSlot;
+        public int spawnOrder;
+        public int spawnOrdinal;
+        public string killerPlayerId;
+        public string supportPlayerId;
+        public long killedAtTick;
     }
 
     [Serializable]
@@ -131,6 +152,7 @@ namespace MyDefense.Shared.Contracts
             AppendStringProperty(builder, "finishedAt", summary.finishedAt);
             AppendPlayersProperty(builder, summary.players);
             AppendMonstersProperty(builder, summary.monsterKills);
+            AppendPartialWaveKillsProperty(builder, summary.partialWaveKills);
             AppendStringProperty(builder, "summaryHash", summary.summaryHash, false);
             builder.Append('}');
             return builder.ToString();
@@ -209,6 +231,39 @@ namespace MyDefense.Shared.Contracts
             builder.Append("],");
         }
 
+        private static void AppendPartialWaveKillsProperty(
+            StringBuilder builder,
+            BattleSettlementPartialWaveKillSummary[] kills)
+        {
+            AppendPropertyName(builder, "partialWaveKills");
+            if (kills == null)
+            {
+                builder.Append("[],");
+                return;
+            }
+
+            builder.Append('[');
+            for (var index = 0; index < kills.Length; index++)
+            {
+                if (index > 0) builder.Append(',');
+                BattleSettlementPartialWaveKillSummary kill = kills[index]
+                    ?? throw new ArgumentException("partialWaveKills must not contain null elements.", nameof(kills));
+                builder.Append('{');
+                AppendStringProperty(builder, "runtimeMonsterId", kill.runtimeMonsterId);
+                AppendIntProperty(builder, "spawnWave", kill.spawnWave);
+                AppendStringProperty(builder, "monsterSpecId", kill.monsterSpecId);
+                AppendStringProperty(builder, "lanePolicy", kill.lanePolicy);
+                AppendNullableIntProperty(builder, "playerSlot", kill.playerSlot);
+                AppendIntProperty(builder, "spawnOrder", kill.spawnOrder);
+                AppendIntProperty(builder, "spawnOrdinal", kill.spawnOrdinal);
+                AppendStringProperty(builder, "killerPlayerId", kill.killerPlayerId);
+                AppendStringProperty(builder, "supportPlayerId", kill.supportPlayerId);
+                AppendLongProperty(builder, "killedAtTick", kill.killedAtTick, false);
+                builder.Append('}');
+            }
+            builder.Append("],");
+        }
+
         private static void AppendStringProperty(
             StringBuilder builder,
             string name,
@@ -241,6 +296,17 @@ namespace MyDefense.Shared.Contracts
                 ? value.Value.ToString(CultureInfo.InvariantCulture)
                 : "null");
             builder.Append(',');
+        }
+
+        private static void AppendLongProperty(
+            StringBuilder builder,
+            string name,
+            long value,
+            bool trailingComma = true)
+        {
+            AppendPropertyName(builder, name);
+            builder.Append(value.ToString(CultureInfo.InvariantCulture));
+            AppendComma(builder, trailingComma);
         }
 
         private static void AppendBoolProperty(StringBuilder builder, string name, bool value)
