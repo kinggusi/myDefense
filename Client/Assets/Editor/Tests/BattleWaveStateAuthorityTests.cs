@@ -53,6 +53,9 @@ namespace MyDefense.Battle.Tests
             Assert.That(typeof(BattleWaveStateAuthority).GetMethod(nameof(BattleWaveStateAuthority.TryAwardMonsterKill), new[] { typeof(BattleMonsterNetworkState) }), Is.Not.Null);
             Assert.That(typeof(BattleWaveStateAuthority).GetMethod(nameof(BattleWaveStateAuthority.TryHandleAuthoritativeBossDefeat), new[] { typeof(BattleMonsterNetworkState) }), Is.Not.Null);
             Assert.That(typeof(BattleWaveStateAuthority).GetMethod(nameof(BattleWaveStateAuthority.TryAwardTeamGold)), Is.Not.Null);
+            Assert.That(typeof(BattleWaveStateAuthority).GetMethod(
+                nameof(BattleWaveStateAuthority.TryAwardCooperativeKillGold),
+                new[] { typeof(BattleMonsterLanePolicy), typeof(int) }), Is.Not.Null);
             Assert.That(typeof(BattleWaveStateAuthority).GetProperty(nameof(BattleWaveStateAuthority.Player1Eliminated)), Is.Not.Null);
             Assert.That(typeof(BattleWaveStateAuthority).GetProperty(nameof(BattleWaveStateAuthority.Player2Eliminated)), Is.Not.Null);
             Assert.That(typeof(BattleWaveStateAuthority).GetProperty(nameof(BattleWaveStateAuthority.Player1BattleStateValue)), Is.Not.Null);
@@ -61,6 +64,55 @@ namespace MyDefense.Battle.Tests
             Assert.That(typeof(BattleWaveStateAuthority).GetProperty(nameof(BattleWaveStateAuthority.Player2BattleState)), Is.Not.Null);
             Assert.That(typeof(BattleWaveStateAuthority).GetMethod(nameof(BattleWaveStateAuthority.IsPlayerActionAllowed)), Is.Not.Null);
             Assert.That(typeof(BattleWaveStateAuthority).GetMethod(nameof(BattleWaveStateAuthority.IsBoardSlotLockedForMythicChoice)), Is.Not.Null);
+        }
+
+        [TestCase(BattleMonsterLanePolicy.EACH_FIELD, 8)]
+        [TestCase(BattleMonsterLanePolicy.BOSS_SHARED, 200)]
+        public void CooperativeKillGoldUpdatesBothPersonalWalletsAndEarnedLedgers(
+            BattleMonsterLanePolicy lanePolicy,
+            int killGold)
+        {
+            int player1Gold = 100;
+            int player2Gold = 250;
+            int player1Earned = 10;
+            int player2Earned = 20;
+
+            Assert.That(BattleWaveStateAuthority.TryApplyCooperativeKillGold(
+                lanePolicy,
+                killGold,
+                ref player1Gold,
+                ref player2Gold,
+                ref player1Earned,
+                ref player2Earned), Is.True);
+            Assert.That(player1Gold, Is.EqualTo(100 + killGold));
+            Assert.That(player2Gold, Is.EqualTo(250 + killGold));
+            Assert.That(player1Earned, Is.EqualTo(10 + killGold));
+            Assert.That(player2Earned, Is.EqualTo(20 + killGold));
+        }
+
+        [TestCase(BattleMonsterLanePolicy.EACH_FIELD, 0)]
+        [TestCase(BattleMonsterLanePolicy.EACH_FIELD, -1)]
+        [TestCase((BattleMonsterLanePolicy)999, 20)]
+        public void CooperativeKillGoldRejectsInvalidAwardsWithoutChangingLedgers(
+            BattleMonsterLanePolicy lanePolicy,
+            int killGold)
+        {
+            int player1Gold = 100;
+            int player2Gold = 250;
+            int player1Earned = 10;
+            int player2Earned = 20;
+
+            Assert.That(BattleWaveStateAuthority.TryApplyCooperativeKillGold(
+                lanePolicy,
+                killGold,
+                ref player1Gold,
+                ref player2Gold,
+                ref player1Earned,
+                ref player2Earned), Is.False);
+            Assert.That(player1Gold, Is.EqualTo(100));
+            Assert.That(player2Gold, Is.EqualTo(250));
+            Assert.That(player1Earned, Is.EqualTo(10));
+            Assert.That(player2Earned, Is.EqualTo(20));
         }
 
         [TestCase(1, 0, 1)]
