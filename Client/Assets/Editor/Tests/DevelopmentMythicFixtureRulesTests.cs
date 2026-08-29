@@ -53,6 +53,24 @@ namespace MyDefense.Tests.EditMode
                 29, "UNKNOWN", out _, out string reason), Is.False);
             StringAssert.Contains("not supported", reason);
         }
+        [TestCase(true, true, true, false, true)]
+        [TestCase(false, true, true, false, false)]
+        [TestCase(true, false, true, false, false)]
+        [TestCase(true, true, false, false, false)]
+        [TestCase(true, true, true, true, false)]
+        public void ValidationWaveStartButton_IsHostAuthorityOneShotOnly(
+            bool isSpawned,
+            bool isStateAuthority,
+            bool isValidationArmed,
+            bool isValidationStartConsumed,
+            bool expected)
+        {
+            Assert.That(DevelopmentMythicFixtureRules.CanStartValidationWave(
+                isSpawned,
+                isStateAuthority,
+                isValidationArmed,
+                isValidationStartConsumed), Is.EqualTo(expected));
+        }
     }
 }
 #endif

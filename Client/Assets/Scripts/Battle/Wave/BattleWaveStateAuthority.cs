@@ -1326,6 +1326,10 @@ namespace MyDefense.Battle
 
         public bool ValidateWaveStart(out string reason)
         {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (_executor != null && _executor.IsP1ValidationArmed && _executor.IsP1ValidationStartConsumed)
+                return FailValidation("The one allowed P1 validation Wave has already started.", out reason);
+#endif
             if (!HasStateAuthority)
                 return FailValidation("Only State Authority may start a wave.", out reason);
             if (_executor == null)

@@ -294,6 +294,65 @@ namespace MyDefense.Battle.Tests
         }
 
         [Test]
+        public void MonsterPresentationScale_UsesReplicatedValueAndSafeFallback()
+        {
+            Assert.That(BattleMonsterNetworkState.ResolvePresentationScale(1.75f), Is.EqualTo(1.75f));
+            Assert.That(BattleMonsterNetworkState.ResolvePresentationScale(0f), Is.EqualTo(1f));
+            Assert.That(BattleMonsterNetworkState.ResolvePresentationScale(float.NaN), Is.EqualTo(1f));
+            Assert.That(BattleMonsterNetworkState.ResolvePresentationScale(float.PositiveInfinity), Is.EqualTo(1f));
+        }
+
+        [Test]
+        public void MonsterPresentation_InterpolatesCanonicalSnapshotWithoutReadingRemappedTransform()
+        {
+            Vector3 from = new Vector3(0f, 0.5f, -4f);
+            Vector3 to = new Vector3(4f, 0.5f, 4f);
+
+            Assert.That(
+                BattleMonsterNetworkState.InterpolateCanonicalPosition(from, to, 0.25f),
+                Is.EqualTo(new Vector3(1f, 0.5f, -2f)));
+            Assert.That(BattleMonsterNetworkState.InterpolateCanonicalPosition(from, to, -1f), Is.EqualTo(from));
+            Assert.That(BattleMonsterNetworkState.InterpolateCanonicalPosition(from, to, 2f), Is.EqualTo(to));
+        }
+
+        [Test]
+        public void MonsterPresentation_ClosedLaneIncludesLastToFirstSegment()
+        {
+            var points = new List<GameObject>();
+            try
+            {
+                Vector3[] positions =
+                {
+                    new Vector3(0f, 0f, 0f),
+                    new Vector3(1f, 0f, 0f),
+                    new Vector3(1f, 0f, 1f),
+                    new Vector3(0f, 0f, 1f)
+                };
+                foreach (Vector3 position in positions)
+                {
+                    var point = new GameObject("closed-lane-point");
+                    point.transform.position = position;
+                    points.Add(point);
+                }
+
+                List<Transform> path = points.Select(point => point.transform).ToList();
+                Assert.That(BattleMonsterNetworkState.PathLength(path, true), Is.EqualTo(4f).Within(0.0001f));
+
+                Vector3 closingEdgeMiddle = new Vector3(0f, 0f, 0.5f);
+                float progress = BattleMonsterNetworkState.ProjectProgress(closingEdgeMiddle, path, true);
+                Assert.That(progress, Is.EqualTo(0.875f).Within(0.0001f));
+                Assert.That(
+                    BattleMonsterNetworkState.EvaluateProgress(path, progress, true),
+                    Is.EqualTo(closingEdgeMiddle));
+            }
+            finally
+            {
+                foreach (GameObject point in points)
+                    UnityEngine.Object.DestroyImmediate(point);
+            }
+        }
+
+        [Test]
         public void RoundTenBossRoutine_AppliesJsonTimeoutAndActivatesOneBoss()
         {
             SetField("_currentRound", 9);

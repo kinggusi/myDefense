@@ -7,6 +7,8 @@ using System.Security.Cryptography;
 using System.Text;
 using MyDefense.Battle.Balance;
 using MyDefense.Battle.Balance.Canonical;
+using MyDefense.Battle.Runtime;
+using MyDefense.Shared.Contracts;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -319,6 +321,64 @@ namespace MyDefense.Battle.Tests
                 UnityEngine.Object.DestroyImmediate(gameObject);
             }
         }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        [TestCase("P1VAL-EARTH-W009-0123456789ab", 9, WaveType.REGULAR)]
+        [TestCase("P1VAL-SUN-W080-abcdef0123456789", 80, WaveType.BOSS)]
+        public void P1ValidationExecutor_PausesAutoStartAndConsumesCanonicalTargetOnce(
+            string sessionName,
+            int expectedWave,
+            WaveType expectedType)
+        {
+            var gameObject = new GameObject("P1 Validation Executor Test");
+            try
+            {
+                Assert.That(BattleP1ValidationSessionProfile.Parse(
+                    sessionName,
+                    out BattleP1ValidationSessionProfile profile,
+                    out string parseReason), Is.EqualTo(BattleP1ValidationParseState.Valid), parseReason);
+
+                BattleWaveExecutor executor = gameObject.AddComponent<BattleWaveExecutor>();
+                SetField(executor, "_monsterPrefab", AssetDatabase.LoadAssetAtPath<GameObject>(MonsterPrefabPath));
+                Assert.That((bool)Invoke(executor, "EnsureBalanceInitialized"), Is.True);
+                executor.InitializeSession(
+                    new BattleSessionContext(
+                        sessionName,
+                        executor.CanonicalBalanceVersion,
+                        executor.CanonicalContentHash,
+                        executor.BattleContentVersion,
+                        executor.BattleContentHash,
+                        1,
+                        profile.MapId),
+                    new BattlePlayerIdentityMap("validation-p1", "validation-p2"));
+
+                Assert.That(executor.TryArmP1ValidationInitialWave(profile, out string armReason), Is.True, armReason);
+                Assert.That(executor.CurrentRound, Is.Zero, "Arming must not publish a synthetic previous round.");
+                executor.StartConfiguredWavesIfReady();
+                Assert.That((bool)GetField(executor, "_configuredWaveExecutionStarted"), Is.True);
+                Assert.That(executor.IsWaveRunning, Is.False, "Automatic Wave execution must remain paused.");
+
+                SetField(executor, "_isWaveRunning", true);
+                Assert.That((bool)Invoke(executor, "TryBeginNextWave"), Is.False);
+                Assert.That(executor.IsP1ValidationStartConsumed, Is.False,
+                    "A readiness failure must not consume the one allowed validation Wave start.");
+                Assert.That(executor.CurrentRound, Is.Zero);
+                SetField(executor, "_isWaveRunning", false);
+
+                Assert.That((bool)Invoke(executor, "TryBeginNextWave"), Is.True);
+                Assert.That(executor.CurrentRound, Is.EqualTo(expectedWave));
+                Assert.That(executor.IsCurrentWaveBoss, Is.EqualTo(expectedType == WaveType.BOSS));
+                Assert.That(executor.IsP1ValidationStartConsumed, Is.True);
+
+                Assert.That((bool)Invoke(executor, "TryBeginNextWave"), Is.False);
+                Assert.That(executor.CurrentRound, Is.EqualTo(expectedWave));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(gameObject);
+            }
+        }
+#endif
 
         [Test]
         public void SyncedBundle_MatchesManifestBytes()

@@ -161,6 +161,39 @@ public class BattleWaveExecutorStateTests
     }
 
     [Test]
+    public void BossTimeout_ReleasesCurrentBossWithoutDefeatOrKillSideEffects()
+    {
+        SetField("_totalMonsterGoal", 100);
+        RegisterSpawn(LaneType.Player1Lane);
+        RegisterSpawn(LaneType.Player2Lane);
+        ActivateBoss();
+        int timeoutEvents = 0;
+        int defeatEvents = 0;
+        bool bossPresentDuringTerminalTransition = false;
+        bool bossReleasedBeforeTimeoutEvent = false;
+        _executor.OnMatchStateChanged += state =>
+            bossPresentDuringTerminalTransition = state == MatchState.FAILED && _bossObject != null;
+        _executor.OnBossTimeout += () =>
+        {
+            timeoutEvents++;
+            bossReleasedBeforeTimeoutEvent = _bossObject == null;
+        };
+        _executor.OnBossDefeated += () => defeatEvents++;
+
+        Assert.That(Invoke<bool>("TryResolveBossTimeout"), Is.True);
+
+        Assert.That(_executor.MatchState, Is.EqualTo(MatchState.FAILED));
+        Assert.That(_bossObject == null, Is.True);
+        Assert.That(GetField("_currentBossInstance"), Is.Null);
+        Assert.That(_executor.Player1AliveMonsterCount, Is.EqualTo(1));
+        Assert.That(_executor.Player2AliveMonsterCount, Is.EqualTo(1));
+        Assert.That(bossPresentDuringTerminalTransition, Is.True);
+        Assert.That(bossReleasedBeforeTimeoutEvent, Is.True);
+        Assert.That(timeoutEvents, Is.EqualTo(1));
+        Assert.That(defeatEvents, Is.Zero);
+    }
+
+    [Test]
     public void BossDefeat_CancelsTimeoutTransition()
     {
         ActivateBoss();
