@@ -59,6 +59,7 @@ namespace MyDefense.Battle.Runtime
                 finishedAt = finishedAt.ToString("yyyy-MM-dd'T'HH:mm:ss", CultureInfo.InvariantCulture),
                 players = players,
                 monsterKills = monsters,
+                waveSpawnFacts = Array.Empty<BattleSettlementWaveSpawnFactSummary>(),
                 partialWaveKills = Array.Empty<BattleSettlementPartialWaveKillSummary>(),
                 summaryHash = summaryHash
             };

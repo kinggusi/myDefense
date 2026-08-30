@@ -87,6 +87,7 @@ class BattleSettlementContractApiTest {
                 "\"finishedAt\":\"" + finished + "\"," +
                 "\"players\":[]," +
                 "\"monsterKills\":[]," +
+                "\"waveSpawnFacts\":[]," +
                 "\"partialWaveKills\":[]," +
                 "\"summaryHash\":\"hash-1\"" +
                 "}";

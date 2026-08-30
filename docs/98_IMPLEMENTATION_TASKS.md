@@ -424,7 +424,7 @@ P0-1-1~4 → P0-1-5 → P0-1-6
 | P2-6-1 | jjangash | 정책 선행 | Shop·스킨·편의 상품 서버·UI 구현 |
 | P2-6-2 | kinggusi | 대기 | 스킨·Projectile·처치 Effect 적용 |
 
-> P2-3-2 Shared 선행 계약(2026-08-29): FAILED 매치에서 `finalWave + 1` 미완료 Wave의 정상 처치를 보존하도록 Unity/Spring `BattleSettlementSummary.partialWaveKills`를 추가했다. Fusion `ulong runtimeMonsterId`는 decimal string으로 전송하고 canonical Spawn 위치·Lane·활성 player slot·중복·unsigned 정렬을 Spring이 검증한다. `DEFEAT`의 `eliminatedWave=finalWave+1`과 탈락 이후 Lane Spawn 제외를 반영했으며, 양 런타임은 동일 canonical JSON/SHA-256 fixture로 계약을 고정한다. Battle State Authority의 실제 Kill 장부 투영과 Quest 영속 Processor 연결은 후속 구현·2클라이언트 검증 전까지 남아 있어 `부분 완료`다.
+> P2-3-2 Shared 선행 계약 보정(2026-08-30): FAILED 매치에서 `finalWave + 1` 미완료 Wave의 실제 Spawn과 처치를 분리 검증하도록 Unity/Spring `BattleSettlementSummary`에 `waveSpawnFacts`와 `partialWaveKills`를 확정했다. 두 장부는 `spawnGroupId`, canonical Spawn row/ordinal, `fieldOwnerPlayerSlot`을 공유하고 Kill 귀속은 `killerPlayerSlot`/`supportPlayerSlot`으로 표현한다. `killedAtTick`과 사용자 ID 기반 귀속은 전송 계약에서 제거했다. Fusion `ulong runtimeMonsterId`는 decimal string으로 전송하며 두 배열을 unsigned 정렬한다. `summaryHash`는 해당 속성 자체를 제외한 canonical JSON의 SHA-256으로 Unity/Spring 동일 fixture를 고정한다. Battle State Authority의 실제 장부 투영과 Quest 영속 Processor 연결은 후속 구현·2클라이언트 검증 전까지 남아 있어 `부분 완료`다.
 
 ---
 

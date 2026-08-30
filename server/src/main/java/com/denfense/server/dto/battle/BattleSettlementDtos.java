@@ -32,17 +32,29 @@ public final class BattleSettlementDtos {
     public record Monster(String monsterSpecId, int totalKills, int bossKills, int totalKillGold) {
     }
 
+    public record WaveSpawnFact(
+            String runtimeMonsterId,
+            int spawnWave,
+            String spawnGroupId,
+            String monsterSpecId,
+            String lanePolicy,
+            Integer fieldOwnerPlayerSlot,
+            int spawnOrder,
+            int spawnOrdinal
+    ) {
+    }
+
     public record PartialWaveKill(
             String runtimeMonsterId,
             int spawnWave,
+            String spawnGroupId,
             String monsterSpecId,
             String lanePolicy,
-            Integer playerSlot,
+            Integer fieldOwnerPlayerSlot,
             int spawnOrder,
             int spawnOrdinal,
-            String killerPlayerId,
-            String supportPlayerId,
-            long killedAtTick
+            int killerPlayerSlot,
+            Integer supportPlayerSlot
     ) {
     }
 
@@ -58,10 +70,12 @@ public final class BattleSettlementDtos {
             LocalDateTime finishedAt,
             List<Player> players,
             List<Monster> monsterKills,
+            List<WaveSpawnFact> waveSpawnFacts,
             List<PartialWaveKill> partialWaveKills,
             String summaryHash
     ) {
         public Request {
+            waveSpawnFacts = waveSpawnFacts == null ? List.of() : waveSpawnFacts;
             partialWaveKills = partialWaveKills == null ? List.of() : partialWaveKills;
         }
 
@@ -70,14 +84,14 @@ public final class BattleSettlementDtos {
                        LocalDateTime finishedAt, List<Player> players, List<Monster> monsterKills,
                        String summaryHash) {
             this(requestId, battleSessionId, balanceVersion, contentHash, result, finalWave, mapId,
-                    startedAt, finishedAt, players, monsterKills, List.of(), summaryHash);
+                    startedAt, finishedAt, players, monsterKills, List.of(), List.of(), summaryHash);
         }
 
         public Request(String requestId, String battleSessionId, String balanceVersion, String contentHash,
                        String result, int finalWave, LocalDateTime startedAt, LocalDateTime finishedAt,
                        List<Player> players, List<Monster> monsterKills, String summaryHash) {
             this(requestId, battleSessionId, balanceVersion, contentHash, result, finalWave, null,
-                    startedAt, finishedAt, players, monsterKills, List.of(), summaryHash);
+                    startedAt, finishedAt, players, monsterKills, List.of(), List.of(), summaryHash);
         }
     }
 
