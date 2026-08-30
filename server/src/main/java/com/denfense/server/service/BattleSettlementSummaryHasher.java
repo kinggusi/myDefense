@@ -9,8 +9,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.HexFormat;
 
 /**
- * Mirrors Unity BattleSettlementSummaryJson exactly. The summaryHash field is
- * serialized as an empty string before SHA-256 is calculated.
+ * Mirrors Unity BattleSettlementSummaryJson.SerializeForHash exactly. The
+ * summaryHash property is omitted from the canonical SHA-256 input.
  */
 public final class BattleSettlementSummaryHasher {
     private static final DateTimeFormatter DATE_TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
@@ -71,6 +71,22 @@ public final class BattleSettlementSummaryHasher {
             builder.append('}');
         }
         builder.append("],");
+        property(builder, "waveSpawnFacts").append('[');
+        for (int index = 0; index < request.waveSpawnFacts().size(); index++) {
+            if (index > 0) builder.append(',');
+            BattleSettlementDtos.WaveSpawnFact fact = request.waveSpawnFacts().get(index);
+            builder.append('{');
+            string(builder, "runtimeMonsterId", fact.runtimeMonsterId());
+            integer(builder, "spawnWave", fact.spawnWave());
+            string(builder, "spawnGroupId", fact.spawnGroupId());
+            string(builder, "monsterSpecId", fact.monsterSpecId());
+            string(builder, "lanePolicy", fact.lanePolicy());
+            nullableInteger(builder, "fieldOwnerPlayerSlot", fact.fieldOwnerPlayerSlot());
+            integer(builder, "spawnOrder", fact.spawnOrder());
+            integer(builder, "spawnOrdinal", fact.spawnOrdinal(), false);
+            builder.append('}');
+        }
+        builder.append("],");
         property(builder, "partialWaveKills").append('[');
         for (int index = 0; index < request.partialWaveKills().size(); index++) {
             if (index > 0) builder.append(',');
@@ -78,18 +94,18 @@ public final class BattleSettlementSummaryHasher {
             builder.append('{');
             string(builder, "runtimeMonsterId", kill.runtimeMonsterId());
             integer(builder, "spawnWave", kill.spawnWave());
+            string(builder, "spawnGroupId", kill.spawnGroupId());
             string(builder, "monsterSpecId", kill.monsterSpecId());
             string(builder, "lanePolicy", kill.lanePolicy());
-            nullableInteger(builder, "playerSlot", kill.playerSlot());
+            nullableInteger(builder, "fieldOwnerPlayerSlot", kill.fieldOwnerPlayerSlot());
             integer(builder, "spawnOrder", kill.spawnOrder());
             integer(builder, "spawnOrdinal", kill.spawnOrdinal());
-            string(builder, "killerPlayerId", kill.killerPlayerId());
-            string(builder, "supportPlayerId", kill.supportPlayerId());
-            number(builder, "killedAtTick", kill.killedAtTick(), false);
+            integer(builder, "killerPlayerSlot", kill.killerPlayerSlot());
+            nullableInteger(builder, "supportPlayerSlot", kill.supportPlayerSlot());
+            builder.setLength(builder.length() - 1);
             builder.append('}');
         }
-        builder.append("],");
-        string(builder, "summaryHash", "", false);
+        builder.append(']');
         return builder.append('}').toString();
     }
 

@@ -10,7 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class BattleSettlementSummaryHasherTest {
     private static final String CROSS_RUNTIME_HASH =
-            "21f0cfff90eec02ab6b1bdd6cdbff6cca51ba4e83ccef37ffd5e9f8cd0578895";
+            "d48e3596480b89baa9b17e71acb8e9a833cfc1eb42fe8d46aa8653250e0bb2a6";
 
     @Test
     void canonicalJsonAndHashMatchUnityFixture() {
@@ -28,11 +28,17 @@ class BattleSettlementSummaryHasherTest {
                         "\"bossKills\":0,\"initialInGameGold\":100,\"inGameGoldEarned\":0," +
                         "\"inGameGoldSpent\":0,\"finalInGameGold\":100,\"abandoned\":false}]," +
                         "\"monsterKills\":[{\"monsterSpecId\":\"NORMAL_MONSTER\",\"totalKills\":1," +
-                        "\"bossKills\":0,\"totalKillGold\":20}],\"partialWaveKills\":[{" +
+                        "\"bossKills\":0,\"totalKillGold\":20}],\"waveSpawnFacts\":[{" +
                         "\"runtimeMonsterId\":\"18446744073709551615\",\"spawnWave\":1," +
-                        "\"monsterSpecId\":\"NORMAL_MONSTER\",\"lanePolicy\":\"EACH_FIELD\"," +
-                        "\"playerSlot\":1,\"spawnOrder\":1,\"spawnOrdinal\":1,\"killerPlayerId\":\"a\"," +
-                        "\"supportPlayerId\":\"b\",\"killedAtTick\":42}],\"summaryHash\":\"\"}");
+                        "\"spawnGroupId\":\"WAVE_01\",\"monsterSpecId\":\"NORMAL_MONSTER\"," +
+                        "\"lanePolicy\":\"EACH_FIELD\",\"fieldOwnerPlayerSlot\":1," +
+                        "\"spawnOrder\":1,\"spawnOrdinal\":1}],\"partialWaveKills\":[{" +
+                        "\"runtimeMonsterId\":\"18446744073709551615\",\"spawnWave\":1," +
+                        "\"spawnGroupId\":\"WAVE_01\",\"monsterSpecId\":\"NORMAL_MONSTER\"," +
+                        "\"lanePolicy\":\"EACH_FIELD\",\"fieldOwnerPlayerSlot\":1," +
+                        "\"spawnOrder\":1,\"spawnOrdinal\":1,\"killerPlayerSlot\":1," +
+                        "\"supportPlayerSlot\":2}]}");
+        assertThat(BattleSettlementSummaryHasher.canonicalJson(request)).doesNotContain("summaryHash");
         assertThat(BattleSettlementSummaryHasher.compute(request)).isEqualTo(CROSS_RUNTIME_HASH);
     }
 
@@ -47,9 +53,12 @@ class BattleSettlementSummaryHasherTest {
                         new BattleSettlementDtos.Player("b", 2, false, null, 0, 1, 0,
                                 100, 0, 0, 100, false)),
                 List.of(new BattleSettlementDtos.Monster("NORMAL_MONSTER", 1, 0, 20)),
+                List.of(new BattleSettlementDtos.WaveSpawnFact(
+                        "18446744073709551615", 1, "WAVE_01", "NORMAL_MONSTER", "EACH_FIELD", 1,
+                        1, 1)),
                 List.of(new BattleSettlementDtos.PartialWaveKill(
-                        "18446744073709551615", 1, "NORMAL_MONSTER", "EACH_FIELD", 1,
-                        1, 1, "a", "b", 42L)),
+                        "18446744073709551615", 1, "WAVE_01", "NORMAL_MONSTER", "EACH_FIELD", 1,
+                        1, 1, 1, 2)),
                 "ignored");
     }
 }

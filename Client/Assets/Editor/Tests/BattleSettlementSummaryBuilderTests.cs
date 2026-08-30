@@ -30,6 +30,7 @@ namespace MyDefense.Battle.Tests
             Assert.That(settlement.monsterKills.Single(item => item.monsterSpecId == "NORMAL_MONSTER").totalKillGold, Is.EqualTo(40));
             Assert.That(settlement.monsterKills.Single(item => item.monsterSpecId == "WAVE_BOSS").bossKills, Is.EqualTo(1));
             Assert.That(settlement.monsterKills.Single(item => item.monsterSpecId == "WAVE_BOSS").totalKillGold, Is.EqualTo(200));
+            Assert.That(settlement.waveSpawnFacts, Is.Empty);
             Assert.That(settlement.partialWaveKills, Is.Empty);
         }
 
@@ -151,14 +152,24 @@ namespace MyDefense.Battle.Tests
                         monsterSpecId = "NORMAL_MONSTER", totalKills = 1, bossKills = 0, totalKillGold = 20
                     }
                 },
+                waveSpawnFacts = new[]
+                {
+                    new BattleSettlementWaveSpawnFactSummary
+                    {
+                        runtimeMonsterId = "18446744073709551615", spawnWave = 1,
+                        spawnGroupId = "WAVE_01", monsterSpecId = "NORMAL_MONSTER",
+                        lanePolicy = "EACH_FIELD", fieldOwnerPlayerSlot = 1,
+                        spawnOrder = 1, spawnOrdinal = 1
+                    }
+                },
                 partialWaveKills = new[]
                 {
                     new BattleSettlementPartialWaveKillSummary
                     {
                         runtimeMonsterId = "18446744073709551615", spawnWave = 1,
-                        monsterSpecId = "NORMAL_MONSTER", lanePolicy = "EACH_FIELD", playerSlot = 1,
-                        spawnOrder = 1, spawnOrdinal = 1, killerPlayerId = "a", supportPlayerId = "b",
-                        killedAtTick = 42
+                        spawnGroupId = "WAVE_01", monsterSpecId = "NORMAL_MONSTER",
+                        lanePolicy = "EACH_FIELD", fieldOwnerPlayerSlot = 1,
+                        spawnOrder = 1, spawnOrdinal = 1, killerPlayerSlot = 1, supportPlayerSlot = 2
                     }
                 },
                 summaryHash = "ignored"
@@ -166,7 +177,7 @@ namespace MyDefense.Battle.Tests
 
             Assert.That(
                 BattleSettlementCoordinator.ComputeSummaryHash(summary),
-                Is.EqualTo("21f0cfff90eec02ab6b1bdd6cdbff6cca51ba4e83ccef37ffd5e9f8cd0578895"));
+                Is.EqualTo("d48e3596480b89baa9b17e71acb8e9a833cfc1eb42fe8d46aa8653250e0bb2a6"));
             Assert.That(summary.summaryHash, Is.EqualTo("ignored"));
         }
 

@@ -178,7 +178,7 @@ public class BattleSettlementService {
         }
 
         Map<String, Integer> expectedKills = expectedKillsThrough(request.finalWave(), playerBySlot);
-        PartialTotals partialTotals = validatePartialWaveKills(request, playerBySlot, roster);
+        PartialTotals partialTotals = validatePartialWaveKills(request, playerBySlot);
         partialTotals.byMonster().forEach((monsterId, count) -> expectedKills.merge(monsterId, count, Integer::sum));
         validatePartialAttributionLowerBounds(request.players(), partialTotals);
 
@@ -240,9 +240,10 @@ public class BattleSettlementService {
 
     private PartialTotals validatePartialWaveKills(
             BattleSettlementDtos.Request request,
-            Map<Integer, BattleSettlementDtos.Player> playerBySlot,
-            BattleSessionRosterRegistry.Roster roster
+            Map<Integer, BattleSettlementDtos.Player> playerBySlot
     ) {
+        Map<String, BattleSettlementDtos.WaveSpawnFact> factsByRuntimeId =
+                validateWaveSpawnFacts(request, playerBySlot);
         List<BattleSettlementDtos.PartialWaveKill> kills = request.partialWaveKills();
         if (kills.isEmpty()) return PartialTotals.empty();
         if (!"DEFEAT".equals(request.result())
@@ -251,19 +252,11 @@ public class BattleSettlementService {
         }
 
         int partialWave = request.finalWave() + 1;
-        var wave = waveBalances.getWave(MODE_ID, partialWave);
-        List<WaveSpawnBalance> spawns = waveBalances.getSpawns(wave.spawnGroupId());
-        Map<Integer, WaveSpawnBalance> spawnByOrder = new HashMap<>();
-        for (WaveSpawnBalance spawn : spawns) spawnByOrder.put(spawn.order(), spawn);
-
-        Set<String> rosterIds = new HashSet<>();
-        roster.players().forEach(player -> rosterIds.add(player.playerId()));
         Set<String> runtimeIds = new HashSet<>();
-        Set<String> spawnPositions = new HashSet<>();
         Map<String, Integer> byMonster = new HashMap<>();
-        Map<String, Integer> byKiller = new HashMap<>();
-        Map<String, Integer> bySupport = new HashMap<>();
-        Map<String, Integer> bossByKiller = new HashMap<>();
+        Map<Integer, Integer> byKiller = new HashMap<>();
+        Map<Integer, Integer> bySupport = new HashMap<>();
+        Map<Integer, Integer> bossByKiller = new HashMap<>();
         long previousRuntimeId = 0;
         boolean hasPreviousRuntimeId = false;
         int bossKills = 0;
@@ -272,17 +265,17 @@ public class BattleSettlementService {
             if (kill == null
                     || blank(kill.runtimeMonsterId())
                     || kill.spawnWave() != partialWave
+                    || blank(kill.spawnGroupId())
                     || blank(kill.monsterSpecId())
                     || blank(kill.lanePolicy())
                     || kill.spawnOrder() < 1
                     || kill.spawnOrdinal() < 1
-                    || blank(kill.killerPlayerId())
-                    || !rosterIds.contains(kill.killerPlayerId())
-                    || kill.killedAtTick() < 0
-                    || (kill.supportPlayerId() != null
-                    && (blank(kill.supportPlayerId())
-                    || !rosterIds.contains(kill.supportPlayerId())
-                    || kill.supportPlayerId().equals(kill.killerPlayerId())))) {
+                    || !playerBySlot.containsKey(kill.killerPlayerSlot())
+                    || !isLaneActiveAtWave(playerBySlot.get(kill.killerPlayerSlot()), partialWave)
+                    || (kill.supportPlayerSlot() != null
+                    && (!playerBySlot.containsKey(kill.supportPlayerSlot())
+                    || !isLaneActiveAtWave(playerBySlot.get(kill.supportPlayerSlot()), partialWave)
+                    || kill.supportPlayerSlot() == kill.killerPlayerSlot()))) {
                 invalidSummary();
             }
 
@@ -302,37 +295,107 @@ public class BattleSettlementService {
             previousRuntimeId = runtimeId;
             hasPreviousRuntimeId = true;
 
-            WaveSpawnBalance spawn = spawnByOrder.get(kill.spawnOrder());
+            BattleSettlementDtos.WaveSpawnFact fact = factsByRuntimeId.get(kill.runtimeMonsterId());
+            if (fact == null
+                    || fact.spawnWave() != kill.spawnWave()
+                    || !fact.spawnGroupId().equals(kill.spawnGroupId())
+                    || !fact.monsterSpecId().equals(kill.monsterSpecId())
+                    || !fact.lanePolicy().equals(kill.lanePolicy())
+                    || !Objects.equals(fact.fieldOwnerPlayerSlot(), kill.fieldOwnerPlayerSlot())
+                    || fact.spawnOrder() != kill.spawnOrder()
+                    || fact.spawnOrdinal() != kill.spawnOrdinal()) {
+                invalidSummary();
+            }
+
+            if (BOSS_SHARED.equals(kill.lanePolicy())) {
+                bossKills++;
+            }
+            byMonster.merge(kill.monsterSpecId(), 1, Integer::sum);
+            byKiller.merge(kill.killerPlayerSlot(), 1, Integer::sum);
+            if (kill.supportPlayerSlot() != null) bySupport.merge(kill.supportPlayerSlot(), 1, Integer::sum);
+            if (BOSS_SHARED.equals(kill.lanePolicy())) bossByKiller.merge(kill.killerPlayerSlot(), 1, Integer::sum);
+        }
+        return new PartialTotals(byMonster, byKiller, bySupport, bossByKiller, bossKills);
+    }
+
+    private Map<String, BattleSettlementDtos.WaveSpawnFact> validateWaveSpawnFacts(
+            BattleSettlementDtos.Request request,
+            Map<Integer, BattleSettlementDtos.Player> playerBySlot
+    ) {
+        List<BattleSettlementDtos.WaveSpawnFact> facts = request.waveSpawnFacts();
+        if (facts.isEmpty()) {
+            if (!request.partialWaveKills().isEmpty()) invalidSummary();
+            return Map.of();
+        }
+        if (!"DEFEAT".equals(request.result())
+                || request.finalWave() >= balances.getBattleRewardBalance().maxWave()) {
+            invalidSummary();
+        }
+
+        int partialWave = request.finalWave() + 1;
+        var wave = waveBalances.getWave(MODE_ID, partialWave);
+        List<WaveSpawnBalance> spawns = waveBalances.getSpawns(wave.spawnGroupId());
+        Map<Integer, WaveSpawnBalance> spawnByOrder = new HashMap<>();
+        for (WaveSpawnBalance spawn : spawns) spawnByOrder.put(spawn.order(), spawn);
+
+        Map<String, BattleSettlementDtos.WaveSpawnFact> byRuntimeId = new HashMap<>();
+        Set<String> spawnPositions = new HashSet<>();
+        long previousRuntimeId = 0;
+        boolean hasPreviousRuntimeId = false;
+        for (BattleSettlementDtos.WaveSpawnFact fact : facts) {
+            if (fact == null
+                    || blank(fact.runtimeMonsterId())
+                    || fact.spawnWave() != partialWave
+                    || !wave.spawnGroupId().equals(fact.spawnGroupId())
+                    || blank(fact.monsterSpecId())
+                    || blank(fact.lanePolicy())
+                    || fact.spawnOrder() < 1
+                    || fact.spawnOrdinal() < 1) {
+                invalidSummary();
+            }
+
+            long runtimeId;
+            try {
+                runtimeId = Long.parseUnsignedLong(fact.runtimeMonsterId());
+            } catch (NumberFormatException exception) {
+                invalidSummary();
+                return null;
+            }
+            if (runtimeId == 0
+                    || !Long.toUnsignedString(runtimeId).equals(fact.runtimeMonsterId())
+                    || byRuntimeId.putIfAbsent(fact.runtimeMonsterId(), fact) != null
+                    || (hasPreviousRuntimeId && Long.compareUnsigned(previousRuntimeId, runtimeId) >= 0)) {
+                invalidSummary();
+            }
+            previousRuntimeId = runtimeId;
+            hasPreviousRuntimeId = true;
+
+            WaveSpawnBalance spawn = spawnByOrder.get(fact.spawnOrder());
             if (spawn == null
-                    || !spawn.monsterId().equals(kill.monsterSpecId())
-                    || !spawn.lanePolicy().equals(kill.lanePolicy())
-                    || kill.spawnOrdinal() > spawn.spawnCountPerField()) {
+                    || !spawn.monsterId().equals(fact.monsterSpecId())
+                    || !spawn.lanePolicy().equals(fact.lanePolicy())
+                    || fact.spawnOrdinal() > spawn.spawnCountPerField()) {
                 invalidSummary();
             }
 
             String positionKey;
-            if (EACH_FIELD.equals(kill.lanePolicy())) {
-                if (kill.playerSlot() == null
-                        || !playerBySlot.containsKey(kill.playerSlot())
-                        || !isLaneActiveAtWave(playerBySlot.get(kill.playerSlot()), partialWave)) {
+            if (EACH_FIELD.equals(fact.lanePolicy())) {
+                if (fact.fieldOwnerPlayerSlot() == null
+                        || !playerBySlot.containsKey(fact.fieldOwnerPlayerSlot())
+                        || !isLaneActiveAtWave(playerBySlot.get(fact.fieldOwnerPlayerSlot()), partialWave)) {
                     invalidSummary();
                 }
-                positionKey = kill.spawnOrder() + ":" + kill.playerSlot() + ":" + kill.spawnOrdinal();
-            } else if (BOSS_SHARED.equals(kill.lanePolicy())) {
-                if (kill.playerSlot() != null) invalidSummary();
-                positionKey = kill.spawnOrder() + ":shared:" + kill.spawnOrdinal();
-                bossKills++;
+                positionKey = fact.spawnOrder() + ":" + fact.fieldOwnerPlayerSlot() + ":" + fact.spawnOrdinal();
+            } else if (BOSS_SHARED.equals(fact.lanePolicy())) {
+                if (fact.fieldOwnerPlayerSlot() != null) invalidSummary();
+                positionKey = fact.spawnOrder() + ":shared:" + fact.spawnOrdinal();
             } else {
                 invalidSummary();
                 return null;
             }
             if (!spawnPositions.add(positionKey)) invalidSummary();
-            byMonster.merge(kill.monsterSpecId(), 1, Integer::sum);
-            byKiller.merge(kill.killerPlayerId(), 1, Integer::sum);
-            if (kill.supportPlayerId() != null) bySupport.merge(kill.supportPlayerId(), 1, Integer::sum);
-            if (BOSS_SHARED.equals(kill.lanePolicy())) bossByKiller.merge(kill.killerPlayerId(), 1, Integer::sum);
         }
-        return new PartialTotals(byMonster, byKiller, bySupport, bossByKiller, bossKills);
+        return byRuntimeId;
     }
 
     private void validatePartialAttributionLowerBounds(
@@ -340,9 +403,9 @@ public class BattleSettlementService {
             PartialTotals partialTotals
     ) {
         for (BattleSettlementDtos.Player player : players) {
-            if (player.kills() < partialTotals.byKiller().getOrDefault(player.playerId(), 0)
-                    || player.supportKills() < partialTotals.bySupport().getOrDefault(player.playerId(), 0)
-                    || player.bossKills() < partialTotals.bossByKiller().getOrDefault(player.playerId(), 0)) {
+            if (player.kills() < partialTotals.byKiller().getOrDefault(player.playerSlot(), 0)
+                    || player.supportKills() < partialTotals.bySupport().getOrDefault(player.playerSlot(), 0)
+                    || player.bossKills() < partialTotals.bossByKiller().getOrDefault(player.playerSlot(), 0)) {
                 invalidSummary();
             }
         }
@@ -409,9 +472,9 @@ public class BattleSettlementService {
 
     private record PartialTotals(
             Map<String, Integer> byMonster,
-            Map<String, Integer> byKiller,
-            Map<String, Integer> bySupport,
-            Map<String, Integer> bossByKiller,
+            Map<Integer, Integer> byKiller,
+            Map<Integer, Integer> bySupport,
+            Map<Integer, Integer> bossByKiller,
             int bossKills
     ) {
         private static PartialTotals empty() {

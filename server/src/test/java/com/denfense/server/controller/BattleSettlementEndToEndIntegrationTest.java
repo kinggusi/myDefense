@@ -86,11 +86,11 @@ class BattleSettlementEndToEndIntegrationTest {
                                 firstKills, 0, bossKills, 100, 0, 0, 100, false),
                         new BattleSettlementDtos.Player(playerTwo.getUsername(), 2, false, null,
                                 secondKills, 0, 0, 100, 0, 0, 100, false)),
-                monsterKills, List.of(), "");
+                monsterKills, List.of(), List.of(), "");
         var request = new BattleSettlementDtos.Request(
                 unsigned.requestId(), unsigned.battleSessionId(), unsigned.balanceVersion(), unsigned.contentHash(),
                 unsigned.result(), unsigned.finalWave(), unsigned.mapId(), unsigned.startedAt(), unsigned.finishedAt(),
-                unsigned.players(), unsigned.monsterKills(), unsigned.partialWaveKills(),
+                unsigned.players(), unsigned.monsterKills(), unsigned.waveSpawnFacts(), unsigned.partialWaveKills(),
                 BattleSettlementSummaryHasher.compute(unsigned));
 
         String firstResponse = mockMvc.perform(post("/api/battle/settlements")

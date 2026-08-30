@@ -29,6 +29,7 @@ class BattleSettlementContractTest {
                 "finishedAt",
                 "players",
                 "monsterKills",
+                "waveSpawnFacts",
                 "partialWaveKills",
                 "summaryHash"
         );
@@ -65,19 +66,34 @@ class BattleSettlementContractTest {
     }
 
     @Test
+    void waveSpawnFactComponentsMatchUnityWaveSpawnFactSummary() {
+        assertRecordComponents(
+                BattleSettlementDtos.WaveSpawnFact.class,
+                "runtimeMonsterId",
+                "spawnWave",
+                "spawnGroupId",
+                "monsterSpecId",
+                "lanePolicy",
+                "fieldOwnerPlayerSlot",
+                "spawnOrder",
+                "spawnOrdinal"
+        );
+    }
+
+    @Test
     void partialWaveKillComponentsMatchUnityPartialWaveKillSummary() {
         assertRecordComponents(
                 BattleSettlementDtos.PartialWaveKill.class,
                 "runtimeMonsterId",
                 "spawnWave",
+                "spawnGroupId",
                 "monsterSpecId",
                 "lanePolicy",
-                "playerSlot",
+                "fieldOwnerPlayerSlot",
                 "spawnOrder",
                 "spawnOrdinal",
-                "killerPlayerId",
-                "supportPlayerId",
-                "killedAtTick"
+                "killerPlayerSlot",
+                "supportPlayerSlot"
         );
     }
 
@@ -100,6 +116,7 @@ class BattleSettlementContractTest {
                 String.class,
                 LocalDateTime.class,
                 LocalDateTime.class,
+                List.class,
                 List.class,
                 List.class,
                 List.class,
@@ -128,17 +145,28 @@ class BattleSettlementContractTest {
                 int.class
         );
         assertRecordComponentTypes(
+                BattleSettlementDtos.WaveSpawnFact.class,
+                String.class,
+                int.class,
+                String.class,
+                String.class,
+                String.class,
+                Integer.class,
+                int.class,
+                int.class
+        );
+        assertRecordComponentTypes(
                 BattleSettlementDtos.PartialWaveKill.class,
                 String.class,
                 int.class,
                 String.class,
                 String.class,
+                String.class,
                 Integer.class,
                 int.class,
                 int.class,
-                String.class,
-                String.class,
-                long.class
+                int.class,
+                Integer.class
         );
     }
 
@@ -160,7 +188,8 @@ class BattleSettlementContractTest {
                     {"playerId":"player-b","playerSlot":2,"eliminated":true,"eliminatedWave":79,"kills":5,"supportKills":1,"bossKills":0,"initialInGameGold":100,"inGameGoldEarned":20,"inGameGoldSpent":10,"finalInGameGold":110}
                   ],
                   "monsterKills":[{"monsterSpecId":"NORMAL_MONSTER","totalKills":15,"bossKills":0,"totalKillGold":300}],
-                  "partialWaveKills":[{"runtimeMonsterId":"18446744073709551615","spawnWave":80,"monsterSpecId":"NORMAL_MONSTER","lanePolicy":"EACH_FIELD","playerSlot":1,"spawnOrder":1,"spawnOrdinal":1,"killerPlayerId":"player-a","supportPlayerId":null,"killedAtTick":123}],
+                  "waveSpawnFacts":[{"runtimeMonsterId":"18446744073709551615","spawnWave":80,"spawnGroupId":"WAVE_80_BOSS","monsterSpecId":"WAVE_BOSS","lanePolicy":"BOSS_SHARED","fieldOwnerPlayerSlot":null,"spawnOrder":1,"spawnOrdinal":1}],
+                  "partialWaveKills":[{"runtimeMonsterId":"18446744073709551615","spawnWave":80,"spawnGroupId":"WAVE_80_BOSS","monsterSpecId":"WAVE_BOSS","lanePolicy":"BOSS_SHARED","fieldOwnerPlayerSlot":null,"spawnOrder":1,"spawnOrdinal":1,"killerPlayerSlot":1,"supportPlayerSlot":null}],
                   "summaryHash":"summary-hash"
                 }
                 """;
@@ -173,11 +202,16 @@ class BattleSettlementContractTest {
         assertThat(request.players().get(0).eliminatedWave()).isNull();
         assertThat(request.players().get(1).eliminatedWave()).isEqualTo(79);
         assertThat(request.monsterKills().get(0).totalKillGold()).isEqualTo(300);
+        assertThat(request.waveSpawnFacts()).singleElement().satisfies(fact -> {
+            assertThat(fact.runtimeMonsterId()).isEqualTo("18446744073709551615");
+            assertThat(fact.spawnGroupId()).isEqualTo("WAVE_80_BOSS");
+            assertThat(fact.fieldOwnerPlayerSlot()).isNull();
+        });
         assertThat(request.partialWaveKills()).singleElement().satisfies(kill -> {
             assertThat(kill.runtimeMonsterId()).isEqualTo("18446744073709551615");
-            assertThat(kill.playerSlot()).isEqualTo(1);
-            assertThat(kill.supportPlayerId()).isNull();
-            assertThat(kill.killedAtTick()).isEqualTo(123L);
+            assertThat(kill.spawnGroupId()).isEqualTo("WAVE_80_BOSS");
+            assertThat(kill.killerPlayerSlot()).isEqualTo(1);
+            assertThat(kill.supportPlayerSlot()).isNull();
         });
     }
 
