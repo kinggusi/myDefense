@@ -7,6 +7,8 @@ import com.denfense.server.dto.battle.BattleSessionRosterDtos;
 import com.denfense.server.repository.BattlePlayerSettlementRepository;
 import com.denfense.server.repository.BattleSettlementRepository;
 import com.denfense.server.repository.UserRepository;
+import com.denfense.server.repository.UserPlanetUnlockRepository;
+import com.denfense.server.repository.BattleEntryReservationRepository;
 import com.denfense.server.service.BattleSettlementSummaryHasher;
 import com.denfense.server.service.balance.BalanceVersionRegistry;
 import com.denfense.server.service.balance.MonsterBalanceRegistry;
@@ -43,6 +45,8 @@ class BattleSettlementEndToEndIntegrationTest {
     @Autowired BalanceVersionRegistry versions;
     @Autowired WaveBalanceRegistry waves;
     @Autowired MonsterBalanceRegistry monsters;
+    @Autowired UserPlanetUnlockRepository planetUnlocks;
+    @Autowired BattleEntryReservationRepository entryReservations;
 
     @Test
     void unityVictoryWave80PayloadPersistsSamePlayersAndReturnsAcceptedResponse() throws Exception {
@@ -111,6 +115,10 @@ class BattleSettlementEndToEndIntegrationTest {
         assertThat(users.findById(playerTwo.getId()).orElseThrow())
                 .extracting(User::getGold, User::getUniversalPiece, User::getDiamond)
                 .containsExactly(25_250, 225, 3_000);
+        assertThat(planetUnlocks.findByUserIdAndMapId(playerOne.getId(), "URANUS")).isPresent();
+        assertThat(planetUnlocks.findByUserIdAndMapId(playerTwo.getId(), "URANUS")).isPresent();
+        assertThat(entryReservations.findByBattleSessionId(sessionId).orElseThrow().getStatus())
+                .isEqualTo(com.denfense.server.domain.BattleEntryStatus.COMPLETED);
 
         mockMvc.perform(post("/api/battle/settlements")
                         .contentType("application/json")

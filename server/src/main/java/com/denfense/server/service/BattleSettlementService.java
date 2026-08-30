@@ -42,9 +42,11 @@ public class BattleSettlementService {
     private final BattleRewardGrantService rewardGrantService;
     private final BattleSessionRosterRegistry battleSessionRosters;
     private final WaveBalanceRegistry waveBalances;
+    private final BattlePlanetEntryService battleEntries;
 
     public BattleSettlementDtos.Response settle(BattleSettlementDtos.Request request) {
         validateEnvelope(request);
+        battleEntries.assertUsable(request.battleSessionId());
 
         BattleSettlement byRequest = settlements.findByRequestId(request.requestId()).orElse(null);
         if (byRequest != null) {
@@ -68,7 +70,12 @@ public class BattleSettlementService {
         validateNewSettlement(request);
         BattleSettlement settlement;
         try {
-            settlement = writer.create(request);
+            BattleSettlementWriter.WriteResult write = writer.create(request);
+            if (!write.created()) {
+                validateRecoveredSettlement(write.settlement(), request);
+                return response(write.settlement(), true, request);
+            }
+            settlement = write.settlement();
         } catch (DataIntegrityViolationException exception) {
             BattleSettlement winner = lookup.byRequest(request.requestId());
             if (winner != null) return response(winner, true, request);
@@ -85,16 +92,31 @@ public class BattleSettlementService {
         return response(settlement, false, request);
     }
 
+    private void validateRecoveredSettlement(
+            BattleSettlement existing,
+            BattleSettlementDtos.Request request
+    ) {
+        boolean payloadMatches = existing.getSummaryHash().equals(request.summaryHash())
+                && Objects.equals(existing.getMapId(), request.mapId());
+        if (existing.getRequestId().equals(request.requestId())) {
+            if (!payloadMatches) throw new BusinessException(ErrorCode.BATTLE_REQUEST_CONFLICT);
+            return;
+        }
+        if (!payloadMatches) throw new BusinessException(ErrorCode.BATTLE_SETTLEMENT_CONFLICT);
+    }
+
     private BattleSettlementDtos.Response response(
             BattleSettlement settlement,
             boolean alreadyProcessed,
             BattleSettlementDtos.Request request
     ) {
+        List<BattleSettlementDtos.Reward> rewards = rewardGrantService.grant(settlement, request);
+        battleEntries.completeIfReserved(settlement.getBattleSessionId());
         return new BattleSettlementDtos.Response(
                 settlement.getBattleSessionId(),
                 settlement.getStatus().name(),
                 alreadyProcessed,
-                rewardGrantService.grant(settlement, request));
+                rewards);
     }
 
     private void validateEnvelope(BattleSettlementDtos.Request request) {

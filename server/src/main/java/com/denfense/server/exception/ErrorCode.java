@@ -48,6 +48,11 @@ public enum ErrorCode {
     MYTHIC_BREEDING_ACCELERATION_INVALID(HttpStatus.BAD_REQUEST, "교배 가속 요청이 유효하지 않습니다."),
     BATTLE_ROSTER_REGISTRATION_FORBIDDEN(HttpStatus.FORBIDDEN, "개발용 Battle 참가자 등록은 로컬 환경에서만 허용됩니다."),
     BATTLE_ROSTER_REGISTRATION_INVALID(HttpStatus.BAD_REQUEST, "Battle 참가자 등록 정보가 유효하지 않습니다."),
+    PLANET_NOT_FOUND(HttpStatus.NOT_FOUND, "행성 정보를 찾을 수 없습니다."),
+    PLANET_LOCKED(HttpStatus.FORBIDDEN, "해금되지 않은 행성입니다."),
+    BATTLE_ENTRY_CONFLICT(HttpStatus.CONFLICT, "Battle 입장 예약 정보가 충돌했습니다."),
+    BATTLE_ENTRY_REFUNDED(HttpStatus.CONFLICT, "이미 반환 처리된 Battle 입장입니다."),
+    BATTLE_ENTRY_REFUND_INVALID(HttpStatus.CONFLICT, "반환할 수 없는 Battle 입장입니다."),
     BATTLE_SETTLEMENT_CONFLICT(HttpStatus.CONFLICT,"Battle settlement conflict"), BATTLE_SUMMARY_INVALID(HttpStatus.BAD_REQUEST,"Invalid battle summary"), BATTLE_PARTICIPANT_MISMATCH(HttpStatus.BAD_REQUEST,"Invalid participants"), BATTLE_BALANCE_VERSION_MISMATCH(HttpStatus.CONFLICT,"Balance version mismatch"), BATTLE_CONTENT_HASH_MISMATCH(HttpStatus.CONFLICT,"Balance content hash mismatch"), BATTLE_UNKNOWN_MONSTER(HttpStatus.BAD_REQUEST,"Unknown monster"), BATTLE_REQUEST_CONFLICT(HttpStatus.CONFLICT,"Battle request conflict"),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "예상치 못한 서버 에러가 발생했습니다.");
 

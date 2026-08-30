@@ -521,7 +521,7 @@ Alien + Skill + 영구 성장 + Active Mutation
 
 ## 14. 행성 스테이지·맵
 
-### 14.1 콘텐츠 방향 — 기획 중
+### 14.1 콘텐츠 방향 — 1차 확정
 
 진행 순서는 다음과 같다.
 
@@ -532,6 +532,13 @@ Alien + Skill + 영구 성장 + Active Mutation
 - 태양은 종결 콘텐츠 맵이다.
 - 단순 HP 상승뿐 아니라 행성별 연출에 차별점을 둔다.
 - 이전 행성 클리어를 다음 행성 해금 조건으로 사용한다.
+- 해왕성은 신규 계정의 기본 해금 행성이다.
+- 서버가 `ACCEPTED`한 `VICTORY`이고 `finalWave=80`일 때, 명시적으로 이탈하지 않은 참가자에게 다음 행성을 멱등 해금한다.
+- 매치 입장 행성은 trusted 2인 roster의 두 참가자가 모두 해금한 상태여야 한다.
+- trusted roster 확정 시 두 참가자의 Heart를 각각 1개 차감한다.
+- 동일 `battleSessionId + mapId + playerSlot roster` 재요청은 기존 입장 예약을 반환하고 Heart를 다시 차감하지 않는다.
+- 매칭 실패, Session 실패, `SERVER_ABORTED`만 trusted 서버 경로에서 Heart를 멱등 반환한다. 일반 패배·사용자 이탈은 반환하지 않는다.
+- `battleSessionId`가 동일한데 행성 또는 참가자 구성이 다르면 입장 충돌로 거부한다.
 
 ### 14.2 행성별 1차 전투 배율 — P1 확정
 

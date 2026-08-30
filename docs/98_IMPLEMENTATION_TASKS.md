@@ -410,7 +410,7 @@ P0-1-1~4 → P0-1-5 → P0-1-6
 
 | Task ID | 담당 | 상태 | Codex 작업 |
 |---|---|---|---|
-| P2-1-1 | jjangash | 정책 선행 | 행성 Stage 해금·입장·보상 서버 구현 |
+| P2-1-1 | jjangash | 완료 | 행성 Stage 해금·입장·보상 서버 구현 |
 | P2-1-2 | kinggusi | 정책 선행 | 행성별 Map·Waypoint·Boss Scene 구현 |
 | P2-2-1 | jjangash | 정책 선행 | 일일 콘텐츠 횟수·초기화·보상 서버 구현 |
 | P2-2-2 | kinggusi | 정책 선행 | 배양 구역 5 Stage Battle 구현 |
