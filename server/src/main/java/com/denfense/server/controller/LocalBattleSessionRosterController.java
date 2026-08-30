@@ -4,6 +4,8 @@ import com.denfense.server.dto.battle.BattleSessionRosterDtos;
 import com.denfense.server.exception.BusinessException;
 import com.denfense.server.exception.ErrorCode;
 import com.denfense.server.service.BattleSessionRosterAuthorityAdapter;
+import com.denfense.server.service.BattlePlanetEntryService;
+import com.denfense.server.domain.BattleEntryRefundReason;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Profile;
@@ -27,6 +29,7 @@ import java.net.InetAddress;
 @RequestMapping("/api/dev/battle/session-rosters")
 public class LocalBattleSessionRosterController {
     private final BattleSessionRosterAuthorityAdapter adapter;
+    private final BattlePlanetEntryService battleEntries;
 
     @PostMapping
     public BattleSessionRosterDtos.RegisterResponse register(
@@ -36,6 +39,25 @@ public class LocalBattleSessionRosterController {
             throw new BusinessException(ErrorCode.BATTLE_ROSTER_REGISTRATION_FORBIDDEN);
         }
         return adapter.register(request);
+    }
+
+    @PostMapping("/{battleSessionId}/refund")
+    public BattleSessionRosterDtos.RefundResponse refund(
+            HttpServletRequest servletRequest,
+            @org.springframework.web.bind.annotation.PathVariable String battleSessionId,
+            @RequestBody BattleSessionRosterDtos.RefundRequest request) {
+        if (!isLoopback(servletRequest.getRemoteAddr())) {
+            throw new BusinessException(ErrorCode.BATTLE_ROSTER_REGISTRATION_FORBIDDEN);
+        }
+        BattleEntryRefundReason reason;
+        try {
+            reason = BattleEntryRefundReason.valueOf(request.reason().trim());
+        } catch (RuntimeException exception) {
+            throw new BusinessException(ErrorCode.BATTLE_ENTRY_REFUND_INVALID);
+        }
+        var result = battleEntries.refund(battleSessionId, reason);
+        return new BattleSessionRosterDtos.RefundResponse(
+                battleSessionId, result.status().name(), result.alreadyProcessed());
     }
 
     private static boolean isLoopback(String address) {
