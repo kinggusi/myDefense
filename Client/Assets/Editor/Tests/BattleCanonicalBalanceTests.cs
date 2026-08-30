@@ -79,6 +79,7 @@ namespace MyDefense.Battle.Tests
             Assert.That(wave.WaveId, Is.EqualTo("COOP_STANDARD:1"));
             Assert.That(wave.NextWaveDelaySeconds, Is.EqualTo(3f));
             WaveSpawnSpecData spawn = provider.Catalog.Waves.GetSpawns(wave.WaveId).Single();
+            Assert.That(spawn.SpawnGroupId, Is.EqualTo("WAVE_01"));
             Assert.That(spawn.MonsterId, Is.EqualTo("NORMAL_MONSTER"));
             Assert.That(spawn.SpawnCount, Is.EqualTo(12));
             Assert.That(spawn.HpMultiplier, Is.EqualTo(1f));

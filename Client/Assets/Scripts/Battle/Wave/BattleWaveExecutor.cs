@@ -85,6 +85,8 @@ namespace MyDefense.Battle
         private BattleSessionContext _runtimeSession;
         private IBattlePlayerIdentityProvider _playerIdentityProvider;
         private BattleSpawnSequenceIssuer _spawnSequenceIssuer;
+        private readonly List<BattleSpawnAuditRecord> _spawnAuditRecords = new List<BattleSpawnAuditRecord>();
+        private readonly Dictionary<string, int> _spawnOrdinals = new Dictionary<string, int>(StringComparer.Ordinal);
         private BattleBossPatternRuntime _bossPatternRuntime;
         private float _bossPatternStartedAt;
         private float _bossBaseMoveSpeed;
@@ -97,6 +99,7 @@ namespace MyDefense.Battle
 #endif
 
         public LaneType LocalPlayerLane => _localPlayerLane;
+        public IReadOnlyList<BattleSpawnAuditRecord> SpawnAuditRecords => _spawnAuditRecords;
 
         public void SetLocalPlayerLane(LaneType lane)
         {
@@ -883,6 +886,8 @@ namespace MyDefense.Battle
             _allPlayersEliminatedReported = false;
             _currentWaveSpec = null;
             _currentWaveSpawns = Array.AsReadOnly(Array.Empty<WaveSpawnSpecData>());
+            _spawnAuditRecords.Clear();
+            _spawnOrdinals.Clear();
             _catalogExhausted = false;
             _catalogExhaustedReported = false;
             _activeBossTimeLimitSeconds = 0f;
@@ -1790,6 +1795,13 @@ namespace MyDefense.Battle
             stat.InitializeBattleContext(lane, definition.CountsTowardLaneLimit);
             spawnedInstance.transform.localScale = Vector3.one * scale;
 
+            if (!TryRegisterSpawnAudit(runtimeContext.Identity, spawn, lane))
+            {
+                DestroySpawnedInstance(spawnedInstance);
+                spawnedInstance = null;
+                return false;
+            }
+
             if (definition.CountsTowardLaneLimit)
                 RegisterMonsterSpawned(lane);
 
@@ -1801,6 +1813,64 @@ namespace MyDefense.Battle
             }
 
             return true;
+        }
+
+        private bool TryRegisterSpawnAudit(
+            BattleMonsterRuntimeIdentity identity,
+            WaveSpawnSpecData spawn,
+            LaneType lane)
+        {
+            if (identity == null || spawn == null)
+            {
+                FaultExecution("Spawn audit requires initialized runtime identity and canonical Spawn data.");
+                return false;
+            }
+
+            int? ownerSlot = lane == LaneType.Player1Lane ? 1
+                : lane == LaneType.Player2Lane ? 2
+                : lane == LaneType.BossSharedLane ? (int?)null
+                : null;
+            if (lane != LaneType.Player1Lane
+                && lane != LaneType.Player2Lane
+                && lane != LaneType.BossSharedLane)
+            {
+                FaultExecution("Spawn audit received an unsupported Lane.");
+                return false;
+            }
+
+            string ordinalKey = identity.SpawnWave + "\u001f" + spawn.SpawnGroupId + "\u001f"
+                + spawn.SpawnOrder + "\u001f" + (ownerSlot ?? 0);
+            int ordinal = _spawnOrdinals.TryGetValue(ordinalKey, out int current) ? current + 1 : 1;
+            if (ordinal > spawn.SpawnCount)
+            {
+                FaultExecution(
+                    $"Spawn audit ordinal {ordinal} exceeds canonical count {spawn.SpawnCount} "
+                    + $"for group '{spawn.SpawnGroupId}' row {spawn.SpawnOrder}.");
+                return false;
+            }
+
+            try
+            {
+                var record = new BattleSpawnAuditRecord(
+                    identity.RuntimeKey,
+                    identity.SpawnWave,
+                    spawn.SpawnGroupId,
+                    identity.MonsterId,
+                    identity.LanePolicy,
+                    ownerSlot,
+                    spawn.SpawnOrder,
+                    ordinal);
+                if (_spawnAuditRecords.Exists(existing => existing.RuntimeKey.Equals(record.RuntimeKey)))
+                    throw new InvalidOperationException("Runtime monster ID was already recorded by the Spawn audit ledger.");
+                _spawnAuditRecords.Add(record);
+                _spawnOrdinals[ordinalKey] = ordinal;
+                return true;
+            }
+            catch (Exception exception)
+            {
+                FaultExecution("Spawn audit registration failed: " + exception.Message);
+                return false;
+            }
         }
 
         // Retained for existing reflection-based state tests. Production routines use
