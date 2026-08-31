@@ -8,6 +8,10 @@ import com.denfense.server.repository.BattlePlayerSettlementRepository;
 import com.denfense.server.repository.BattleRewardClaimRepository;
 import com.denfense.server.repository.BattleSettlementRepository;
 import com.denfense.server.repository.UserRepository;
+import com.denfense.server.repository.UserPlanetUnlockRepository;
+import com.denfense.server.repository.BattleEntryReservationRepository;
+import com.denfense.server.domain.UserPlanetUnlock;
+import com.denfense.server.domain.PlanetUnlockSource;
 import com.denfense.server.service.balance.BalanceVersionRegistry;
 import com.denfense.server.service.balance.MonsterBalanceRegistry;
 import com.denfense.server.service.balance.WaveBalanceRegistry;
@@ -41,12 +45,18 @@ class BattleSettlementIntegrationTest {
     @Autowired BattleSessionRosterRegistry rosters;
     @Autowired WaveBalanceRegistry waves;
     @Autowired MonsterBalanceRegistry monsters;
+    @Autowired UserPlanetUnlockRepository planetUnlocks;
+    @Autowired BattlePlanetEntryService battleEntries;
+    @Autowired BattleEntryReservationRepository entryReservations;
+    @Autowired BattleSettlementWriter settlementWriter;
 
     @BeforeEach
     void cleanup() {
         rewardClaims.deleteAll();
         playerSettlements.deleteAll();
         settlements.deleteAll();
+        entryReservations.deleteAll();
+        planetUnlocks.deleteAll();
         users.deleteAll();
         rosters.clearForTest();
     }
@@ -71,6 +81,22 @@ class BattleSettlementIntegrationTest {
         assertThatThrownBy(() -> service.settle(valid("same", "s2", "h1", a, b)))
                 .isInstanceOfSatisfying(BusinessException.class,
                         error -> assertThat(error.getErrorCode()).isEqualTo(ErrorCode.BATTLE_REQUEST_CONFLICT));
+    }
+
+    @Test
+    void writerRecoversCompletedReservationAsExistingSettlement() {
+        User a = user("completed-race-a"), b = user("completed-race-b");
+        var request = valid("completed-race-request", "completed-race-session", "ignored", a, b);
+
+        var first = settlementWriter.create(request);
+        battleEntries.completeIfReserved(request.battleSessionId());
+        var retry = settlementWriter.create(request);
+
+        assertThat(first.created()).isTrue();
+        assertThat(retry.created()).isFalse();
+        assertThat(retry.settlement().getId()).isEqualTo(first.settlement().getId());
+        assertThat(settlements.findAll()).hasSize(1);
+        assertThat(playerSettlements.findAll()).hasSize(2);
     }
 
     @Test
@@ -155,8 +181,12 @@ class BattleSettlementIntegrationTest {
     @Test
     void unknownMapIdIsRejectedBeforeRewardClaim() {
         User a = user("map-a"), b = user("map-b");
-        var invalid = valid("map-invalid", "map-session", "map-hash", a, b,
-                "DEFEAT", 70, "UNKNOWN_PLANET");
+        var invalid = request("map-invalid", "map-session", "map-hash", a, b,
+                "DEFEAT", 70, "UNKNOWN_PLANET", false, false, false);
+        rosters.register("map-session", 1, a.getUsername(), "UNKNOWN_PLANET",
+                versions.getBalanceVersion(), versions.getContentHash());
+        rosters.register("map-session", 2, b.getUsername(), "UNKNOWN_PLANET",
+                versions.getBalanceVersion(), versions.getContentHash());
         assertThatThrownBy(() -> service.settle(invalid))
                 .isInstanceOfSatisfying(BusinessException.class,
                         error -> assertThat(error.getErrorCode()).isEqualTo(ErrorCode.BATTLE_SUMMARY_INVALID));
@@ -211,10 +241,12 @@ class BattleSettlementIntegrationTest {
     void abandonedPlayerReceivesNoPermanentReward() {
         User a = user("active-player"), b = user("abandoned-player");
         var request = valid("abandoned", "abandoned-session", "abandoned-hash", a, b,
-                "DEFEAT", 70, "EARTH", false, true);
+                "VICTORY", 80, "EARTH", false, true);
         service.settle(request);
         assertThat(rewardClaims.findByBattleSessionIdOrderByIdAsc("abandoned-session"))
                 .allMatch(claim -> claim.getUser().getId().equals(a.getId()));
+        assertThat(planetUnlocks.findByUserIdAndMapId(a.getId(), "VENUS")).isPresent();
+        assertThat(planetUnlocks.findByUserIdAndMapId(b.getId(), "VENUS")).isEmpty();
     }
 
     @Test
@@ -554,8 +586,18 @@ class BattleSettlementIntegrationTest {
     }
 
     private void register(String sessionId, User a, User b, String map) {
+        unlockForTest(a, map);
+        unlockForTest(b, map);
+        battleEntries.reserve(sessionId, map, a.getId(), b.getId());
         rosters.register(sessionId, 1, a.getUsername(), map, versions.getBalanceVersion(), versions.getContentHash());
         rosters.register(sessionId, 2, b.getUsername(), map, versions.getBalanceVersion(), versions.getContentHash());
+    }
+
+    private void unlockForTest(User user, String map) {
+        if (!planetUnlocks.existsByUserIdAndMapId(user.getId(), map)) {
+            planetUnlocks.saveAndFlush(new UserPlanetUnlock(
+                    user, map, PlanetUnlockSource.PREVIOUS_PLANET_CLEAR, "TEST_FIXTURE"));
+        }
     }
 
     private BattleSettlementDtos.Player player(User user, int slot, int kills, int bossKills, boolean abandoned) {

@@ -141,4 +141,12 @@ public class User {
         }
         this.heart -= amount;
     }
+
+    public void refundHeart(int amount) {
+        if (amount <= 0) {
+            throw new com.denfense.server.exception.BusinessException(com.denfense.server.exception.ErrorCode.INVALID_REQUEST,
+                    "반환할 하트 개수는 양수여야 합니다.");
+        }
+        this.heart = Math.min(com.denfense.server.service.HeartPolicy.MAX_HEART, this.heart + amount);
+    }
 }

@@ -439,6 +439,17 @@ namespace MyDefense.Battle
                 && !string.IsNullOrWhiteSpace(battleContentHash);
         }
 
+        public bool TryGetCanonicalPlanetBattles(out CanonicalPlanetBattleRegistry planetBattles)
+        {
+            planetBattles = null;
+            if (!EnsureBalanceInitialized()
+                || _battleBalanceProvider is not ICanonicalCompositeBattleBalanceProvider canonical
+                || canonical.PlanetBattles == null)
+                return false;
+            planetBattles = canonical.PlanetBattles;
+            return true;
+        }
+
         private void Awake()
         {
             if (Instance == null)

@@ -90,6 +90,10 @@ public class BattleSessionRosterRegistry {
         rosters.clear();
     }
 
+    public void remove(String battleSessionId) {
+        if (battleSessionId != null) rosters.remove(battleSessionId.trim());
+    }
+
     private void purgeExpired() {
         long cutoff = nowMillis.getAsLong() - ROSTER_TTL_MILLIS;
         rosters.entrySet().removeIf(entry -> entry.getValue().createdAtMillis < cutoff);

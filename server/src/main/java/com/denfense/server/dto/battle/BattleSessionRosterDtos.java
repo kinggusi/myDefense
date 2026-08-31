@@ -19,4 +19,10 @@ public final class BattleSessionRosterDtos {
 
     public record RegisterResponse(String battleSessionId, String status, int playerCount) {
     }
+
+    public record RefundRequest(String reason) {
+    }
+
+    public record RefundResponse(String battleSessionId, String status, boolean alreadyProcessed) {
+    }
 }

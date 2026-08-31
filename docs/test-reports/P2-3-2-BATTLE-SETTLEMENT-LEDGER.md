@@ -3,6 +3,8 @@
 검증일: 2026-08-30
 기준: `origin/dev` `161350b` (Shared v2 PR #105)
 
+최신 동기화 재검증: 2026-08-31, `origin/dev` `f2ff276` (P2-1-1 및 PlanetContent PR #102 포함)
+
 ## 구현 범위
 
 - canonical `spawnGroupId`를 `WaveSpawnSpecData`와 Wave runtime까지 보존
@@ -28,6 +30,25 @@ Development UI, Scene, Prefab, Shared DTO, Spring, User/System 코드는 변경�
 - unsigned Runtime ID 경계 정렬(`2`, `2^63`, `ulong.MaxValue`): PASS
 - partial Kill의 Spawn 증거 누락 거부: PASS
 - 기존 PlayerSlot 0 호환 생성자 회귀: 전체 EditMode에서 확인 후 양수 배정 슬롯만 중복 검사하도록 보정, 재실행 PASS
+
+### `origin/dev` `f2ff276` 병합 회귀
+
+- 무커밋 merge: 충돌 0, unmerged path 0
+- Unity MCP: 현재 구현 Thread에서 호출 가능한 도구 없음; Scene/Prefab 변경 없음
+- Unity ScriptAssemblies 컴파일: error CS 0, batchmode 정상 종료
+- Settlement + PlanetContent/StateAuthority 집중 EditMode: 160/160 PASS
+- Unity 전체 EditMode: 481/481 PASS, failed 0, skipped 0
+- Battle Scene 검사: dirty false, Missing Script 0, Broken Prefab 0
+- Windows Standalone Development Build: `Battle.unity` 단독 PASS, build error 0
+- PlanetContent authoritative `mapId` 불변/fail-closed와 P2-3 Spawn/Kill audit·Settlement projection 병존 확인
+
+추가 증거 파일:
+
+- `C:\myDefense\_localbuild\P2Validation\p2-3-pr-sync-compile.log`
+- `C:\myDefense\_localbuild\P2Validation\p2-3-pr-sync-targeted.xml`
+- `C:\myDefense\_localbuild\P2Validation\p2-3-pr-sync-full.xml`
+- `C:\myDefense\_localbuild\P2Validation\p2-3-pr-sync-build.log`
+- `C:\myDefense\_localbuild\P2Validation\P2-3-PRSync-Build\Client.exe`
 
 증거 파일:
 

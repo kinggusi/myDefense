@@ -23,6 +23,7 @@ public class BattleRewardGrantService {
     private final BattlePlayerSettlementRepository playerSettlements;
     private final UserRepository users;
     private final BattleRewardCalculator calculator;
+    private final PlanetProgressionService planetProgression;
 
     @Transactional
     public List<BattleSettlementDtos.Reward> grant(BattleSettlement settlement, BattleSettlementDtos.Request request) {
@@ -32,6 +33,12 @@ public class BattleRewardGrantService {
         for (BattlePlayerSettlement storedPlayer : playerSettlements.findByBattleSettlementId(settlement.getId())) {
             if (storedPlayer.isAbandoned()) continue;
             User user = users.findByIdForUpdate(storedPlayer.getUser().getId()).orElseThrow();
+            if (settlement.getResult() == BattleResult.VICTORY
+                    && settlement.getFinalWave() >= balance.maxWave()
+                    && settlement.getMapId() != null
+                    && !settlement.getMapId().isBlank()) {
+                planetProgression.unlockNext(user, settlement.getMapId(), settlement.getBattleSessionId());
+            }
             List<BattleRewardClaim> existingClaims = claims.findByBattleSessionIdOrderByIdAsc(settlement.getBattleSessionId()).stream()
                     .filter(c -> c.getUser().getId().equals(user.getId()))
                     .toList();
