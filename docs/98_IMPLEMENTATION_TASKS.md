@@ -432,6 +432,10 @@ P0-1-1~4 → P0-1-5 → P0-1-6
 
 > P2-3-2 Shared 선행 계약 보정(2026-08-30): FAILED 매치에서 `finalWave + 1` 미완료 Wave의 실제 Spawn과 처치를 분리 검증하도록 Unity/Spring `BattleSettlementSummary`에 `waveSpawnFacts`와 `partialWaveKills`를 확정했다. 두 장부는 `spawnGroupId`, canonical Spawn row/ordinal, `fieldOwnerPlayerSlot`을 공유하고 Kill 귀속은 `killerPlayerSlot`/`supportPlayerSlot`으로 표현한다. `killedAtTick`과 사용자 ID 기반 귀속은 전송 계약에서 제거했다. Fusion `ulong runtimeMonsterId`는 decimal string으로 전송하며 두 배열을 unsigned 정렬한다. `summaryHash`는 해당 속성 자체를 제외한 canonical JSON의 SHA-256으로 Unity/Spring 동일 fixture를 고정한다. Battle State Authority의 실제 장부 투영과 Quest 영속 Processor 연결은 후속 구현·2클라이언트 검증 전까지 남아 있어 `부분 완료`다.
 
+> P2-3-2 Battle 장부 구현(2026-08-30): canonical `spawnGroupId`를 Wave runtime까지 보존하고 State Authority가 성공적으로 생성한 Monster의 Runtime ID, Spawn group/row/ordinal, owner slot을 세션 장부로 기록한다. FAILED에서 `finalWave + 1`의 실제 Spawn 전체를 `waveSpawnFacts`, 그중 실제 Kill만 `partialWaveKills`로 투영하며 player ID는 trusted Summary의 slot 1/2로 변환한다. 두 배열은 `ulong` 숫자 순서로 정렬하고 개인/팀 Kill·Support·Boss·KillGold 및 Player Gold 장부식을 Settlement 생성 전에 재검증한다. VICTORY는 두 배열을 비우며 Unity/Spring v2 hash fixture `d48e3596480b89baa9b17e71acb8e9a833cfc1eb42fe8d46aa8653250e0bb2a6`, Battle 집중 EditMode 45/45, 전체 EditMode 462/462, Battle-only Windows Standalone Build를 통과했다. 새 non-P1VAL Session의 Host/Client 접속 및 trusted roster 등록도 통과했으나 자동 실행 보드가 비어 terminal 상태가 발생하지 않아 실제 FAILED POST·응답 대조는 남았다. User/System Quest 영속 Processor 연결과 해당 Smoke 전까지 상태는 `부분 완료`로 유지한다.
+
+> P2-3-2 최신 dev 동기화 기록(2026-08-31): PlanetContent PR #102와 P2-1-1이 포함된 `origin/dev` `f2ff276`을 충돌 없이 병합했다. authoritative Fusion `mapId` 고정·불일치 fail-closed와 State Authority Spawn/Kill audit·FAILED Settlement projection을 함께 보존했다. Settlement/PlanetContent/StateAuthority 집중 EditMode 160/160, 전체 EditMode 481/481, Battle Scene 검사(Missing Script 0, Broken Prefab 0), `Battle.unity` 단독 Windows Development Build를 통과했다. 실제 terminal FAILED POST·응답 대조와 User/System Quest 영속 Processor 연결은 아직 남아 있으므로 상태는 `부분 완료`다.
+
 ---
 
 ## 4. 권장 실행 순서

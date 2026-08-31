@@ -144,6 +144,15 @@ namespace MyDefense.Battle.Tests
             Assert.That(sharedBoss.FieldOwnerPlayerId, Is.Null);
             Assert.That(sharedBoss.LanePolicy, Is.EqualTo(BattleMonsterLanePolicy.BOSS_SHARED));
             Assert.That(boss.GetComponents<BattleMonsterRuntimeContext>().Length, Is.EqualTo(1));
+
+            Assert.That(executor.SpawnAuditRecords.Select(record => record.RuntimeMonsterId),
+                Is.EqualTo(new ulong[] { 1, 2, 3 }));
+            Assert.That(executor.SpawnAuditRecords.Select(record => record.FieldOwnerPlayerSlot),
+                Is.EqualTo(new int?[] { 1, 2, null }));
+            Assert.That(executor.SpawnAuditRecords.Select(record => record.SpawnOrdinal),
+                Is.EqualTo(new[] { 1, 1, 1 }));
+            Assert.That(executor.SpawnAuditRecords.Select(record => record.SpawnGroupId),
+                Is.EqualTo(new[] { "WAVE_001", "WAVE_001", "WAVE_010" }));
         }
 
         [Test]
@@ -190,6 +199,8 @@ namespace MyDefense.Battle.Tests
             Assert.That(contexts.Select(context => context.Identity.RuntimeMonsterId), Is.EqualTo(new ulong[] { 1, 2 }));
             Assert.That(contexts[0].Identity.FieldOwnerPlayerId, Is.EqualTo("fixture-player-alpha"));
             Assert.That(contexts[1].Identity.FieldOwnerPlayerId, Is.EqualTo("fixture-player-beta"));
+            Assert.That(executor.SpawnAuditRecords.Select(record => record.SpawnOrdinal),
+                Is.EqualTo(new[] { 1, 1 }));
         }
 
         [Test]
@@ -209,6 +220,7 @@ namespace MyDefense.Battle.Tests
             BattleSpawnSequenceIssuer secondIssuer = GetField<BattleSpawnSequenceIssuer>(executor, "_spawnSequenceIssuer");
             Assert.That(secondIssuer, Is.Not.SameAs(firstIssuer));
             Assert.That(secondIssuer.IssueNext(), Is.EqualTo(1UL));
+            Assert.That(executor.SpawnAuditRecords, Is.Empty);
         }
 
         [Test]

@@ -117,6 +117,98 @@ namespace MyDefense.Battle.Tests
         }
 
         [Test]
+        public void Build_FailedProjectsAllCurrentWaveSpawnsAndOnlyKilledSubset()
+        {
+            const string sessionId = "partial-settlement-session";
+            BattleSummary summary = BattleSummaryBuilder.Build(
+                new BattleSessionContext(sessionId, "balance-v1", "content-v1", "battle-v1", "battle-hash", 100, "EARTH"),
+                MatchState.FAILED,
+                0,
+                new[]
+                {
+                    new BattlePlayerSummarySeed("player-a", 1, true, 1, 100, 20, 0, 120),
+                    new BattlePlayerSummarySeed("player-b", 2, false, null, 100, 20, 0, 120)
+                },
+                new[]
+                {
+                    new BattleKillAuditRecord(
+                        new BattleRuntimeMonsterKey(sessionId, 2),
+                        "NORMAL_MONSTER", "player-a", "player-a", BattleMonsterLanePolicy.EACH_FIELD,
+                        1, 42, "player-b", 20)
+                },
+                new[]
+                {
+                    Spawn(sessionId, 1, 1, 1),
+                    Spawn(sessionId, 2, 1, 2),
+                    Spawn(sessionId, 3, 2, 1)
+                });
+
+            BattleSettlementSummary settlement = BattleSettlementSummaryBuilder.Build(
+                summary, "partial-request", DateTime.UnixEpoch, DateTime.UnixEpoch, "hash");
+
+            Assert.That(settlement.waveSpawnFacts.Select(item => item.runtimeMonsterId),
+                Is.EqualTo(new[] { "1", "2", "3" }));
+            Assert.That(settlement.partialWaveKills.Select(item => item.runtimeMonsterId),
+                Is.EqualTo(new[] { "2" }));
+            Assert.That(settlement.partialWaveKills[0].fieldOwnerPlayerSlot, Is.EqualTo(1));
+            Assert.That(settlement.partialWaveKills[0].killerPlayerSlot, Is.EqualTo(1));
+            Assert.That(settlement.partialWaveKills[0].supportPlayerSlot, Is.EqualTo(2));
+            Assert.That(settlement.partialWaveKills[0].spawnGroupId, Is.EqualTo("WAVE_01"));
+        }
+
+        [Test]
+        public void Build_SortsBothEvidenceArraysByUnsignedRuntimeMonsterId()
+        {
+            const string sessionId = "unsigned-settlement-session";
+            ulong highBit = 9223372036854775808UL;
+            BattleSummary summary = BattleSummaryBuilder.Build(
+                new BattleSessionContext(sessionId, "balance-v1", "content-v1", "battle-v1", "battle-hash", 100, "EARTH"),
+                MatchState.FAILED,
+                0,
+                new[]
+                {
+                    new BattlePlayerSummarySeed("player-a", 1, true, 1, 100, 0, 0, 100),
+                    new BattlePlayerSummarySeed("player-b", 2, false, null, 100, 0, 0, 100)
+                },
+                new[]
+                {
+                    Kill(sessionId, ulong.MaxValue, 3),
+                    Kill(sessionId, 2, 1),
+                    Kill(sessionId, highBit, 2)
+                },
+                new[]
+                {
+                    Spawn(sessionId, ulong.MaxValue, 1, 3),
+                    Spawn(sessionId, 2, 1, 1),
+                    Spawn(sessionId, highBit, 1, 2)
+                });
+
+            BattleSettlementSummary settlement = BattleSettlementSummaryBuilder.Build(
+                summary, "unsigned-request", DateTime.UnixEpoch, DateTime.UnixEpoch, "hash");
+
+            string[] expected = { "2", "9223372036854775808", "18446744073709551615" };
+            Assert.That(settlement.waveSpawnFacts.Select(item => item.runtimeMonsterId), Is.EqualTo(expected));
+            Assert.That(settlement.partialWaveKills.Select(item => item.runtimeMonsterId), Is.EqualTo(expected));
+        }
+
+        [Test]
+        public void Summary_RejectsPartialKillWithoutMatchingSpawnEvidence()
+        {
+            const string sessionId = "missing-spawn-session";
+            Assert.Throws<ArgumentException>(() => BattleSummaryBuilder.Build(
+                new BattleSessionContext(sessionId, "balance-v1", "content-v1", "battle-v1", "battle-hash", 100, "EARTH"),
+                MatchState.FAILED,
+                0,
+                new[]
+                {
+                    new BattlePlayerSummarySeed("player-a", 1, true, 1, 100, 0, 0, 100),
+                    new BattlePlayerSummarySeed("player-b", 2, false, null, 100, 0, 0, 100)
+                },
+                new[] { Kill(sessionId, 1, 1) },
+                Array.Empty<BattleSpawnAuditRecord>()));
+        }
+
+        [Test]
         public void ComputeSummaryHash_MatchesSpringCrossRuntimeFixture()
         {
             var summary = new BattleSettlementSummary
@@ -205,6 +297,39 @@ namespace MyDefense.Battle.Tests
                     10, 12, killGold: 200)
             };
             return BattleSummaryBuilder.Build(session, result, 10, seeds, records);
+        }
+
+        private static BattleSpawnAuditRecord Spawn(
+            string sessionId,
+            ulong runtimeId,
+            int ownerSlot,
+            int ordinal)
+        {
+            return new BattleSpawnAuditRecord(
+                new BattleRuntimeMonsterKey(sessionId, runtimeId),
+                1,
+                "WAVE_01",
+                "NORMAL_MONSTER",
+                BattleMonsterLanePolicy.EACH_FIELD,
+                ownerSlot,
+                1,
+                ordinal);
+        }
+
+        private static BattleKillAuditRecord Kill(
+            string sessionId,
+            ulong runtimeId,
+            int ordinal)
+        {
+            return new BattleKillAuditRecord(
+                new BattleRuntimeMonsterKey(sessionId, runtimeId),
+                "NORMAL_MONSTER",
+                "player-a",
+                "player-a",
+                BattleMonsterLanePolicy.EACH_FIELD,
+                1,
+                ordinal,
+                killGold: 20);
         }
     }
 }
