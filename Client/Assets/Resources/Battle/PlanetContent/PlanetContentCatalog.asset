@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 81ebdd5d0a3b8df4d89400424d3b4d75, type: 3}
+  m_Name: PlanetContentCatalog
+  m_EditorClassIdentifier: Assembly-CSharp::MyDefense.Battle.Runtime.PlanetContentCatalog
+  _profiles:
+  - {fileID: 11400000, guid: 80d7a3c1978a5804c829cd1cfa59d3c2, type: 2}
+  - {fileID: 11400000, guid: 0f7247e2f0315d84f8441cf189950256, type: 2}
+  - {fileID: 11400000, guid: 7ca222b379b076b45bd4a8a2767165bc, type: 2}
+  - {fileID: 11400000, guid: 80487074000fb394d98816b2105487f9, type: 2}
+  - {fileID: 11400000, guid: 8d3fc1f2b754afc45a970b294863ba6d, type: 2}
+  - {fileID: 11400000, guid: 343b8fe7ecb9a0d40bcfa52a656cc1d6, type: 2}
+  - {fileID: 11400000, guid: 75bb4a71b8e1b33488ed0ee5d4c639f0, type: 2}
+  - {fileID: 11400000, guid: e033f54d8b88cde419bd0b39abcedced, type: 2}
+  - {fileID: 11400000, guid: f7004e51c93a6944c9e658e5dacb14af, type: 2}

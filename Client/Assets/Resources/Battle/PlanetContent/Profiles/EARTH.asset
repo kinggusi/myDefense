@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fd0a7275a5e5b444a8a6a67018ba1661, type: 3}
+  m_Name: EARTH
+  m_EditorClassIdentifier: Assembly-CSharp::MyDefense.Battle.Runtime.PlanetContentProfile
+  _mapId: EARTH
+  _enabled: 1
+  _environmentPrefab: {fileID: 8230728758156280447, guid: 44eef30113a5c234e8461c55b64aaa9c, type: 3}
+  _backgroundSprite: {fileID: 0}
+  _backgroundColor: {r: 0.0125, g: 0.085, b: 0.175, a: 1}
+  _environmentMaterial: {fileID: 2100000, guid: 67f5677b3724f3c4cbf9d64a6ec5897d, type: 2}
+  _lighting:
+    _ambientColor: {r: 0.3425, g: 0.444, b: 0.57, a: 1}
+    _ambientIntensity: 0.8
+    _directionalColor: {r: 0.66749996, g: 0.769, b: 0.895, a: 1}
+    _directionalIntensity: 1
+    _directionalEulerAngles: {x: 50, y: -30, z: 0}
+  _environmentEffects:
+  - {fileID: 3443635892124166512, guid: ebaaeceed85faf840ba4dd73d13ea4b0, type: 3}
