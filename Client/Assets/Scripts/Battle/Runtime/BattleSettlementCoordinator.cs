@@ -211,20 +211,11 @@ namespace MyDefense.Battle.Runtime
         public static string ComputeSummaryHash(BattleSettlementSummary summary)
         {
             if (summary == null) throw new ArgumentNullException(nameof(summary));
-            string originalHash = summary.summaryHash;
-            try
+            string canonicalJson = BattleSettlementSummaryJson.SerializeForHash(summary);
+            using (SHA256 sha256 = SHA256.Create())
             {
-                summary.summaryHash = string.Empty;
-                string canonicalJson = BattleSettlementSummaryJson.Serialize(summary);
-                using (SHA256 sha256 = SHA256.Create())
-                {
-                    byte[] bytes = Encoding.UTF8.GetBytes(canonicalJson);
-                    return string.Concat(sha256.ComputeHash(bytes).Select(value => value.ToString("x2", CultureInfo.InvariantCulture)));
-                }
-            }
-            finally
-            {
-                summary.summaryHash = originalHash;
+                byte[] bytes = Encoding.UTF8.GetBytes(canonicalJson);
+                return string.Concat(sha256.ComputeHash(bytes).Select(value => value.ToString("x2", CultureInfo.InvariantCulture)));
             }
         }
 

@@ -41,6 +41,8 @@ namespace MyDefense.Shared.Contracts
         public string finishedAt;
         public BattleSettlementPlayerSummary[] players;
         public BattleSettlementMonsterSummary[] monsterKills;
+        public BattleSettlementWaveSpawnFactSummary[] waveSpawnFacts;
+        public BattleSettlementPartialWaveKillSummary[] partialWaveKills;
         public string summaryHash;
     }
 
@@ -78,6 +80,44 @@ namespace MyDefense.Shared.Contracts
         public int totalKillGold;
     }
 
+    /// <summary>
+    /// State Authority evidence for every Monster spawned in a FAILED match's
+    /// unfinished wave. runtimeMonsterId is a decimal string so the full Fusion
+    /// ulong range survives the Java/JSON boundary without signed overflow.
+    /// </summary>
+    [Serializable]
+    public sealed class BattleSettlementWaveSpawnFactSummary
+    {
+        public string runtimeMonsterId;
+        public int spawnWave;
+        public string spawnGroupId;
+        public string monsterSpecId;
+        public string lanePolicy;
+        public int? fieldOwnerPlayerSlot;
+        public int spawnOrder;
+        public int spawnOrdinal;
+    }
+
+    /// <summary>
+    /// State Authority attribution for a Monster killed in a FAILED match's
+    /// unfinished wave. Its canonical Spawn identity must match one entry in
+    /// waveSpawnFacts.
+    /// </summary>
+    [Serializable]
+    public sealed class BattleSettlementPartialWaveKillSummary
+    {
+        public string runtimeMonsterId;
+        public int spawnWave;
+        public string spawnGroupId;
+        public string monsterSpecId;
+        public string lanePolicy;
+        public int? fieldOwnerPlayerSlot;
+        public int spawnOrder;
+        public int spawnOrdinal;
+        public int killerPlayerSlot;
+        public int? supportPlayerSlot;
+    }
+
     [Serializable]
     public sealed class BattleSettlementResponse
     {
@@ -107,6 +147,20 @@ namespace MyDefense.Shared.Contracts
     {
         public static string Serialize(BattleSettlementSummary summary)
         {
+            return Serialize(summary, true);
+        }
+
+        /// <summary>
+        /// Serializes the canonical hash input. summaryHash is omitted rather
+        /// than emitted as an empty self-referential property.
+        /// </summary>
+        public static string SerializeForHash(BattleSettlementSummary summary)
+        {
+            return Serialize(summary, false);
+        }
+
+        private static string Serialize(BattleSettlementSummary summary, bool includeSummaryHash)
+        {
             if (summary == null)
             {
                 throw new ArgumentNullException(nameof(summary));
@@ -131,7 +185,16 @@ namespace MyDefense.Shared.Contracts
             AppendStringProperty(builder, "finishedAt", summary.finishedAt);
             AppendPlayersProperty(builder, summary.players);
             AppendMonstersProperty(builder, summary.monsterKills);
-            AppendStringProperty(builder, "summaryHash", summary.summaryHash, false);
+            AppendWaveSpawnFactsProperty(builder, summary.waveSpawnFacts);
+            AppendPartialWaveKillsProperty(builder, summary.partialWaveKills);
+            if (includeSummaryHash)
+            {
+                AppendStringProperty(builder, "summaryHash", summary.summaryHash, false);
+            }
+            else
+            {
+                builder.Length--;
+            }
             builder.Append('}');
             return builder.ToString();
         }
@@ -206,6 +269,71 @@ namespace MyDefense.Shared.Contracts
                 builder.Append('}');
             }
 
+            builder.Append("],");
+        }
+
+        private static void AppendPartialWaveKillsProperty(
+            StringBuilder builder,
+            BattleSettlementPartialWaveKillSummary[] kills)
+        {
+            AppendPropertyName(builder, "partialWaveKills");
+            if (kills == null)
+            {
+                builder.Append("[],");
+                return;
+            }
+
+            builder.Append('[');
+            for (var index = 0; index < kills.Length; index++)
+            {
+                if (index > 0) builder.Append(',');
+                BattleSettlementPartialWaveKillSummary kill = kills[index]
+                    ?? throw new ArgumentException("partialWaveKills must not contain null elements.", nameof(kills));
+                builder.Append('{');
+                AppendStringProperty(builder, "runtimeMonsterId", kill.runtimeMonsterId);
+                AppendIntProperty(builder, "spawnWave", kill.spawnWave);
+                AppendStringProperty(builder, "spawnGroupId", kill.spawnGroupId);
+                AppendStringProperty(builder, "monsterSpecId", kill.monsterSpecId);
+                AppendStringProperty(builder, "lanePolicy", kill.lanePolicy);
+                AppendNullableIntProperty(builder, "fieldOwnerPlayerSlot", kill.fieldOwnerPlayerSlot);
+                AppendIntProperty(builder, "spawnOrder", kill.spawnOrder);
+                AppendIntProperty(builder, "spawnOrdinal", kill.spawnOrdinal);
+                AppendIntProperty(builder, "killerPlayerSlot", kill.killerPlayerSlot);
+                AppendNullableIntProperty(builder, "supportPlayerSlot", kill.supportPlayerSlot);
+                builder.Length--;
+                builder.Append('}');
+            }
+            builder.Append("],");
+        }
+
+        private static void AppendWaveSpawnFactsProperty(
+            StringBuilder builder,
+            BattleSettlementWaveSpawnFactSummary[] facts)
+        {
+            AppendPropertyName(builder, "waveSpawnFacts");
+            if (facts == null)
+            {
+                builder.Append("[],");
+                return;
+            }
+
+            builder.Append('[');
+            for (var index = 0; index < facts.Length; index++)
+            {
+                if (index > 0) builder.Append(',');
+                BattleSettlementWaveSpawnFactSummary fact = facts[index]
+                    ?? throw new ArgumentException("waveSpawnFacts must not contain null elements.", nameof(facts));
+                builder.Append('{');
+                AppendStringProperty(builder, "runtimeMonsterId", fact.runtimeMonsterId);
+                AppendIntProperty(builder, "spawnWave", fact.spawnWave);
+                AppendStringProperty(builder, "spawnGroupId", fact.spawnGroupId);
+                AppendStringProperty(builder, "monsterSpecId", fact.monsterSpecId);
+                AppendStringProperty(builder, "lanePolicy", fact.lanePolicy);
+                AppendNullableIntProperty(builder, "fieldOwnerPlayerSlot", fact.fieldOwnerPlayerSlot);
+                AppendIntProperty(builder, "spawnOrder", fact.spawnOrder);
+                AppendIntProperty(builder, "spawnOrdinal", fact.spawnOrdinal, false);
+                builder.Append('}');
+            }
             builder.Append("],");
         }
 

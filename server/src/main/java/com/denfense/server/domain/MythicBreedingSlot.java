@@ -30,5 +30,10 @@ public class MythicBreedingSlot {
     public void start(long result, Instant now, Instant ready, String requestId) { status=MythicBreedingSlotStatus.BREEDING; resultAlienId=result; startedAt=now; readyAt=ready; startRequestId=requestId; claimRequestId=null; }
     public boolean isReady(Instant now) { return status==MythicBreedingSlotStatus.BREEDING && readyAt!=null && !now.isBefore(readyAt); }
     public void markReady() { if (status==MythicBreedingSlotStatus.BREEDING) status=MythicBreedingSlotStatus.REWARD_READY; }
+    public void accelerate(Instant newReadyAt, Instant now) {
+        if (status != MythicBreedingSlotStatus.BREEDING) return;
+        readyAt = newReadyAt;
+        if (!now.isBefore(newReadyAt)) markReady();
+    }
     public void claim(Instant now, String requestId) { lastClaimedAlienId=resultAlienId; claimedAt=now; claimRequestId=requestId; status=MythicBreedingSlotStatus.AVAILABLE; resultAlienId=null; startedAt=null; readyAt=null; }
 }

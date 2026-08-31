@@ -7,6 +7,9 @@ import com.denfense.server.dto.battle.BattleSessionRosterDtos;
 import com.denfense.server.repository.BattlePlayerSettlementRepository;
 import com.denfense.server.repository.BattleSettlementRepository;
 import com.denfense.server.repository.UserRepository;
+import com.denfense.server.repository.UserPlanetUnlockRepository;
+import com.denfense.server.repository.BattleEntryReservationRepository;
+import com.denfense.server.service.BattleSettlementSummaryHasher;
 import com.denfense.server.service.balance.BalanceVersionRegistry;
 import com.denfense.server.service.balance.MonsterBalanceRegistry;
 import com.denfense.server.service.balance.WaveBalanceRegistry;
@@ -42,6 +45,8 @@ class BattleSettlementEndToEndIntegrationTest {
     @Autowired BalanceVersionRegistry versions;
     @Autowired WaveBalanceRegistry waves;
     @Autowired MonsterBalanceRegistry monsters;
+    @Autowired UserPlanetUnlockRepository planetUnlocks;
+    @Autowired BattleEntryReservationRepository entryReservations;
 
     @Test
     void unityVictoryWave80PayloadPersistsSamePlayersAndReturnsAcceptedResponse() throws Exception {
@@ -50,7 +55,6 @@ class BattleSettlementEndToEndIntegrationTest {
         User playerTwo = users.save(new User("e2e-p2-" + suffix, "pw"));
         String sessionId = "e2e-session-" + suffix;
         String requestId = "e2e-request-" + suffix;
-        String summaryHash = "e2e-hash-" + suffix;
         LocalDateTime startedAt = LocalDateTime.of(2026, 8, 2, 12, 0);
         var rosterRequest = new BattleSessionRosterDtos.RegisterRequest(
                 sessionId,
@@ -78,7 +82,7 @@ class BattleSettlementEndToEndIntegrationTest {
         int bossKills = counts.getOrDefault("WAVE_BOSS", 0);
         int firstKills = totalKills / 2 + totalKills % 2;
         int secondKills = totalKills / 2;
-        var request = new BattleSettlementDtos.Request(
+        var unsigned = new BattleSettlementDtos.Request(
                 requestId, sessionId, versions.getBalanceVersion(), versions.getContentHash(), "VICTORY", 80,
                 "NEPTUNE", startedAt, startedAt.plusMinutes(20),
                 List.of(
@@ -86,7 +90,12 @@ class BattleSettlementEndToEndIntegrationTest {
                                 firstKills, 0, bossKills, 100, 0, 0, 100, false),
                         new BattleSettlementDtos.Player(playerTwo.getUsername(), 2, false, null,
                                 secondKills, 0, 0, 100, 0, 0, 100, false)),
-                monsterKills, summaryHash);
+                monsterKills, List.of(), List.of(), "");
+        var request = new BattleSettlementDtos.Request(
+                unsigned.requestId(), unsigned.battleSessionId(), unsigned.balanceVersion(), unsigned.contentHash(),
+                unsigned.result(), unsigned.finalWave(), unsigned.mapId(), unsigned.startedAt(), unsigned.finishedAt(),
+                unsigned.players(), unsigned.monsterKills(), unsigned.waveSpawnFacts(), unsigned.partialWaveKills(),
+                BattleSettlementSummaryHasher.compute(unsigned));
 
         String firstResponse = mockMvc.perform(post("/api/battle/settlements")
                         .contentType("application/json")
@@ -106,6 +115,10 @@ class BattleSettlementEndToEndIntegrationTest {
         assertThat(users.findById(playerTwo.getId()).orElseThrow())
                 .extracting(User::getGold, User::getUniversalPiece, User::getDiamond)
                 .containsExactly(25_250, 225, 3_000);
+        assertThat(planetUnlocks.findByUserIdAndMapId(playerOne.getId(), "URANUS")).isPresent();
+        assertThat(planetUnlocks.findByUserIdAndMapId(playerTwo.getId(), "URANUS")).isPresent();
+        assertThat(entryReservations.findByBattleSessionId(sessionId).orElseThrow().getStatus())
+                .isEqualTo(com.denfense.server.domain.BattleEntryStatus.COMPLETED);
 
         mockMvc.perform(post("/api/battle/settlements")
                         .contentType("application/json")

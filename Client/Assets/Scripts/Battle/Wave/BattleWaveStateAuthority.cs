@@ -43,6 +43,7 @@ namespace MyDefense.Battle
                 || (grade == 4 && mutationState == BattleMutationState.ACTIVE);
         }
 
+        // Development-only smoke-test budget. Production initial Gold must come from canonical balance.
         private const int DefaultInitialInGameGold = 100000;
         public const float DisconnectRewardGraceSeconds = 120f;
         private BattleWaveExecutor _executor;
@@ -1552,6 +1553,51 @@ namespace MyDefense.Battle
             return true;
         }
 
+        public static bool TryApplyCooperativeKillGold(
+            BattleMonsterLanePolicy lanePolicy,
+            int canonicalKillGold,
+            ref int player1Gold,
+            ref int player2Gold,
+            ref int player1Earned,
+            ref int player2Earned)
+        {
+            if (canonicalKillGold <= 0
+                || (lanePolicy != BattleMonsterLanePolicy.EACH_FIELD
+                    && lanePolicy != BattleMonsterLanePolicy.BOSS_SHARED))
+                return false;
+
+            player1Gold = AddGoldSafely(player1Gold, canonicalKillGold);
+            player2Gold = AddGoldSafely(player2Gold, canonicalKillGold);
+            player1Earned = AddGoldSafely(player1Earned, canonicalKillGold);
+            player2Earned = AddGoldSafely(player2Earned, canonicalKillGold);
+            return true;
+        }
+
+        public bool TryAwardCooperativeKillGold(BattleMonsterLanePolicy lanePolicy, int canonicalKillGold)
+        {
+            if (!HasStateAuthority)
+                return false;
+
+            int player1Gold = Player1InGameGold;
+            int player2Gold = Player2InGameGold;
+            int player1Earned = Player1InGameGoldEarned;
+            int player2Earned = Player2InGameGoldEarned;
+            if (!TryApplyCooperativeKillGold(
+                    lanePolicy,
+                    canonicalKillGold,
+                    ref player1Gold,
+                    ref player2Gold,
+                    ref player1Earned,
+                    ref player2Earned))
+                return false;
+
+            Player1InGameGold = player1Gold;
+            Player2InGameGold = player2Gold;
+            Player1InGameGoldEarned = player1Earned;
+            Player2InGameGoldEarned = player2Earned;
+            return true;
+        }
+
         public bool TryAwardMonsterKill(BattleMonsterNetworkState monster)
         {
             MonsterStat stat = monster == null ? null : monster.GetComponent<MonsterStat>();
@@ -1591,14 +1637,11 @@ namespace MyDefense.Battle
                     _killDeduplicator.Release(key);
                     return false;
                 }
-                awarded = TryAwardTeamGold(killGold);
+                awarded = TryAwardCooperativeKillGold(monster.LanePolicy, killGold);
             }
             else if (monster.LanePolicy == BattleMonsterLanePolicy.EACH_FIELD)
             {
-                BattleRunnerLifecycle lifecycle = FindFirstObjectByType<BattleRunnerLifecycle>();
-                awarded = lifecycle != null
-                    && lifecycle.PlayerRoster.TryGetByUserId(monster.FieldOwnerPlayerId.ToString(), out BattlePlayerIdentity owner)
-                    && TryAwardGold(owner.PlayerSlot == 1 ? LaneType.Player1Lane : LaneType.Player2Lane, killGold);
+                awarded = TryAwardCooperativeKillGold(monster.LanePolicy, killGold);
             }
             else
             {

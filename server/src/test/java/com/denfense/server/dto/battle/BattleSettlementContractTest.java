@@ -29,6 +29,8 @@ class BattleSettlementContractTest {
                 "finishedAt",
                 "players",
                 "monsterKills",
+                "waveSpawnFacts",
+                "partialWaveKills",
                 "summaryHash"
         );
     }
@@ -64,6 +66,38 @@ class BattleSettlementContractTest {
     }
 
     @Test
+    void waveSpawnFactComponentsMatchUnityWaveSpawnFactSummary() {
+        assertRecordComponents(
+                BattleSettlementDtos.WaveSpawnFact.class,
+                "runtimeMonsterId",
+                "spawnWave",
+                "spawnGroupId",
+                "monsterSpecId",
+                "lanePolicy",
+                "fieldOwnerPlayerSlot",
+                "spawnOrder",
+                "spawnOrdinal"
+        );
+    }
+
+    @Test
+    void partialWaveKillComponentsMatchUnityPartialWaveKillSummary() {
+        assertRecordComponents(
+                BattleSettlementDtos.PartialWaveKill.class,
+                "runtimeMonsterId",
+                "spawnWave",
+                "spawnGroupId",
+                "monsterSpecId",
+                "lanePolicy",
+                "fieldOwnerPlayerSlot",
+                "spawnOrder",
+                "spawnOrdinal",
+                "killerPlayerSlot",
+                "supportPlayerSlot"
+        );
+    }
+
+    @Test
     void resultValuesMatchUnityTransportConstants() {
         assertThat(Arrays.stream(BattleResult.values()).map(Enum::name))
                 .containsExactly("VICTORY", "DEFEAT", "ABORTED");
@@ -82,6 +116,8 @@ class BattleSettlementContractTest {
                 String.class,
                 LocalDateTime.class,
                 LocalDateTime.class,
+                List.class,
+                List.class,
                 List.class,
                 List.class,
                 String.class
@@ -108,6 +144,30 @@ class BattleSettlementContractTest {
                 int.class,
                 int.class
         );
+        assertRecordComponentTypes(
+                BattleSettlementDtos.WaveSpawnFact.class,
+                String.class,
+                int.class,
+                String.class,
+                String.class,
+                String.class,
+                Integer.class,
+                int.class,
+                int.class
+        );
+        assertRecordComponentTypes(
+                BattleSettlementDtos.PartialWaveKill.class,
+                String.class,
+                int.class,
+                String.class,
+                String.class,
+                String.class,
+                Integer.class,
+                int.class,
+                int.class,
+                int.class,
+                Integer.class
+        );
     }
 
     @Test
@@ -128,6 +188,8 @@ class BattleSettlementContractTest {
                     {"playerId":"player-b","playerSlot":2,"eliminated":true,"eliminatedWave":79,"kills":5,"supportKills":1,"bossKills":0,"initialInGameGold":100,"inGameGoldEarned":20,"inGameGoldSpent":10,"finalInGameGold":110}
                   ],
                   "monsterKills":[{"monsterSpecId":"NORMAL_MONSTER","totalKills":15,"bossKills":0,"totalKillGold":300}],
+                  "waveSpawnFacts":[{"runtimeMonsterId":"18446744073709551615","spawnWave":80,"spawnGroupId":"WAVE_80_BOSS","monsterSpecId":"WAVE_BOSS","lanePolicy":"BOSS_SHARED","fieldOwnerPlayerSlot":null,"spawnOrder":1,"spawnOrdinal":1}],
+                  "partialWaveKills":[{"runtimeMonsterId":"18446744073709551615","spawnWave":80,"spawnGroupId":"WAVE_80_BOSS","monsterSpecId":"WAVE_BOSS","lanePolicy":"BOSS_SHARED","fieldOwnerPlayerSlot":null,"spawnOrder":1,"spawnOrdinal":1,"killerPlayerSlot":1,"supportPlayerSlot":null}],
                   "summaryHash":"summary-hash"
                 }
                 """;
@@ -140,6 +202,17 @@ class BattleSettlementContractTest {
         assertThat(request.players().get(0).eliminatedWave()).isNull();
         assertThat(request.players().get(1).eliminatedWave()).isEqualTo(79);
         assertThat(request.monsterKills().get(0).totalKillGold()).isEqualTo(300);
+        assertThat(request.waveSpawnFacts()).singleElement().satisfies(fact -> {
+            assertThat(fact.runtimeMonsterId()).isEqualTo("18446744073709551615");
+            assertThat(fact.spawnGroupId()).isEqualTo("WAVE_80_BOSS");
+            assertThat(fact.fieldOwnerPlayerSlot()).isNull();
+        });
+        assertThat(request.partialWaveKills()).singleElement().satisfies(kill -> {
+            assertThat(kill.runtimeMonsterId()).isEqualTo("18446744073709551615");
+            assertThat(kill.spawnGroupId()).isEqualTo("WAVE_80_BOSS");
+            assertThat(kill.killerPlayerSlot()).isEqualTo(1);
+            assertThat(kill.supportPlayerSlot()).isNull();
+        });
     }
 
     private static void assertRecordComponents(Class<?> recordType, String... expectedNames) {

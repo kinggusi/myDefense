@@ -27,6 +27,7 @@ public class User {
     private int heart;
     private int universalPiece;
     private int growthCell;
+    private int accountLevel = 1;
     private LocalDateTime lastHeartUpdateTime;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
@@ -38,6 +39,7 @@ public class User {
         this.gold = 0; // 초기 골드는 0으로 시작 (나중에 setGold로 수정 가능)
         this.universalPiece = 0;
         this.growthCell = 0;
+        this.accountLevel = 1;
     }
 
 
@@ -47,6 +49,16 @@ public class User {
             throw new IllegalStateException("다이아가 부족합니다.");
         }
         this.diamond = diamond;
+    }
+
+    public void spendDiamond(int amount) {
+        if (amount < 0) {
+            throw new com.denfense.server.exception.BusinessException(com.denfense.server.exception.ErrorCode.INVALID_REQUEST);
+        }
+        if (diamond < amount) {
+            throw new com.denfense.server.exception.BusinessException(com.denfense.server.exception.ErrorCode.INSUFFICIENT_DIAMOND);
+        }
+        diamond -= amount;
     }
 
     public void spendGold(int amount) {
@@ -128,5 +140,13 @@ public class User {
             throw new com.denfense.server.exception.BusinessException(com.denfense.server.exception.ErrorCode.INSUFFICIENT_HEART, "하트가 부족합니다.");
         }
         this.heart -= amount;
+    }
+
+    public void refundHeart(int amount) {
+        if (amount <= 0) {
+            throw new com.denfense.server.exception.BusinessException(com.denfense.server.exception.ErrorCode.INVALID_REQUEST,
+                    "반환할 하트 개수는 양수여야 합니다.");
+        }
+        this.heart = Math.min(com.denfense.server.service.HeartPolicy.MAX_HEART, this.heart + amount);
     }
 }

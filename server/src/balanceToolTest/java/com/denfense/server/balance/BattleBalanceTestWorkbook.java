@@ -107,6 +107,35 @@ final class BattleBalanceTestWorkbook {
                             {"MAP_FIRST_CLEAR", "TEST_MAP", 80, 0, 0, 3000, 0, 0, 0, true}
                     });
         }
+        addBreedingSheets(workbook);
+    }
+
+    private static void addBreedingSheets(Workbook workbook) {
+        if (workbook.getSheet("MythicBreedingConfig") != null) return;
+        addRows(workbook, "MythicBreedingConfig",
+                new String[]{"durationSeconds", "slotCount", "slot2UnlockLevel", "slot2GemPrice", "slot3GemPrice",
+                        "duplicateRewardPieces", "accelerationUnitSeconds", "accelerationUnitDiamondCost", "enabled"},
+                new Object[][]{{86400, 3, 30, 5000, 10000, 30, 600, 100, true}});
+        Object[][] results = new Object[20][];
+        for (int index = 0; index < 20; index++) {
+            int mythicNo = index + 1;
+            results[index] = new Object[]{mythicNo, 29 + index,
+                    mythicNo <= 18 ? "STANDARD" : "BREEDING_EXCLUSIVE", mythicNo <= 18 ? 0 : 20, true};
+        }
+        addRows(workbook, "MythicBreedingResult",
+                new String[]{"mythicNo", "alienId", "acquisitionType", "globalWeight", "enabled"}, results);
+        java.util.List<Object[]> recipes = new java.util.ArrayList<>();
+        for (int a = 29; a <= 48; a++) {
+            for (int b = a + 1; b <= 48; b++) {
+                recipes.add(new Object[]{"M" + a + "_M" + b, a - 28, a, b - 28, b,
+                        29, 30, 31, 32, 33, 192, 20, 20, true});
+            }
+        }
+        addRows(workbook, "MythicBreedingRecipe",
+                new String[]{"recipeKey", "parentMythicNoA", "parentAlienIdA", "parentMythicNoB", "parentAlienIdB",
+                        "candidate1AlienId", "candidate2AlienId", "candidate3AlienId", "candidate4AlienId", "candidate5AlienId",
+                        "standardWeightEach", "exclusive19Weight", "exclusive20Weight", "enabled"},
+                recipes.toArray(Object[][]::new));
     }
 
     private static void addWaveSheets(Workbook workbook) {

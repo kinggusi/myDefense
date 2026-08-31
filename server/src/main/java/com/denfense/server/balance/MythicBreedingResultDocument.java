@@ -2,4 +2,7 @@ package com.denfense.server.balance;
 
 import java.util.List;
 
-public record MythicBreedingResultDocument(List<MythicBreedingResultBalance> results) {}
+public record MythicBreedingResultDocument(
+        List<MythicBreedingResultBalance> results,
+        List<MythicBreedingRecipeBalance> recipes
+) {}

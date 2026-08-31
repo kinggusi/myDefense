@@ -23,6 +23,8 @@ namespace MyDefense.Shared.Tests
                 "finishedAt",
                 "players",
                 "monsterKills",
+                "waveSpawnFacts",
+                "partialWaveKills",
                 "summaryHash");
         }
 
@@ -55,6 +57,36 @@ namespace MyDefense.Shared.Tests
         }
 
         [Test]
+        public void WaveSpawnFactFields_MatchSpringWaveSpawnFactRecord()
+        {
+            AssertPublicFieldNames<BattleSettlementWaveSpawnFactSummary>(
+                "runtimeMonsterId",
+                "spawnWave",
+                "spawnGroupId",
+                "monsterSpecId",
+                "lanePolicy",
+                "fieldOwnerPlayerSlot",
+                "spawnOrder",
+                "spawnOrdinal");
+        }
+
+        [Test]
+        public void PartialWaveKillFields_MatchSpringPartialWaveKillRecord()
+        {
+            AssertPublicFieldNames<BattleSettlementPartialWaveKillSummary>(
+                "runtimeMonsterId",
+                "spawnWave",
+                "spawnGroupId",
+                "monsterSpecId",
+                "lanePolicy",
+                "fieldOwnerPlayerSlot",
+                "spawnOrder",
+                "spawnOrdinal",
+                "killerPlayerSlot",
+                "supportPlayerSlot");
+        }
+
+        [Test]
         public void ResultValues_MatchSpringBattleResult()
         {
             Assert.That(BattleSettlementResultValues.IsDefined("VICTORY"), Is.True);
@@ -79,6 +111,8 @@ namespace MyDefense.Shared.Tests
                 typeof(string),
                 typeof(BattleSettlementPlayerSummary[]),
                 typeof(BattleSettlementMonsterSummary[]),
+                typeof(BattleSettlementWaveSpawnFactSummary[]),
+                typeof(BattleSettlementPartialWaveKillSummary[]),
                 typeof(string));
             AssertPublicFieldTypes<BattleSettlementPlayerSummary>(
                 typeof(string),
@@ -98,6 +132,26 @@ namespace MyDefense.Shared.Tests
                 typeof(int),
                 typeof(int),
                 typeof(int));
+            AssertPublicFieldTypes<BattleSettlementWaveSpawnFactSummary>(
+                typeof(string),
+                typeof(int),
+                typeof(string),
+                typeof(string),
+                typeof(string),
+                typeof(int?),
+                typeof(int),
+                typeof(int));
+            AssertPublicFieldTypes<BattleSettlementPartialWaveKillSummary>(
+                typeof(string),
+                typeof(int),
+                typeof(string),
+                typeof(string),
+                typeof(string),
+                typeof(int?),
+                typeof(int),
+                typeof(int),
+                typeof(int),
+                typeof(int?));
         }
 
         [Test]
@@ -157,6 +211,36 @@ namespace MyDefense.Shared.Tests
                         totalKillGold = 200
                     }
                 },
+                waveSpawnFacts = new[]
+                {
+                    new BattleSettlementWaveSpawnFactSummary
+                    {
+                        runtimeMonsterId = "18446744073709551615",
+                        spawnWave = 81,
+                        spawnGroupId = "WAVE_81",
+                        monsterSpecId = "NORMAL_MONSTER",
+                        lanePolicy = "EACH_FIELD",
+                        fieldOwnerPlayerSlot = 2,
+                        spawnOrder = 1,
+                        spawnOrdinal = 3
+                    }
+                },
+                partialWaveKills = new[]
+                {
+                    new BattleSettlementPartialWaveKillSummary
+                    {
+                        runtimeMonsterId = "18446744073709551615",
+                        spawnWave = 81,
+                        spawnGroupId = "WAVE_81",
+                        monsterSpecId = "NORMAL_MONSTER",
+                        lanePolicy = "EACH_FIELD",
+                        fieldOwnerPlayerSlot = 2,
+                        spawnOrder = 1,
+                        spawnOrdinal = 3,
+                        killerPlayerSlot = 1,
+                        supportPlayerSlot = null
+                    }
+                },
                 summaryHash = "summary-hash"
             };
 
@@ -172,6 +256,11 @@ namespace MyDefense.Shared.Tests
             StringAssert.Contains("\"abandoned\":false", json);
             StringAssert.Contains("\"abandoned\":true", json);
             StringAssert.Contains("\"totalKillGold\":200", json);
+            StringAssert.Contains("\"waveSpawnFacts\":[{\"runtimeMonsterId\":\"18446744073709551615\"", json);
+            StringAssert.Contains("\"partialWaveKills\":[{\"runtimeMonsterId\":\"18446744073709551615\"", json);
+            StringAssert.Contains("\"fieldOwnerPlayerSlot\":2", json);
+            StringAssert.Contains("\"killerPlayerSlot\":1", json);
+            StringAssert.Contains("\"supportPlayerSlot\":null", json);
         }
 
         [Test]
@@ -182,7 +271,9 @@ namespace MyDefense.Shared.Tests
                 requestId = "request-\"1\\\b\f\n\r\t\u0001",
                 result = BattleSettlementResultValues.Aborted,
                 players = Array.Empty<BattleSettlementPlayerSummary>(),
-                monsterKills = Array.Empty<BattleSettlementMonsterSummary>()
+                monsterKills = Array.Empty<BattleSettlementMonsterSummary>(),
+                waveSpawnFacts = Array.Empty<BattleSettlementWaveSpawnFactSummary>(),
+                partialWaveKills = Array.Empty<BattleSettlementPartialWaveKillSummary>()
             };
 
             string json = BattleSettlementSummaryJson.Serialize(summary);
@@ -190,6 +281,45 @@ namespace MyDefense.Shared.Tests
             StringAssert.Contains(
                 "\"requestId\":\"request-\\\"1\\\\\\b\\f\\n\\r\\t\\u0001\"",
                 json);
+            StringAssert.Contains("\"partialWaveKills\":[]", json);
+            StringAssert.Contains("\"waveSpawnFacts\":[]", json);
+        }
+
+        [Test]
+        public void Serializer_NormalizesMissingPartialWaveLedgerToEmptyArray()
+        {
+            var summary = new BattleSettlementSummary
+            {
+                result = BattleSettlementResultValues.Aborted,
+                players = Array.Empty<BattleSettlementPlayerSummary>(),
+                monsterKills = Array.Empty<BattleSettlementMonsterSummary>(),
+                waveSpawnFacts = null,
+                partialWaveKills = null
+            };
+
+            StringAssert.Contains(
+                "\"waveSpawnFacts\":[]",
+                BattleSettlementSummaryJson.Serialize(summary));
+            StringAssert.Contains(
+                "\"partialWaveKills\":[]",
+                BattleSettlementSummaryJson.Serialize(summary));
+        }
+
+        [Test]
+        public void SerializerForHash_OmitsSummaryHashPropertyEntirely()
+        {
+            var summary = new BattleSettlementSummary
+            {
+                result = BattleSettlementResultValues.Aborted,
+                players = Array.Empty<BattleSettlementPlayerSummary>(),
+                monsterKills = Array.Empty<BattleSettlementMonsterSummary>(),
+                waveSpawnFacts = Array.Empty<BattleSettlementWaveSpawnFactSummary>(),
+                partialWaveKills = Array.Empty<BattleSettlementPartialWaveKillSummary>(),
+                summaryHash = "must-not-be-hashed"
+            };
+
+            StringAssert.DoesNotContain("summaryHash", BattleSettlementSummaryJson.SerializeForHash(summary));
+            StringAssert.Contains("\"summaryHash\":\"must-not-be-hashed\"", BattleSettlementSummaryJson.Serialize(summary));
         }
 
         [TestCase(null)]

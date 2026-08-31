@@ -82,10 +82,13 @@ class BattleSettlementContractApiTest {
                 "\"contentHash\":\"content-v1\"," +
                 "\"result\":\"VICTORY\"," +
                 "\"finalWave\":1," +
+                "\"mapId\":\"EARTH\"," +
                 "\"startedAt\":\"" + started + "\"," +
                 "\"finishedAt\":\"" + finished + "\"," +
                 "\"players\":[]," +
                 "\"monsterKills\":[]," +
+                "\"waveSpawnFacts\":[]," +
+                "\"partialWaveKills\":[]," +
                 "\"summaryHash\":\"hash-1\"" +
                 "}";
     }

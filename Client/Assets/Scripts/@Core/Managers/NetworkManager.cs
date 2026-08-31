@@ -54,7 +54,8 @@ public class NetworkManager : MonoBehaviour
 
         yield return www.SendWebRequest();
 
-        if (www.result != UnityWebRequest.Result.Success) onError?.Invoke(www.error);
+        if (www.result != UnityWebRequest.Result.Success)
+            onError?.Invoke(string.IsNullOrWhiteSpace(www.downloadHandler.text) ? www.error : www.downloadHandler.text);
         else onSuccess?.Invoke(www.downloadHandler.text);
     }
     }

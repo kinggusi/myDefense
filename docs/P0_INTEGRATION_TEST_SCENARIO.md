@@ -17,7 +17,7 @@ E:\study\MyDefenseGame\Client\_localbuild\FusionClient\Client.exe
 ```
 
 5. Editor Console에서 Player 1/2 등록과 Battle session 초기화 로그를 확인한다.
-6. 두 화면에서 시작 Gold가 각각 `100,000`이며, 상대의 소비가 내 Gold를 차감하지 않는지 확인한다.
+6. 개발 Smoke Test에서 두 화면의 시작 Gold가 각각 `100,000`이며, 상대의 소비가 내 Gold를 차감하지 않는지 확인한다. 정식 시작 Gold는 canonical Balance 외부화 후 별도 검증한다.
 
 ## 2. 세션·필드·Wave (P0-2, P0-3)
 
@@ -64,9 +64,8 @@ E:\study\MyDefenseGame\Client\_localbuild\FusionClient\Client.exe
 - Alien이 State Authority에서 목표를 선택하고 Network Projectile이 양쪽에 보인다.
 - Projectile이 Monster에 닿을 때 HP가 양쪽에서 같은 값으로 감소한다.
 - 동일 Projectile이 같은 대상을 중복 타격하지 않는다.
-- Monster 처치 시 field owner 개인 Gold가 canonical `killGold`만큼 한 번 증가한다.
-- 상대가 마지막 타격해도 일반 Monster 보상은 field owner에게 들어간다.
-- 공용 Boss Gold는 팀 지갑에 한 번만 들어가고 개인 지갑 양쪽에 복제되지 않는다.
+- 일반·Elite·공용 Boss 처치 시 Host와 Client의 개인 지갑이 canonical `killGold`만큼 동일하게 각각 한 번 증가한다.
+- 필드 소유자나 마지막 공격자가 달라도 양쪽 지급액은 동일하며, 이후 소비는 서로 독립적이다.
 - Kill·Support Kill·Boss Kill 수치가 Gold와 별도 통계로 유지된다.
 
 ## 7. 재접속 (P0-9)
@@ -94,4 +93,3 @@ E:\study\MyDefenseGame\Client\_localbuild\FusionClient\Client.exe
 - Scene Dirty=false, validate issue 0, Missing Script 0, Broken Prefab 0.
 - 두 클라이언트의 권위 상태가 일치한다.
 - 본 문서 각 절차를 통과한 뒤 `docs/98_IMPLEMENTATION_TASKS.md`의 `검증 대기` Task를 `완료`로 승격한다.
-

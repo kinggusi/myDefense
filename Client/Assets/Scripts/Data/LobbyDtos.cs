@@ -15,6 +15,9 @@ public class UserDto
     public int gold;
     public int diamond;
     public int heart;
+    public int accountLevel;
+    public int universalPiece;
+    public int growthCell;
 }
 
 [Serializable]

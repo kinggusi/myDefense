@@ -4,8 +4,6 @@ import com.denfense.server.domain.AlienSpec;
 import com.denfense.server.domain.User;
 import com.denfense.server.domain.UserAlien;
 import com.denfense.server.dto.response.LobbyResponseDto;
-import com.denfense.server.exception.BusinessException;
-import com.denfense.server.exception.ErrorCode;
 import com.denfense.server.repository.AlienSpecRepository;
 import com.denfense.server.repository.UserAlienRepository;
 import com.denfense.server.repository.UserRepository;
@@ -32,12 +30,12 @@ public class LobbyController {
     private final UserAlienRepository userAlienRepository;
     private final com.denfense.server.service.HeartPolicy heartPolicy;
     private final com.denfense.server.service.UpgradeCostPolicy upgradeCostPolicy;
+    private final com.denfense.server.service.StarterAlienCollectionService starterAlienCollectionService;
 
     @GetMapping("/info/{username}")
     public ResponseEntity<?> getLobbyInfo(@PathVariable String username) {
         // 1. 유저 조회 (존재하지 않는 유저 처리)
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND, "유저를 찾을 수 없습니다."));
+        User user = starterAlienCollectionService.ensureStarterCollection(username);
 
         // 2. 하트 실시간 계산 (DB 값 변경 안함)
         com.denfense.server.service.HeartSnapshot heartSnapshot = heartPolicy.calculate(user.getHeart(), user.getLastHeartUpdateTime());
@@ -62,6 +60,7 @@ public class LobbyController {
         userDto.setHeart(heartSnapshot.calculatedHeart());
         userDto.setUniversalPiece(user.getUniversalPiece());
         userDto.setGrowthCell(user.getGrowthCell());
+        userDto.setAccountLevel(user.getAccountLevel());
         userDto.setNextHeartRecoveryAt(heartSnapshot.nextHeartRecoveryAt());
         response.setUser(userDto);
 
