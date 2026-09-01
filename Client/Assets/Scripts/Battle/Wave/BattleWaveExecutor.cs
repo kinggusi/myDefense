@@ -149,6 +149,21 @@ namespace MyDefense.Battle
         public bool IsP1ValidationArmed => _p1ValidationArmed;
         public bool IsP1ValidationStartConsumed => _p1ValidationStartConsumed;
         public int P1ValidationTargetWave => _p1ValidationTargetWave;
+
+        public bool TryForceDevelopmentPartialSettlementFailureFromAuthority()
+        {
+            if (!HasWaveAuthority() || _p1ValidationArmed)
+                return false;
+
+            if (!TryTransitionMatchState(MatchState.FAILED))
+                return false;
+
+            // The terminal event is synchronous, so Settlement observes the
+            // existing Spawn/Kill audit before any remaining spawn coroutine
+            // can resume on a later frame.
+            StopSessionCoroutines();
+            return true;
+        }
 #endif
 
         public bool TryResolveBossTimeoutFromAuthority()

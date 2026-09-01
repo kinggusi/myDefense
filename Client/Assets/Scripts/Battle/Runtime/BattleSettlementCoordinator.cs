@@ -125,10 +125,14 @@ namespace MyDefense.Battle.Runtime
             }
 
             BattleSettlementSummary summary = _pendingSummary;
+            string requestJson = BattleSettlementSummaryJson.Serialize(summary);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Debug.Log($"[BattleSettlement] request-json={requestJson}");
+#endif
             _requestInFlight = true;
             NetworkManager.Instance.PostJson(
                 SettlementPath,
-                BattleSettlementSummaryJson.Serialize(summary),
+                requestJson,
                 response => HandleResponse(summary, response),
                 error =>
                 {

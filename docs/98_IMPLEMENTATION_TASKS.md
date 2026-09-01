@@ -436,6 +436,8 @@ P0-1-1~4 → P0-1-5 → P0-1-6
 
 > P2-3-2 최신 dev 동기화 기록(2026-08-31): PlanetContent PR #102와 P2-1-1이 포함된 `origin/dev` `f2ff276`을 충돌 없이 병합했다. authoritative Fusion `mapId` 고정·불일치 fail-closed와 State Authority Spawn/Kill audit·FAILED Settlement projection을 함께 보존했다. Settlement/PlanetContent/StateAuthority 집중 EditMode 160/160, 전체 EditMode 481/481, Battle Scene 검사(Missing Script 0, Broken Prefab 0), `Battle.unity` 단독 Windows Development Build를 통과했다. 실제 terminal FAILED POST·응답 대조와 User/System Quest 영속 Processor 연결은 아직 남아 있으므로 상태는 `부분 완료`다.
 
+> P2-3-2 미완료 Wave Settlement 스모크 보완(2026-09-01): non-P1VAL Development Session의 State Authority가 `RUNNING`, `currentWave == highestClearedWave + 1`, 실제 Spawn/Kill audit과 미해소 Spawn을 확인한 뒤 기존 terminal 경로로 `FAILED`를 정확히 한 번 확정하는 수동 스모크 진입점을 추가했다. Production Build와 P1VAL에서는 컴파일 또는 실행되지 않는다. Fixture 규칙 29/29, 관련 집중 EditMode 117/117, 전체 EditMode 493/493, `Battle.unity` 단독 Windows Development Build(error 0), 독립 리뷰 차단 0을 통과했다. 실제 Session `P23-PARTIAL-20260901-225458`에서 `DEFEAT/finalWave=2`, Wave 3 Spawn fact 4건과 Partial Kill 2건을 전송해 최초 `ACCEPTED/alreadyProcessed=false`, Unity/Spring SHA-256 일치, 동일 payload 재전송 `alreadyProcessed=true`, H2 Settlement 1건/Player 2건을 확인했다. Battle 측 실제 HTTP 게이트는 완료됐으며 User/System Quest 영속 Processor 연결 전까지 상태는 `부분 완료`를 유지한다.
+
 ---
 
 ## 4. 권장 실행 순서
