@@ -11,6 +11,7 @@ namespace MyDefense.Battle.Tests
         private GameObject _adapterObject;
         private BattleWaveExecutor _executor;
         private BattleSceneSessionAdapter _adapter;
+        private PlanetContentTestFactory _planetContent;
 
         [SetUp]
         public void SetUp()
@@ -19,6 +20,9 @@ namespace MyDefense.Battle.Tests
             _executor = _executorObject.AddComponent<BattleWaveExecutor>();
             _adapterObject = new GameObject("BattleSceneSessionAdapter_Test");
             _adapter = _adapterObject.AddComponent<BattleSceneSessionAdapter>();
+            _planetContent = new PlanetContentTestFactory();
+            PlanetContentApplicator applicator = _adapterObject.AddComponent<PlanetContentApplicator>();
+            applicator.ConfigureForTests(_planetContent.Catalog);
             var field = typeof(BattleSceneSessionAdapter).GetField("_waveExecutor", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
             field.SetValue(_adapter, _executor);
         }
@@ -28,12 +32,13 @@ namespace MyDefense.Battle.Tests
         {
             Object.DestroyImmediate(_adapterObject);
             Object.DestroyImmediate(_executorObject);
+            _planetContent.Dispose();
         }
 
         [Test]
         public void Initialize_AppliesSessionIdentityAndLocalLane()
         {
-            var session = new BattleSessionContext("session-1", "balance-1", "hash-1", "battle-1", "battle-hash-1", 10);
+            var session = new BattleSessionContext("session-1", "balance-1", "hash-1", "battle-1", "battle-hash-1", 10, "NEPTUNE");
             var identities = new BattlePlayerIdentityMap("p1", "p2");
 
             Assert.That(_adapter.Initialize(session, identities, LaneType.Player2Lane), Is.True);
@@ -46,7 +51,7 @@ namespace MyDefense.Battle.Tests
         [Test]
         public void Initialize_RejectsSharedLane()
         {
-            var session = new BattleSessionContext("session-1", "balance-1", "hash-1", "battle-1", "battle-hash-1", 10);
+            var session = new BattleSessionContext("session-1", "balance-1", "hash-1", "battle-1", "battle-hash-1", 10, "NEPTUNE");
             var identities = new BattlePlayerIdentityMap("p1", "p2");
 
             Assert.That(_adapter.Initialize(session, identities, LaneType.BossSharedLane), Is.False);
@@ -56,13 +61,16 @@ namespace MyDefense.Battle.Tests
         [Test]
         public void ResetAdapter_ClearsBindingState()
         {
-            var session = new BattleSessionContext("session-1", "balance-1", "hash-1", "battle-1", "battle-hash-1", 10);
+            var session = new BattleSessionContext("session-1", "balance-1", "hash-1", "battle-1", "battle-hash-1", 10, "NEPTUNE");
             _adapter.Initialize(session, new BattlePlayerIdentityMap("p1", "p2"), LaneType.Player1Lane);
+            Assert.That(_adapter.PlanetContentApplicator.ActiveEnvironment, Is.Not.Null);
 
             _adapter.ResetAdapter();
 
             Assert.That(_adapter.IsInitialized, Is.False);
             Assert.That(_adapter.SessionContext, Is.Null);
+            Assert.That(_adapter.PlanetContentApplicator.ActiveEnvironment, Is.Null);
+            Assert.That(_adapter.PlanetContentApplicator.ActiveMapId, Is.Null);
         }
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD

@@ -52,6 +52,7 @@ namespace MyDefense.Battle
         [Networked] public int CurrentWave { get; private set; }
         [Networked] public int HighestClearedWave { get; private set; }
         [Networked] public NetworkString<_32> CurrentWaveId { get; private set; }
+        [Networked] public NetworkString<_16> AuthoritativeMapId { get; private set; }
         [Networked] public int CurrentWaveTypeValue { get; private set; }
         [Networked] public NetworkBool IsWaveRunning { get; private set; }
         [Networked] public int MatchStateValue { get; private set; }
@@ -214,6 +215,66 @@ namespace MyDefense.Battle
             => playerSlot == 1 ? Player1ConnectionState
                 : playerSlot == 2 ? Player2ConnectionState
                 : PlayerConnectionState.DISCONNECTED;
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        public bool TryForceDevelopmentPartialSettlementFailure(out string reason)
+        {
+            if (_executor == null)
+            {
+                reason = "BattleWaveExecutor is unavailable.";
+                return false;
+            }
+
+            var currentWaveSpawns = new HashSet<BattleRuntimeMonsterKey>();
+            foreach (BattleSpawnAuditRecord spawn in _executor.SpawnAuditRecords)
+            {
+                if (spawn != null && spawn.SpawnWave == CurrentWave)
+                    currentWaveSpawns.Add(spawn.RuntimeKey);
+            }
+
+            var currentWaveKills = new HashSet<BattleRuntimeMonsterKey>();
+            bool evidenceConsistent = true;
+            foreach (BattleKillAuditRecord kill in _killDeduplicator.Records)
+            {
+                if (kill == null || kill.SpawnWave != CurrentWave)
+                    continue;
+                if (!currentWaveSpawns.Contains(kill.RuntimeKey))
+                {
+                    evidenceConsistent = false;
+                    continue;
+                }
+                currentWaveKills.Add(kill.RuntimeKey);
+            }
+
+            int unresolvedSpawnCount = currentWaveSpawns.Count - currentWaveKills.Count;
+            if (!DevelopmentPartialSettlementFixtureRules.TryValidate(
+                    IsSpawnedForAccess,
+                    HasStateAuthority,
+                    _executor.IsP1ValidationArmed,
+                    MatchState,
+                    IsWaveRunning,
+                    CurrentWave,
+                    HighestClearedWave,
+                    currentWaveSpawns.Count,
+                    currentWaveKills.Count,
+                    unresolvedSpawnCount,
+                    evidenceConsistent,
+                    out reason))
+                return false;
+
+            if (!_executor.TryForceDevelopmentPartialSettlementFailureFromAuthority())
+            {
+                reason = "BattleWaveExecutor rejected the Development terminal transition.";
+                return false;
+            }
+
+            reason = string.Empty;
+            Debug.Log(
+                $"[P2QuestFixture] Forced FAILED at Wave {CurrentWave} with "
+                + $"spawnFacts={currentWaveSpawns.Count}, partialKills={currentWaveKills.Count}.");
+            return true;
+        }
+#endif
 
         public bool SetPlayerConnectionState(
             int playerSlot,
@@ -1316,11 +1377,108 @@ namespace MyDefense.Battle
         {
             if (!HasStateAuthority || _executor == null)
                 return false;
+            if (!TryResolveMapForInitialization(
+                    sessionContext?.MapId,
+                    out _,
+                    out _,
+                    out string mapReason))
+            {
+                Debug.LogError("[BattleMap] " + mapReason);
+                return false;
+            }
             HighestClearedWave = 0;
             _executor.InitializeSession(sessionContext, playerIdentityProvider);
             ResetFieldLimitEvents();
             SyncPlayerBattleStates();
             SyncAliveMonsterCounts();
+            return true;
+        }
+
+        public bool TryResolveMapForInitialization(
+            string localSessionMapId,
+            out string authoritativeMapId,
+            out bool shouldRetry,
+            out string reason)
+        {
+            authoritativeMapId = null;
+            shouldRetry = false;
+            reason = null;
+            if (!IsSpawnedForAccess)
+            {
+                authoritativeMapId = localSessionMapId;
+                return !string.IsNullOrWhiteSpace(authoritativeMapId);
+            }
+
+            string replicatedMapId = AuthoritativeMapId.ToString();
+            if (!TryResolveAuthoritativeMapBinding(
+                    HasStateAuthority,
+                    localSessionMapId,
+                    replicatedMapId,
+                    out authoritativeMapId,
+                    out shouldRetry,
+                    out reason))
+                return false;
+
+            if (HasStateAuthority && string.IsNullOrWhiteSpace(replicatedMapId))
+                AuthoritativeMapId = authoritativeMapId;
+            return true;
+        }
+
+        public static bool TryResolveAuthoritativeMapBinding(
+            bool isStateAuthority,
+            string localSessionMapId,
+            string replicatedMapId,
+            out string authoritativeMapId,
+            out bool shouldRetry,
+            out string reason)
+        {
+            authoritativeMapId = null;
+            shouldRetry = false;
+            reason = null;
+            if (string.IsNullOrWhiteSpace(localSessionMapId))
+            {
+                reason = "Local BattleSessionContext.MapId is required.";
+                return false;
+            }
+
+            string local = localSessionMapId;
+            if (!string.Equals(local, local.Trim(), StringComparison.Ordinal))
+            {
+                reason = "Local BattleSessionContext.MapId must match canonical text exactly.";
+                return false;
+            }
+            string replicated = string.IsNullOrWhiteSpace(replicatedMapId) ? null : replicatedMapId;
+            if (replicated != null && !string.Equals(replicated, replicated.Trim(), StringComparison.Ordinal))
+            {
+                reason = "Replicated authoritative mapId is not canonical exact text.";
+                return false;
+            }
+            if (isStateAuthority)
+            {
+                if (replicated != null && !string.Equals(replicated, local, StringComparison.Ordinal))
+                {
+                    reason = "State Authority mapId is already fixed to '" + replicated
+                        + "' and cannot change to '" + local + "'.";
+                    return false;
+                }
+                authoritativeMapId = replicated ?? local;
+                return true;
+            }
+
+            if (replicated == null)
+            {
+                shouldRetry = true;
+                reason = "Waiting for replicated authoritative mapId.";
+                return false;
+            }
+            if (!string.Equals(replicated, local, StringComparison.Ordinal))
+            {
+                reason = "Local BattleSessionContext.MapId '" + local
+                    + "' does not match replicated authoritative mapId '" + replicated + "'.";
+                return false;
+            }
+
+            authoritativeMapId = replicated;
             return true;
         }
 

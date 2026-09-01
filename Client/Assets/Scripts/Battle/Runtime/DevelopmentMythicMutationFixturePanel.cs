@@ -64,6 +64,54 @@ namespace MyDefense.Battle.Runtime
         }
     }
 
+    public static class DevelopmentPartialSettlementFixtureRules
+    {
+        public static bool TryValidate(
+            bool isSpawned,
+            bool isStateAuthority,
+            bool isP1ValidationArmed,
+            MyDefense.Shared.Contracts.MatchState matchState,
+            bool isWaveRunning,
+            int currentWave,
+            int highestClearedWave,
+            int currentWaveSpawnCount,
+            int currentWaveKillCount,
+            int currentWaveUnresolvedSpawnCount,
+            bool evidenceConsistent,
+            out string reason)
+        {
+            if (!isSpawned)
+                return Fail("Waiting for Fusion NetworkObject.Spawned().", out reason);
+            if (!isStateAuthority)
+                return Fail("Only State Authority may force the Development settlement failure.", out reason);
+            if (isP1ValidationArmed)
+                return Fail("P1VAL sessions suppress Settlement and cannot use this fixture.", out reason);
+            if (matchState != MyDefense.Shared.Contracts.MatchState.RUNNING)
+                return Fail("MatchState must be RUNNING.", out reason);
+            if (!isWaveRunning)
+                return Fail("The unfinished Wave must still be running.", out reason);
+            if (currentWave <= 0 || currentWave != highestClearedWave + 1)
+                return Fail("Current Wave must be exactly highestClearedWave + 1.", out reason);
+            if (!evidenceConsistent)
+                return Fail("Current Wave Kill evidence does not match its Spawn audit.", out reason);
+            if (currentWaveSpawnCount <= 0)
+                return Fail("The current Wave has no authoritative Spawn evidence.", out reason);
+            if (currentWaveKillCount <= 0)
+                return Fail("Kill at least one current-Wave Monster before forcing FAILED.", out reason);
+            if (currentWaveUnresolvedSpawnCount <= 0)
+                return Fail("At least one current-Wave Spawn must remain unresolved by the Kill audit.", out reason);
+
+            reason = string.Empty;
+            return true;
+        }
+
+        private static bool Fail(string message, out string reason)
+        {
+            reason = message;
+            return false;
+        }
+    }
+
     /// <summary>
     /// Development-only IMGUI panel for deterministic P1 Mutation/Snapshot validation.
     /// It is attached automatically when a BattleWaveStateAuthority exists, so no
@@ -103,7 +151,7 @@ namespace MyDefense.Battle.Runtime
                 return;
 
             const float panelWidth = 420f;
-            const float panelHeight = 440f;
+            const float panelHeight = 510f;
             Rect panel = new Rect(12f, 58f, panelWidth, panelHeight);
             GUI.Box(panel, "P1 MYTHIC / MUTATION FIXTURE");
 
@@ -175,7 +223,18 @@ namespace MyDefense.Battle.Runtime
                 GUI.enabled = previousEnabled;
             }
 
-            GUI.Label(new Rect(panel.x + 16f, panel.y + 360f, panelWidth - 32f, 64f),
+            previousEnabled = GUI.enabled;
+            GUI.enabled = _authority.IsSpawnedForAccess && _authority.IsAuthoritative;
+            if (GUI.Button(new Rect(panel.x + 16f, panel.y + 360f, panelWidth - 32f, 44f),
+                    "Force FAILED for partial Settlement (Host only)"))
+            {
+                _status = _authority.TryForceDevelopmentPartialSettlementFailure(out string reason)
+                    ? "FAILED committed from real partial-Wave Spawn/Kill evidence."
+                    : reason;
+            }
+            GUI.enabled = previousEnabled;
+
+            GUI.Label(new Rect(panel.x + 16f, panel.y + 416f, panelWidth - 32f, 76f),
                 _authority.IsSpawnedForAccess
                     ? _status
                     : "Waiting for Fusion NetworkObject.Spawned().");

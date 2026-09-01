@@ -125,10 +125,14 @@ namespace MyDefense.Battle.Runtime
             }
 
             BattleSettlementSummary summary = _pendingSummary;
+            string requestJson = BattleSettlementSummaryJson.Serialize(summary);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Debug.Log($"[BattleSettlement] request-json={requestJson}");
+#endif
             _requestInFlight = true;
             NetworkManager.Instance.PostJson(
                 SettlementPath,
-                BattleSettlementSummaryJson.Serialize(summary),
+                requestJson,
                 response => HandleResponse(summary, response),
                 error =>
                 {
@@ -178,7 +182,8 @@ namespace MyDefense.Battle.Runtime
                     state,
                     _stateAuthority.HighestClearedWave,
                     new[] { player1, player2 },
-                    _stateAuthority.KillAuditRecords);
+                    _stateAuthority.KillAuditRecords,
+                    _waveExecutor.SpawnAuditRecords);
                 string requestId = Guid.NewGuid().ToString("N");
                 summary = BuildRequest(battleSummary, requestId, _startedAtUtc, finishedAtUtc);
                 return true;

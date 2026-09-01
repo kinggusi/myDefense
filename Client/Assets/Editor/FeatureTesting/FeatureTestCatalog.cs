@@ -127,7 +127,9 @@ namespace MyDefenseGame.Editor.FeatureTesting
                 Case("P1-4", "행성·80 Wave·Boss", "kinggusi", "Assets/Scenes/Battle.unity", FeatureTestType.FusionTwoClient,
                     "canonical Planet/Wave/Spawn Balance", "Session 종료 및 Wave 초기화", "BattleCanonicalBalanceTests;BattleWaveExecutorStateTests", "9행성 배율·10 Wave 간격 Boss·BOSS_SHARED·SUN 난이도", "docs/P1_INTEGRATION_TEST_SCENARIO.md"),
                 Case("P1-5", "Battle Settlement 보상 E2E", "jjangash", "Assets/Scenes/Battle.unity", FeatureTestType.FusionTwoClient,
-                    "Spring Boot와 canonical manifest, 2인 종료 Summary", "Session 종료 및 Settlement 테스트 데이터 정리", "BattleSettlementCoordinatorTests;BattleSettlementEndToEndIntegrationTest", "승리·패배·관전·이탈 자격·멱등 보상", "docs/P1_INTEGRATION_TEST_SCENARIO.md")
+                    "Spring Boot와 canonical manifest, 2인 종료 Summary", "Session 종료 및 Settlement 테스트 데이터 정리", "BattleSettlementCoordinatorTests;BattleSettlementEndToEndIntegrationTest", "승리·패배·관전·이탈 자격·멱등 보상", "docs/P1_INTEGRATION_TEST_SCENARIO.md"),
+                Case("P2-1-2", "행성별 Planet Content", "kinggusi", "Assets/Scenes/Battle.unity", FeatureTestType.FusionTwoClient,
+                    "canonical 9행성 Profile Catalog와 동일 mapId 2인 Session", "Session 종료 및 PlanetContentApplicator Clear", "PlanetContentCatalogTests;PlanetContentApplicatorTests;BattleWaveStateAuthorityTests", "Host/Client 동일 환경·공통 Board/Lane/Waypoint/Boss 유지", "docs/test-reports/P2-1-2.md")
             });
         }
 

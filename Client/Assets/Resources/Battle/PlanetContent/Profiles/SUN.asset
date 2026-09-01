@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fd0a7275a5e5b444a8a6a67018ba1661, type: 3}
+  m_Name: SUN
+  m_EditorClassIdentifier: Assembly-CSharp::MyDefense.Battle.Runtime.PlanetContentProfile
+  _mapId: SUN
+  _enabled: 1
+  _environmentPrefab: {fileID: 1979171656637192572, guid: d120903ae3379f04abf3c11f006afee0, type: 3}
+  _backgroundSprite: {fileID: 0}
+  _backgroundColor: {r: 0.25, g: 0.0875, b: 0.00625, a: 1}
+  _environmentMaterial: {fileID: 2100000, guid: 263e41254dd0c5a40bff938229dbc590, type: 2}
+  _lighting:
+    _ambientColor: {r: 0.675, g: 0.4475, b: 0.33374998, a: 1}
+    _ambientIntensity: 0.8
+    _directionalColor: {r: 1, g: 0.7725, b: 0.65875, a: 1}
+    _directionalIntensity: 1
+    _directionalEulerAngles: {x: 50, y: -30, z: 0}
+  _environmentEffects:
+  - {fileID: 4443111646763333869, guid: ae6d03ed957169649966ca786dd46f7b, type: 3}

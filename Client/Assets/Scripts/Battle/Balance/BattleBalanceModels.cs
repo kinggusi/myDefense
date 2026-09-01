@@ -83,6 +83,7 @@ namespace MyDefense.Battle.Balance
     public sealed class WaveSpawnSpecData
     {
         public string WaveId { get; }
+        public string SpawnGroupId { get; }
         public int SpawnOrder { get; }
         public BattleLanePolicy LanePolicy { get; }
         public string MonsterId { get; }
@@ -92,9 +93,20 @@ namespace MyDefense.Battle.Balance
         public float HpMultiplier { get; }
         public float MoveSpeedMultiplier { get; }
 
-        public WaveSpawnSpecData(string waveId, int spawnOrder, BattleLanePolicy lanePolicy, string monsterId, int spawnCount, float spawnDelaySeconds, float spawnIntervalSeconds, float hpMultiplier, float moveSpeedMultiplier)
+        public WaveSpawnSpecData(
+            string waveId,
+            int spawnOrder,
+            BattleLanePolicy lanePolicy,
+            string monsterId,
+            int spawnCount,
+            float spawnDelaySeconds,
+            float spawnIntervalSeconds,
+            float hpMultiplier,
+            float moveSpeedMultiplier,
+            string spawnGroupId = null)
         {
             WaveId = waveId;
+            SpawnGroupId = string.IsNullOrWhiteSpace(spawnGroupId) ? waveId : spawnGroupId;
             SpawnOrder = spawnOrder;
             LanePolicy = lanePolicy;
             MonsterId = monsterId;

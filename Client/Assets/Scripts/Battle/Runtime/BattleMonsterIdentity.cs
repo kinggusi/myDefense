@@ -63,6 +63,64 @@ namespace MyDefense.Battle.Runtime
         }
     }
 
+    /// <summary>
+    /// Immutable State Authority evidence for one successfully constructed
+    /// Monster. The Settlement layer sends only records from the unfinished
+    /// terminal Wave, but the runtime ledger retains the complete session.
+    /// </summary>
+    public sealed class BattleSpawnAuditRecord
+    {
+        public BattleRuntimeMonsterKey RuntimeKey { get; }
+        public string BattleSessionId => RuntimeKey.BattleSessionId;
+        public ulong RuntimeMonsterId => RuntimeKey.RuntimeMonsterId;
+        public int SpawnWave { get; }
+        public string SpawnGroupId { get; }
+        public string MonsterId { get; }
+        public BattleMonsterLanePolicy LanePolicy { get; }
+        public int? FieldOwnerPlayerSlot { get; }
+        public int SpawnOrder { get; }
+        public int SpawnOrdinal { get; }
+
+        public BattleSpawnAuditRecord(
+            BattleRuntimeMonsterKey runtimeKey,
+            int spawnWave,
+            string spawnGroupId,
+            string monsterId,
+            BattleMonsterLanePolicy lanePolicy,
+            int? fieldOwnerPlayerSlot,
+            int spawnOrder,
+            int spawnOrdinal)
+        {
+            if (spawnWave < 1) throw new ArgumentOutOfRangeException(nameof(spawnWave));
+            if (spawnOrder < 1) throw new ArgumentOutOfRangeException(nameof(spawnOrder));
+            if (spawnOrdinal < 1) throw new ArgumentOutOfRangeException(nameof(spawnOrdinal));
+
+            if (lanePolicy == BattleMonsterLanePolicy.EACH_FIELD)
+            {
+                if (fieldOwnerPlayerSlot != 1 && fieldOwnerPlayerSlot != 2)
+                    throw new ArgumentOutOfRangeException(nameof(fieldOwnerPlayerSlot));
+            }
+            else if (lanePolicy == BattleMonsterLanePolicy.BOSS_SHARED)
+            {
+                if (fieldOwnerPlayerSlot.HasValue)
+                    throw new ArgumentException("BOSS_SHARED spawns cannot have a field owner slot.", nameof(fieldOwnerPlayerSlot));
+            }
+            else
+            {
+                throw new ArgumentOutOfRangeException(nameof(lanePolicy));
+            }
+
+            RuntimeKey = runtimeKey;
+            SpawnWave = spawnWave;
+            SpawnGroupId = BattleSessionContext.RequireText(spawnGroupId, nameof(spawnGroupId));
+            MonsterId = BattleSessionContext.RequireText(monsterId, nameof(monsterId));
+            LanePolicy = lanePolicy;
+            FieldOwnerPlayerSlot = fieldOwnerPlayerSlot;
+            SpawnOrder = spawnOrder;
+            SpawnOrdinal = spawnOrdinal;
+        }
+    }
+
     public interface IBattlePlayerIdentityProvider
     {
         bool TryGetPlayerId(LaneType lane, out string playerId);

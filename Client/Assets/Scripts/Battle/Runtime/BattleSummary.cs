@@ -138,15 +138,18 @@ namespace MyDefense.Battle.Runtime
         public IReadOnlyList<BattleMonsterKillSummary> ByMonster { get; }
         public IReadOnlyList<BattleRuntimeMonsterKey> ProcessedRuntimeKeys { get; }
         public IReadOnlyList<BattleLaneKillSummary> ByLanePolicy { get; }
+        public IReadOnlyList<BattleKillAuditRecord> AuditRecords { get; }
 
         internal BattleKillSummary(
             IReadOnlyList<BattleMonsterKillSummary> byMonster,
             IReadOnlyList<BattleRuntimeMonsterKey> processedRuntimeKeys,
-            IReadOnlyList<BattleLaneKillSummary> byLanePolicy)
+            IReadOnlyList<BattleLaneKillSummary> byLanePolicy,
+            IReadOnlyList<BattleKillAuditRecord> auditRecords)
         {
             ByMonster = byMonster;
             ProcessedRuntimeKeys = processedRuntimeKeys;
             ByLanePolicy = byLanePolicy;
+            AuditRecords = auditRecords;
         }
     }
 
@@ -160,13 +163,15 @@ namespace MyDefense.Battle.Runtime
         public int FinalWave { get; }
         public IReadOnlyList<BattlePlayerSummary> Players { get; }
         public BattleKillSummary Kills { get; }
+        public IReadOnlyList<BattleSpawnAuditRecord> SpawnRecords { get; }
 
         internal BattleSummary(
             BattleSessionContext session,
             MatchState result,
             int finalWave,
             IReadOnlyList<BattlePlayerSummary> players,
-            BattleKillSummary kills)
+            BattleKillSummary kills,
+            IReadOnlyList<BattleSpawnAuditRecord> spawnRecords)
         {
             BattleSessionId = session.BattleSessionId;
             CanonicalBalanceVersion = session.CanonicalBalanceVersion;
@@ -176,6 +181,7 @@ namespace MyDefense.Battle.Runtime
             FinalWave = finalWave;
             Players = players;
             Kills = kills;
+            SpawnRecords = spawnRecords;
         }
     }
 
@@ -188,16 +194,40 @@ namespace MyDefense.Battle.Runtime
             IEnumerable<BattlePlayerSummarySeed> playerSeeds,
             IEnumerable<BattleKillAuditRecord> killRecords)
         {
+            return Build(
+                session,
+                result,
+                finalWave,
+                playerSeeds,
+                killRecords,
+                Array.Empty<BattleSpawnAuditRecord>());
+        }
+
+        public static BattleSummary Build(
+            BattleSessionContext session,
+            MatchState result,
+            int finalWave,
+            IEnumerable<BattlePlayerSummarySeed> playerSeeds,
+            IEnumerable<BattleKillAuditRecord> killRecords,
+            IEnumerable<BattleSpawnAuditRecord> spawnRecords)
+        {
             if (session == null) throw new ArgumentNullException(nameof(session));
             if (result == MatchState.RUNNING) throw new ArgumentException("A final summary requires a terminal result.", nameof(result));
             if (finalWave < 0) throw new ArgumentOutOfRangeException(nameof(finalWave));
             if (playerSeeds == null) throw new ArgumentNullException(nameof(playerSeeds));
             if (killRecords == null) throw new ArgumentNullException(nameof(killRecords));
+            if (spawnRecords == null) throw new ArgumentNullException(nameof(spawnRecords));
 
             List<BattlePlayerSummarySeed> seeds = playerSeeds.OrderBy(seed => seed.PlayerId, StringComparer.Ordinal).ToList();
             if (seeds.Count == 0) throw new ArgumentException("At least one player summary is required.", nameof(playerSeeds));
             if (seeds.Select(seed => seed.PlayerId).Distinct(StringComparer.Ordinal).Count() != seeds.Count)
                 throw new ArgumentException("Player summary IDs must be unique.", nameof(playerSeeds));
+            List<int> assignedSlots = seeds
+                .Where(seed => seed.PlayerSlot > 0)
+                .Select(seed => seed.PlayerSlot)
+                .ToList();
+            if (assignedSlots.Distinct().Count() != assignedSlots.Count)
+                throw new ArgumentException("Player summary slots must be unique.", nameof(playerSeeds));
 
             var uniqueRecords = new Dictionary<BattleRuntimeMonsterKey, BattleKillAuditRecord>();
             foreach (BattleKillAuditRecord record in killRecords)
@@ -212,14 +242,53 @@ namespace MyDefense.Battle.Runtime
             List<BattleKillAuditRecord> orderedRecords = uniqueRecords.Values
                 .OrderBy(record => record.RuntimeKey)
                 .ToList();
+
+            var uniqueSpawns = new Dictionary<BattleRuntimeMonsterKey, BattleSpawnAuditRecord>();
+            var spawnPositions = new HashSet<string>(StringComparer.Ordinal);
+            int maxRecordWave = result == MatchState.FAILED ? finalWave + 1 : finalWave;
+            foreach (BattleSpawnAuditRecord record in spawnRecords)
+            {
+                if (record == null) throw new ArgumentException("Spawn records cannot contain null.", nameof(spawnRecords));
+                if (!string.Equals(record.BattleSessionId, session.BattleSessionId, StringComparison.Ordinal))
+                    throw new ArgumentException("Spawn records must belong to the summarized session.", nameof(spawnRecords));
+                if (record.SpawnWave > maxRecordWave)
+                    throw new ArgumentException("Spawn records cannot be later than the terminal Wave.", nameof(spawnRecords));
+                if (!uniqueSpawns.TryAdd(record.RuntimeKey, record))
+                    throw new ArgumentException("Spawn runtime monster IDs must be unique.", nameof(spawnRecords));
+
+                string position = record.SpawnWave + "\u001f" + record.SpawnGroupId + "\u001f"
+                    + record.SpawnOrder + "\u001f" + (record.FieldOwnerPlayerSlot ?? 0) + "\u001f"
+                    + record.SpawnOrdinal;
+                if (!spawnPositions.Add(position))
+                    throw new ArgumentException("Canonical Spawn positions must be unique.", nameof(spawnRecords));
+            }
+            List<BattleSpawnAuditRecord> orderedSpawns = uniqueSpawns.Values
+                .OrderBy(record => record.RuntimeKey)
+                .ToList();
+
             var seedById = seeds.ToDictionary(seed => seed.PlayerId, StringComparer.Ordinal);
             foreach (BattleKillAuditRecord record in orderedRecords)
             {
+                if (record.SpawnWave > maxRecordWave)
+                    throw new ArgumentException("Kill records cannot be later than the terminal Wave.", nameof(killRecords));
                 if (!seedById.ContainsKey(record.KillerPlayerId))
                     throw new ArgumentException("Every killer must exist in the player summary.", nameof(killRecords));
                 if (!string.IsNullOrWhiteSpace(record.SupportPlayerId)
                     && !seedById.ContainsKey(record.SupportPlayerId))
                     throw new ArgumentException("Every support player must exist in the player summary.", nameof(killRecords));
+
+                if (record.SpawnWave > finalWave)
+                {
+                    if (!uniqueSpawns.TryGetValue(record.RuntimeKey, out BattleSpawnAuditRecord spawn)
+                        || spawn.SpawnWave != record.SpawnWave
+                        || !string.Equals(spawn.MonsterId, record.MonsterId, StringComparison.Ordinal)
+                        || spawn.LanePolicy != record.LanePolicy)
+                    {
+                        throw new ArgumentException(
+                            "Every unfinished-Wave Kill requires matching authoritative Spawn evidence.",
+                            nameof(killRecords));
+                    }
+                }
             }
 
             var players = new List<BattlePlayerSummary>(seeds.Count);
@@ -262,7 +331,8 @@ namespace MyDefense.Battle.Runtime
                 result,
                 finalWave,
                 players.AsReadOnly(),
-                new BattleKillSummary(byMonster, runtimeKeys, byLane));
+                new BattleKillSummary(byMonster, runtimeKeys, byLane, orderedRecords.AsReadOnly()),
+                orderedSpawns.AsReadOnly());
         }
     }
 }

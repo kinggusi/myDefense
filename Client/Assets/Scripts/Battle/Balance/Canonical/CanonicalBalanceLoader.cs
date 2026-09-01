@@ -223,7 +223,8 @@ namespace MyDefense.Battle.Balance.Canonical
                         spawn.StartDelaySeconds,
                         spawn.SpawnIntervalSeconds,
                         wave.HpMultiplier,
-                        1f));
+                        1f,
+                        spawn.SpawnGroupId));
                 }
             }
 
