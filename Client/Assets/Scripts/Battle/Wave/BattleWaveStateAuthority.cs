@@ -216,6 +216,66 @@ namespace MyDefense.Battle
                 : playerSlot == 2 ? Player2ConnectionState
                 : PlayerConnectionState.DISCONNECTED;
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        public bool TryForceDevelopmentPartialSettlementFailure(out string reason)
+        {
+            if (_executor == null)
+            {
+                reason = "BattleWaveExecutor is unavailable.";
+                return false;
+            }
+
+            var currentWaveSpawns = new HashSet<BattleRuntimeMonsterKey>();
+            foreach (BattleSpawnAuditRecord spawn in _executor.SpawnAuditRecords)
+            {
+                if (spawn != null && spawn.SpawnWave == CurrentWave)
+                    currentWaveSpawns.Add(spawn.RuntimeKey);
+            }
+
+            var currentWaveKills = new HashSet<BattleRuntimeMonsterKey>();
+            bool evidenceConsistent = true;
+            foreach (BattleKillAuditRecord kill in _killDeduplicator.Records)
+            {
+                if (kill == null || kill.SpawnWave != CurrentWave)
+                    continue;
+                if (!currentWaveSpawns.Contains(kill.RuntimeKey))
+                {
+                    evidenceConsistent = false;
+                    continue;
+                }
+                currentWaveKills.Add(kill.RuntimeKey);
+            }
+
+            int unresolvedSpawnCount = currentWaveSpawns.Count - currentWaveKills.Count;
+            if (!DevelopmentPartialSettlementFixtureRules.TryValidate(
+                    IsSpawnedForAccess,
+                    HasStateAuthority,
+                    _executor.IsP1ValidationArmed,
+                    MatchState,
+                    IsWaveRunning,
+                    CurrentWave,
+                    HighestClearedWave,
+                    currentWaveSpawns.Count,
+                    currentWaveKills.Count,
+                    unresolvedSpawnCount,
+                    evidenceConsistent,
+                    out reason))
+                return false;
+
+            if (!_executor.TryForceDevelopmentPartialSettlementFailureFromAuthority())
+            {
+                reason = "BattleWaveExecutor rejected the Development terminal transition.";
+                return false;
+            }
+
+            reason = string.Empty;
+            Debug.Log(
+                $"[P2QuestFixture] Forced FAILED at Wave {CurrentWave} with "
+                + $"spawnFacts={currentWaveSpawns.Count}, partialKills={currentWaveKills.Count}.");
+            return true;
+        }
+#endif
+
         public bool SetPlayerConnectionState(
             int playerSlot,
             string userId,

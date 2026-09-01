@@ -72,6 +72,22 @@ public class BattleWaveExecutorStateTests
     }
 
     [Test]
+    public void DevelopmentPartialSettlementFailure_TransitionsExactlyOnce()
+    {
+        int terminalTransitions = 0;
+        _executor.OnMatchStateChanged += state =>
+        {
+            if (state == MatchState.FAILED)
+                terminalTransitions++;
+        };
+
+        Assert.That(_executor.TryForceDevelopmentPartialSettlementFailureFromAuthority(), Is.True);
+        Assert.That(_executor.TryForceDevelopmentPartialSettlementFailureFromAuthority(), Is.False);
+        Assert.That(_executor.MatchState, Is.EqualTo(MatchState.FAILED));
+        Assert.That(terminalTransitions, Is.EqualTo(1));
+    }
+
+    [Test]
     public void Player1Limit_EliminatesOnlyPlayer1AndKeepsMatchRunning()
     {
         RegisterSpawn(LaneType.Player1Lane);
