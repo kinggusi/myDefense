@@ -54,11 +54,12 @@ public class ExcelBalanceReader {
             com.denfense.server.balance.MythicBreedingConfigBalance breedingConfig = readMythicBreedingConfigSheet(workbook);
             List<com.denfense.server.balance.MythicBreedingResultBalance> breedingResults = readMythicBreedingResultSheet(workbook);
             List<com.denfense.server.balance.MythicBreedingRecipeBalance> breedingRecipes = readMythicBreedingRecipeSheet(workbook);
+            List<com.denfense.server.balance.DailyContentBalance> dailyContents = readDailyContentSheet(workbook);
 
             return new BalanceData(reward, battleReward, upgradeCosts, levelStats, alienSpecs, shopProducts, gachaPools, summonPools,
                     monsters, waves, waveSpawns, planetBattles, fieldLimits, summons, mergeRules, mythicChoices,
                     mutationSpecs, mutationConfig, injectorPools, resonanceBalances,
-                    breedingConfig, breedingResults, breedingRecipes);
+                    breedingConfig, breedingResults, breedingRecipes, dailyContents);
 
         } catch (IOException e) {
             throw new BalanceConversionException("파일을 읽는 중 오류가 발생했습니다: " + filePath, e);
@@ -1053,6 +1054,25 @@ public class ExcelBalanceReader {
         return recipes;
     }
 
+    private List<com.denfense.server.balance.DailyContentBalance> readDailyContentSheet(Workbook workbook) {
+        Sheet sheet = getSheetOrThrow(workbook, "DailyContent");
+        List<String> headers = requiredHeaders(sheet, "contentType", "stage", "repeatReward", "firstClearReward", "enabled");
+        List<com.denfense.server.balance.DailyContentBalance> rows = new ArrayList<>();
+        for (int rowIndex = 1; rowIndex <= sheet.getLastRowNum(); rowIndex++) {
+            Row row = sheet.getRow(rowIndex);
+            if (row == null || isBlankRow(row, headers.size())) continue;
+            rows.add(new com.denfense.server.balance.DailyContentBalance(
+                    readStringCell(sheet.getSheetName(), rowIndex, "contentType", row.getCell(headers.indexOf("contentType"))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "stage", row.getCell(headers.indexOf("stage"))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "repeatReward", row.getCell(headers.indexOf("repeatReward"))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "firstClearReward", row.getCell(headers.indexOf("firstClearReward"))),
+                    readBooleanCell(sheet.getSheetName(), rowIndex, "enabled", row.getCell(headers.indexOf("enabled")))));
+        }
+        rows.sort(Comparator.comparing(com.denfense.server.balance.DailyContentBalance::contentType)
+                .thenComparingInt(com.denfense.server.balance.DailyContentBalance::stage));
+        return rows;
+    }
+
     private List<String> requiredHeaders(Sheet sheet, String... expected) {
         Row header = sheet.getRow(0);
         if (header == null) {
@@ -1085,5 +1105,6 @@ public class ExcelBalanceReader {
         com.denfense.server.balance.MythicBreedingConfigBalance mythicBreedingConfig,
         List<com.denfense.server.balance.MythicBreedingResultBalance> mythicBreedingResults,
         List<com.denfense.server.balance.MythicBreedingRecipeBalance> mythicBreedingRecipes
+        , List<com.denfense.server.balance.DailyContentBalance> dailyContents
     ) {}
 }

@@ -13,6 +13,28 @@ import java.util.stream.Collectors;
 @Component
 public class BalanceDataValidator {
 
+    public void validateDailyContents(DailyContentBalanceDocument document) {
+        if (document == null || document.contents() == null || document.contents().size() != 10) {
+            throw new IllegalStateException("DailyContent must contain exactly 10 rows.");
+        }
+        Set<String> types = Set.of("CULTIVATION_ZONE", "MUTATION_LAB");
+        Set<String> keys = new HashSet<>();
+        for (DailyContentBalance row : document.contents()) {
+            if (row == null || !types.contains(row.contentType()) || row.stage() < 1 || row.stage() > 5
+                    || row.repeatReward() <= 0 || row.firstClearReward() < 0 || !row.enabled()
+                    || !keys.add(row.contentType() + ":" + row.stage())) {
+                throw new IllegalStateException("Invalid DailyContent row: " + row);
+            }
+        }
+        for (String type : types) {
+            for (int stage = 1; stage <= 5; stage++) {
+                if (!keys.contains(type + ":" + stage)) {
+                    throw new IllegalStateException("Missing DailyContent row: " + type + ":" + stage);
+                }
+            }
+        }
+    }
+
     public void validateBattleReward(com.denfense.server.balance.BattleRewardBalance balance) {
         if (balance == null || balance.maxWave() != 80 || balance.minimumRewardWave() < 1
                 || balance.failureRewardBaseGold() <= 0 || balance.failureRewardCapPercent() <= 0

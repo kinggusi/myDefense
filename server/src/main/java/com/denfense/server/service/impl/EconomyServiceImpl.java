@@ -39,6 +39,7 @@ public class EconomyServiceImpl implements EconomyService {
                 .heart(snapshot.calculatedHeart())
                 .universalPiece(user.getUniversalPiece())
                 .growthCell(user.getGrowthCell())
+                .mutationCatalyst(user.getMutationCatalyst())
                 .heartMax(HeartPolicy.MAX_HEART)
                 .nextHeartRecoveryAt(snapshot.nextHeartRecoveryAt())
                 .serverTime(snapshot.serverTime())

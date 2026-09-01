@@ -14,6 +14,7 @@ public class EconomyBalanceResponseDto {
     private int heart;
     private int universalPiece;
     private int growthCell;
+    private int mutationCatalyst;
     private int heartMax;
     private LocalDateTime nextHeartRecoveryAt;
     private LocalDateTime serverTime;

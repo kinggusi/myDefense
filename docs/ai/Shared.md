@@ -24,6 +24,7 @@ User/System과 Battle이 함께 사용하는 계약만 둡니다.
 - 미완료 Wave 처치 필드: Spawn 사실 필드 전체 + `killerPlayerSlot`, nullable `supportPlayerSlot`
 - 응답 필드: `battleSessionId`, `status`, `alreadyProcessed`, `rewards`
 - 보상 필드: `userId`, `rewardKey`, `rewardType`, `gold`, `universalPiece`, `diamond`
+- `universalPiece`는 하위 호환용 직렬화 필드명이며 사용자 표시명은 `왹져 DNA`다.
 - `eliminatedWave`는 미탈락 시 JSON `null`, 탈락 시 양의 정수다.
 - 시간 필드는 ISO-8601 local date-time 문자열로 전송한다.
 - Unity `JsonUtility`는 nullable 정수를 지원하지 않으므로 `BattleSettlementSummaryJson`을 사용한다.

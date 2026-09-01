@@ -108,6 +108,25 @@ final class BattleBalanceTestWorkbook {
                     });
         }
         addBreedingSheets(workbook);
+        addDailyContentSheet(workbook);
+    }
+
+    private static void addDailyContentSheet(Workbook workbook) {
+        if (workbook.getSheet("DailyContent") != null) return;
+        addRows(workbook, "DailyContent",
+                new String[]{"contentType", "stage", "repeatReward", "firstClearReward", "enabled"},
+                new Object[][]{
+                        {"CULTIVATION_ZONE", 1, 5, 5, true},
+                        {"CULTIVATION_ZONE", 2, 8, 8, true},
+                        {"CULTIVATION_ZONE", 3, 12, 12, true},
+                        {"CULTIVATION_ZONE", 4, 17, 17, true},
+                        {"CULTIVATION_ZONE", 5, 24, 24, true},
+                        {"MUTATION_LAB", 1, 3, 3, true},
+                        {"MUTATION_LAB", 2, 5, 5, true},
+                        {"MUTATION_LAB", 3, 8, 8, true},
+                        {"MUTATION_LAB", 4, 12, 12, true},
+                        {"MUTATION_LAB", 5, 17, 17, true}
+                });
     }
 
     private static void addBreedingSheets(Workbook workbook) {

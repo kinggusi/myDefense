@@ -92,6 +92,7 @@ public class LobbyControllerApiIntegrationTest {
                 .andExpect(jsonPath("$.user.heart").isNumber()) // heart는 자동계산 반영됨
                 .andExpect(jsonPath("$.user.universalPiece").value(20))
                 .andExpect(jsonPath("$.user.growthCell").value(5))
+                .andExpect(jsonPath("$.user.mutationCatalyst").value(0))
                 // 2. 전체 AlienSpec 반환
                 .andExpect(jsonPath("$.aliens").isArray())
                 .andExpect(jsonPath("$.aliens.length()").value(specCount))

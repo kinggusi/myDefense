@@ -27,7 +27,7 @@ public enum ErrorCode {
     PURCHASE_RESPONSE_RESTORE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "저장된 가챠 구매 응답을 복원하지 못했습니다."),
     USER_ALIEN_NOT_FOUND(HttpStatus.NOT_FOUND, "보유하지 않은 왹져입니다."),
     MAX_ALIEN_LEVEL_REACHED(HttpStatus.CONFLICT, "왹져가 최대 레벨에 도달했습니다."),
-    INSUFFICIENT_ALIEN_PIECES(HttpStatus.CONFLICT, "왹져 전용 조각 및 대체 코인이 부족합니다."),
+    INSUFFICIENT_ALIEN_PIECES(HttpStatus.CONFLICT, "왹져 전용 조각 및 왹져 DNA가 부족합니다."),
     INSUFFICIENT_ACCOUNT_GOLD(HttpStatus.CONFLICT, "계정 골드가 부족합니다."),
     INSUFFICIENT_GROWTH_CELL(HttpStatus.CONFLICT, "성장 세포가 부족합니다."),
     INVALID_UPGRADE_REQUEST(HttpStatus.BAD_REQUEST, "잘못된 강화 요청입니다."),
@@ -53,6 +53,14 @@ public enum ErrorCode {
     BATTLE_ENTRY_CONFLICT(HttpStatus.CONFLICT, "Battle 입장 예약 정보가 충돌했습니다."),
     BATTLE_ENTRY_REFUNDED(HttpStatus.CONFLICT, "이미 반환 처리된 Battle 입장입니다."),
     BATTLE_ENTRY_REFUND_INVALID(HttpStatus.CONFLICT, "반환할 수 없는 Battle 입장입니다."),
+    DAILY_CONTENT_NOT_FOUND(HttpStatus.NOT_FOUND, "일일 콘텐츠 또는 Stage를 찾을 수 없습니다."),
+    DAILY_CONTENT_STAGE_LOCKED(HttpStatus.FORBIDDEN, "아직 해금되지 않은 일일 콘텐츠 Stage입니다."),
+    DAILY_CONTENT_ENTRY_EXHAUSTED(HttpStatus.CONFLICT, "오늘의 일일 콘텐츠 입장 횟수를 모두 사용했습니다."),
+    DAILY_CONTENT_REQUEST_CONFLICT(HttpStatus.CONFLICT, "일일 콘텐츠 요청 정보가 충돌했습니다."),
+    DAILY_CONTENT_RUN_NOT_FOUND(HttpStatus.NOT_FOUND, "일일 콘텐츠 실행 정보를 찾을 수 없습니다."),
+    DAILY_CONTENT_RESULT_INVALID(HttpStatus.CONFLICT, "처리할 수 없는 일일 콘텐츠 결과입니다."),
+    DAILY_CONTENT_RESULT_FORBIDDEN(HttpStatus.FORBIDDEN, "신뢰되지 않은 일일 콘텐츠 결과 요청입니다."),
+    DAILY_CONTENT_SWEEP_LOCKED(HttpStatus.FORBIDDEN, "클리어하지 않은 Stage는 소탕할 수 없습니다."),
     BATTLE_SETTLEMENT_CONFLICT(HttpStatus.CONFLICT,"Battle settlement conflict"), BATTLE_SUMMARY_INVALID(HttpStatus.BAD_REQUEST,"Invalid battle summary"), BATTLE_PARTICIPANT_MISMATCH(HttpStatus.BAD_REQUEST,"Invalid participants"), BATTLE_BALANCE_VERSION_MISMATCH(HttpStatus.CONFLICT,"Balance version mismatch"), BATTLE_CONTENT_HASH_MISMATCH(HttpStatus.CONFLICT,"Balance content hash mismatch"), BATTLE_UNKNOWN_MONSTER(HttpStatus.BAD_REQUEST,"Unknown monster"), BATTLE_REQUEST_CONFLICT(HttpStatus.CONFLICT,"Battle request conflict"),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "예상치 못한 서버 에러가 발생했습니다.");
 
