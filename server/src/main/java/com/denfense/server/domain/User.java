@@ -27,6 +27,7 @@ public class User {
     private int heart;
     private int universalPiece;
     private int growthCell;
+    private int mutationCatalyst;
     private int accountLevel = 1;
     private LocalDateTime lastHeartUpdateTime;
 
@@ -39,6 +40,7 @@ public class User {
         this.gold = 0; // 초기 골드는 0으로 시작 (나중에 setGold로 수정 가능)
         this.universalPiece = 0;
         this.growthCell = 0;
+        this.mutationCatalyst = 0;
         this.accountLevel = 1;
     }
 
@@ -84,7 +86,7 @@ public class User {
     }
 
     public void earnUniversalPiece(int amount) {
-        if (amount < 0) throw new com.denfense.server.exception.BusinessException(com.denfense.server.exception.ErrorCode.INVALID_REQUEST, "대체 코인 지급량은 0 이상이어야 합니다.");
+        if (amount < 0) throw new com.denfense.server.exception.BusinessException(com.denfense.server.exception.ErrorCode.INVALID_REQUEST, "왹져 DNA 지급량은 0 이상이어야 합니다.");
         long value = (long) this.universalPiece + amount;
         this.universalPiece = value > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) value;
     }
@@ -100,7 +102,7 @@ public class User {
             throw new com.denfense.server.exception.BusinessException(com.denfense.server.exception.ErrorCode.INVALID_REQUEST, "차감 개수는 0 이상이어야 합니다.");
         }
         if (this.universalPiece < amount) {
-            throw new com.denfense.server.exception.BusinessException(com.denfense.server.exception.ErrorCode.INSUFFICIENT_ALIEN_PIECES, "대체 코인이 부족합니다.");
+            throw new com.denfense.server.exception.BusinessException(com.denfense.server.exception.ErrorCode.INSUFFICIENT_ALIEN_PIECES, "왹져 DNA가 부족합니다.");
         }
         this.universalPiece -= amount;
     }
@@ -113,6 +115,18 @@ public class User {
             throw new com.denfense.server.exception.BusinessException(com.denfense.server.exception.ErrorCode.INSUFFICIENT_GROWTH_CELL, "성장 세포가 부족합니다.");
         }
         this.growthCell -= amount;
+    }
+
+    public void earnGrowthCell(int amount) {
+        if (amount < 0) throw new com.denfense.server.exception.BusinessException(com.denfense.server.exception.ErrorCode.INVALID_REQUEST, "성장 세포 지급량은 0 이상이어야 합니다.");
+        long value = (long) this.growthCell + amount;
+        this.growthCell = value > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) value;
+    }
+
+    public void earnMutationCatalyst(int amount) {
+        if (amount < 0) throw new com.denfense.server.exception.BusinessException(com.denfense.server.exception.ErrorCode.INVALID_REQUEST, "변이 촉매 지급량은 0 이상이어야 합니다.");
+        long value = (long) this.mutationCatalyst + amount;
+        this.mutationCatalyst = value > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) value;
     }
 
     // 하트 계산 로직 (도메인 메서드)

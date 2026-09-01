@@ -412,9 +412,9 @@ P0-1-1~4 → P0-1-5 → P0-1-6
 |---|---|---|---|
 | P2-1-1 | jjangash | 완료 | 행성 Stage 해금·입장·보상 서버 구현 |
 | P2-1-2 | kinggusi | 정책 선행 | 행성별 Map·Waypoint·Boss Scene 구현 |
-| P2-2-1 | jjangash | 정책 선행 | 일일 콘텐츠 횟수·초기화·보상 서버 구현 |
-| P2-2-2 | kinggusi | 정책 선행 | 배양 구역 5 Stage Battle 구현 |
-| P2-2-3 | kinggusi | 정책 선행 | 변이 연구소 5 Stage Battle 구현 |
+| P2-2-1 | jjangash | 완료 | 일일 콘텐츠 횟수·초기화·보상 서버 구현 |
+| P2-2-2 | kinggusi | 대기 | 배양 구역 5 Stage Battle 구현 |
+| P2-2-3 | kinggusi | 대기 | 변이 연구소 5 Stage Battle 구현 |
 | P2-3-1 | jjangash | 정책 선행 | Quest·Achievement 조건·보상 서버 구현 |
 | P2-3-2 | kinggusi | 부분 완료 | Battle Quest 진행 이벤트 제공 |
 | P2-4-1 | jjangash | 정책 선행 | 무한 Wave 시즌·랭킹·구간 보상 서버 구현 |
@@ -425,6 +425,8 @@ P0-1-1~4 → P0-1-5 → P0-1-6
 | P2-6-2 | kinggusi | 대기 | 스킨·Projectile·처치 Effect 적용 |
 
 > P2-3-2 Shared 선행 계약 보정(2026-08-30): FAILED 매치에서 `finalWave + 1` 미완료 Wave의 실제 Spawn과 처치를 분리 검증하도록 Unity/Spring `BattleSettlementSummary`에 `waveSpawnFacts`와 `partialWaveKills`를 확정했다. 두 장부는 `spawnGroupId`, canonical Spawn row/ordinal, `fieldOwnerPlayerSlot`을 공유하고 Kill 귀속은 `killerPlayerSlot`/`supportPlayerSlot`으로 표현한다. `killedAtTick`과 사용자 ID 기반 귀속은 전송 계약에서 제거했다. Fusion `ulong runtimeMonsterId`는 decimal string으로 전송하며 두 배열을 unsigned 정렬한다. `summaryHash`는 해당 속성 자체를 제외한 canonical JSON의 SHA-256으로 Unity/Spring 동일 fixture를 고정한다. Battle State Authority의 실제 장부 투영과 Quest 영속 Processor 연결은 후속 구현·2클라이언트 검증 전까지 남아 있어 `부분 완료`다.
+
+> P2-2-1 구현 기록(2026-08-30): `CULTIVATION_ZONE`과 `MUTATION_LAB`은 각각 KST 자정 기준 하루 3회, Stage 1~5 순차 해금, 입장 즉시 차감, 일반 실패 소모, trusted 매칭·Session·서버 장애 반환 정책을 사용한다. 최초 클리어는 기본 보상과 같은 양을 1회 추가하고 클리어 Stage만 소탕한다. 사용자별 request ID와 operation/payload를 함께 저장해 입장·결과·반환·소탕을 멱등 처리하며 동일 사용자 병렬 요청은 pessimistic lock으로 직렬화한다. Excel `DailyContent` 시트에서 `daily-content.json`을 생성하고 성장 세포·변이 촉매를 영구 재화로 지급한다. local/dev 결과 API는 loopback으로 제한하고 production JWT principal Adapter 전에는 공개 Controller를 fail-closed한다. 실제 두 던전 전투는 P2-2-2·P2-2-3에서 연결한다. Server 전용 11/11, 전체 351/351, BalanceTool 77/77, Unity EditMode 461/461 및 독립 리뷰 P0/P1 0을 기준으로 완료 처리했다. 로비 재화 카드의 최종 해상도·아트는 사용자 시각 검증이 남는다.
 
 ---
 

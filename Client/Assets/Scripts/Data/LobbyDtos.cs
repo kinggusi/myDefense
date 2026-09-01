@@ -18,6 +18,7 @@ public class UserDto
     public int accountLevel;
     public int universalPiece;
     public int growthCell;
+    public int mutationCatalyst;
 }
 
 [Serializable]

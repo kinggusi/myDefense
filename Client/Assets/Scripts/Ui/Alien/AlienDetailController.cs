@@ -315,8 +315,8 @@ public void Open(long alienId)
         if (rangeText != null) rangeText.text = "Range " + view.Range.ToString("0.##");
         if (piecesText != null) piecesText.text = "Pieces " + view.CurrentPieces + " / " + view.RequiredPieces;
         if (goldText != null) goldText.text = "Gold " + view.Gold.ToString("N0") + " / " + view.RequiredGold.ToString("N0");
-        if (growthCellText != null) growthCellText.text = "Growth Cell " + view.GrowthCell + " / " + view.RequiredGrowthCell;
-        if (universalPieceText != null) universalPieceText.text = "Universal Piece " + view.UniversalPiece + " / " + view.RequiredUniversalPiece;
+        if (growthCellText != null) growthCellText.text = "성장 세포 " + view.GrowthCell + " / " + view.RequiredGrowthCell;
+        if (universalPieceText != null) universalPieceText.text = "왹져 DNA " + view.UniversalPiece + " / " + view.RequiredUniversalPiece;
 
         if (upgradeButton != null)
         {

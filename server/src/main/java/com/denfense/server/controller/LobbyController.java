@@ -60,6 +60,7 @@ public class LobbyController {
         userDto.setHeart(heartSnapshot.calculatedHeart());
         userDto.setUniversalPiece(user.getUniversalPiece());
         userDto.setGrowthCell(user.getGrowthCell());
+        userDto.setMutationCatalyst(user.getMutationCatalyst());
         userDto.setAccountLevel(user.getAccountLevel());
         userDto.setNextHeartRecoveryAt(heartSnapshot.nextHeartRecoveryAt());
         response.setUser(userDto);

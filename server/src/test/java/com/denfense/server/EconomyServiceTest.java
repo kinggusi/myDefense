@@ -43,6 +43,7 @@ class EconomyServiceTest {
         testUser.setHeart(10);
         testUser.setUniversalPiece(20);
         testUser.setGrowthCell(5);
+        testUser.setMutationCatalyst(7);
         testUser.setLastHeartUpdateTime(LocalDateTime.now().minusMinutes(5)); // 5분 전
         testUser = userRepository.saveAndFlush(testUser);
     }
@@ -56,6 +57,7 @@ class EconomyServiceTest {
         assertEquals(100, dto.getGem()); // 3. diamond -> gem 매핑
         assertEquals(20, dto.getUniversalPiece()); // 4. universalPiece 매핑
         assertEquals(5, dto.getGrowthCell()); // 5. growthCell 매핑
+        assertEquals(7, dto.getMutationCatalyst());
     }
 
     @Test
@@ -170,6 +172,7 @@ class EconomyServiceTest {
         assertTrue(json.contains("\"accountGold\""));
         assertTrue(json.contains("\"nextHeartRecoveryAt\""));
         assertTrue(json.contains("\"universalPiece\""));
+        assertTrue(json.contains("\"mutationCatalyst\""));
         assertFalse(json.contains("\"account_gold\""));
     }
 
