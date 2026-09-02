@@ -103,6 +103,31 @@ namespace MyDefense.Battle.Tests
             Assert.That(retry, Is.False);
         }
 
+        [Test]
+        public void ReconnectSnapshotMapId_UsesExactSpawnedAuthorityValue()
+        {
+            Assert.That(
+                BattleReconnectSnapshotBuilder.ResolveAuthoritativeMapId("EARTH", "EARTH"),
+                Is.EqualTo("EARTH"));
+        }
+
+        [TestCase(null, "EARTH")]
+        [TestCase("", "EARTH")]
+        [TestCase("EARTH", null)]
+        [TestCase("EARTH", "")]
+        [TestCase("EARTH", "MARS")]
+        [TestCase("earth", "EARTH")]
+        [TestCase(" EARTH ", " EARTH ")]
+        public void ReconnectSnapshotMapId_FailsClosedWhenIdentityIsMissingOrNotExact(
+            string sessionMapId,
+            string authoritativeMapId)
+        {
+            Assert.Throws<System.InvalidOperationException>(() =>
+                BattleReconnectSnapshotBuilder.ResolveAuthoritativeMapId(
+                    sessionMapId,
+                    authoritativeMapId));
+        }
+
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         [Test]
         public void P1ValidationConsumedWave_IsRejectedAtPublicAuthorityBoundary()
