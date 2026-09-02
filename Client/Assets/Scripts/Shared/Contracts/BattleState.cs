@@ -63,10 +63,11 @@ namespace MyDefense.Shared.Contracts
     [System.Serializable]
     public sealed class BattleSessionSnapshot
     {
-        public const int CurrentSchemaVersion = 2;
+        public const int CurrentSchemaVersion = 3;
 
         public int schemaVersion = CurrentSchemaVersion;
         public string battleSessionId;
+        public string mapId;
         public string balanceVersion;
         public string contentHash;
         public MatchState matchState;
@@ -148,7 +149,8 @@ namespace MyDefense.Shared.Contracts
             if (snapshot == null) throw new System.ArgumentNullException(nameof(snapshot));
             if (snapshot.schemaVersion != BattleSessionSnapshot.CurrentSchemaVersion)
                 throw new System.ArgumentException("Unsupported snapshot schema version.", nameof(snapshot));
-            if (string.IsNullOrWhiteSpace(snapshot.battleSessionId) || string.IsNullOrWhiteSpace(snapshot.balanceVersion)
+            if (string.IsNullOrWhiteSpace(snapshot.battleSessionId) || string.IsNullOrWhiteSpace(snapshot.mapId)
+                || string.IsNullOrWhiteSpace(snapshot.balanceVersion)
                 || string.IsNullOrWhiteSpace(snapshot.contentHash) || string.IsNullOrWhiteSpace(snapshot.currentWaveSpecId)
                 || (snapshot.waveType != "REGULAR" && snapshot.waveType != "BOSS")
                 || (snapshot.wavePhase != "SPAWNING" && snapshot.wavePhase != "ACTIVE" && snapshot.wavePhase != "WAITING" && snapshot.wavePhase != "COMPLETED"))
@@ -224,6 +226,7 @@ namespace MyDefense.Shared.Contracts
             var json = new System.Text.StringBuilder();
             json.Append("{\"schemaVersion\":").Append(snapshot.schemaVersion)
                 .Append(",\"battleSessionId\":").Append(String(snapshot.battleSessionId))
+                .Append(",\"mapId\":").Append(String(snapshot.mapId))
                 .Append(",\"balanceVersion\":").Append(String(snapshot.balanceVersion))
                 .Append(",\"contentHash\":").Append(String(snapshot.contentHash))
                 .Append(",\"matchState\":").Append(String(snapshot.matchState.ToString()))

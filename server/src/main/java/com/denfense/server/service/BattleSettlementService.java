@@ -43,6 +43,7 @@ public class BattleSettlementService {
     private final BattleSessionRosterRegistry battleSessionRosters;
     private final WaveBalanceRegistry waveBalances;
     private final BattlePlanetEntryService battleEntries;
+    private final QuestSettlementProcessor questSettlementProcessor;
 
     public BattleSettlementDtos.Response settle(BattleSettlementDtos.Request request) {
         validateEnvelope(request);
@@ -67,10 +68,10 @@ public class BattleSettlementService {
             return response(bySession, true, request);
         }
 
-        validateNewSettlement(request);
+        BattleSessionRosterRegistry.Roster roster = validateNewSettlement(request);
         BattleSettlement settlement;
         try {
-            BattleSettlementWriter.WriteResult write = writer.create(request);
+            BattleSettlementWriter.WriteResult write = writer.create(request, roster.sessionSource());
             if (!write.created()) {
                 validateRecoveredSettlement(write.settlement(), request);
                 return response(write.settlement(), true, request);
@@ -111,6 +112,7 @@ public class BattleSettlementService {
             BattleSettlementDtos.Request request
     ) {
         List<BattleSettlementDtos.Reward> rewards = rewardGrantService.grant(settlement, request);
+        questSettlementProcessor.process(settlement.getId());
         battleEntries.completeIfReserved(settlement.getBattleSessionId());
         return new BattleSettlementDtos.Response(
                 settlement.getBattleSessionId(),
@@ -145,7 +147,7 @@ public class BattleSettlementService {
         }
     }
 
-    private void validateNewSettlement(BattleSettlementDtos.Request request) {
+    private BattleSessionRosterRegistry.Roster validateNewSettlement(BattleSettlementDtos.Request request) {
         int maxWave = balances.getBattleRewardBalance().maxWave();
         if (request.finalWave() < 0
                 || request.finalWave() > maxWave
@@ -213,6 +215,7 @@ public class BattleSettlementService {
                 || playerBossKills != expectedBossKills) {
             invalidSummary();
         }
+        return roster;
     }
 
     private Map<Integer, BattleSettlementDtos.Player> validatePlayers(

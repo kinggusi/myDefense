@@ -48,6 +48,10 @@ Spring Boot
 
 Settlement 전 참가자 신뢰 경계는 `IBattleSessionRosterRegistration`이다. local/dev에서는 Fusion State Authority가 loopback 개발 API로 roster를 등록하고, 운영에서는 동일 인터페이스 뒤의 구현을 JWT principal + matchmaking 검증 Adapter로 교체한다. 이 교체는 Settlement Summary나 보상 계산 계약을 바꾸지 않는다. 운영 Adapter가 준비되지 않은 환경은 영구 보상을 fail-closed 처리한다.
 
+서버는 roster 등록 경로에서 `SessionSource`를 직접 확정한다. `PRODUCTION`만 Quest 영구 진행 대상이며 `LOCAL_DEVELOPMENT`와 `VALIDATION_FIXTURE`는 정산·회귀 검증은 가능하지만 계정 Quest 진행을 바꾸지 않는다. 이 값은 클라이언트 Settlement payload에서 받지 않는다. 승인된 Settlement의 Quest 사실은 `(settlementId, userId, questConditionId)` 장부로 정확히 한 번 누적한다.
+
+재접속 `BattleSessionSnapshot` schema v3는 authoritative `mapId`를 포함한다. Shared 계약과 Unity/Spring canonical JSON fixture를 함께 변경해야 하며, Battle State Authority는 서버가 확정한 Session mapId를 Snapshot에 투영하고 재접속 시 불일치를 fail-closed해야 한다.
+
 ## 3. Damage Flow
 ```text
 Alien + Skill + Mutation

@@ -415,7 +415,7 @@ P0-1-1~4 → P0-1-5 → P0-1-6
 | P2-2-1 | jjangash | 완료 | 일일 콘텐츠 횟수·초기화·보상 서버 구현 |
 | P2-2-2 | kinggusi | 정책 선행 | 배양 구역 5 Stage Battle 구현 |
 | P2-2-3 | kinggusi | 정책 선행 | 변이 연구소 5 Stage Battle 구현 |
-| P2-3-1 | jjangash | 정책 선행 | Quest·Achievement 조건·보상 서버 구현 |
+| P2-3-1 | jjangash | 부분 완료 | Settlement 기반 Quest 사실 장부·조건별 정확히 한 번 누적 구현 — 일일/주간 조건 정의·보상·초기화·조회 UI는 정책 및 후속 구현 대기 |
 | P2-3-2 | kinggusi | 부분 완료 | Battle Quest 진행 이벤트 제공 |
 | P2-4-1 | jjangash | 정책 선행 | 무한 Wave 시즌·랭킹·구간 보상 서버 구현 |
 | P2-4-2 | kinggusi | 정책 선행 | 무한 Wave 전투 모드 구현 |
@@ -438,6 +438,8 @@ P0-1-1~4 → P0-1-5 → P0-1-6
 > P2-3-2 최신 dev 동기화 기록(2026-08-31): PlanetContent PR #102와 P2-1-1이 포함된 `origin/dev` `f2ff276`을 충돌 없이 병합했다. authoritative Fusion `mapId` 고정·불일치 fail-closed와 State Authority Spawn/Kill audit·FAILED Settlement projection을 함께 보존했다. Settlement/PlanetContent/StateAuthority 집중 EditMode 160/160, 전체 EditMode 481/481, Battle Scene 검사(Missing Script 0, Broken Prefab 0), `Battle.unity` 단독 Windows Development Build를 통과했다. 실제 terminal FAILED POST·응답 대조와 User/System Quest 영속 Processor 연결은 아직 남아 있으므로 상태는 `부분 완료`다.
 
 > P2-3-2 미완료 Wave Settlement 스모크 보완(2026-09-01): non-P1VAL Development Session의 State Authority가 `RUNNING`, `currentWave == highestClearedWave + 1`, 실제 Spawn/Kill audit과 미해소 Spawn을 확인한 뒤 기존 terminal 경로로 `FAILED`를 정확히 한 번 확정하는 수동 스모크 진입점을 추가했다. Production Build와 P1VAL에서는 컴파일 또는 실행되지 않는다. Fixture 규칙 29/29, 관련 집중 EditMode 117/117, 전체 EditMode 493/493, `Battle.unity` 단독 Windows Development Build(error 0), 독립 리뷰 차단 0을 통과했다. 실제 Session `P23-PARTIAL-20260901-225458`에서 `DEFEAT/finalWave=2`, Wave 3 Spawn fact 4건과 Partial Kill 2건을 전송해 최초 `ACCEPTED/alreadyProcessed=false`, Unity/Spring SHA-256 일치, 동일 payload 재전송 `alreadyProcessed=true`, H2 Settlement 1건/Player 2건을 확인했다. Battle 측 실제 HTTP 게이트는 완료됐으며 User/System Quest 영속 Processor 연결 전까지 상태는 `부분 완료`를 유지한다.
+
+> P2-3-1 Quest Settlement 기반 구현(2026-09-02): trusted roster가 서버에서 부여한 `SessionSource(PRODUCTION/LOCAL_DEVELOPMENT/VALIDATION_FIXTURE)`를 Settlement에 영속하고, `PRODUCTION` 정산만 Quest 영구 진행에 반영한다. `QuestSettlementProcessor`는 저장된 Player Settlement 총계에서 참가·승리·행성 승리·완료 Wave·Kill·Support Kill·Boss Kill 사실을 만들며 `(settlementId, userId, questConditionId)` unique 장부와 사용자 잠금으로 동시 재처리까지 정확히 한 번 반영한다. FAILED의 미완료 Wave Kill/Support Kill은 이미 검증된 Player 총계에 포함되므로 partial 배열을 다시 더하지 않는다. Shared `BattleSessionSnapshot`은 authoritative `mapId`를 추가해 schema v3로 올리고 Builder 투영·누락 거부와 Unity/Spring 공용 JSON fixture를 검증한다. 기존 Settlement null source는 production으로 추정하지 않고 Quest에서 제외하며 운영 Migration 순서는 `docs/DATABASE_MIGRATION_POLICY.md`에 고정했다. Server 357/357, BalanceTool 77/77, Unity Shared 21/21 및 전체 EditMode 496/496를 통과했다. 일일/주간 Quest 정의·보상·초기화·조회 API/UI와 production JWT/matchmaking Adapter 및 production E2E가 남아 `부분 완료`다.
 
 ---
 

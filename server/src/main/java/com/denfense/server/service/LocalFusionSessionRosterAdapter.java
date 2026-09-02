@@ -2,6 +2,7 @@ package com.denfense.server.service;
 
 import com.denfense.server.dto.battle.BattleSessionRosterDtos;
 import com.denfense.server.domain.User;
+import com.denfense.server.domain.SessionSource;
 import com.denfense.server.exception.BusinessException;
 import com.denfense.server.exception.ErrorCode;
 import com.denfense.server.repository.UserRepository;
@@ -54,7 +55,10 @@ public class LocalFusionSessionRosterAdapter implements BattleSessionRosterAutho
                     request.players().stream()
                             .map(player -> new BattleSessionRosterRegistry.Player(
                                     player.playerSlot(), player.playerId().trim()))
-                            .toList());
+                            .toList(),
+                    request.battleSessionId().trim().startsWith("P1VAL-")
+                            ? SessionSource.VALIDATION_FIXTURE
+                            : SessionSource.LOCAL_DEVELOPMENT);
             published = true;
             registry.requireComplete(request.battleSessionId());
         } catch (RuntimeException registrationFailure) {
