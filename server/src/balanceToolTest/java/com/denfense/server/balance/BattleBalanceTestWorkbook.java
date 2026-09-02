@@ -109,6 +109,7 @@ final class BattleBalanceTestWorkbook {
         }
         addBreedingSheets(workbook);
         addDailyContentSheet(workbook);
+        addDailyBattleStageSheet(workbook);
     }
 
     private static void addDailyContentSheet(Workbook workbook) {
@@ -127,6 +128,37 @@ final class BattleBalanceTestWorkbook {
                         {"MUTATION_LAB", 4, 12, 12, true},
                         {"MUTATION_LAB", 5, 17, 17, true}
                 });
+    }
+
+    private static void addDailyBattleStageSheet(Workbook workbook) {
+        if (workbook.getSheet("DailyBattleStage") != null) return;
+        java.util.List<Object[]> rows = new java.util.ArrayList<>();
+        int[] waveCounts = {3, 4, 5, 6, 7};
+        int[] timeLimits = {120, 150, 180, 210, 240};
+        for (int stage = 1; stage <= 5; stage++) {
+            int waveCount = waveCounts[stage - 1];
+            int timeLimit = timeLimits[stage - 1];
+            for (int wave = 1; wave <= waveCount; wave++) {
+                rows.add(new Object[]{"CULTIVATION_ZONE", "DAILY_CULTIVATION_ZONE", stage, wave,
+                        timeLimit, "NORMAL_MONSTER", 8 + stage * 2 + wave, 0.8,
+                        1.0 + stage * 0.12, 1.0 + stage * 0.02, "PLAYER_ONE_ONLY", false,
+                        "NONE", 0, true});
+
+                boolean boss = wave == waveCount;
+                String monsterId = boss ? "WAVE_BOSS" : (wave % 2 == 0 ? "ELITE_MONSTER" : "NORMAL_MONSTER");
+                String effect = boss ? "ATTACK_DOWN" : (wave % 2 == 0 ? "ATTACK_SPEED_DOWN" : "NONE");
+                double effectValue = "NONE".equals(effect) ? 0 : 0.1 + stage * 0.02;
+                rows.add(new Object[]{"MUTATION_LAB", "DAILY_MUTATION_LAB", stage, wave,
+                        timeLimit, monsterId, boss ? 1 : 6 + stage + wave, boss ? 0 : 1.0,
+                        1.0 + stage * 0.18, 1.0 + stage * 0.03, "PLAYER_ONE_ONLY", boss,
+                        effect, effectValue, true});
+            }
+        }
+        addRows(workbook, "DailyBattleStage",
+                new String[]{"contentType", "mapId", "stage", "wave", "timeLimitSeconds", "monsterSpecId",
+                        "spawnCount", "spawnIntervalSeconds", "hpMultiplier", "moveSpeedMultiplier",
+                        "lanePolicy", "boss", "statusEffectType", "statusEffectValue", "enabled"},
+                rows.toArray(Object[][]::new));
     }
 
     private static void addBreedingSheets(Workbook workbook) {

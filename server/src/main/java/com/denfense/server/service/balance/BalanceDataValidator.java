@@ -35,6 +35,85 @@ public class BalanceDataValidator {
         }
     }
 
+    public void validateDailyBattleStages(DailyBattleStageBalanceDocument document,
+                                           MonsterSpecBalanceDocument monsters) {
+        if (document == null || document.stages() == null || document.stages().size() != 50) {
+            throw new IllegalStateException("DailyBattleStage must contain exactly 50 rows.");
+        }
+        if (monsters == null || monsters.monsters() == null) {
+            throw new IllegalStateException("MonsterSpec is required for DailyBattleStage validation.");
+        }
+
+        Map<String, MonsterSpecBalance> monsterById = monsters.monsters().stream()
+                .collect(Collectors.toMap(MonsterSpecBalance::monsterId, value -> value));
+        Map<String, String> expectedMaps = Map.of(
+                "CULTIVATION_ZONE", "DAILY_CULTIVATION_ZONE",
+                "MUTATION_LAB", "DAILY_MUTATION_LAB");
+        int[] expectedWaves = {3, 4, 5, 6, 7};
+        int[] expectedTimes = {120, 150, 180, 210, 240};
+        Set<String> allowedEffects = Set.of("NONE", "ATTACK_SPEED_DOWN", "ATTACK_DOWN");
+        Set<String> keys = new HashSet<>();
+
+        for (DailyBattleStageBalance row : document.stages()) {
+            String key = row == null ? "<null>" : row.contentType() + ":" + row.stage() + ":" + row.wave();
+            if (row == null || !expectedMaps.containsKey(row.contentType())
+                    || !expectedMaps.get(row.contentType()).equals(row.mapId())
+                    || row.stage() < 1 || row.stage() > 5
+                    || row.wave() < 1 || row.wave() > expectedWaves[row.stage() - 1]
+                    || row.timeLimitSeconds() != expectedTimes[row.stage() - 1]
+                    || row.spawnCount() < 1
+                    || row.spawnIntervalSeconds() == null || row.spawnIntervalSeconds().signum() < 0
+                    || row.hpMultiplier() == null || row.hpMultiplier().signum() <= 0
+                    || row.moveSpeedMultiplier() == null || row.moveSpeedMultiplier().signum() <= 0
+                    || !"PLAYER_ONE_ONLY".equals(row.lanePolicy())
+                    || !allowedEffects.contains(row.statusEffectType())
+                    || row.statusEffectValue() == null || row.statusEffectValue().signum() < 0
+                    || row.statusEffectValue().compareTo(new BigDecimal("0.50")) > 0
+                    || !row.enabled() || !keys.add(key)) {
+                throw new IllegalStateException("Invalid DailyBattleStage row: " + key);
+            }
+            MonsterSpecBalance monster = monsterById.get(row.monsterSpecId());
+            if (monster == null || !monster.enabled()) {
+                throw new IllegalStateException("DailyBattleStage references unknown monster: " + key);
+            }
+            if (("NONE".equals(row.statusEffectType()) && row.statusEffectValue().signum() != 0)
+                    || (!"NONE".equals(row.statusEffectType()) && row.statusEffectValue().signum() <= 0)) {
+                throw new IllegalStateException("DailyBattleStage status effect/value mismatch: " + key);
+            }
+            if (row.boss()) {
+                if (row.wave() != expectedWaves[row.stage() - 1] || row.spawnCount() != 1
+                        || row.spawnIntervalSeconds().signum() != 0
+                        || !"WAVE_BOSS".equals(monster.monsterType())) {
+                    throw new IllegalStateException("Invalid DailyBattleStage Boss row: " + key);
+                }
+            } else if (row.spawnIntervalSeconds().signum() <= 0 || "WAVE_BOSS".equals(monster.monsterType())) {
+                throw new IllegalStateException("Invalid DailyBattleStage regular row: " + key);
+            }
+            if ("CULTIVATION_ZONE".equals(row.contentType())
+                    && (row.boss() || !"NORMAL_MONSTER".equals(row.monsterSpecId())
+                    || !"NONE".equals(row.statusEffectType()))) {
+                throw new IllegalStateException("Cultivation Zone must use weak normal monsters without effects: " + key);
+            }
+        }
+
+        for (String contentType : expectedMaps.keySet()) {
+            for (int stage = 1; stage <= 5; stage++) {
+                int targetStage = stage;
+                List<DailyBattleStageBalance> rows = document.stages().stream()
+                        .filter(row -> contentType.equals(row.contentType()) && row.stage() == targetStage)
+                        .toList();
+                if (rows.size() != expectedWaves[stage - 1]) {
+                    throw new IllegalStateException("DailyBattleStage wave count mismatch: " + contentType + ":" + stage);
+                }
+                long bosses = rows.stream().filter(DailyBattleStageBalance::boss).count();
+                if (("MUTATION_LAB".equals(contentType) && bosses != 1)
+                        || ("CULTIVATION_ZONE".equals(contentType) && bosses != 0)) {
+                    throw new IllegalStateException("DailyBattleStage Boss policy mismatch: " + contentType + ":" + stage);
+                }
+            }
+        }
+    }
+
     public void validateBattleReward(com.denfense.server.balance.BattleRewardBalance balance) {
         if (balance == null || balance.maxWave() != 80 || balance.minimumRewardWave() < 1
                 || balance.failureRewardBaseGold() <= 0 || balance.failureRewardCapPercent() <= 0

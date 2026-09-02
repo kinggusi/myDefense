@@ -1,0 +1,74 @@
+{
+  "contents" : [
+    {
+      "contentType" : "CULTIVATION_ZONE",
+      "enabled" : true,
+      "firstClearReward" : 5,
+      "repeatReward" : 5,
+      "stage" : 1
+    },
+    {
+      "contentType" : "CULTIVATION_ZONE",
+      "enabled" : true,
+      "firstClearReward" : 8,
+      "repeatReward" : 8,
+      "stage" : 2
+    },
+    {
+      "contentType" : "CULTIVATION_ZONE",
+      "enabled" : true,
+      "firstClearReward" : 12,
+      "repeatReward" : 12,
+      "stage" : 3
+    },
+    {
+      "contentType" : "CULTIVATION_ZONE",
+      "enabled" : true,
+      "firstClearReward" : 17,
+      "repeatReward" : 17,
+      "stage" : 4
+    },
+    {
+      "contentType" : "CULTIVATION_ZONE",
+      "enabled" : true,
+      "firstClearReward" : 24,
+      "repeatReward" : 24,
+      "stage" : 5
+    },
+    {
+      "contentType" : "MUTATION_LAB",
+      "enabled" : true,
+      "firstClearReward" : 3,
+      "repeatReward" : 3,
+      "stage" : 1
+    },
+    {
+      "contentType" : "MUTATION_LAB",
+      "enabled" : true,
+      "firstClearReward" : 5,
+      "repeatReward" : 5,
+      "stage" : 2
+    },
+    {
+      "contentType" : "MUTATION_LAB",
+      "enabled" : true,
+      "firstClearReward" : 8,
+      "repeatReward" : 8,
+      "stage" : 3
+    },
+    {
+      "contentType" : "MUTATION_LAB",
+      "enabled" : true,
+      "firstClearReward" : 12,
+      "repeatReward" : 12,
+      "stage" : 4
+    },
+    {
+      "contentType" : "MUTATION_LAB",
+      "enabled" : true,
+      "firstClearReward" : 17,
+      "repeatReward" : 17,
+      "stage" : 5
+    }
+  ]
+}

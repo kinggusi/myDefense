@@ -52,6 +52,8 @@ Settlement 전 참가자 신뢰 경계는 `IBattleSessionRosterRegistration`이�
 
 재접속 `BattleSessionSnapshot` schema v3는 authoritative `mapId`를 포함한다. Shared 계약과 Unity/Spring canonical JSON fixture를 함께 변경해야 하며, Battle State Authority는 서버가 확정한 Session mapId를 Snapshot에 투영하고 재접속 시 불일치를 fail-closed해야 한다.
 
+일일 전투는 일반 행성 Settlement와 분리된 `DailyBattleSessionContext` schema v1을 사용한다. 서버가 발급한 `runId`와 `battleSessionId`, `contentType`, Stage, canonical `mapId`, Balance version/hash를 Unity와 Spring에서 동일 순서로 직렬화한다. `sessionSource`는 이 DTO에 포함하지 않고 trusted 서버 경계에서만 부여한다. Battle은 이 문맥과 `DailyBattleStage` canonical Balance를 검증한 뒤 단일 `Battle.unity`의 Player 1 Board/Lane만 활성화하며, State Authority 외의 결과 제출과 문맥 불일치는 fail-closed한다.
+
 ## 3. Damage Flow
 ```text
 Alien + Skill + Mutation

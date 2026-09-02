@@ -70,6 +70,9 @@ public class BalanceExcelConverter {
             stagedToTarget.put(
                     stagingDirectory.resolve("daily-content.json"),
                     generatedDirectory.resolve("daily-content.json"));
+            stagedToTarget.put(
+                    stagingDirectory.resolve("daily-battle-stage.json"),
+                    generatedDirectory.resolve("daily-battle-stage.json"));
             writer.replaceFilesAtomically(stagedToTarget);
 
             System.out.println("Conversion successful. Generated files: " + stagedToTarget.size());
@@ -113,6 +116,9 @@ public class BalanceExcelConverter {
                 data.alienSpecs());
         validator.validatePlanetBattles(new PlanetBattleBalanceDocument(data.planetBattles()));
         validator.validateDailyContents(new DailyContentBalanceDocument(data.dailyContents()));
+        validator.validateDailyBattleStages(
+                new DailyBattleStageBalanceDocument(data.dailyBattleStages()),
+                new MonsterSpecBalanceDocument(data.monsters()));
         validator.validateResonanceBalance(data.resonanceBalances());
         validateMutationBalance(data);
         validateBreedingBalance(data, poolDocument, new MythicChoiceBalanceDocument(data.mythicChoices(),
@@ -150,6 +156,8 @@ public class BalanceExcelConverter {
         documents.put(directory.resolve("mythic-breeding-results.json"),
                 new MythicBreedingResultDocument(data.mythicBreedingResults(), data.mythicBreedingRecipes()));
         documents.put(directory.resolve("daily-content.json"), new DailyContentBalanceDocument(data.dailyContents()));
+        documents.put(directory.resolve("daily-battle-stage.json"),
+                new DailyBattleStageBalanceDocument(data.dailyBattleStages()));
         return documents;
     }
 

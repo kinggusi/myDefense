@@ -161,7 +161,8 @@ tasks.register('syncCanonicalBalanceToUnity') {
         }
 
         def requiredRuntimeFiles = [
-                'monster-spec.json', 'wave-spec.json', 'wave-spawn.json', 'planet-battle-balance.json', 'field-limit.json'
+                'monster-spec.json', 'wave-spec.json', 'wave-spawn.json', 'planet-battle-balance.json',
+                'field-limit.json', 'daily-battle-stage.json'
         ] as Set
         def names = new LinkedHashSet<String>()
         def verifiedEntries = []

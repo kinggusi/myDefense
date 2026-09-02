@@ -55,11 +55,12 @@ public class ExcelBalanceReader {
             List<com.denfense.server.balance.MythicBreedingResultBalance> breedingResults = readMythicBreedingResultSheet(workbook);
             List<com.denfense.server.balance.MythicBreedingRecipeBalance> breedingRecipes = readMythicBreedingRecipeSheet(workbook);
             List<com.denfense.server.balance.DailyContentBalance> dailyContents = readDailyContentSheet(workbook);
+            List<com.denfense.server.balance.DailyBattleStageBalance> dailyBattleStages = readDailyBattleStageSheet(workbook);
 
             return new BalanceData(reward, battleReward, upgradeCosts, levelStats, alienSpecs, shopProducts, gachaPools, summonPools,
                     monsters, waves, waveSpawns, planetBattles, fieldLimits, summons, mergeRules, mythicChoices,
                     mutationSpecs, mutationConfig, injectorPools, resonanceBalances,
-                    breedingConfig, breedingResults, breedingRecipes, dailyContents);
+                    breedingConfig, breedingResults, breedingRecipes, dailyContents, dailyBattleStages);
 
         } catch (IOException e) {
             throw new BalanceConversionException("파일을 읽는 중 오류가 발생했습니다: " + filePath, e);
@@ -1073,6 +1074,39 @@ public class ExcelBalanceReader {
         return rows;
     }
 
+    private List<com.denfense.server.balance.DailyBattleStageBalance> readDailyBattleStageSheet(Workbook workbook) {
+        Sheet sheet = getSheetOrThrow(workbook, "DailyBattleStage");
+        List<String> headers = requiredHeaders(sheet,
+                "contentType", "mapId", "stage", "wave", "timeLimitSeconds", "monsterSpecId",
+                "spawnCount", "spawnIntervalSeconds", "hpMultiplier", "moveSpeedMultiplier",
+                "lanePolicy", "boss", "statusEffectType", "statusEffectValue", "enabled");
+        List<com.denfense.server.balance.DailyBattleStageBalance> rows = new ArrayList<>();
+        for (int rowIndex = 1; rowIndex <= sheet.getLastRowNum(); rowIndex++) {
+            Row row = sheet.getRow(rowIndex);
+            if (row == null || isBlankRow(row, headers.size())) continue;
+            rows.add(new com.denfense.server.balance.DailyBattleStageBalance(
+                    readStringCell(sheet.getSheetName(), rowIndex, "contentType", row.getCell(headers.indexOf("contentType"))),
+                    readStringCell(sheet.getSheetName(), rowIndex, "mapId", row.getCell(headers.indexOf("mapId"))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "stage", row.getCell(headers.indexOf("stage"))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "wave", row.getCell(headers.indexOf("wave"))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "timeLimitSeconds", row.getCell(headers.indexOf("timeLimitSeconds"))),
+                    readStringCell(sheet.getSheetName(), rowIndex, "monsterSpecId", row.getCell(headers.indexOf("monsterSpecId"))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "spawnCount", row.getCell(headers.indexOf("spawnCount"))),
+                    readDecimalCell(sheet.getSheetName(), rowIndex, "spawnIntervalSeconds", row.getCell(headers.indexOf("spawnIntervalSeconds"))),
+                    readDecimalCell(sheet.getSheetName(), rowIndex, "hpMultiplier", row.getCell(headers.indexOf("hpMultiplier"))),
+                    readDecimalCell(sheet.getSheetName(), rowIndex, "moveSpeedMultiplier", row.getCell(headers.indexOf("moveSpeedMultiplier"))),
+                    readStringCell(sheet.getSheetName(), rowIndex, "lanePolicy", row.getCell(headers.indexOf("lanePolicy"))),
+                    readBooleanCell(sheet.getSheetName(), rowIndex, "boss", row.getCell(headers.indexOf("boss"))),
+                    readStringCell(sheet.getSheetName(), rowIndex, "statusEffectType", row.getCell(headers.indexOf("statusEffectType"))),
+                    readDecimalCell(sheet.getSheetName(), rowIndex, "statusEffectValue", row.getCell(headers.indexOf("statusEffectValue"))),
+                    readBooleanCell(sheet.getSheetName(), rowIndex, "enabled", row.getCell(headers.indexOf("enabled")))));
+        }
+        rows.sort(Comparator.comparing(com.denfense.server.balance.DailyBattleStageBalance::contentType)
+                .thenComparingInt(com.denfense.server.balance.DailyBattleStageBalance::stage)
+                .thenComparingInt(com.denfense.server.balance.DailyBattleStageBalance::wave));
+        return rows;
+    }
+
     private List<String> requiredHeaders(Sheet sheet, String... expected) {
         Row header = sheet.getRow(0);
         if (header == null) {
@@ -1106,5 +1140,6 @@ public class ExcelBalanceReader {
         List<com.denfense.server.balance.MythicBreedingResultBalance> mythicBreedingResults,
         List<com.denfense.server.balance.MythicBreedingRecipeBalance> mythicBreedingRecipes
         , List<com.denfense.server.balance.DailyContentBalance> dailyContents
+        , List<com.denfense.server.balance.DailyBattleStageBalance> dailyBattleStages
     ) {}
 }

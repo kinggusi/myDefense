@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace MyDefense.Battle.Balance.Canonical
 {
@@ -20,6 +21,7 @@ namespace MyDefense.Battle.Balance.Canonical
         public const string MutationConfigFileName = "mutation-config.json";
         public const string InjectorPoolFileName = "injector-pool.json";
         public const string ResonanceFileName = "resonance-balance.json";
+        public const string DailyBattleStageFileName = "daily-battle-stage.json";
     }
 
     public sealed class CanonicalManifestFileEntry
@@ -50,6 +52,82 @@ namespace MyDefense.Battle.Balance.Canonical
             ContentHash = contentHash;
             Files = Array.AsReadOnly(new List<CanonicalManifestFileEntry>(files ?? Array.Empty<CanonicalManifestFileEntry>()).ToArray());
         }
+    }
+
+    public enum CanonicalDailyBattleLanePolicy
+    {
+        PLAYER_ONE_ONLY = 0
+    }
+
+    public enum CanonicalDailyBattleStatusEffect
+    {
+        NONE = 0,
+        ATTACK_SPEED_DOWN = 1,
+        ATTACK_DOWN = 2
+    }
+
+    public sealed class CanonicalDailyBattleStage
+    {
+        public string ContentType { get; }
+        public string MapId { get; }
+        public int Stage { get; }
+        public int Wave { get; }
+        public int TimeLimitSeconds { get; }
+        public string MonsterSpecId { get; }
+        public int SpawnCount { get; }
+        public float SpawnIntervalSeconds { get; }
+        public float HpMultiplier { get; }
+        public float MoveSpeedMultiplier { get; }
+        public CanonicalDailyBattleLanePolicy LanePolicy { get; }
+        public bool Boss { get; }
+        public CanonicalDailyBattleStatusEffect StatusEffectType { get; }
+        public float StatusEffectValue { get; }
+        public bool Enabled { get; }
+
+        public CanonicalDailyBattleStage(string contentType, string mapId, int stage, int wave,
+            int timeLimitSeconds, string monsterSpecId, int spawnCount, float spawnIntervalSeconds,
+            float hpMultiplier, float moveSpeedMultiplier, CanonicalDailyBattleLanePolicy lanePolicy,
+            bool boss, CanonicalDailyBattleStatusEffect statusEffectType, float statusEffectValue, bool enabled)
+        {
+            ContentType = contentType;
+            MapId = mapId;
+            Stage = stage;
+            Wave = wave;
+            TimeLimitSeconds = timeLimitSeconds;
+            MonsterSpecId = monsterSpecId;
+            SpawnCount = spawnCount;
+            SpawnIntervalSeconds = spawnIntervalSeconds;
+            HpMultiplier = hpMultiplier;
+            MoveSpeedMultiplier = moveSpeedMultiplier;
+            LanePolicy = lanePolicy;
+            Boss = boss;
+            StatusEffectType = statusEffectType;
+            StatusEffectValue = statusEffectValue;
+            Enabled = enabled;
+        }
+    }
+
+    public sealed class CanonicalDailyBattleStageRegistry
+    {
+        private readonly Dictionary<string, IReadOnlyList<CanonicalDailyBattleStage>> _byStage;
+
+        public CanonicalDailyBattleStageRegistry(IEnumerable<CanonicalDailyBattleStage> rows)
+        {
+            _byStage = new Dictionary<string, IReadOnlyList<CanonicalDailyBattleStage>>(StringComparer.Ordinal);
+            foreach (IGrouping<string, CanonicalDailyBattleStage> group in (rows ?? Array.Empty<CanonicalDailyBattleStage>())
+                .GroupBy(row => Key(row.ContentType, row.Stage), StringComparer.Ordinal))
+            {
+                List<CanonicalDailyBattleStage> ordered = group.OrderBy(row => row.Wave).ToList();
+                _byStage.Add(group.Key, Array.AsReadOnly(ordered.ToArray()));
+            }
+        }
+
+        public bool TryGet(string contentType, int stage, out IReadOnlyList<CanonicalDailyBattleStage> rows)
+        {
+            return _byStage.TryGetValue(Key(contentType, stage), out rows);
+        }
+
+        private static string Key(string contentType, int stage) => contentType + ":" + stage;
     }
 
     public sealed class CanonicalSummonBalance
@@ -548,11 +626,12 @@ namespace MyDefense.Battle.Balance.Canonical
         public CanonicalMutationConfig MutationConfig { get; }
         public IReadOnlyList<CanonicalInjectorPoolEntry> InjectorPool { get; }
         public CanonicalResonanceRegistry Resonance { get; }
+        public CanonicalDailyBattleStageRegistry DailyBattleStages { get; }
         public IMonsterDefinitionProvider MonsterDefinitions { get; }
         internal BattleBalanceDocument<WaveSpecData> RuntimeWaves { get; }
         internal BattleBalanceDocument<WaveSpawnSpecData> RuntimeSpawns { get; }
 
-        internal CanonicalBalanceBundle(CanonicalBalanceManifest manifest, CanonicalMonsterRegistry monsters, CanonicalWaveRegistry waves, CanonicalWaveSpawnRegistry waveSpawns, CanonicalFieldLimitRegistry fieldLimits, CanonicalPlanetBattleRegistry planetBattles, CanonicalSummonBalance summon, IReadOnlyDictionary<string, CanonicalSummonPool> summonPools, IReadOnlyList<CanonicalMutationSpec> mutationSpecs, CanonicalMutationConfig mutationConfig, IReadOnlyList<CanonicalInjectorPoolEntry> injectorPool, CanonicalResonanceRegistry resonance, BattleBalanceDocument<WaveSpecData> runtimeWaves, BattleBalanceDocument<WaveSpawnSpecData> runtimeSpawns)
+        internal CanonicalBalanceBundle(CanonicalBalanceManifest manifest, CanonicalMonsterRegistry monsters, CanonicalWaveRegistry waves, CanonicalWaveSpawnRegistry waveSpawns, CanonicalFieldLimitRegistry fieldLimits, CanonicalPlanetBattleRegistry planetBattles, CanonicalSummonBalance summon, IReadOnlyDictionary<string, CanonicalSummonPool> summonPools, IReadOnlyList<CanonicalMutationSpec> mutationSpecs, CanonicalMutationConfig mutationConfig, IReadOnlyList<CanonicalInjectorPoolEntry> injectorPool, CanonicalResonanceRegistry resonance, CanonicalDailyBattleStageRegistry dailyBattleStages, BattleBalanceDocument<WaveSpecData> runtimeWaves, BattleBalanceDocument<WaveSpawnSpecData> runtimeSpawns)
         {
             Manifest = manifest;
             Monsters = monsters;
@@ -566,6 +645,7 @@ namespace MyDefense.Battle.Balance.Canonical
             MutationConfig = mutationConfig;
             InjectorPool = injectorPool ?? Array.Empty<CanonicalInjectorPoolEntry>();
             Resonance = resonance ?? new CanonicalResonanceRegistry(Array.Empty<CanonicalResonanceLevel>());
+            DailyBattleStages = dailyBattleStages ?? new CanonicalDailyBattleStageRegistry(Array.Empty<CanonicalDailyBattleStage>());
             RuntimeWaves = runtimeWaves;
             RuntimeSpawns = runtimeSpawns;
             MonsterDefinitions = new CanonicalMonsterDefinitionProvider(monsters);

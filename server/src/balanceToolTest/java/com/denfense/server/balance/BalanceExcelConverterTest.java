@@ -253,10 +253,14 @@ class BalanceExcelConverterTest {
         validator.validateGachaPool(poolDoc, data.alienSpecs());
         com.denfense.server.balance.ShopProductBalanceDocument shopDoc = new com.denfense.server.balance.ShopProductBalanceDocument(data.shopProducts());
         validator.validateShopProduct(shopDoc, poolDoc);
+        validator.validateDailyBattleStages(
+                new com.denfense.server.balance.DailyBattleStageBalanceDocument(data.dailyBattleStages()),
+                new com.denfense.server.balance.MonsterSpecBalanceDocument(data.monsters()));
 
         assertThat(data.gameReward().baseRewardGold()).isEqualTo(100);
         assertThat(data.alienLevelStats()).hasSize(50);
         assertThat(data.alienUpgradeCosts()).hasSize(49);
+        assertThat(data.dailyBattleStages()).hasSize(50);
 
         Map<Integer, com.denfense.server.service.balance.AlienUpgradeCostBalance> costsByLevel =
                 data.alienUpgradeCosts().stream().collect(Collectors.toMap(
@@ -312,6 +316,56 @@ class BalanceExcelConverterTest {
         assertThat(mythicEntry.weight()).isEqualTo(50);
         assertThat(mythicEntry.alienIds()).containsExactly(29L, 30L, 31L, 32L);
         assertThat(mythicEntry.alienIds()).noneMatch(id -> id >= 33 && id <= 48);
+    }
+
+    @Test
+    void dailyBattleStageWrongMapFailsValidation() throws IOException {
+        createValidWorkbook();
+        workbook.getSheet("DailyBattleStage").getRow(1).getCell(1).setCellValue("DAILY_MUTATION_LAB");
+        saveAndClose();
+
+        ExcelBalanceReader.BalanceData data = new ExcelBalanceReader(tempExcel.getAbsolutePath()).read();
+        BalanceDataValidator validator = new BalanceDataValidator();
+        assertThrows(IllegalStateException.class, () -> validator.validateDailyBattleStages(
+                new com.denfense.server.balance.DailyBattleStageBalanceDocument(data.dailyBattleStages()),
+                new com.denfense.server.balance.MonsterSpecBalanceDocument(data.monsters())));
+    }
+
+    @Test
+    void dailyBattleStageRegularWaveRequiresPositiveSpawnInterval() throws IOException {
+        createValidWorkbook();
+        workbook.getSheet("DailyBattleStage").getRow(1).getCell(7).setCellValue(0);
+        assertDailyBattleValidationFails();
+    }
+
+    @Test
+    void dailyBattleStageBossRequiresBossMonsterType() throws IOException {
+        createValidWorkbook();
+        workbook.getSheet("MonsterSpec").getRow(3).getCell(2).setCellValue("ELITE");
+        assertDailyBattleValidationFails();
+    }
+
+    @Test
+    void dailyBattleStageNumericEnumTextIsRejected() throws IOException {
+        createValidWorkbook();
+        workbook.getSheet("DailyBattleStage").getRow(1).getCell(10).setCellValue("0");
+        assertDailyBattleValidationFails();
+    }
+
+    @Test
+    void dailyBattleStageNumericStatusEffectTextIsRejected() throws IOException {
+        createValidWorkbook();
+        workbook.getSheet("DailyBattleStage").getRow(1).getCell(12).setCellValue("0");
+        assertDailyBattleValidationFails();
+    }
+
+    private void assertDailyBattleValidationFails() throws IOException {
+        saveAndClose();
+        ExcelBalanceReader.BalanceData data = new ExcelBalanceReader(tempExcel.getAbsolutePath()).read();
+        BalanceDataValidator validator = new BalanceDataValidator();
+        assertThrows(IllegalStateException.class, () -> validator.validateDailyBattleStages(
+                new com.denfense.server.balance.DailyBattleStageBalanceDocument(data.dailyBattleStages()),
+                new com.denfense.server.balance.MonsterSpecBalanceDocument(data.monsters())));
     }
 
     private void assertStat(
