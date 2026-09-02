@@ -1,7 +1,7 @@
 {
   "schemaVersion" : 1,
-  "balanceVersion" : "1-50da09ac4ade04f8",
-  "contentHash" : "50da09ac4ade04f8630987b89af7cc1c9a48a79a29212199c415aafc82f3a2ba",
+  "balanceVersion" : "1-b6ca576fc911aecb",
+  "contentHash" : "b6ca576fc911aecbdff4817778532fc2547bc734972538b3a36e5b8d54df63b2",
   "files" : [ {
     "name" : "alien-level-stat.json",
     "sha256" : "2afc3bb0d4e009c185e35cf76e56cf942e7925b288f77577eb20722b906a6f8f",
@@ -18,6 +18,14 @@
     "name" : "battle-reward.json",
     "sha256" : "6e435ccf67b657a1a1bf5954bbe5753ceaad8e0aad7a492f5e4df608fab148f6",
     "size" : 1542
+  }, {
+    "name" : "daily-battle-stage.json",
+    "sha256" : "cd185266173f4f2daf402ba058769071ae4e7b7cebe65e4542074eb4c68d6454",
+    "size" : 24455
+  }, {
+    "name" : "daily-content.json",
+    "sha256" : "99f032e5ebd0f558a346c3d43b0f7608527b2f0027e42bc9eb35d782c28ea163",
+    "size" : 1544
   }, {
     "name" : "field-limit.json",
     "sha256" : "3021464010c3cea0df6c3cc3b07389774c60e8113b1a4634d9cb5c91df2d6238",

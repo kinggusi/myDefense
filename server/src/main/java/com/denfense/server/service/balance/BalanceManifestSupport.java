@@ -16,6 +16,8 @@ public final class BalanceManifestSupport {
             "alien-spec.json",
             "alien-upgrade-cost.json",
             "battle-reward.json",
+            "daily-battle-stage.json",
+            "daily-content.json",
             "field-limit.json",
             "gacha-pools.json",
             "game-reward.json",

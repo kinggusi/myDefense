@@ -26,8 +26,8 @@ namespace MyDefense.Battle.Tests
 
             Assert.That(result.IsValid, Is.True, JoinErrors(result.Errors));
             Assert.That(result.Bundle.Manifest.SchemaVersion, Is.EqualTo(1));
-            Assert.That(result.Bundle.Manifest.BalanceVersion, Is.EqualTo("1-50da09ac4ade04f8"));
-            Assert.That(result.Bundle.Manifest.ContentHash, Is.EqualTo("50da09ac4ade04f8630987b89af7cc1c9a48a79a29212199c415aafc82f3a2ba"));
+            Assert.That(result.Bundle.Manifest.BalanceVersion, Is.EqualTo("1-b6ca576fc911aecb"));
+            Assert.That(result.Bundle.Manifest.ContentHash, Is.EqualTo("b6ca576fc911aecbdff4817778532fc2547bc734972538b3a36e5b8d54df63b2"));
 
             AssertMonster(result.Bundle.MonsterDefinitions, "NORMAL_MONSTER", "NORMAL", 30f, 5f, 20, true);
             AssertMonster(result.Bundle.MonsterDefinitions, "ELITE_MONSTER", "ELITE", 60f, 4f, 40, true);
@@ -58,6 +58,21 @@ namespace MyDefense.Battle.Tests
             Assert.That(pool.Entries[0].Grade, Is.EqualTo("NORMAL"));
             Assert.That(pool.Entries[0].Weight, Is.EqualTo(10000));
             Assert.That(pool.Entries[0].AlienIds, Is.EqualTo(new long[] { 22, 23, 24, 25, 26, 27, 28 }));
+
+            Assert.That(result.Bundle.DailyBattleStages.TryGet("CULTIVATION_ZONE", 5,
+                out IReadOnlyList<CanonicalDailyBattleStage> cultivationStage5), Is.True);
+            Assert.That(cultivationStage5, Has.Count.EqualTo(7));
+            Assert.That(cultivationStage5.All(row =>
+                row.MapId == "DAILY_CULTIVATION_ZONE" && !row.Boss
+                && row.LanePolicy == CanonicalDailyBattleLanePolicy.PLAYER_ONE_ONLY), Is.True);
+
+            Assert.That(result.Bundle.DailyBattleStages.TryGet("MUTATION_LAB", 5,
+                out IReadOnlyList<CanonicalDailyBattleStage> mutationStage5), Is.True);
+            Assert.That(mutationStage5, Has.Count.EqualTo(7));
+            Assert.That(mutationStage5.Last().Boss, Is.True);
+            Assert.That(mutationStage5.Last().MonsterSpecId, Is.EqualTo("WAVE_BOSS"));
+            Assert.That(mutationStage5.Last().StatusEffectType,
+                Is.EqualTo(CanonicalDailyBattleStatusEffect.ATTACK_SPEED_DOWN));
         }
 
         [Test]
@@ -218,6 +233,37 @@ namespace MyDefense.Battle.Tests
             CanonicalBalanceLoadResult result = Load(files);
 
             AssertInvalidContaining(result, "summon-balance.json");
+        }
+
+        [Test]
+        public void DailyBattleRegularWave_RequiresPositiveSpawnInterval()
+        {
+            Dictionary<string, byte[]> files = LoadProductionFiles();
+            MutateAndRebuild(files, CanonicalBalanceContract.DailyBattleStageFileName,
+                json => ReplaceFirst(json, "\"spawnIntervalSeconds\" : 0.8", "\"spawnIntervalSeconds\" : 0.0"));
+
+            AssertInvalidContaining(Load(files), "Boss/content policy mismatch");
+        }
+
+        [Test]
+        public void DailyBattleBoss_RequiresBossMonsterType()
+        {
+            Dictionary<string, byte[]> files = LoadProductionFiles();
+            MutateAndRebuild(files, CanonicalBalanceContract.MonsterFileName,
+                json => ReplaceFirst(json, "\"monsterType\" : \"WAVE_BOSS\"", "\"monsterType\" : \"ELITE\""));
+
+            AssertInvalidContaining(Load(files), "Boss/content policy mismatch");
+        }
+
+        [TestCase("\"lanePolicy\" : \"PLAYER_ONE_ONLY\"", "\"lanePolicy\" : \"0\"")]
+        [TestCase("\"statusEffectType\" : \"NONE\"", "\"statusEffectType\" : \"0\"")]
+        public void DailyBattleNumericEnumText_IsRejected(string source, string replacement)
+        {
+            Dictionary<string, byte[]> files = LoadProductionFiles();
+            MutateAndRebuild(files, CanonicalBalanceContract.DailyBattleStageFileName,
+                json => ReplaceFirst(json, source, replacement));
+
+            AssertInvalidContaining(Load(files), "policy/effect");
         }
 
         [Test]
@@ -440,6 +486,13 @@ namespace MyDefense.Battle.Tests
             manifest.contentHash = Sha256(Encoding.UTF8.GetBytes(canonical.ToString()));
             manifest.balanceVersion = manifest.schemaVersion + "-" + manifest.contentHash.Substring(0, 16);
             files[CanonicalBalanceContract.ManifestFileName] = Encoding.UTF8.GetBytes(JsonUtility.ToJson(manifest, true));
+        }
+
+        private static string ReplaceFirst(string source, string oldValue, string newValue)
+        {
+            int index = source.IndexOf(oldValue, StringComparison.Ordinal);
+            Assert.That(index, Is.GreaterThanOrEqualTo(0), oldValue);
+            return source.Substring(0, index) + newValue + source.Substring(index + oldValue.Length);
         }
 
         private static ManifestJson ParseManifest(Dictionary<string, byte[]> files)

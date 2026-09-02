@@ -89,6 +89,7 @@ namespace MyDefense.Battle.Balance.Canonical
             , CanonicalBalanceContract.MutationConfigFileName
             , CanonicalBalanceContract.InjectorPoolFileName
             , CanonicalBalanceContract.ResonanceFileName
+            , CanonicalBalanceContract.DailyBattleStageFileName
         };
 
         public static CanonicalBalanceLoadResult Load(
@@ -176,6 +177,8 @@ namespace MyDefense.Battle.Balance.Canonical
             ResonanceJson[] resonanceDocument = names.Contains(CanonicalBalanceContract.ResonanceFileName)
                 ? ParseArrayJson<ResonanceJson>(fileBytes[CanonicalBalanceContract.ResonanceFileName], CanonicalBalanceContract.ResonanceFileName, errors)
                 : Array.Empty<ResonanceJson>();
+            DailyBattleStageDocumentJson dailyBattleDocument = ParseDocument<DailyBattleStageDocumentJson>(
+                fileBytes, CanonicalBalanceContract.DailyBattleStageFileName, errors);
             if (errors.Count > 0) return Invalid(errors);
 
             List<CanonicalMonsterSpec> monsters = BuildMonsters(monsterDocument.monsters, runtimeMapping, errors);
@@ -189,6 +192,8 @@ namespace MyDefense.Battle.Balance.Canonical
             CanonicalMutationConfig mutationConfig = BuildMutationConfig(mutationConfigDocument, errors);
             List<CanonicalInjectorPoolEntry> injectorPool = BuildInjectorPool(injectorPoolDocument, errors);
             CanonicalResonanceRegistry resonance = BuildResonance(resonanceDocument, errors);
+            CanonicalDailyBattleStageRegistry dailyBattleStages = BuildDailyBattleStages(
+                dailyBattleDocument?.stages, monsters, errors);
             ValidateRelationships(monsters, waves, spawns, errors);
             if (errors.Count > 0) return Invalid(errors);
 
@@ -232,7 +237,7 @@ namespace MyDefense.Battle.Balance.Canonical
             var runtimeWaveDocument = new BattleBalanceDocument<WaveSpecData>(manifest.SchemaVersion, manifest.BalanceVersion, manifest.ContentHash, runtimeWaves);
             var runtimeSpawnDocument = new BattleBalanceDocument<WaveSpawnSpecData>(manifest.SchemaVersion, manifest.BalanceVersion, manifest.ContentHash, runtimeSpawns);
             return new CanonicalBalanceLoadResult(
-                new CanonicalBalanceBundle(manifest, monsterRegistry, waveRegistry, spawnRegistry, fieldLimitRegistry, planetRegistry, summon, summonPools, mutationSpecs, mutationConfig, injectorPool, resonance, runtimeWaveDocument, runtimeSpawnDocument),
+                new CanonicalBalanceBundle(manifest, monsterRegistry, waveRegistry, spawnRegistry, fieldLimitRegistry, planetRegistry, summon, summonPools, mutationSpecs, mutationConfig, injectorPool, resonance, dailyBattleStages, runtimeWaveDocument, runtimeSpawnDocument),
                 errors);
         }
 
@@ -594,6 +599,89 @@ namespace MyDefense.Battle.Balance.Canonical
             return result;
         }
 
+        private static CanonicalDailyBattleStageRegistry BuildDailyBattleStages(
+            DailyBattleStageJson[] source,
+            List<CanonicalMonsterSpec> monsters,
+            List<string> errors)
+        {
+            DailyBattleStageJson[] rows = source ?? Array.Empty<DailyBattleStageJson>();
+            var result = new List<CanonicalDailyBattleStage>();
+            var keys = new HashSet<string>(StringComparer.Ordinal);
+            var monstersById = monsters.Where(monster => monster.Enabled)
+                .ToDictionary(monster => monster.MonsterId, StringComparer.Ordinal);
+            var expectedMaps = new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                { "CULTIVATION_ZONE", "DAILY_CULTIVATION_ZONE" },
+                { "MUTATION_LAB", "DAILY_MUTATION_LAB" }
+            };
+            int[] expectedWaves = { 3, 4, 5, 6, 7 };
+            int[] expectedTimes = { 120, 150, 180, 210, 240 };
+
+            foreach (DailyBattleStageJson raw in rows)
+            {
+                if (raw == null) { errors.Add("DailyBattleStage contains null row."); continue; }
+                string key = raw.contentType + ":" + raw.stage + ":" + raw.wave;
+                if (!expectedMaps.TryGetValue(raw.contentType ?? string.Empty, out string expectedMap)
+                    || !string.Equals(raw.mapId, expectedMap, StringComparison.Ordinal)
+                    || raw.stage < 1 || raw.stage > 5
+                    || raw.wave < 1 || raw.wave > expectedWaves[raw.stage - 1]
+                    || raw.timeLimitSeconds != expectedTimes[raw.stage - 1]
+                    || !keys.Add(key)
+                    || !monstersById.TryGetValue(raw.monsterSpecId ?? string.Empty, out CanonicalMonsterSpec monster)
+                    || raw.spawnCount < 1 || raw.spawnIntervalSeconds < 0f
+                    || raw.hpMultiplier <= 0f || raw.moveSpeedMultiplier <= 0f
+                    || !raw.enabled)
+                {
+                    errors.Add("Invalid DailyBattleStage row: " + key + ".");
+                    continue;
+                }
+                if (!Enum.TryParse(raw.lanePolicy, false, out CanonicalDailyBattleLanePolicy lanePolicy)
+                    || !string.Equals(raw.lanePolicy, lanePolicy.ToString(), StringComparison.Ordinal)
+                    || !Enum.TryParse(raw.statusEffectType, false, out CanonicalDailyBattleStatusEffect effect)
+                    || !string.Equals(raw.statusEffectType, effect.ToString(), StringComparison.Ordinal)
+                    || raw.statusEffectValue < 0f || raw.statusEffectValue > 0.5f
+                    || (effect == CanonicalDailyBattleStatusEffect.NONE) != (Math.Abs(raw.statusEffectValue) < 0.0001f))
+                {
+                    errors.Add("Invalid DailyBattleStage policy/effect: " + key + ".");
+                    continue;
+                }
+                bool finalWave = raw.wave == expectedWaves[raw.stage - 1];
+                if (raw.boss != (string.Equals(raw.contentType, "MUTATION_LAB", StringComparison.Ordinal) && finalWave)
+                    || (raw.boss && (!string.Equals(monster.MonsterType, "WAVE_BOSS", StringComparison.Ordinal)
+                        || raw.spawnCount != 1 || Math.Abs(raw.spawnIntervalSeconds) > 0.0001f))
+                    || (!raw.boss && (string.Equals(monster.MonsterType, "WAVE_BOSS", StringComparison.Ordinal)
+                        || raw.spawnIntervalSeconds <= 0f))
+                    || (string.Equals(raw.contentType, "CULTIVATION_ZONE", StringComparison.Ordinal)
+                        && (!string.Equals(raw.monsterSpecId, "NORMAL_MONSTER", StringComparison.Ordinal)
+                            || effect != CanonicalDailyBattleStatusEffect.NONE)))
+                {
+                    errors.Add("DailyBattleStage Boss/content policy mismatch: " + key + ".");
+                    continue;
+                }
+                result.Add(new CanonicalDailyBattleStage(
+                    raw.contentType, raw.mapId, raw.stage, raw.wave, raw.timeLimitSeconds,
+                    raw.monsterSpecId, raw.spawnCount, raw.spawnIntervalSeconds, raw.hpMultiplier,
+                    raw.moveSpeedMultiplier, lanePolicy, raw.boss, effect, raw.statusEffectValue, raw.enabled));
+            }
+
+            if (result.Count != 50) errors.Add("DailyBattleStage must contain exactly 50 valid rows.");
+            foreach (KeyValuePair<string, string> content in expectedMaps)
+            {
+                for (int stage = 1; stage <= 5; stage++)
+                {
+                    int targetStage = stage;
+                    List<CanonicalDailyBattleStage> stageRows = result
+                        .Where(row => row.ContentType == content.Key && row.Stage == targetStage)
+                        .OrderBy(row => row.Wave)
+                        .ToList();
+                    if (stageRows.Count != expectedWaves[stage - 1]
+                        || stageRows.Where(row => row.Boss).Count() != (content.Key == "MUTATION_LAB" ? 1 : 0))
+                        errors.Add("DailyBattleStage stage is incomplete: " + content.Key + ":" + stage + ".");
+                }
+            }
+            return new CanonicalDailyBattleStageRegistry(result);
+        }
+
         private static void ValidateRelationships(List<CanonicalMonsterSpec> monsters, List<CanonicalWaveSpec> waves, List<CanonicalWaveSpawn> spawns, List<string> errors)
         {
             var monstersById = new Dictionary<string, CanonicalMonsterSpec>(StringComparer.Ordinal);
@@ -759,6 +847,25 @@ namespace MyDefense.Battle.Balance.Canonical
         [Serializable] private sealed class MutationConfigJson { public string modeId; public int initialActivationCost; public int rerollCost1; public int rerollCost2; public int rerollCost3; public int rerollCost4; public int rerollCostAfterMax; public int injectorReplaceCost; }
         [Serializable] private sealed class InjectorPoolJson { public string poolId; public string poolName; public bool poolActive; public string mutationType; public int weight; public string resultType; }
         [Serializable] private sealed class ResonanceJson { public string track; public int level; public int requiredGold; public float attackMultiplier; public float attackSpeedMultiplier; public float rangeMultiplier; public bool enabled; }
+        [Serializable] private sealed class DailyBattleStageDocumentJson { public DailyBattleStageJson[] stages; }
+        [Serializable] private sealed class DailyBattleStageJson
+        {
+            public string contentType;
+            public string mapId;
+            public int stage;
+            public int wave;
+            public int timeLimitSeconds;
+            public string monsterSpecId;
+            public int spawnCount;
+            public float spawnIntervalSeconds;
+            public float hpMultiplier;
+            public float moveSpeedMultiplier;
+            public string lanePolicy;
+            public bool boss;
+            public string statusEffectType;
+            public float statusEffectValue;
+            public bool enabled;
+        }
         [Serializable] private sealed class ArrayDocument<T> { public T[] items; }
     }
 }

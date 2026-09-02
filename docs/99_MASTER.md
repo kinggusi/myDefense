@@ -622,6 +622,27 @@ Boss HP = 권장 팀 DPS × 목표 전투시간 × 기믹 보정
 - canonical 원본은 `balance/source/balance-data.xlsx`의 `DailyContent` 시트이며 서버는 생성된 `daily-content.json`을 읽는다.
 - 실제 배양 구역·변이 연구소 전투와 trusted 결과 Adapter는 각각 P2-2-2·P2-2-3 Battle 작업으로 연결한다.
 
+### 15.3 1차 전투 Stage 규칙
+
+| Stage | Wave 수 | 제한시간 |
+|---:|---:|---:|
+| 1 | 3 | 120초 |
+| 2 | 4 | 150초 |
+| 3 | 5 | 180초 |
+| 4 | 6 | 210초 |
+| 5 | 7 | 240초 |
+
+- 두 콘텐츠는 솔로 전투이며 단일 `Battle.unity`를 재사용한다.
+- Player 1 Board와 Lane만 활성화하고 Player 2 Board/Lane은 완전히 비활성화한다.
+- Kidnap·Merge·Mutation·공명·전투 Gold 규칙은 일반 전투와 같되 Player 1만 소유한다.
+- 배양 구역의 canonical `mapId`는 `DAILY_CULTIVATION_ZONE`이며 다수의 약한 일반 Monster만 사용하고 Boss와 상태 이상은 없다.
+- 변이 연구소의 canonical `mapId`는 `DAILY_MUTATION_LAB`이며 일반·Elite Monster, Wave 단위 상태 이상, 각 Stage 마지막 Wave의 Boss를 사용한다.
+- 1차 상태 이상은 `ATTACK_SPEED_DOWN`, `ATTACK_DOWN`이다. 값은 감소 비율이며 해당 Wave에만 적용하고 다음 Wave 전환 시 제거한다.
+- 전투 수치는 `balance/source/balance-data.xlsx`의 `DailyBattleStage` 시트가 canonical 원본이며 `daily-battle-stage.json`으로 생성해 Spring과 Unity가 동일하게 읽는다.
+- 전투 입장 문맥은 `schemaVersion`, `runId`, `battleSessionId`, `contentType`, `stage`, `mapId`, `balanceVersion`, `contentHash`를 사용한다. `sessionSource`는 클라이언트가 제출하지 않고 서버가 확정한다.
+- 일반 행성 Settlement와 Daily Result 제출 경로는 분리하며 State Authority만 결과를 제출한다. 운영 trusted Adapter가 없으면 결과 처리는 fail-closed한다.
+- 환경·재질·조명·배경은 Development placeholder Profile로 먼저 구현할 수 있으며 최종 Asset은 사람 비주얼 검증을 거친다.
+
 ---
 
 ## 16. 무한 Wave 랭킹 콘텐츠
