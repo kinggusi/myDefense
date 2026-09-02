@@ -2,6 +2,7 @@ package com.denfense.server.service;
 
 import com.denfense.server.exception.BusinessException;
 import com.denfense.server.exception.ErrorCode;
+import com.denfense.server.domain.SessionSource;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.atomic.AtomicLong;
@@ -45,5 +46,22 @@ class BattleSessionRosterRegistryTest {
                 new BattleSessionRosterRegistry.Player(1, "player-a"),
                 new BattleSessionRosterRegistry.Player(2, "player-b")),
                 registry.requireComplete("session").players());
+    }
+
+    @Test
+    void sourceIsServerOwnedAndPartOfRosterIdentity() {
+        BattleSessionRosterRegistry registry = new BattleSessionRosterRegistry();
+        registry.registerComplete("production-session", "NEPTUNE", "version", "hash", List.of(
+                new BattleSessionRosterRegistry.Player(1, "player-a"),
+                new BattleSessionRosterRegistry.Player(2, "player-b")), SessionSource.PRODUCTION);
+
+        assertEquals(SessionSource.PRODUCTION,
+                registry.requireComplete("production-session").sessionSource());
+        BusinessException exception = assertThrows(BusinessException.class, () ->
+                registry.registerComplete("production-session", "NEPTUNE", "version", "hash", List.of(
+                        new BattleSessionRosterRegistry.Player(1, "player-a"),
+                        new BattleSessionRosterRegistry.Player(2, "player-b")),
+                        SessionSource.LOCAL_DEVELOPMENT));
+        assertEquals(ErrorCode.BATTLE_PARTICIPANT_MISMATCH, exception.getErrorCode());
     }
 }

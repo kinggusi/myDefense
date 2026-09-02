@@ -88,9 +88,9 @@ class BattleSettlementIntegrationTest {
         User a = user("completed-race-a"), b = user("completed-race-b");
         var request = valid("completed-race-request", "completed-race-session", "ignored", a, b);
 
-        var first = settlementWriter.create(request);
+        var first = settlementWriter.create(request, com.denfense.server.domain.SessionSource.LOCAL_DEVELOPMENT);
         battleEntries.completeIfReserved(request.battleSessionId());
-        var retry = settlementWriter.create(request);
+        var retry = settlementWriter.create(request, com.denfense.server.domain.SessionSource.LOCAL_DEVELOPMENT);
 
         assertThat(first.created()).isTrue();
         assertThat(retry.created()).isFalse();

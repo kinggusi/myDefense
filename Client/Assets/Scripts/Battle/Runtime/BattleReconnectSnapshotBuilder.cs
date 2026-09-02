@@ -29,6 +29,7 @@ namespace MyDefense.Battle.Runtime
             var snapshot = new BattleSessionSnapshot
             {
                 battleSessionId = session.BattleSessionId,
+                mapId = session.MapId,
                 balanceVersion = session.CanonicalBalanceVersion,
                 contentHash = session.CanonicalContentHash,
                 matchState = authority.MatchState,

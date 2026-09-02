@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using MyDefense.Shared.Contracts;
 using NUnit.Framework;
 
@@ -69,6 +70,7 @@ namespace MyDefense.Shared.Tests
             var snapshot = new BattleSessionSnapshot
             {
                 battleSessionId = "session-1",
+                mapId = "EARTH",
                 balanceVersion = "balance-v1",
                 contentHash = "content-hash",
                 matchState = MatchState.RUNNING,
@@ -163,6 +165,7 @@ namespace MyDefense.Shared.Tests
             Assert.DoesNotThrow(() => BattleSessionSnapshotValidator.Validate(snapshot));
             var json = BattleSessionSnapshotJson.Serialize(snapshot);
             StringAssert.Contains("\"eliminatedWave\":null", json);
+            StringAssert.Contains("\"mapId\":\"EARTH\"", json);
             StringAssert.Contains("\"normalResonanceLevel\":3", json);
             StringAssert.Contains("\"mythicResonanceLevel\":4", json);
             StringAssert.Contains("\"currentWaveSpecId\":\"WAVE_12\"", json);
@@ -170,6 +173,37 @@ namespace MyDefense.Shared.Tests
             StringAssert.Contains("\"mutationState\":\"SEALED\"", json);
             StringAssert.Contains("\"candidateAlienIds\":[29,30,31]", json);
             StringAssert.Contains("\"runtimeMonsterId\":1001", json);
+        }
+
+        [Test]
+        public void BattleSessionSnapshot_V3CanonicalJsonMatchesSharedFixture()
+        {
+            var snapshot = new BattleSessionSnapshot
+            {
+                battleSessionId = "session-v3",
+                mapId = "EARTH",
+                balanceVersion = "balance-v3",
+                contentHash = "hash-v3",
+                matchState = MatchState.RUNNING,
+                currentWave = 1,
+                currentWaveSpecId = "WAVE_001",
+                waveType = "REGULAR",
+                wavePhase = "ACTIVE",
+                capturedAtTick = 42,
+                players = new[]
+                {
+                    new BattleSessionPlayerSnapshot { playerId = "p1", playerSlot = 1, battleState = PlayerBattleState.ACTIVE, connectionState = PlayerConnectionState.CONNECTED, inGameGold = 100, currentKidnapCost = 20 },
+                    new BattleSessionPlayerSnapshot { playerId = "p2", playerSlot = 2, battleState = PlayerBattleState.ACTIVE, connectionState = PlayerConnectionState.CONNECTED, inGameGold = 100, currentKidnapCost = 20 }
+                },
+                boardObjects = Array.Empty<BattleBoardObjectSnapshot>(),
+                mythicChoices = Array.Empty<BattleMythicChoiceSnapshot>(),
+                monsters = Array.Empty<BattleMonsterStateSnapshot>()
+            };
+            string fixturePath = Path.GetFullPath(Path.Combine(UnityEngine.Application.dataPath,
+                "../../contracts/battle-session-snapshot-v3.json"));
+
+            Assert.That(BattleSessionSnapshotJson.Serialize(snapshot),
+                Is.EqualTo(File.ReadAllText(fixturePath).Trim()));
         }
 
         [Test]
@@ -181,6 +215,17 @@ namespace MyDefense.Shared.Tests
 
             snapshot = CreateMinimalSnapshot();
             snapshot.players[1].mythicResonanceLevel = -1;
+            Assert.Throws<ArgumentException>(() => BattleSessionSnapshotValidator.Validate(snapshot));
+        }
+
+        [Test]
+        public void BattleSessionSnapshot_V3RejectsMissingAuthoritativeMapId()
+        {
+            var snapshot = CreateMinimalSnapshot();
+            snapshot.mapId = null;
+            Assert.Throws<ArgumentException>(() => BattleSessionSnapshotValidator.Validate(snapshot));
+
+            snapshot.mapId = "   ";
             Assert.Throws<ArgumentException>(() => BattleSessionSnapshotValidator.Validate(snapshot));
         }
 
@@ -208,6 +253,7 @@ namespace MyDefense.Shared.Tests
             return new BattleSessionSnapshot
             {
                 battleSessionId = "session",
+                mapId = "NEPTUNE",
                 balanceVersion = "balance",
                 contentHash = "hash",
                 matchState = MatchState.RUNNING,

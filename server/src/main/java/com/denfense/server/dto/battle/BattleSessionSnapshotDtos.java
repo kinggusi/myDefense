@@ -1,5 +1,6 @@
 package com.denfense.server.dto.battle;
 
+import java.math.BigInteger;
 import java.util.List;
 
 /**
@@ -12,6 +13,7 @@ public final class BattleSessionSnapshotDtos {
     public record Snapshot(
             int schemaVersion,
             String battleSessionId,
+            String mapId,
             String balanceVersion,
             String contentHash,
             String matchState,
@@ -23,7 +25,9 @@ public final class BattleSessionSnapshotDtos {
             int bossTimeRemainingSeconds,
             long capturedAtTick,
             List<Player> players,
-            List<BoardObject> boardObjects) {}
+            List<BoardObject> boardObjects,
+            List<MythicChoice> mythicChoices,
+            List<Monster> monsters) {}
 
     public record Player(
             String playerId,
@@ -32,6 +36,8 @@ public final class BattleSessionSnapshotDtos {
             String connectionState,
             int inGameGold,
             int currentKidnapCost,
+            int normalResonanceLevel,
+            int mythicResonanceLevel,
             Integer eliminatedWave) {}
 
     public record BoardObject(
@@ -45,5 +51,27 @@ public final class BattleSessionSnapshotDtos {
             String pendingMutationType,
             String activeMutationType,
             int mutationRerollCount,
-            String mutationType) {}
+            String mutationType,
+            String mutationState) {}
+
+    public record MythicChoice(
+            int playerSlot,
+            int targetBoardSlot,
+            List<Long> candidateAlienIds,
+            int freeRerollsRemaining,
+            int paidRerollsRemaining,
+            int remainingSeconds) {}
+
+    public record Monster(
+            BigInteger runtimeMonsterId,
+            String monsterId,
+            String lanePolicy,
+            String fieldOwnerPlayerId,
+            int spawnWave,
+            float currentHp,
+            float maxHp,
+            boolean dead,
+            float x,
+            float y,
+            float z) {}
 }

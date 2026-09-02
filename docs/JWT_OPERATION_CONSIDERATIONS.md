@@ -11,6 +11,8 @@
 - 개발 전용 API는 `local` 또는 `dev` Spring Profile에서만 생성되며 loopback 요청만 허용한다.
 - Profile이 없거나 `prod`인 경우 개발 전용 API와 자동 사용자 준비 기능은 활성화되지 않는다.
 - Settlement는 등록된 Session Roster, Map, Balance Version, Content Hash, Player Slot을 검증한 뒤 처리한다.
+- 서버가 roster 등록 경로에 따라 `SessionSource`를 `PRODUCTION`, `LOCAL_DEVELOPMENT`, `VALIDATION_FIXTURE` 중 하나로 부여하고 Settlement에 영속한다. 클라이언트는 이 값을 지정할 수 없다.
+- Quest 영구 진행은 `PRODUCTION` Settlement만 반영하며 local/dev와 검증 Fixture는 항상 제외한다.
 - 동일한 Settlement 요청은 멱등 처리되어 보상이 중복 지급되지 않는다.
 - Unity 교체 지점은 `IBattleSessionRosterRegistration` 계약이다. 관련 코드는 `FUTURE_AUTH_REPLACEMENT` 문자열로 검색할 수 있다.
 
@@ -24,6 +26,7 @@
 2. Spring Security Filter에서 `Authorization: Bearer <token>`을 검증하고 JWT Subject를 서버의 User ID에 연결한다.
 3. 운영용 Matchmaking/Session Authority가 두 참가자, Slot, Map, Fusion Session을 확정한다.
 4. 운영용 `JwtMatchmakingSessionRosterAdapter`가 위 Authority 결과를 Settlement 검증에 제공한다.
+   이 Adapter만 roster를 `SessionSource.PRODUCTION`으로 등록할 수 있어야 한다.
 5. 요청 DTO의 username이나 playerId를 신뢰하지 않고 인증 Principal 및 서버 Session 기록과 대조한다.
 6. 개발 전용 Session Roster 등록 Controller와 `dev-*` 사용자 자동 생성은 운영 Profile에서 계속 fail-closed 상태를 유지한다.
 

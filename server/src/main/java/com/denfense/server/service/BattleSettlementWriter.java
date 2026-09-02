@@ -5,6 +5,7 @@ import com.denfense.server.domain.BattlePlayerSettlement;
 import com.denfense.server.domain.BattleResult;
 import com.denfense.server.domain.BattleSettlement;
 import com.denfense.server.domain.User;
+import com.denfense.server.domain.SessionSource;
 import com.denfense.server.dto.battle.BattleSettlementDtos;
 import com.denfense.server.exception.BusinessException;
 import com.denfense.server.exception.ErrorCode;
@@ -30,7 +31,7 @@ public class BattleSettlementWriter {
     private final BattleEntryReservationRepository entries;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public WriteResult create(BattleSettlementDtos.Request request) {
+    public WriteResult create(BattleSettlementDtos.Request request, SessionSource sessionSource) {
         Map<Integer, User> usersBySlot = request.players().stream().collect(Collectors.toMap(
                 BattleSettlementDtos.Player::playerSlot,
                 player -> users.findByUsername(player.playerId())
@@ -57,7 +58,7 @@ public class BattleSettlementWriter {
         BattleSettlement settlement = new BattleSettlement(
                 request.battleSessionId(), request.requestId(), request.summaryHash(),
                 request.balanceVersion(), request.contentHash(), BattleResult.valueOf(request.result()),
-                request.finalWave(), request.mapId(), request.startedAt(), request.finishedAt());
+                request.finalWave(), request.mapId(), sessionSource, request.startedAt(), request.finishedAt());
         settlements.save(settlement);
         for (BattleSettlementDtos.Player player : request.players()) {
             User user = usersBySlot.get(player.playerSlot());

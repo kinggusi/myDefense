@@ -2,6 +2,7 @@ package com.denfense.server.service;
 
 import com.denfense.server.exception.BusinessException;
 import com.denfense.server.exception.ErrorCode;
+import com.denfense.server.domain.SessionSource;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -33,17 +34,26 @@ public class BattleSessionRosterRegistry {
 
     public void register(String battleSessionId, int playerSlot, String playerId,
                          String mapId, String balanceVersion, String contentHash) {
+        register(battleSessionId, playerSlot, playerId, mapId, balanceVersion, contentHash,
+                SessionSource.LOCAL_DEVELOPMENT);
+    }
+
+    public void register(String battleSessionId, int playerSlot, String playerId,
+                         String mapId, String balanceVersion, String contentHash,
+                         SessionSource sessionSource) {
         purgeExpired();
         if (blank(battleSessionId) || blank(playerId) || blank(mapId)
                 || blank(balanceVersion) || blank(contentHash)
-                || playerSlot < 1 || playerSlot > 2) {
+                || playerSlot < 1 || playerSlot > 2 || sessionSource == null) {
             throw new BusinessException(ErrorCode.BATTLE_PARTICIPANT_MISMATCH);
         }
         rosters.compute(battleSessionId.trim(), (key, current) -> {
             MutableRoster roster = current == null
-                    ? new MutableRoster(mapId.trim(), balanceVersion.trim(), contentHash.trim(), nowMillis.getAsLong())
+                    ? new MutableRoster(mapId.trim(), balanceVersion.trim(), contentHash.trim(),
+                    sessionSource, nowMillis.getAsLong())
                     : current;
-            roster.register(playerSlot, playerId.trim(), mapId.trim(), balanceVersion.trim(), contentHash.trim());
+            roster.register(playerSlot, playerId.trim(), mapId.trim(), balanceVersion.trim(),
+                    contentHash.trim(), sessionSource);
             return roster;
         });
     }
@@ -55,18 +65,25 @@ public class BattleSessionRosterRegistry {
      */
     public void registerComplete(String battleSessionId, String mapId, String balanceVersion,
                                  String contentHash, List<Player> requestedPlayers) {
+        registerComplete(battleSessionId, mapId, balanceVersion, contentHash, requestedPlayers,
+                SessionSource.LOCAL_DEVELOPMENT);
+    }
+
+    public void registerComplete(String battleSessionId, String mapId, String balanceVersion,
+                                 String contentHash, List<Player> requestedPlayers,
+                                 SessionSource sessionSource) {
         purgeExpired();
         if (blank(battleSessionId) || blank(mapId) || blank(balanceVersion) || blank(contentHash)
-                || requestedPlayers == null || requestedPlayers.size() != 2) {
+                || requestedPlayers == null || requestedPlayers.size() != 2 || sessionSource == null) {
             throw new BusinessException(ErrorCode.BATTLE_PARTICIPANT_MISMATCH);
         }
         String sessionKey = battleSessionId.trim();
         MutableRoster candidate = new MutableRoster(
-                mapId.trim(), balanceVersion.trim(), contentHash.trim(), nowMillis.getAsLong());
+                mapId.trim(), balanceVersion.trim(), contentHash.trim(), sessionSource, nowMillis.getAsLong());
         for (Player player : requestedPlayers) {
             if (player == null) throw new BusinessException(ErrorCode.BATTLE_PARTICIPANT_MISMATCH);
             candidate.register(player.playerSlot(), player.playerId(), mapId.trim(),
-                    balanceVersion.trim(), contentHash.trim());
+                    balanceVersion.trim(), contentHash.trim(), sessionSource);
         }
         Roster requested = candidate.snapshot();
         rosters.compute(sessionKey, (key, current) -> {
@@ -106,28 +123,34 @@ public class BattleSessionRosterRegistry {
     public record Player(int playerSlot, String playerId) {
     }
 
-    public record Roster(String mapId, String balanceVersion, String contentHash, List<Player> players) {
+    public record Roster(String mapId, String balanceVersion, String contentHash,
+                         SessionSource sessionSource, List<Player> players) {
     }
 
     private static final class MutableRoster {
         private final String mapId;
         private final String balanceVersion;
         private final String contentHash;
+        private final SessionSource sessionSource;
         private final long createdAtMillis;
         private final Map<Integer, String> players = new ConcurrentHashMap<>();
 
-        private MutableRoster(String mapId, String balanceVersion, String contentHash, long createdAtMillis) {
+        private MutableRoster(String mapId, String balanceVersion, String contentHash,
+                              SessionSource sessionSource, long createdAtMillis) {
             this.mapId = mapId;
             this.balanceVersion = balanceVersion;
             this.contentHash = contentHash;
+            this.sessionSource = sessionSource;
             this.createdAtMillis = createdAtMillis;
         }
 
         private synchronized void register(int slot, String playerId, String requestedMapId,
-                                           String requestedBalanceVersion, String requestedContentHash) {
+                                           String requestedBalanceVersion, String requestedContentHash,
+                                           SessionSource requestedSessionSource) {
             if (!mapId.equals(requestedMapId)
                     || !balanceVersion.equals(requestedBalanceVersion)
-                    || !contentHash.equalsIgnoreCase(requestedContentHash)) {
+                    || !contentHash.equalsIgnoreCase(requestedContentHash)
+                    || sessionSource != requestedSessionSource) {
                 throw new BusinessException(ErrorCode.BATTLE_PARTICIPANT_MISMATCH);
             }
             String existing = players.get(slot);
@@ -147,7 +170,7 @@ public class BattleSessionRosterRegistry {
             var result = new ArrayList<Player>(2);
             players.forEach((slot, playerId) -> result.add(new Player(slot, playerId)));
             result.sort(Comparator.comparingInt(Player::playerSlot));
-            return new Roster(mapId, balanceVersion, contentHash, List.copyOf(result));
+            return new Roster(mapId, balanceVersion, contentHash, sessionSource, List.copyOf(result));
         }
     }
 }
