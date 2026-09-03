@@ -31,8 +31,17 @@ namespace MyDefense.Battle.Presentation
         private readonly Dictionary<int, string> _loadedPlayerIds = new();
         private readonly Dictionary<int, string> _requestedPlayerIds = new();
         private int _selectedLocalMythicSlot = -1;
+        private bool _soloPlayerOneMode;
 
         public int SelectedLocalMythicSlot => _selectedLocalMythicSlot;
+
+        public void SetSoloPlayerOneMode(bool enabled)
+        {
+            _soloPlayerOneMode = enabled;
+            _player2Grid ??= GameObject.Find("EnemyGridParent")?.transform;
+            if (_player2Grid != null)
+                _player2Grid.gameObject.SetActive(!enabled);
+        }
 
         private void OnEnable()
         {
@@ -72,14 +81,16 @@ namespace MyDefense.Battle.Presentation
                 return;
 
             EnsureAttackCatalog(1, _authority.Player1UserId.ToString());
-            EnsureAttackCatalog(2, _authority.Player2UserId.ToString());
+            if (!_soloPlayerOneMode)
+                EnsureAttackCatalog(2, _authority.Player2UserId.ToString());
 
             // Reconcile from the replicated occupancy snapshot so late joins,
             // scene reloads, and reconnects do not depend on past RPC events.
             for (int slotIndex = 0; slotIndex < 24; slotIndex++)
             {
                 ReconcileSlot(1, slotIndex);
-                ReconcileSlot(2, slotIndex);
+                if (!_soloPlayerOneMode)
+                    ReconcileSlot(2, slotIndex);
             }
         }
 

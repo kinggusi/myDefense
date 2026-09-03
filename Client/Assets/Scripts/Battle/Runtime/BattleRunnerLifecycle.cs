@@ -29,6 +29,7 @@ namespace MyDefense.Battle.Runtime
         [SerializeField] private string _mapId;
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         private BattleP1ValidationSessionProfile _p1ValidationProfile;
+        private DailyBattleDevelopmentSessionProfile _dailyBattleDevelopmentProfile;
 #endif
 
         public BattleRunnerLifecycleState State { get; private set; } = BattleRunnerLifecycleState.STOPPED;
@@ -43,6 +44,8 @@ namespace MyDefense.Battle.Runtime
             get
             {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
+                if (_dailyBattleDevelopmentProfile != null)
+                    return _dailyBattleDevelopmentProfile.MapId;
                 if (_p1ValidationProfile != null)
                     return _p1ValidationProfile.MapId;
 #endif
@@ -51,6 +54,7 @@ namespace MyDefense.Battle.Runtime
         }
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         public BattleP1ValidationSessionProfile P1ValidationProfile => _p1ValidationProfile;
+        public DailyBattleDevelopmentSessionProfile DailyBattleDevelopmentProfile => _dailyBattleDevelopmentProfile;
 #endif
         public event Action<BattleSessionContext> SessionContextCreated;
         public event Action<BattlePlayerIdentity> PlayerConnected;
@@ -82,6 +86,8 @@ namespace MyDefense.Battle.Runtime
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (_p1ValidationProfile != null && SessionContext != null)
                 throw new InvalidOperationException("A P1 validation session context may only be created once.");
+            if (_dailyBattleDevelopmentProfile != null && SessionContext != null)
+                throw new InvalidOperationException("A Daily Development session context may only be created once.");
             if (_p1ValidationProfile != null
                 && mapId != null
                 && !string.Equals(mapId.Trim(), _p1ValidationProfile.MapId, StringComparison.Ordinal))
@@ -97,7 +103,9 @@ namespace MyDefense.Battle.Runtime
                 battleContentHash,
                 startedAtTick,
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-                _p1ValidationProfile != null ? _p1ValidationProfile.MapId : mapId ?? MapId);
+                _p1ValidationProfile != null ? _p1ValidationProfile.MapId
+                    : _dailyBattleDevelopmentProfile != null ? _dailyBattleDevelopmentProfile.MapId
+                    : mapId ?? MapId);
 #else
                 mapId ?? MapId);
 #endif
@@ -152,6 +160,13 @@ namespace MyDefense.Battle.Runtime
             if (_runner != null && !_runner.IsShutdown)
                 throw new InvalidOperationException("A Fusion runner is already active.");
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (!TryPrepareDailyBattleDevelopmentSession(
+                    sessionName,
+                    mode == GameMode.Host,
+                    out string dailyReason))
+            {
+                throw new InvalidOperationException(dailyReason);
+            }
             if (!TryPrepareP1ValidationSession(
                     sessionName,
                     mode == GameMode.Host || mode == GameMode.Client,
@@ -245,6 +260,7 @@ namespace MyDefense.Battle.Runtime
             MatchStart.Reset();
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             _p1ValidationProfile = null;
+            _dailyBattleDevelopmentProfile = null;
 #endif
             if (runner != null && !runner.IsShutdown)
                 await runner.Shutdown(true, reason);
@@ -285,6 +301,42 @@ namespace MyDefense.Battle.Runtime
             }
 
             _p1ValidationProfile = profile;
+            return true;
+        }
+
+        public bool TryPrepareDailyBattleDevelopmentSession(
+            string sessionName,
+            bool explicitHostRole,
+            out string reason)
+        {
+            reason = string.Empty;
+            if (State != BattleRunnerLifecycleState.STOPPED
+                || _runner != null
+                || SessionContext != null
+                || _dailyBattleDevelopmentProfile != null)
+            {
+                reason = "Daily Development profile must be bound exactly once before a new runner starts.";
+                return false;
+            }
+
+            DailyBattleDevelopmentParseState state = DailyBattleDevelopmentSessionProfile.Parse(
+                sessionName,
+                out DailyBattleDevelopmentSessionProfile profile,
+                out reason);
+            if (state == DailyBattleDevelopmentParseState.NotDailyBattle)
+                return true;
+            if (state == DailyBattleDevelopmentParseState.Malformed)
+                return false;
+            if (!explicitHostRole)
+            {
+                reason = "Solo Daily Development sessions require the explicit Host role.";
+                return false;
+            }
+
+            _dailyBattleDevelopmentProfile = profile;
+            Debug.Log(
+                $"[DailyBattle] Development profile bound. Session='{profile.SessionName}', "
+                + $"Stage={profile.Stage}, MapId='{profile.MapId}'.");
             return true;
         }
 #endif

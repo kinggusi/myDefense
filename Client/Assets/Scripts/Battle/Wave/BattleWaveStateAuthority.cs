@@ -8,6 +8,28 @@ using MyDefense.Shared.Contracts;
 
 namespace MyDefense.Battle
 {
+    public readonly struct DailyBattleWalletInitialization
+    {
+        public int Player1Current { get; }
+        public int Player1Initial { get; }
+        public int Player1Earned { get; }
+        public int Player1Spent { get; }
+        public int Player2Current => 0;
+        public int Player2Initial => 0;
+        public int Player2Earned => 0;
+        public int Player2Spent => 0;
+        public int TeamGold => 0;
+
+        public DailyBattleWalletInitialization(int player1StartingGold)
+        {
+            if (player1StartingGold < 0) throw new ArgumentOutOfRangeException(nameof(player1StartingGold));
+            Player1Current = player1StartingGold;
+            Player1Initial = player1StartingGold;
+            Player1Earned = 0;
+            Player1Spent = 0;
+        }
+    }
+
     /// <summary>
     /// State-authority boundary for the existing wave executor.
     /// Networked wave fields are introduced by P0-3-2; this component owns
@@ -48,11 +70,12 @@ namespace MyDefense.Battle
         public const float DisconnectRewardGraceSeconds = 120f;
         private BattleWaveExecutor _executor;
         private readonly BattleKillDeduplicator _killDeduplicator = new();
+        private bool _isDailyBattleSession;
 
         [Networked] public int CurrentWave { get; private set; }
         [Networked] public int HighestClearedWave { get; private set; }
         [Networked] public NetworkString<_32> CurrentWaveId { get; private set; }
-        [Networked] public NetworkString<_16> AuthoritativeMapId { get; private set; }
+        [Networked] public NetworkString<_32> AuthoritativeMapId { get; private set; }
         [Networked] public int CurrentWaveTypeValue { get; private set; }
         [Networked] public NetworkBool IsWaveRunning { get; private set; }
         [Networked] public int MatchStateValue { get; private set; }
@@ -492,6 +515,8 @@ namespace MyDefense.Battle
 
         public bool IsPlayerActionAllowed(LaneType lane)
         {
+            if (_isDailyBattleSession && lane != LaneType.Player1Lane)
+                return false;
             return lane switch
             {
                 LaneType.Player1Lane => Player1BattleState != PlayerBattleState.ELIMINATED,
@@ -1386,6 +1411,7 @@ namespace MyDefense.Battle
                 Debug.LogError("[BattleMap] " + mapReason);
                 return false;
             }
+            _isDailyBattleSession = false;
             HighestClearedWave = 0;
             _executor.InitializeSession(sessionContext, playerIdentityProvider);
             ResetFieldLimitEvents();
@@ -1393,6 +1419,44 @@ namespace MyDefense.Battle
             SyncAliveMonsterCounts();
             return true;
         }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        public bool InitializeDailySession(
+            BattleSessionContext sessionContext,
+            IBattlePlayerIdentityProvider playerIdentityProvider,
+            DailyBattleExecutionPlan executionPlan)
+        {
+            if (!HasStateAuthority || _executor == null || executionPlan == null)
+                return false;
+            if (!TryResolveMapForInitialization(
+                    sessionContext?.MapId,
+                    out _,
+                    out _,
+                    out string mapReason))
+            {
+                Debug.LogError("[DailyBattle] " + mapReason);
+                return false;
+            }
+            _isDailyBattleSession = true;
+            HighestClearedWave = 0;
+            _executor.InitializeDailySession(sessionContext, playerIdentityProvider, executionPlan);
+            var wallet = new DailyBattleWalletInitialization(Player1InGameGold);
+            Player1InGameGold = wallet.Player1Current;
+            Player1InitialInGameGold = wallet.Player1Initial;
+            Player1InGameGoldEarned = wallet.Player1Earned;
+            Player1InGameGoldSpent = wallet.Player1Spent;
+            Player2InGameGold = wallet.Player2Current;
+            Player2InitialInGameGold = wallet.Player2Initial;
+            Player2InGameGoldEarned = wallet.Player2Earned;
+            Player2InGameGoldSpent = wallet.Player2Spent;
+            TeamInGameGold = wallet.TeamGold;
+            Player2KidnapCount = 0;
+            ResetFieldLimitEvents();
+            SyncPlayerBattleStates();
+            SyncAliveMonsterCounts();
+            return true;
+        }
+#endif
 
         public bool TryResolveMapForInitialization(
             string localSessionMapId,
@@ -1558,7 +1622,8 @@ namespace MyDefense.Battle
         public bool TrySpendGold(LaneType lane, int amount, out int remainingGold)
         {
             remainingGold = GetInGameGold(lane);
-            if (!HasStateAuthority || amount <= 0)
+            if (!HasStateAuthority || amount <= 0
+                || (_isDailyBattleSession && lane == LaneType.Player2Lane))
                 return false;
 
             if (lane == LaneType.Player1Lane)
@@ -1584,7 +1649,8 @@ namespace MyDefense.Battle
 
         public bool TryAwardGold(LaneType lane, int amount)
         {
-            if (!HasStateAuthority || amount < 0)
+            if (!HasStateAuthority || amount < 0
+                || (_isDailyBattleSession && lane == LaneType.Player2Lane))
                 return false;
 
             if (lane == LaneType.Player1Lane)
@@ -1606,7 +1672,7 @@ namespace MyDefense.Battle
 
         public bool TryAwardTeamGold(int amount)
         {
-            if (!HasStateAuthority || amount < 0)
+            if (!HasStateAuthority || amount < 0 || _isDailyBattleSession)
                 return false;
 
             TeamInGameGold = AddGoldSafely(TeamInGameGold, amount);
@@ -1642,19 +1708,43 @@ namespace MyDefense.Battle
             int player2Gold = Player2InGameGold;
             int player1Earned = Player1InGameGoldEarned;
             int player2Earned = Player2InGameGoldEarned;
-            if (!TryApplyCooperativeKillGold(
+            bool applied = _isDailyBattleSession
+                ? TryApplyDailyKillGold(
                     lanePolicy,
                     canonicalKillGold,
                     ref player1Gold,
                     ref player2Gold,
                     ref player1Earned,
-                    ref player2Earned))
+                    ref player2Earned)
+                : TryApplyCooperativeKillGold(
+                    lanePolicy,
+                    canonicalKillGold,
+                    ref player1Gold,
+                    ref player2Gold,
+                    ref player1Earned,
+                    ref player2Earned);
+            if (!applied)
                 return false;
 
             Player1InGameGold = player1Gold;
             Player2InGameGold = player2Gold;
             Player1InGameGoldEarned = player1Earned;
             Player2InGameGoldEarned = player2Earned;
+            return true;
+        }
+
+        public static bool TryApplyDailyKillGold(
+            BattleMonsterLanePolicy lanePolicy,
+            int canonicalKillGold,
+            ref int player1Gold,
+            ref int player2Gold,
+            ref int player1Earned,
+            ref int player2Earned)
+        {
+            if (lanePolicy != BattleMonsterLanePolicy.EACH_FIELD || canonicalKillGold <= 0)
+                return false;
+            player1Gold = AddGoldSafely(player1Gold, canonicalKillGold);
+            player1Earned = AddGoldSafely(player1Earned, canonicalKillGold);
             return true;
         }
 

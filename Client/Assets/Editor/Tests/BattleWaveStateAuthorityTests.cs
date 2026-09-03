@@ -27,7 +27,7 @@ namespace MyDefense.Battle.Tests
             Assert.That(typeof(BattleWaveStateAuthority).GetProperty(nameof(BattleWaveStateAuthority.CurrentWave)), Is.Not.Null);
             Assert.That(typeof(BattleWaveStateAuthority).GetProperty(nameof(BattleWaveStateAuthority.AuthoritativeMapId)), Is.Not.Null);
             Assert.That(typeof(BattleWaveStateAuthority).GetProperty(nameof(BattleWaveStateAuthority.AuthoritativeMapId)).PropertyType,
-                Is.EqualTo(typeof(NetworkString<_16>)));
+                Is.EqualTo(typeof(NetworkString<_32>)));
             Assert.That(typeof(BattleWaveStateAuthority).GetProperty(nameof(BattleWaveStateAuthority.HighestClearedWave)), Is.Not.Null);
             Assert.That(typeof(BattleWaveStateAuthority).GetProperty(nameof(BattleWaveStateAuthority.Player1DisconnectGraceTimer)), Is.Not.Null);
             Assert.That(typeof(BattleWaveStateAuthority).GetProperty(nameof(BattleWaveStateAuthority.Player2DisconnectGraceTimer)), Is.Not.Null);
