@@ -19,6 +19,7 @@ namespace MyDefense.Battle.Runtime
         [SerializeField] private BattleWaveStateAuthority _stateAuthority;
         [SerializeField] private PathManager _pathManager;
         [SerializeField] private PlanetContentApplicator _planetContentApplicator;
+        [SerializeField] private DailyBattleContentCatalog _dailyBattleContentCatalog;
         private IBattleSessionRosterRegistration _rosterRegistration;
         private string _planetContentFailureKey;
         private DailyBattleSoloPresentationController _dailySoloPresentation;
@@ -32,6 +33,7 @@ namespace MyDefense.Battle.Runtime
         public BattleRunnerLifecycle RunnerLifecycle => _runnerLifecycle;
         public BattleWaveExecutor WaveExecutor => _waveExecutor;
         public PlanetContentApplicator PlanetContentApplicator => _planetContentApplicator;
+        public DailyBattleContentCatalog DailyContentCatalog => _dailyBattleContentCatalog;
         public string LastInitializationError { get; private set; }
 
         public bool TryCaptureReconnectSnapshot(out MyDefense.Shared.Contracts.BattleSessionSnapshot snapshot)
@@ -245,7 +247,7 @@ namespace MyDefense.Battle.Runtime
                     return false;
                 }
                 DailyBattleSessionContext dailyContext = dailyProfile.CreateContext(provider);
-                if (!DailyBattleExecutionPlanBuilder.TryBuildCultivation(
+                if (!DailyBattleExecutionPlanBuilder.TryBuild(
                         dailyContext,
                         provider,
                         DailyBattleSessionTrust.DevelopmentFixture,
@@ -514,6 +516,13 @@ namespace MyDefense.Battle.Runtime
             {
                 return FailDailyInitialization(reason ?? "Authoritative Daily mapId mismatch.");
             }
+            if (!TryApplyDailyContent(
+                    authoritativeMapId,
+                    plan.SessionContext.mapId,
+                    out string dailyContentError))
+            {
+                return FailDailyInitialization("Daily content validation failed: " + dailyContentError);
+            }
 
             // Cache and validate both Scene waypoint groups while they still have
             // their authored active state. Daily presentation disables Player 2
@@ -523,12 +532,13 @@ namespace MyDefense.Battle.Runtime
             _dailySoloPresentation ??= gameObject.AddComponent<DailyBattleSoloPresentationController>();
             if (!_dailySoloPresentation.SetSoloPlayerOneMode(true, out string presentationError))
             {
-                return FailDailyInitialization("Daily solo presentation failed: " + presentationError);
+                return RollbackDailyPresentationAndFail(
+                    "Daily solo presentation failed: " + presentationError);
             }
             if (!_stateAuthority.InitializeDailySession(sessionContext, playerIdentityProvider, plan))
             {
-                _dailySoloPresentation.SetSoloPlayerOneMode(false, out _);
-                return FailDailyInitialization("BattleWaveStateAuthority rejected Daily plan initialization.");
+                return RollbackDailyPresentationAndFail(
+                    "BattleWaveStateAuthority rejected Daily plan initialization.");
             }
 
             _waveExecutor.SetLocalPlayerLane(LaneType.Player1Lane);
@@ -541,8 +551,8 @@ namespace MyDefense.Battle.Runtime
                     null,
                     out string resultError))
             {
-                _dailySoloPresentation.SetSoloPlayerOneMode(false, out _);
-                return FailDailyInitialization("Daily result coordinator failed: " + resultError);
+                return RollbackDailyPresentationAndFail(
+                    "Daily result coordinator failed: " + resultError);
             }
             SuppressDailySettlement();
             SessionContext = sessionContext;
@@ -550,8 +560,47 @@ namespace MyDefense.Battle.Runtime
             _dailyInitializationDiagnosticKey = null;
             LastInitializationError = null;
             _waveExecutor.StartConfiguredWavesIfReady();
-            Debug.Log($"[DailyBattle] Development Cultivation Stage {plan.SessionContext.stage} initialized for Player 1 only.");
+            Debug.Log(
+                $"[DailyBattle] Development {plan.SessionContext.contentType} Stage "
+                + $"{plan.SessionContext.stage} initialized for Player 1 only.");
             return true;
+        }
+
+        private bool TryApplyDailyContent(
+            string authoritativeMapId,
+            string plannedMapId,
+            out string error)
+        {
+            if (string.IsNullOrWhiteSpace(plannedMapId)
+                || !string.Equals(authoritativeMapId, plannedMapId, StringComparison.Ordinal))
+            {
+                error = "Authoritative Daily mapId does not match the validated execution plan mapId.";
+                return false;
+            }
+
+            DailyBattleContentCatalog catalog = _dailyBattleContentCatalog != null
+                ? _dailyBattleContentCatalog
+                : Resources.Load<DailyBattleContentCatalog>(DailyBattleContentCatalog.ResourcesPath);
+            if (catalog == null)
+            {
+                error = "DailyBattleContentCatalog was not found at Resources/"
+                    + DailyBattleContentCatalog.ResourcesPath + ".asset.";
+                return false;
+            }
+            if (!catalog.TryResolve(authoritativeMapId, out PlanetContentProfile profile, out error))
+                return false;
+
+            _planetContentApplicator ??= GetComponent<PlanetContentApplicator>();
+            _planetContentApplicator ??= gameObject.AddComponent<PlanetContentApplicator>();
+            return _planetContentApplicator.TryApplyResolvedProfile(authoritativeMapId, profile, out error);
+        }
+
+        private bool RollbackDailyPresentationAndFail(string reason)
+        {
+            if (_dailySoloPresentation != null)
+                _dailySoloPresentation.SetSoloPlayerOneMode(false, out _);
+            _planetContentApplicator?.Clear();
+            return FailDailyInitialization(reason);
         }
 
         private bool FailDailyInitialization(string reason)

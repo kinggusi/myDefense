@@ -19,15 +19,23 @@ namespace MyDefense.Battle.Runtime
     public sealed class DailyBattleDevelopmentSessionProfile
     {
         public const string SessionPrefix = "P22-CULT-S";
+        public const string MutationLabSessionPrefix = "P22-MUT-S";
 
         public string SessionName { get; }
         public int Stage { get; }
-        public string MapId => DailyBattleExecutionPlanBuilder.CultivationMapId;
+        public string ContentType { get; }
+        public string MapId { get; }
 
-        private DailyBattleDevelopmentSessionProfile(string sessionName, int stage)
+        private DailyBattleDevelopmentSessionProfile(
+            string sessionName,
+            int stage,
+            string contentType,
+            string mapId)
         {
             SessionName = sessionName;
             Stage = stage;
+            ContentType = contentType;
+            MapId = mapId;
         }
 
         public DailyBattleSessionContext CreateContext(ICanonicalCompositeBattleBalanceProvider provider)
@@ -39,7 +47,7 @@ namespace MyDefense.Battle.Runtime
                 schemaVersion = DailyBattleSessionContext.CurrentSchemaVersion,
                 runId = "dev:" + SessionName,
                 battleSessionId = SessionName,
-                contentType = DailyBattleExecutionPlanBuilder.CultivationContentType,
+                contentType = ContentType,
                 stage = Stage,
                 mapId = MapId,
                 balanceVersion = provider.CanonicalBalanceVersion,
@@ -54,16 +62,36 @@ namespace MyDefense.Battle.Runtime
         {
             profile = null;
             error = null;
-            if (string.IsNullOrWhiteSpace(sessionName)
-                || !sessionName.StartsWith(SessionPrefix, StringComparison.Ordinal))
+            if (string.IsNullOrWhiteSpace(sessionName))
                 return DailyBattleDevelopmentParseState.NotDailyBattle;
-            int suffixIndex = SessionPrefix.Length;
+
+            string prefix;
+            string contentType;
+            string mapId;
+            if (sessionName.StartsWith(SessionPrefix, StringComparison.Ordinal))
+            {
+                prefix = SessionPrefix;
+                contentType = DailyBattleExecutionPlanBuilder.CultivationContentType;
+                mapId = DailyBattleExecutionPlanBuilder.CultivationMapId;
+            }
+            else if (sessionName.StartsWith(MutationLabSessionPrefix, StringComparison.Ordinal))
+            {
+                prefix = MutationLabSessionPrefix;
+                contentType = DailyBattleExecutionPlanBuilder.MutationLabContentType;
+                mapId = DailyBattleExecutionPlanBuilder.MutationLabMapId;
+            }
+            else
+            {
+                return DailyBattleDevelopmentParseState.NotDailyBattle;
+            }
+
+            int suffixIndex = prefix.Length;
             if (sessionName.Length <= suffixIndex + 1
                 || sessionName[suffixIndex] < '1'
                 || sessionName[suffixIndex] > '5'
                 || sessionName[suffixIndex + 1] != '-')
             {
-                error = "Daily Development session must match P22-CULT-S{1..5}-<unique> exactly.";
+                error = "Daily Development session must match " + prefix + "{1..5}-<unique> exactly.";
                 return DailyBattleDevelopmentParseState.Malformed;
             }
             string uniqueToken = sessionName.Substring(suffixIndex + 2);
@@ -74,7 +102,9 @@ namespace MyDefense.Battle.Runtime
             }
             profile = new DailyBattleDevelopmentSessionProfile(
                 sessionName,
-                sessionName[suffixIndex] - '0');
+                sessionName[suffixIndex] - '0',
+                contentType,
+                mapId);
             return DailyBattleDevelopmentParseState.Valid;
         }
 

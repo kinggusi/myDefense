@@ -16,6 +16,7 @@ namespace MyDefense.Battle.Runtime
         public int SpawnWave { get; }
         public long KilledAtTick { get; }
         public int KillGold { get; }
+        public bool IsBoss { get; }
 
         public BattleKillAuditRecord(
             BattleRuntimeMonsterKey runtimeKey,
@@ -26,7 +27,8 @@ namespace MyDefense.Battle.Runtime
             int spawnWave,
             long killedAtTick,
             string supportPlayerId = null,
-            int killGold = 0)
+            int killGold = 0,
+            bool isBoss = false)
         {
             if (string.IsNullOrWhiteSpace(runtimeKey.BattleSessionId) || runtimeKey.RuntimeMonsterId == 0)
                 throw new ArgumentException("A valid runtime monster key is required.", nameof(runtimeKey));
@@ -56,6 +58,7 @@ namespace MyDefense.Battle.Runtime
             SpawnWave = spawnWave;
             KilledAtTick = killedAtTick;
             KillGold = killGold;
+            IsBoss = isBoss || lanePolicy == BattleMonsterLanePolicy.BOSS_SHARED;
         }
     }
 
@@ -124,7 +127,8 @@ namespace MyDefense.Battle.Runtime
                     current.SpawnWave,
                     current.KilledAtTick,
                     supportPlayerId,
-                    current.KillGold);
+                    current.KillGold,
+                    current.IsBoss);
                 return true;
             }
             catch (ArgumentException)

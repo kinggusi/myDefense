@@ -238,6 +238,34 @@ namespace MyDefense.Battle
         public bool IsDailyBattle => _dailyBattlePlan != null;
         public float DailyBattleRemainingSeconds => _dailyBattleRemainingSeconds;
 
+        public bool TryApplyActiveDailyBattleStatus(
+            AlienAttackSnapshot source,
+            out AlienAttackSnapshot result)
+        {
+            result = source;
+            if (_dailyBattlePlan == null
+                || _matchState != MatchState.RUNNING
+                || !_isWaveRunning
+                || !_dailyBattlePlan.TryGetWave(_currentRound, out DailyBattleWavePlan wave)
+                || wave.StatusEffectType == CanonicalDailyBattleStatusEffect.NONE)
+                return false;
+
+            result = DailyBattleAttackSnapshotCalculator.Apply(
+                source,
+                wave.StatusEffectType,
+                wave.StatusEffectValue);
+            return true;
+        }
+
+        public static bool ShouldTrackDailyMonsterForWaveCompletion(
+            bool isDailyBattle,
+            LaneType lane,
+            bool canonicalCountsTowardLaneLimit)
+        {
+            return canonicalCountsTowardLaneLimit
+                || (isDailyBattle && lane == LaneType.Player1Lane);
+        }
+
         public bool TryGetCanonicalSummonCost(int useCount, out int cost)
         {
             cost = 0;
@@ -855,7 +883,7 @@ namespace MyDefense.Battle
             if (_dailyBattlePlan != null && _matchState == MatchState.RUNNING)
             {
                 if (TryResolveDailyBattleTimeoutFromAuthority())
-                    Debug.Log("[DailyBattle] Time limit exceeded. Cultivation run failed.");
+                    Debug.Log("[DailyBattle] Time limit exceeded. Daily run failed.");
             }
         }
 
@@ -937,6 +965,8 @@ namespace MyDefense.Battle
                 }
             }
 
+            if (countChanged && IsCurrentDailyBossWave())
+                HandleDailyLaneBossDefeated();
             if (countChanged) TryCompleteRegularWave();
         }
 
@@ -1501,6 +1531,17 @@ namespace MyDefense.Battle
                 yield break;
             }
 
+            string dailyBossPatternWaveId = null;
+            if (IsCurrentDailyBossWave())
+            {
+                dailyBossPatternWaveId = ResolveDailyBossPatternWaveId();
+                if (dailyBossPatternWaveId == null)
+                {
+                    FaultExecution("Daily Lane Boss requires an enabled canonical Boss pattern.");
+                    yield break;
+                }
+            }
+
             for (int rowIndex = 0; rowIndex < _currentWaveSpawns.Count; rowIndex++)
             {
                 WaveSpawnSpecData spawn = _currentWaveSpawns[rowIndex];
@@ -1534,8 +1575,15 @@ namespace MyDefense.Battle
                     {
                         if (CanSpawnInLane(LaneType.Player1Lane))
                         {
-                            if (!SpawnConfiguredMonster(LaneType.Player1Lane, definition, spawn, 1f, out _))
+                            if (!SpawnConfiguredMonster(
+                                    LaneType.Player1Lane,
+                                    definition,
+                                    spawn,
+                                    1f,
+                                    out GameObject spawnedPlayerOne))
                                 yield break;
+                            if (dailyBossPatternWaveId != null)
+                                ActivateDailyLaneBoss(spawnedPlayerOne, dailyBossPatternWaveId);
                             player1Remaining--;
                         }
                         else
@@ -1648,17 +1696,78 @@ namespace MyDefense.Battle
 
         private void ActivateBoss(GameObject bossInstance)
         {
+            ActivateBossRuntime(bossInstance, true, _currentWaveSpec?.WaveId);
+        }
+
+        private void ActivateDailyLaneBoss(GameObject bossInstance, string patternWaveId)
+        {
+            ActivateBossRuntime(bossInstance, false, patternWaveId);
+        }
+
+        private string ResolveDailyBossPatternWaveId()
+        {
+            BattleBalanceCatalog catalog = _battleBalanceProvider?.Catalog;
+            if (catalog == null)
+                return null;
+
+            WaveSpecData selected = null;
+            IReadOnlyList<WaveSpecData> waves = catalog.Waves.All;
+            for (int index = 0; index < waves.Count; index++)
+            {
+                WaveSpecData wave = waves[index];
+                if (wave.Enabled
+                    && wave.WaveType == WaveType.BOSS
+                    && catalog.BossPatterns.GetByWave(wave.WaveId).Count > 0
+                    && (selected == null
+                        || wave.RoundNumber < selected.RoundNumber
+                        || (wave.RoundNumber == selected.RoundNumber
+                            && string.CompareOrdinal(wave.WaveId, selected.WaveId) < 0)))
+                    selected = wave;
+            }
+
+            return selected?.WaveId;
+        }
+
+        private void ActivateBossRuntime(
+            GameObject bossInstance,
+            bool usesExclusiveBossState,
+            string patternWaveId)
+        {
             _currentBossInstance = bossInstance;
-            _isBossActive = bossInstance != null;
-            _bossState = _isBossActive ? BossStatusState.Active : BossStatusState.None;
+            _isBossActive = usesExclusiveBossState && bossInstance != null;
+            _bossState = bossInstance != null ? BossStatusState.Active : BossStatusState.None;
             _bossPhase = 0;
             BattleMonsterMovement movement = bossInstance == null ? null : bossInstance.GetComponent<BattleMonsterMovement>();
             _bossBaseMoveSpeed = movement == null ? 0f : movement.Speed;
             IReadOnlyList<BossPatternSpecData> patterns = _battleBalanceProvider?.Catalog?.BossPatterns
-                ?.GetByWave(_currentWaveSpec?.WaveId);
+                ?.GetByWave(patternWaveId);
             _bossPatternRuntime = new BattleBossPatternRuntime(patterns);
             _bossPatternStartedAt = Time.time;
             TickBossPatterns();
+        }
+
+        private bool IsCurrentDailyBossWave()
+        {
+            return _dailyBattlePlan != null
+                && _dailyBattlePlan.TryGetWave(_currentRound, out DailyBattleWavePlan wave)
+                && wave.Boss;
+        }
+
+        private bool HandleDailyLaneBossDefeated()
+        {
+            if (_bossState != BossStatusState.Active || !IsCurrentDailyBossWave())
+                return false;
+
+            if (_bossPatternRuntime != null)
+                _bossPatternRuntime.Tick(Time.time - _bossPatternStartedAt, 0f, ApplyBossPattern);
+            _bossState = BossStatusState.Defeated;
+            _isBossActive = false;
+            _currentBossInstance = null;
+            _bossPatternRuntime = null;
+            StopBossTimer();
+            Debug.Log("[DailyBattle] Player 1 Lane Boss defeated. Daily Wave remainder cleared.");
+            OnBossDefeated?.Invoke();
+            return true;
         }
 
         private void TickBossPatterns()
@@ -1915,6 +2024,7 @@ namespace MyDefense.Battle
             BattleMonsterRuntimeContext runtimeContext = spawnedInstance.GetComponent<BattleMonsterRuntimeContext>();
             try
             {
+                bool isBoss = lane == LaneType.BossSharedLane || IsCurrentDailyBossWave();
                 runtimeContext.Initialize(new BattleMonsterRuntimeIdentity(
                     _runtimeSession,
                     spawnSequence,
@@ -1922,7 +2032,8 @@ namespace MyDefense.Battle
                     runtimeLanePolicy,
                     fieldOwnerPlayerId,
                     _currentRound,
-                    spawnSequence));
+                    spawnSequence,
+                    isBoss));
 
                 BattleMonsterNetworkState networkState = spawnedInstance.GetComponent<BattleMonsterNetworkState>();
                 if (networkState != null)
@@ -1948,7 +2059,11 @@ namespace MyDefense.Battle
 
             MonsterStat stat = spawnedInstance.GetComponent<MonsterStat>();
             stat.InitializeHp(resolvedMaxHp);
-            stat.InitializeBattleContext(lane, definition.CountsTowardLaneLimit);
+            bool tracksWaveCompletion = ShouldTrackDailyMonsterForWaveCompletion(
+                _dailyBattlePlan != null,
+                lane,
+                definition.CountsTowardLaneLimit);
+            stat.InitializeBattleContext(lane, tracksWaveCompletion);
             spawnedInstance.transform.localScale = Vector3.one * scale;
 
             if (!TryRegisterSpawnAudit(runtimeContext.Identity, spawn, lane))
@@ -1958,7 +2073,7 @@ namespace MyDefense.Battle
                 return false;
             }
 
-            if (definition.CountsTowardLaneLimit)
+            if (tracksWaveCompletion)
                 RegisterMonsterSpawned(lane);
 
             if (_isFaulted)
@@ -2015,7 +2130,8 @@ namespace MyDefense.Battle
                     identity.LanePolicy,
                     ownerSlot,
                     spawn.SpawnOrder,
-                    ordinal);
+                    ordinal,
+                    identity.IsBoss);
                 if (_spawnAuditRecords.Exists(existing => existing.RuntimeKey.Equals(record.RuntimeKey)))
                     throw new InvalidOperationException("Runtime monster ID was already recorded by the Spawn audit ledger.");
                 _spawnAuditRecords.Add(record);

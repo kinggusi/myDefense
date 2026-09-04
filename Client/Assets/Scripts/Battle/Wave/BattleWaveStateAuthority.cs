@@ -1867,7 +1867,8 @@ namespace MyDefense.Battle
                     monster.LanePolicy,
                     monster.SpawnWave,
                     killedAtTick,
-                    killGold: killGold));
+                    killGold: killGold,
+                    isBoss: monster.IsBoss));
             }
             catch (ArgumentException)
             {

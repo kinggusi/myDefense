@@ -282,7 +282,8 @@ namespace MyDefense.Battle.Runtime
                     if (!uniqueSpawns.TryGetValue(record.RuntimeKey, out BattleSpawnAuditRecord spawn)
                         || spawn.SpawnWave != record.SpawnWave
                         || !string.Equals(spawn.MonsterId, record.MonsterId, StringComparison.Ordinal)
-                        || spawn.LanePolicy != record.LanePolicy)
+                        || spawn.LanePolicy != record.LanePolicy
+                        || spawn.IsBoss != record.IsBoss)
                     {
                         throw new ArgumentException(
                             "Every unfinished-Wave Kill requires matching authoritative Spawn evidence.",
@@ -297,7 +298,7 @@ namespace MyDefense.Battle.Runtime
                 int kills = orderedRecords.Count(record => string.Equals(record.KillerPlayerId, seed.PlayerId, StringComparison.Ordinal));
                 int bossKills = orderedRecords.Count(record =>
                     string.Equals(record.KillerPlayerId, seed.PlayerId, StringComparison.Ordinal)
-                    && record.LanePolicy == BattleMonsterLanePolicy.BOSS_SHARED);
+                    && record.IsBoss);
                 int supportKills = orderedRecords.Count(record =>
                     string.Equals(record.SupportPlayerId, seed.PlayerId, StringComparison.Ordinal));
                 players.Add(new BattlePlayerSummary(seed, kills, supportKills, bossKills));
@@ -309,7 +310,7 @@ namespace MyDefense.Battle.Runtime
                 .Select(group => new BattleMonsterKillSummary(
                     group.Key,
                     group.Count(),
-                    group.Count(record => record.LanePolicy == BattleMonsterLanePolicy.BOSS_SHARED),
+                    group.Count(record => record.IsBoss),
                     group.Sum(record => record.KillGold)))
                 .ToList()
                 .AsReadOnly();
