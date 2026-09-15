@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using MyDefense.Battle.Balance;
 using MyDefense.Battle.Balance.Canonical;
+using MyDefense.Battle.Combat;
 using MyDefense.Battle.Runtime;
 using MyDefense.Battle.Presentation;
 using MyDefense.Shared.Contracts;
@@ -499,6 +500,126 @@ namespace MyDefense.Battle.Tests
         }
 
         [Test]
+        public void DailySnapshotProducerConsumer_CanonicalWaveChangesDoNotStackOrRetainPreviousStatus()
+        {
+            BattleWaveExecutor executor = CreateMutationSnapshotExecutor();
+            AlienAttackSnapshot source = AlienAttackSnapshot.FromCalculatedStats(17, 120f, 2f, 8f, "NONE");
+            AlienAttackSnapshot original = source;
+            UnitAttack consumer = CreateSnapshotConsumer(source);
+            float[] expectedDamage = { 120f, 96f, 120f, 90f, 120f, 90f, 120f };
+            float[] expectedRate = { 1.6f, 2f, 1.5f, 2f, 1.5f, 2f, 1.4f };
+
+            for (int wave = 1; wave <= expectedDamage.Length; wave++)
+            {
+                SetField(executor, "_currentRound", wave);
+                for (int refresh = 0; refresh < 3; refresh++)
+                {
+                    AlienAttackSnapshot consumed = ConsumeDailySnapshot(executor, consumer, source, true);
+                    Assert.That(consumed.Damage, Is.EqualTo(expectedDamage[wave - 1]).Within(0.001f), $"Wave {wave}");
+                    Assert.That(consumed.AttackRate, Is.EqualTo(expectedRate[wave - 1]).Within(0.001f), $"Wave {wave}");
+                    Assert.That(consumed.Range, Is.EqualTo(source.Range));
+                    Assert.That(consumed.Damage, Is.GreaterThan(0f));
+                    Assert.That(consumed.AttackRate, Is.GreaterThan(0f));
+                    Assert.That(source, Is.EqualTo(original), "Refresh must start from the unchanged source snapshot.");
+                }
+            }
+        }
+
+        [Test]
+        public void DailySnapshotProducerConsumer_WaveCompletionAndBothTerminalStatesRestoreMutationBaseline()
+        {
+            BattleWaveExecutor executor = CreateMutationSnapshotExecutor();
+            AlienAttackSnapshot source = CreateCanonicalMutationSnapshot(executor, "TOXIC");
+            UnitAttack consumer = CreateSnapshotConsumer(source);
+            SetField(executor, "_currentRound", 4);
+
+            AlienAttackSnapshot active = ConsumeDailySnapshot(executor, consumer, source, true);
+            Assert.That(active.Damage, Is.EqualTo(99f).Within(0.001f));
+            Assert.That(active.DotDamagePerTick, Is.EqualTo(19.8f).Within(0.001f));
+            SetField(executor, "_regularWaveSpawnCompleted", true);
+            MethodInfo complete = typeof(BattleWaveExecutor).GetMethod(
+                "TryCompleteRegularWave", BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(complete, Is.Not.Null);
+            Assert.That((bool)complete.Invoke(executor, null), Is.True);
+            Assert.That(ConsumeDailySnapshot(executor, consumer, source, false), Is.EqualTo(source));
+
+            foreach (MatchState terminal in new[] { MatchState.FAILED, MatchState.CLEARED })
+            {
+                SetField(executor, "_matchState", MatchState.RUNNING);
+                SetField(executor, "_isWaveRunning", true);
+                bool speedDown = terminal == MatchState.FAILED;
+                SetField(executor, "_currentRound", speedDown ? 3 : 4);
+                AlienAttackSnapshot beforeTerminal = ConsumeDailySnapshot(executor, consumer, source, true);
+                Assert.That(beforeTerminal.Damage, Is.EqualTo(speedDown ? 132f : 99f).Within(0.001f));
+                Assert.That(beforeTerminal.AttackRate, Is.EqualTo(speedDown ? 1.5f : 2f).Within(0.001f));
+                InvokeTransition(executor, terminal);
+                Assert.That(ConsumeDailySnapshot(executor, consumer, source, false), Is.EqualTo(source), terminal.ToString());
+            }
+
+            Assert.That(source.Damage, Is.EqualTo(132f).Within(0.001f));
+            Assert.That(source.AttackRate, Is.EqualTo(2f));
+            Assert.That(source.DotDamagePerTick, Is.EqualTo(26.4f).Within(0.001f));
+        }
+
+        [Test]
+        public void DailySnapshotProducerConsumer_MutationFieldsAndReducedDirectPayloadReachHitSink()
+        {
+            BattleWaveExecutor executor = CreateMutationSnapshotExecutor();
+            SetField(executor, "_currentRound", 4);
+            MethodInfo resolveHit = typeof(BattleProjectileNetworkState).GetMethod(
+                "ResolveHitTransaction", BindingFlags.Static | BindingFlags.NonPublic);
+            Assert.That(resolveHit, Is.Not.Null);
+
+            foreach (string mutationType in new[] { "TOXIC", "GIANT" })
+            {
+                AlienAttackSnapshot source = CreateCanonicalMutationSnapshot(executor, mutationType);
+                UnitAttack consumer = CreateSnapshotConsumer(source);
+                AlienAttackSnapshot consumed = ConsumeDailySnapshot(executor, consumer, source, true);
+                bool isToxic = mutationType == "TOXIC";
+                float expectedDamage = isToxic ? 99f : 121.5f;
+                Assert.That(consumed.Damage, Is.EqualTo(expectedDamage).Within(0.001f));
+                Assert.That(consumed.AttackRate, Is.EqualTo(source.AttackRate));
+                Assert.That(consumed.Range, Is.EqualTo(source.Range));
+                Assert.That(consumed.DotDamagePerTick, Is.EqualTo(isToxic ? 19.8f : 0f).Within(0.001f));
+                Assert.That(consumed.DotTickCount, Is.EqualTo(source.DotTickCount));
+                Assert.That(consumed.DotTickIntervalSeconds, Is.EqualTo(source.DotTickIntervalSeconds));
+                Assert.That(consumed.SplashRadius, Is.EqualTo(source.SplashRadius));
+                Assert.That(consumed.SplashDamageMultiplier, Is.EqualTo(source.SplashDamageMultiplier));
+                Assert.That(consumed.DotTickCount, Is.EqualTo(isToxic ? 3 : 0));
+                Assert.That(consumed.DotTickIntervalSeconds, Is.EqualTo(isToxic ? 1f : 0f));
+                Assert.That(consumed.SplashRadius, Is.EqualTo(isToxic ? 0f : 2.5f));
+                Assert.That(consumed.SplashDamageMultiplier, Is.EqualTo(isToxic ? 0f : 0.65f));
+
+                // Exercise the direct-hit consumer boundary. This does not run Fusion spawning,
+                // the live DoT timer, or Physics-based splash target selection.
+                var sink = new RecordingDamageSink();
+                var payload = new DamagePayload
+                {
+                    BattleSessionId = "daily-snapshot-producer-consumer",
+                    RuntimeProjectileId = 42,
+                    TargetRuntimeId = 99,
+                    AttackerId = consumed.AttackerServerId,
+                    Amount = MutationAttackSnapshotCalculator.ResolveDeterministicDamage(consumed, 42, false),
+                    ActiveMutationType = consumed.ActiveMutationType
+                };
+                object transaction = resolveHit.Invoke(null, new object[]
+                {
+                    sink, true, false, payload, isToxic, !isToxic, false, true
+                });
+                Assert.That(transaction, Is.Not.Null);
+                Assert.That(sink.Payloads, Has.Count.EqualTo(1));
+                DamagePayload received = sink.Payloads.Single();
+                Assert.That(received.Amount, Is.EqualTo(expectedDamage).Within(0.001f));
+                Assert.That(received.IsFinitePositive(), Is.True);
+                Assert.That(received.AttackerId, Is.EqualTo(source.AttackerServerId));
+                Assert.That(received.ActiveMutationType, Is.EqualTo(mutationType));
+                Assert.That(received.BattleSessionId, Is.EqualTo(payload.BattleSessionId));
+                Assert.That(received.RuntimeProjectileId, Is.EqualTo(42UL));
+                Assert.That(received.TargetRuntimeId, Is.EqualTo(99UL));
+            }
+        }
+
+        [Test]
         public void DailyFinalBoss_IsTrackedAsPlayerOneRegularWaveRemainder()
         {
             Assert.That(BattleWaveExecutor.ShouldTrackDailyMonsterForWaveCompletion(
@@ -677,6 +798,58 @@ namespace MyDefense.Battle.Tests
             Assert.That(executor.SpawnAuditRecords, Is.Empty);
             Assert.That(GetField<Dictionary<string, int>>(executor, "_spawnOrdinals"), Is.Empty);
             Assert.That(GetField<GameObject>(executor, "_currentBossInstance"), Is.Null);
+        }
+
+        private BattleWaveExecutor CreateMutationSnapshotExecutor()
+        {
+            CanonicalCompositeBattleBalanceProvider provider = LoadProvider();
+            Assert.That(DailyBattleExecutionPlanBuilder.TryBuildMutationLab(
+                MutationLabContext(provider, 5), provider, DailyBattleSessionTrust.DevelopmentFixture,
+                out DailyBattleExecutionPlan plan, out string error), Is.True, error);
+            BattleWaveExecutor executor = CreateExecutor();
+            SetField(executor, "_battleBalanceProvider", provider);
+            SetField(executor, "_dailyBattlePlan", plan);
+            SetField(executor, "_isWaveRunning", true);
+            return executor;
+        }
+
+        private static AlienAttackSnapshot CreateCanonicalMutationSnapshot(BattleWaveExecutor executor, string mutationType)
+        {
+            CanonicalMutationSpec spec = GetField<CanonicalCompositeBattleBalanceProvider>(executor, "_battleBalanceProvider")
+                .MutationSpecs.Single(candidate => candidate.MutationType == mutationType);
+            return MutationAttackSnapshotCalculator.Apply(
+                AlienAttackSnapshot.FromCalculatedStats(17, 120f, 2f, 8f, mutationType), spec);
+        }
+
+        private UnitAttack CreateSnapshotConsumer(AlienAttackSnapshot source)
+        {
+            var unit = new GameObject("DailySnapshotProducerConsumerTest");
+            _objects.Add(unit);
+            UnitData data = unit.AddComponent<UnitData>();
+            data.serverId = source.AttackerServerId;
+            data.activeMutationType = source.ActiveMutationType;
+            UnitAttack consumer = unit.AddComponent<UnitAttack>();
+            SetField(consumer, "cachedUnitData", data);
+            return consumer;
+        }
+
+        private static AlienAttackSnapshot ConsumeDailySnapshot(
+            BattleWaveExecutor executor, UnitAttack consumer, AlienAttackSnapshot source, bool expectsStatus)
+        {
+            Assert.That(executor.TryApplyActiveDailyBattleStatus(source, out AlienAttackSnapshot result), Is.EqualTo(expectsStatus));
+            consumer.ApplyAttackSnapshot(result);
+            Assert.That(GetField<bool>(consumer, "hasAttackSnapshot"), Is.True);
+            AlienAttackSnapshot consumed = GetField<AlienAttackSnapshot>(consumer, "attackSnapshot");
+            Assert.That(consumed, Is.EqualTo(result));
+            return consumed;
+        }
+
+        private sealed class RecordingDamageSink : IDamageable
+        {
+            public float CurrentHp => 1000f;
+            public bool IsDead => false;
+            public List<DamagePayload> Payloads { get; } = new();
+            public void ApplyDamage(DamagePayload payload) => Payloads.Add(payload);
         }
 
         private BattleWaveExecutor CreateExecutor()

@@ -45,6 +45,36 @@ namespace MyDefenseGame.Editor.Tests
             Assert.That(errors, Does.Contain("P0-X: FusionTwoClient launch profile is required."));
         }
 
+        [TestCase("P2-2-2", "CULT")]
+        [TestCase("P2-2-3", "MUT")]
+        public void DailyCasesUseIsolatedSoloSessionsAndDocumentTheirLaunchGate(string taskId, string content)
+        {
+            var testCase = FeatureTestCatalog.CreateDefault().Cases.Single(item => item.TaskId == taskId);
+            var errors = FeatureTestCatalogValidator.Validate(new[] { testCase }, _ => true,
+                new[] { "Assets/Scenes/Battle.unity" });
+
+            Assert.That(errors, Is.Empty);
+            Assert.That(testCase.TestType, Is.EqualTo(FeatureTestType.FusionSolo));
+            Assert.That(testCase.LaunchProfile, Is.Null, "Solo Daily must not inherit a two-client launch profile.");
+            Assert.That(testCase.Preconditions.Single(), Does.Contain("-Content " + content));
+            Assert.That(testCase.Preconditions.Single(), Does.Contain("manifest"));
+            Assert.That(testCase.ResetSteps.Single(), Does.Contain("P22-" + content + "-S{1..5}"));
+            Assert.That(testCase.ResetSteps.Single(), Does.Contain("Result POST 없음"));
+            Assert.That(testCase.ReportPath, Is.EqualTo("docs/test-reports/" + taskId + ".md"));
+        }
+
+        [Test]
+        public void SoloFixtureSceneCannotEnterProductionBuild()
+        {
+            const string path = "Assets/Scenes/Tests/DailyFixture.unity";
+            var testCase = new FeatureTestCase("P2-X", "Solo", "kinggusi", path, FeatureTestType.FusionSolo,
+                new[] { "precondition" }, new[] { "reset" }, new[] { "test" }, new[] { "check" }, "report.md");
+
+            var errors = FeatureTestCatalogValidator.Validate(new[] { testCase }, _ => true, new[] { path });
+
+            Assert.That(errors, Does.Contain($"P2-X: test Scene must not be in Production Build Settings: {path}"));
+        }
+
 #if UNITY_EDITOR
         [Test]
         public void DefaultCatalogMatchesEditorAssetsAndBuildPolicy()
