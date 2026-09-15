@@ -3,6 +3,7 @@ using UnityEngine;
 using Fusion;
 using MyDefense.Battle;
 using MyDefense.Battle.Balance.Canonical;
+using MyDefense.Shared.Contracts;
 
 namespace MyDefense.Battle.Runtime
 {
@@ -20,6 +21,10 @@ namespace MyDefense.Battle.Runtime
         [SerializeField] private PlanetContentApplicator _planetContentApplicator;
         private IBattleSessionRosterRegistration _rosterRegistration;
         private string _planetContentFailureKey;
+        private DailyBattleSoloPresentationController _dailySoloPresentation;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        private string _dailyInitializationDiagnosticKey;
+#endif
 
         public BattleSessionContext SessionContext { get; private set; }
         public bool IsInitialized { get; private set; }
@@ -104,14 +109,59 @@ namespace MyDefense.Battle.Runtime
             _runnerLifecycle ??= FindFirstObjectByType<BattleRunnerLifecycle>();
             _waveExecutor ??= FindFirstObjectByType<BattleWaveExecutor>();
             _stateAuthority ??= FindFirstObjectByType<BattleWaveStateAuthority>();
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            bool isDailyDevelopmentSession = _runnerLifecycle?.DailyBattleDevelopmentProfile != null;
+#endif
             if (_runnerLifecycle == null || _runnerLifecycle.SessionContext == null)
             {
                 if (!TryCreateSessionContext())
+                {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                    if (isDailyDevelopmentSession)
+                    {
+                        string reason = _runnerLifecycle?.Runner == null
+                            ? "Waiting for Fusion NetworkRunner."
+                            : !_runnerLifecycle.Runner.IsRunning
+                                ? "Waiting for Fusion NetworkRunner to enter Running state."
+                                : _waveExecutor == null
+                                    ? "BattleWaveExecutor is unavailable."
+                                    : "Waiting to create Daily BattleSessionContext from canonical metadata.";
+                        ReportDailyInitializationState(reason);
+                    }
+#endif
                     return false;
+                }
             }
 
             if (_runnerLifecycle.SessionContext == null)
+            {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                if (isDailyDevelopmentSession)
+                    ReportDailyInitializationState("Daily BattleSessionContext was not created.");
+#endif
                 return false;
+            }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (isDailyDevelopmentSession)
+            {
+                if (_stateAuthority == null)
+                {
+                    ReportDailyInitializationState("BattleWaveStateAuthority component is unavailable.");
+                    return false;
+                }
+                if (!_stateAuthority.IsSpawnedForAccess)
+                {
+                    ReportDailyInitializationState("Waiting for BattleWaveStateAuthority NetworkObject.Spawned().");
+                    return false;
+                }
+                if (!_stateAuthority.IsAuthoritative)
+                {
+                    ReportDailyInitializationState("BattleWaveStateAuthority is spawned without State Authority on the Daily Host.");
+                    return false;
+                }
+            }
+#endif
 
             // CreateSessionContext raises SessionContextCreated synchronously.
             // The callback may have completed initialization before this call
@@ -156,10 +206,22 @@ namespace MyDefense.Battle.Runtime
 
             BattlePlayerRoster roster = _runnerLifecycle.PlayerRoster;
             if (roster == null || _runnerLifecycle.Runner == null)
+            {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                if (isDailyDevelopmentSession)
+                    ReportDailyInitializationState("Fusion roster or NetworkRunner is unavailable.");
+#endif
                 return false;
+            }
 
             if (!roster.TryGet(_runnerLifecycle.Runner.LocalPlayer, out BattlePlayerIdentity localIdentity))
+            {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                if (isDailyDevelopmentSession)
+                    ReportDailyInitializationState("Waiting for the Daily Host local identity in the Fusion roster.");
+#endif
                 return false;
+            }
 
             // A client may not know the remote user's account ID yet. Bind its
             // local lane immediately; full authoritative initialization waits
@@ -167,6 +229,38 @@ namespace MyDefense.Battle.Runtime
             if (_waveExecutor != null)
                 _waveExecutor.SetLocalPlayerLane(
                     localIdentity.PlayerSlot == 1 ? LaneType.Player1Lane : LaneType.Player2Lane);
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            DailyBattleDevelopmentSessionProfile dailyProfile = _runnerLifecycle.DailyBattleDevelopmentProfile;
+            if (dailyProfile != null)
+            {
+                if (!_runnerLifecycle.Runner.IsServer || localIdentity.PlayerSlot != 1)
+                {
+                    FailDailyInitialization("Solo Daily Development session requires the Host in Player 1 slot.");
+                    return false;
+                }
+                if (!_waveExecutor.TryGetCanonicalDailyBattleProvider(out ICanonicalCompositeBattleBalanceProvider provider))
+                {
+                    FailDailyInitialization("Canonical DailyBattleStage provider is unavailable.");
+                    return false;
+                }
+                DailyBattleSessionContext dailyContext = dailyProfile.CreateContext(provider);
+                if (!DailyBattleExecutionPlanBuilder.TryBuildCultivation(
+                        dailyContext,
+                        provider,
+                        DailyBattleSessionTrust.DevelopmentFixture,
+                        out DailyBattleExecutionPlan plan,
+                        out string dailyError))
+                {
+                    FailDailyInitialization("Daily execution plan validation failed: " + dailyError);
+                    return false;
+                }
+                return InitializeDaily(
+                    _runnerLifecycle.SessionContext,
+                    new DailyBattlePlayerIdentityMap(localIdentity.UserId),
+                    plan);
+            }
+#endif
 
             string player1Id;
             string player2Id;
@@ -238,6 +332,9 @@ namespace MyDefense.Battle.Runtime
                 throw new ArgumentNullException(nameof(playerIdentityProvider));
             if (_waveExecutor == null)
                 return false;
+            GetComponent<DailyBattleResultCoordinator>()?.ResetCoordinator();
+            if (_dailySoloPresentation != null)
+                _dailySoloPresentation.SetSoloPlayerOneMode(false, out _);
             if (localPlayerLane != LaneType.Player1Lane && localPlayerLane != LaneType.Player2Lane)
                 return false;
             if (RequiresSpawnedAuthorityMap(
@@ -311,6 +408,9 @@ namespace MyDefense.Battle.Runtime
                 return false;
             }
             _planetContentFailureKey = null;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            _dailyInitializationDiagnosticKey = null;
+#endif
             LastInitializationError = null;
 
             if (_stateAuthority != null)
@@ -370,12 +470,119 @@ namespace MyDefense.Battle.Runtime
 
         public void ResetAdapter()
         {
+            GetComponent<DailyBattleResultCoordinator>()?.ResetCoordinator();
+            if (_dailySoloPresentation != null)
+                _dailySoloPresentation.SetSoloPlayerOneMode(false, out _);
             _planetContentApplicator?.Clear();
             SessionContext = null;
             IsInitialized = false;
             _planetContentFailureKey = null;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            _dailyInitializationDiagnosticKey = null;
+#endif
             LastInitializationError = null;
         }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        private bool InitializeDaily(
+            BattleSessionContext sessionContext,
+            IBattlePlayerIdentityProvider playerIdentityProvider,
+            DailyBattleExecutionPlan plan)
+        {
+            if (_waveExecutor == null)
+                return FailDailyInitialization("BattleWaveExecutor is unavailable during Daily initialization.");
+            if (_stateAuthority == null)
+                return FailDailyInitialization("BattleWaveStateAuthority component is unavailable during Daily initialization.");
+            if (!_stateAuthority.IsSpawnedForAccess)
+                return FailDailyInitialization("Waiting for BattleWaveStateAuthority NetworkObject.Spawned().");
+            if (!_stateAuthority.IsAuthoritative)
+                return FailDailyInitialization("BattleWaveStateAuthority is not authoritative on the Daily Host.");
+            if (!string.Equals(sessionContext.BattleSessionId, plan.SessionContext.battleSessionId, StringComparison.Ordinal)
+                || !string.Equals(sessionContext.MapId, plan.SessionContext.mapId, StringComparison.Ordinal))
+            {
+                return FailDailyInitialization("Daily Session context does not match the immutable Battle session.");
+            }
+            if (!_stateAuthority.TryResolveMapForInitialization(
+                    sessionContext.MapId,
+                    out string authoritativeMapId,
+                    out bool shouldRetry,
+                    out string reason))
+            {
+                return FailDailyInitialization(reason ?? "Daily authoritative map resolution failed.");
+            }
+            if (shouldRetry || !string.Equals(authoritativeMapId, sessionContext.MapId, StringComparison.Ordinal))
+            {
+                return FailDailyInitialization(reason ?? "Authoritative Daily mapId mismatch.");
+            }
+
+            // Cache and validate both Scene waypoint groups while they still have
+            // their authored active state. Daily presentation disables Player 2
+            // objects only after PathManager has completed its regular setup.
+            _pathManager?.InitializePaths();
+            _dailySoloPresentation ??= GetComponent<DailyBattleSoloPresentationController>();
+            _dailySoloPresentation ??= gameObject.AddComponent<DailyBattleSoloPresentationController>();
+            if (!_dailySoloPresentation.SetSoloPlayerOneMode(true, out string presentationError))
+            {
+                return FailDailyInitialization("Daily solo presentation failed: " + presentationError);
+            }
+            if (!_stateAuthority.InitializeDailySession(sessionContext, playerIdentityProvider, plan))
+            {
+                _dailySoloPresentation.SetSoloPlayerOneMode(false, out _);
+                return FailDailyInitialization("BattleWaveStateAuthority rejected Daily plan initialization.");
+            }
+
+            _waveExecutor.SetLocalPlayerLane(LaneType.Player1Lane);
+            DailyBattleResultCoordinator resultCoordinator = GetComponent<DailyBattleResultCoordinator>();
+            resultCoordinator ??= gameObject.AddComponent<DailyBattleResultCoordinator>();
+            if (!resultCoordinator.ConfigureForStateAuthority(
+                    _waveExecutor,
+                    _stateAuthority,
+                    plan,
+                    null,
+                    out string resultError))
+            {
+                _dailySoloPresentation.SetSoloPlayerOneMode(false, out _);
+                return FailDailyInitialization("Daily result coordinator failed: " + resultError);
+            }
+            SuppressDailySettlement();
+            SessionContext = sessionContext;
+            IsInitialized = true;
+            _dailyInitializationDiagnosticKey = null;
+            LastInitializationError = null;
+            _waveExecutor.StartConfiguredWavesIfReady();
+            Debug.Log($"[DailyBattle] Development Cultivation Stage {plan.SessionContext.stage} initialized for Player 1 only.");
+            return true;
+        }
+
+        private bool FailDailyInitialization(string reason)
+        {
+            LastInitializationError = string.IsNullOrWhiteSpace(reason)
+                ? "Daily initialization failed for an unspecified reason."
+                : reason;
+            ReportDailyInitializationState(LastInitializationError);
+            return false;
+        }
+
+        private void ReportDailyInitializationState(string reason)
+        {
+            string key = string.IsNullOrWhiteSpace(reason) ? "unspecified" : reason.Trim();
+            if (string.Equals(_dailyInitializationDiagnosticKey, key, StringComparison.Ordinal))
+                return;
+            _dailyInitializationDiagnosticKey = key;
+            Debug.LogWarning("[DailyBattle] initialization waiting/failed: " + key);
+        }
+
+        private void SuppressDailySettlement()
+        {
+            if (_rosterRegistration != null)
+                _rosterRegistration.Registered -= HandleRosterRegistered;
+            _rosterRegistration = null;
+            BattleSettlementCoordinator coordinator = GetComponent<BattleSettlementCoordinator>();
+            if (coordinator != null)
+                coordinator.enabled = false;
+            Debug.Log("[DailyBattle] General roster registration and Settlement POST are disabled.");
+        }
+#endif
 
         public static bool RequiresSpawnedAuthorityMap(
             bool runnerIsRunning,

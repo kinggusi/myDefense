@@ -18,6 +18,7 @@ namespace MyDefense.Battle.Balance.Canonical
         CanonicalMutationConfig MutationConfig { get; }
         IReadOnlyList<CanonicalInjectorPoolEntry> InjectorPool { get; }
         CanonicalResonanceRegistry Resonance { get; }
+        CanonicalDailyBattleStageRegistry DailyBattleStages { get; }
         IMonsterDefinitionProvider MonsterDefinitions { get; }
     }
 
@@ -50,6 +51,7 @@ namespace MyDefense.Battle.Balance.Canonical
         public CanonicalMutationConfig MutationConfig { get; }
         public IReadOnlyList<CanonicalInjectorPoolEntry> InjectorPool { get; }
         public CanonicalResonanceRegistry Resonance { get; }
+        public CanonicalDailyBattleStageRegistry DailyBattleStages { get; }
         public IMonsterDefinitionProvider MonsterDefinitions { get; }
 
         private CanonicalCompositeBattleBalanceProvider(
@@ -73,9 +75,11 @@ namespace MyDefense.Battle.Balance.Canonical
             MutationConfig = canonical?.MutationConfig;
             InjectorPool = canonical?.InjectorPool;
             Resonance = canonical?.Resonance;
+            DailyBattleStages = canonical?.DailyBattleStages;
             Catalog = catalog;
             ValidationErrors = Array.AsReadOnly(new List<string>(errors ?? Array.Empty<string>()).ToArray());
-            IsValid = canonical != null && catalog != null && fieldLimit != null && PlanetBattles != null && Summon != null && ValidationErrors.Count == 0;
+            IsValid = canonical != null && catalog != null && fieldLimit != null && PlanetBattles != null
+                && Summon != null && DailyBattleStages != null && ValidationErrors.Count == 0;
         }
 
         public static CanonicalCompositeBattleBalanceProvider LoadProduction(
