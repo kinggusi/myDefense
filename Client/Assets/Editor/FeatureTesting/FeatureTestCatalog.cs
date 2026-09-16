@@ -13,7 +13,8 @@ namespace MyDefenseGame.Editor.FeatureTesting
         EditMode,
         PlayMode,
         Scene,
-        FusionTwoClient
+        FusionTwoClient,
+        FusionSolo
     }
 
     [Serializable]
@@ -129,7 +130,19 @@ namespace MyDefenseGame.Editor.FeatureTesting
                 Case("P1-5", "Battle Settlement 보상 E2E", "jjangash", "Assets/Scenes/Battle.unity", FeatureTestType.FusionTwoClient,
                     "Spring Boot와 canonical manifest, 2인 종료 Summary", "Session 종료 및 Settlement 테스트 데이터 정리", "BattleSettlementCoordinatorTests;BattleSettlementEndToEndIntegrationTest", "승리·패배·관전·이탈 자격·멱등 보상", "docs/P1_INTEGRATION_TEST_SCENARIO.md"),
                 Case("P2-1-2", "행성별 Planet Content", "kinggusi", "Assets/Scenes/Battle.unity", FeatureTestType.FusionTwoClient,
-                    "canonical 9행성 Profile Catalog와 동일 mapId 2인 Session", "Session 종료 및 PlanetContentApplicator Clear", "PlanetContentCatalogTests;PlanetContentApplicatorTests;BattleWaveStateAuthorityTests", "Host/Client 동일 환경·공통 Board/Lane/Waypoint/Boss 유지", "docs/test-reports/P2-1-2.md")
+                    "canonical 9행성 Profile Catalog와 동일 mapId 2인 Session", "Session 종료 및 PlanetContentApplicator Clear", "PlanetContentCatalogTests;PlanetContentApplicatorTests;BattleWaveStateAuthorityTests", "Host/Client 동일 환경·공통 Board/Lane/Waypoint/Boss 유지", "docs/test-reports/P2-1-2.md"),
+                Case("P2-2-2", "배양 구역 S1~S5 Solo Daily", "kinggusi", "Assets/Scenes/Battle.unity", FeatureTestType.FusionSolo,
+                    "Development Build; local Spring; scripts/Start-P22Daily.ps1 -Content CULT -Stage 1 (S1~S5); 서버 Attack Snapshot GET와 빌드 manifest 일치",
+                    "기존 창 종료 후 런처 재실행: 고유 P22-CULT-S{1..5} Session, dev-daily Host 1개; Result POST 없음",
+                    "DailyCultivationBattleTests;DailyBattleContentTests;FeatureTestCatalogTests",
+                    "Player 1 Kidnap·Merge·Gold·공격; Player 2 비활성; 3~7 Wave·120~240초; Boss 없음; 잔존 적 제거 후 CLEARED; 실패·재실행; 최종 Profile 비주얼",
+                    "docs/test-reports/P2-2-2.md"),
+                Case("P2-2-3", "변이 연구소 S1~S5 Solo Daily", "kinggusi", "Assets/Scenes/Battle.unity", FeatureTestType.FusionSolo,
+                    "Development Build; local Spring; scripts/Start-P22Daily.ps1 -Content MUT -Stage 1 (S1~S5); 서버 Attack Snapshot GET와 빌드 manifest 일치",
+                    "기존 창 종료 후 런처 재실행: 고유 P22-MUT-S{1..5} Session, dev-daily Host 1개; Result POST 없음",
+                    "DailyCultivationBattleTests;DailyBattleContentTests;FeatureTestCatalogTests",
+                    "Player 1 공격속도·공격력 감소 및 Wave 전환 복원; TOXIC·GIANT 파생 피해; 최종 Boss Player 1 Lane·처치; 3~7 Wave·120~240초; Player 2 비활성; 실패·재실행; 최종 Profile 비주얼",
+                    "docs/test-reports/P2-2-3.md")
             });
         }
 
@@ -186,7 +199,11 @@ namespace MyDefenseGame.Editor.FeatureTesting
                 {
                     if (sceneExists != null && !sceneExists(testCase.ScenePath))
                         errors.Add($"{testCase.TaskId}: missing Scene {testCase.ScenePath}");
-                    if (production.Contains(testCase.ScenePath) && testCase.TestType != FeatureTestType.FusionTwoClient)
+                    bool usesDailyRuntimeScene = testCase.TestType == FeatureTestType.FusionSolo
+                        && string.Equals(testCase.ScenePath, "Assets/Scenes/Battle.unity", StringComparison.Ordinal);
+                    if (production.Contains(testCase.ScenePath)
+                        && testCase.TestType != FeatureTestType.FusionTwoClient
+                        && !usesDailyRuntimeScene)
                         errors.Add($"{testCase.TaskId}: test Scene must not be in Production Build Settings: {testCase.ScenePath}");
                 }
                 if (testCase.Preconditions.Count == 0 || testCase.ResetSteps.Count == 0 || testCase.HumanChecklist.Count == 0)

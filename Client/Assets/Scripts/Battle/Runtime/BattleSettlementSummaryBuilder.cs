@@ -103,7 +103,8 @@ namespace MyDefense.Battle.Runtime
             {
                 if (!spawnByRuntimeKey.TryGetValue(kill.RuntimeKey, out BattleSpawnAuditRecord spawn)
                     || !string.Equals(spawn.MonsterId, kill.MonsterId, StringComparison.Ordinal)
-                    || spawn.LanePolicy != kill.LanePolicy)
+                    || spawn.LanePolicy != kill.LanePolicy
+                    || spawn.IsBoss != kill.IsBoss)
                 {
                     throw new ArgumentException(
                         "Unfinished-Wave Kill identity does not match authoritative Spawn evidence.",
@@ -219,7 +220,7 @@ namespace MyDefense.Battle.Runtime
                 ?? Array.Empty<BattleKillAuditRecord>();
             int killCount = audit.Count;
             int supportCount = audit.Count(record => !string.IsNullOrWhiteSpace(record.SupportPlayerId));
-            int bossCount = audit.Count(record => record.LanePolicy == BattleMonsterLanePolicy.BOSS_SHARED);
+            int bossCount = audit.Count(record => record.IsBoss);
             int killGold = audit.Sum(record => record.KillGold);
 
             if (players.Sum(player => player.kills) != killCount

@@ -80,6 +80,7 @@ namespace MyDefense.Battle.Runtime
         public int? FieldOwnerPlayerSlot { get; }
         public int SpawnOrder { get; }
         public int SpawnOrdinal { get; }
+        public bool IsBoss { get; }
 
         public BattleSpawnAuditRecord(
             BattleRuntimeMonsterKey runtimeKey,
@@ -89,7 +90,8 @@ namespace MyDefense.Battle.Runtime
             BattleMonsterLanePolicy lanePolicy,
             int? fieldOwnerPlayerSlot,
             int spawnOrder,
-            int spawnOrdinal)
+            int spawnOrdinal,
+            bool isBoss = false)
         {
             if (spawnWave < 1) throw new ArgumentOutOfRangeException(nameof(spawnWave));
             if (spawnOrder < 1) throw new ArgumentOutOfRangeException(nameof(spawnOrder));
@@ -118,6 +120,7 @@ namespace MyDefense.Battle.Runtime
             FieldOwnerPlayerSlot = fieldOwnerPlayerSlot;
             SpawnOrder = spawnOrder;
             SpawnOrdinal = spawnOrdinal;
+            IsBoss = isBoss || lanePolicy == BattleMonsterLanePolicy.BOSS_SHARED;
         }
     }
 
@@ -166,6 +169,7 @@ namespace MyDefense.Battle.Runtime
         public string FieldOwnerPlayerId { get; }
         public int SpawnWave { get; }
         public ulong SpawnSequence { get; }
+        public bool IsBoss { get; }
         public string CanonicalBalanceVersion => Session.CanonicalBalanceVersion;
         public string CanonicalContentHash => Session.CanonicalContentHash;
         public BattleRuntimeMonsterKey RuntimeKey => new BattleRuntimeMonsterKey(BattleSessionId, RuntimeMonsterId);
@@ -177,7 +181,8 @@ namespace MyDefense.Battle.Runtime
             BattleMonsterLanePolicy lanePolicy,
             string fieldOwnerPlayerId,
             int spawnWave,
-            ulong spawnSequence)
+            ulong spawnSequence,
+            bool isBoss = false)
         {
             Session = session ?? throw new ArgumentNullException(nameof(session));
             if (runtimeMonsterId == 0)
@@ -209,6 +214,7 @@ namespace MyDefense.Battle.Runtime
             RuntimeMonsterId = runtimeMonsterId;
             SpawnWave = spawnWave;
             SpawnSequence = spawnSequence;
+            IsBoss = isBoss || lanePolicy == BattleMonsterLanePolicy.BOSS_SHARED;
         }
     }
 }

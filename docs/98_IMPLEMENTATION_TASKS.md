@@ -413,8 +413,8 @@ P0-1-1~4 → P0-1-5 → P0-1-6
 | P2-1-1 | jjangash | 완료 | 행성 Stage 해금·입장·보상 서버 구현 |
 | P2-1-2 | kinggusi | 검증 대기 | 단일 `Battle.unity`의 `PlanetContentProfile + 환경 Prefab` 기반 행성 Presentation 구현 — P2-1-1 local/dev 입장·roster `mapId` 연결 호환 및 자동검증 PASS, Shared Snapshot `mapId`·production Adapter·jjangash 사람 비주얼 검증 대기 |
 | P2-2-1 | jjangash | 완료 | 일일 콘텐츠 횟수·초기화·보상 서버 구현 |
-| P2-2-2 | kinggusi | 대기 | 배양 구역 5 Stage Battle 구현 — Shared Session 문맥과 canonical `DailyBattleStage` 선행 계약 준비 완료 |
-| P2-2-3 | kinggusi | 대기 | 변이 연구소 5 Stage Battle 구현 — Shared Session 문맥과 canonical `DailyBattleStage` 선행 계약 준비 완료 |
+| P2-2-2 | kinggusi | 부분 완료 | 배양 구역 5 Stage solo Battle·canonical 실행·P1 환경 구현. 전체 EditMode 573/573, S1~S5 서버 Snapshot·정상 Kidnap·Fixture 기능 완주 확인. S5 최초 NONE 구성 timeout FAIL 및 GIANT 추가 재실행 PASS 별도 기록. 정상 구성 난이도·사람 검증·trusted Daily Result Adapter E2E 대기. `docs/test-reports/P2-2-2.md` |
+| P2-2-3 | kinggusi | 부분 완료 | 변이 연구소 5 Stage·상태 이상·P1 Lane 최종 Boss·환경 구현. 전체 EditMode 573/573, S1~S5 Fixture 최종 Boss/완주 smoke, S2~S5 실제 UnitAttack 소비 수치·종료 복원 PASS. 실제 DoT/Splash 피해량·정상 구성 난이도·사람 검증·trusted Daily Result E2E 대기. `docs/test-reports/P2-2-3.md` |
 | P2-3-1 | jjangash | 부분 완료 | Settlement 기반 Quest 사실 장부·조건별 정확히 한 번 누적 구현 — 일일/주간 조건 정의·보상·초기화·조회 UI는 정책 및 후속 구현 대기 |
 | P2-3-2 | kinggusi | 부분 완료 | Battle Quest 진행 이벤트 제공 |
 | P2-4-1 | jjangash | 정책 선행 | 무한 Wave 시즌·랭킹·구간 보상 서버 구현 |
