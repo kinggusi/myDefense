@@ -28,7 +28,8 @@ public class BalanceDataLoader implements ApplicationRunner {
                                BattleRuleBalanceRegistry battleRules, MythicBreedingBalanceRegistry breeding,
                                PlanetBattleBalanceRegistry planetBattles, ResonanceBalanceRegistry resonance,
                                DailyContentBalanceRegistry dailyContents,
-                               DailyBattleStageBalanceRegistry dailyBattleStages) {
+                               DailyBattleStageBalanceRegistry dailyBattleStages,
+                               QuestBalanceRegistry quests) {
         this.resourceLoader=resourceLoader; this.baseObjectMapper=mapper; this.validator=validator; this.registry=registry;
         this.alienUpgradeRegistry=upgrade; this.monsterBalanceRegistry=monsters; this.waveBalanceRegistry=waves;
         this.battleRuleBalanceRegistry=battleRules; this.mythicBreedingBalanceRegistry=breeding;
@@ -36,6 +37,7 @@ public class BalanceDataLoader implements ApplicationRunner {
         this.resonanceBalanceRegistry=resonance;
         this.dailyContentBalanceRegistry=dailyContents;
         this.dailyBattleStageBalanceRegistry=dailyBattleStages;
+        this.questBalanceRegistry=quests;
     }
 
     public BalanceDataLoader(ResourceLoader resourceLoader, ObjectMapper mapper, BalanceDataValidator validator,
@@ -44,7 +46,7 @@ public class BalanceDataLoader implements ApplicationRunner {
                               BattleRuleBalanceRegistry battleRules) {
         this(resourceLoader, mapper, validator, registry, upgrade, monsters, waves, battleRules,
                 new MythicBreedingBalanceRegistry(), new PlanetBattleBalanceRegistry(), new ResonanceBalanceRegistry(),
-                new DailyContentBalanceRegistry(), new DailyBattleStageBalanceRegistry());
+                new DailyContentBalanceRegistry(), new DailyBattleStageBalanceRegistry(), new QuestBalanceRegistry());
     }
 
     private final ResourceLoader resourceLoader;
@@ -60,6 +62,7 @@ public class BalanceDataLoader implements ApplicationRunner {
     private final ResonanceBalanceRegistry resonanceBalanceRegistry;
     private final DailyContentBalanceRegistry dailyContentBalanceRegistry;
     private final DailyBattleStageBalanceRegistry dailyBattleStageBalanceRegistry;
+    private final QuestBalanceRegistry questBalanceRegistry;
 
     @Value("${balance.reward.path:classpath:balance/generated/game-reward.json}")
     private String rewardFilePath;
@@ -122,6 +125,9 @@ public class BalanceDataLoader implements ApplicationRunner {
     @Value("${balance.daily-battle-stage.path:classpath:balance/generated/daily-battle-stage.json}")
     private String dailyBattleStageFilePath;
 
+    @Value("${balance.quest.path:classpath:balance/generated/quest-balance.json}")
+    private String questFilePath;
+
     public void setRewardFilePath(String rewardFilePath) {
         this.rewardFilePath = rewardFilePath;
     }
@@ -158,6 +164,7 @@ public class BalanceDataLoader implements ApplicationRunner {
     public void setBattleRewardFilePath(String value) { this.battleRewardFilePath = value; }
     public void setResonanceFilePath(String value) { this.resonanceFilePath = value; }
     public void setDailyBattleStageFilePath(String value) { this.dailyBattleStageFilePath = value; }
+    public void setQuestFilePath(String value) { this.questFilePath = value; }
 
     @Override
     public void run(ApplicationArguments args) throws Exception {
@@ -234,6 +241,7 @@ public class BalanceDataLoader implements ApplicationRunner {
                     strictMapper, dailyContentFilePath, DailyContentBalanceDocument.class);
             DailyBattleStageBalanceDocument dailyBattleStageDoc = readDocument(
                     strictMapper, dailyBattleStageFilePath, DailyBattleStageBalanceDocument.class);
+            QuestBalanceDocument questDoc = readDocument(strictMapper, questFilePath, QuestBalanceDocument.class);
 
             validator.validateBattleBalance(monsterDoc, waveDoc, spawnDoc, fieldLimitDoc, summonDoc,
                     mergeRuleDoc, mythicChoiceDoc, specs);
@@ -246,6 +254,7 @@ public class BalanceDataLoader implements ApplicationRunner {
             validator.validateResonanceBalance(resonanceBalances);
             validator.validateDailyContents(dailyContentDoc);
             validator.validateDailyBattleStages(dailyBattleStageDoc, monsterDoc);
+            validator.validateQuests(questDoc);
 
             alienUpgradeRegistry.init(upgradeCosts, levelStats);
             registry.init(rewardBalance, specs, productDoc.products(), poolDoc.pools());
@@ -259,6 +268,7 @@ public class BalanceDataLoader implements ApplicationRunner {
             resonanceBalanceRegistry.init(resonanceBalances);
             dailyContentBalanceRegistry.init(dailyContentDoc.contents());
             dailyBattleStageBalanceRegistry.init(dailyBattleStageDoc.stages());
+            questBalanceRegistry.init(questDoc);
 
             log.info("Balance 데이터 로딩 완료. MaxLevel: {}", maxLevel);
         } catch (Exception e) {

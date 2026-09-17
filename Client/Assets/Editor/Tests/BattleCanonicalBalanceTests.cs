@@ -26,8 +26,8 @@ namespace MyDefense.Battle.Tests
 
             Assert.That(result.IsValid, Is.True, JoinErrors(result.Errors));
             Assert.That(result.Bundle.Manifest.SchemaVersion, Is.EqualTo(1));
-            Assert.That(result.Bundle.Manifest.BalanceVersion, Is.EqualTo("1-b6ca576fc911aecb"));
-            Assert.That(result.Bundle.Manifest.ContentHash, Is.EqualTo("b6ca576fc911aecbdff4817778532fc2547bc734972538b3a36e5b8d54df63b2"));
+            Assert.That(result.Bundle.Manifest.BalanceVersion, Is.EqualTo("1-2c24f2a29fd63b81"));
+            Assert.That(result.Bundle.Manifest.ContentHash, Is.EqualTo("2c24f2a29fd63b81c092f7c648acb2acc405b7429901230e17e74fc6e4330cb5"));
 
             AssertMonster(result.Bundle.MonsterDefinitions, "NORMAL_MONSTER", "NORMAL", 30f, 5f, 20, true);
             AssertMonster(result.Bundle.MonsterDefinitions, "ELITE_MONSTER", "ELITE", 60f, 4f, 40, true);

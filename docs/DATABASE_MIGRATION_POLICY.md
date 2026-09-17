@@ -24,14 +24,40 @@
    - `applied_amount BIGINT NOT NULL`
    - `applied_at TIMESTAMP NOT NULL`
    - UNIQUE `(battle_settlement_id, user_id, quest_condition_id)`
-5. FK 열과 조회 열에 index를 생성한다.
+5. `quest_cycle_progresses`를 생성한다.
+   - PK `id`
+   - FK `user_id -> users.id`
+   - `quest_id VARCHAR(64) NOT NULL`
+   - `cycle_type VARCHAR(16) NOT NULL`
+   - `cycle_key VARCHAR(16) NOT NULL`
+   - `progress BIGINT NOT NULL`
+   - UNIQUE `(user_id, quest_id, cycle_key)`
+6. `quest_reward_claims`를 생성한다.
+   - PK `id`
+   - FK `user_id -> users.id`
+   - `reward_key VARCHAR(128) NOT NULL`
+   - `request_id VARCHAR(64) NOT NULL`
+   - `reward_gold`, `reward_universal_piece`, `reward_diamond` INTEGER NOT NULL
+   - `claimed_at TIMESTAMP NOT NULL`
+   - UNIQUE `(user_id, reward_key)`
+   - UNIQUE `(user_id, request_id)`
+7. FK 열과 조회 열에 index를 생성한다.
    - `quest_progresses(user_id)`
    - `quest_settlement_applications(battle_settlement_id)`
    - `quest_settlement_applications(user_id)`
-6. 중복 행과 orphan FK가 0건인지 사전 검사한 뒤 unique/FK를 활성화한다.
-7. 위 schema 확장이 완료된 뒤 신규 애플리케이션을 배포한다. `ddl-auto=validate` 환경에서도 애플리케이션 기동 전에 Quest 테이블과 제약이 존재해야 한다.
-8. 모든 새 Settlement가 `PRODUCTION`, `LOCAL_DEVELOPMENT`, `VALIDATION_FIXTURE` 중 하나를 기록하는지와 production Quest 처리가 정상인지 관측한다.
-9. 배포 rollback 시 새 테이블을 즉시 삭제하지 않는다. 구버전 애플리케이션이 새 열/테이블을 무시하도록 먼저 rollback하고, 데이터 보존 여부를 별도로 승인받는다.
+   - `quest_cycle_progresses(user_id, cycle_key)`
+   - `quest_reward_claims(user_id, reward_key)`
+8. 중복 행과 orphan FK가 0건인지 사전 검사한 뒤 unique/FK를 활성화한다.
+9. 위 schema 확장이 완료된 뒤 신규 애플리케이션을 배포한다. `ddl-auto=validate` 환경에서도 애플리케이션 기동 전에 Quest 테이블과 제약이 존재해야 한다.
+10. 모든 새 Settlement가 `PRODUCTION`, `LOCAL_DEVELOPMENT`, `VALIDATION_FIXTURE` 중 하나를 기록하는지와 production Quest 처리가 정상인지 관측한다.
+11. 배포 rollback 시 새 테이블을 즉시 삭제하지 않는다. 구버전 애플리케이션이 새 열/테이블을 무시하도록 먼저 rollback하고, 데이터 보존 여부를 별도로 승인받는다.
+
+## Achievement 저장 정책
+
+- 영구 Achievement는 별도 진행 테이블을 추가하지 않고 `quest_progresses`의 `quest_condition_id`별 누적값을 조회한다. Quest와 Achievement가 같은 서버 권위 전투 사실을 공유하기 때문이다.
+- Achievement 달성 여부는 배포된 Excel Balance의 조건·목표치와 영구 진행값을 결합해 계산한다.
+- 보상 수령은 기존 `quest_reward_claims`를 재사용하고 `reward_key`를 `ACHIEVEMENT:<achievementId>` 형식으로 저장한다.
+- Achievement 정의가 추가되더라도 DB migration은 필요 없지만, condition ID 변경·삭제는 기존 누적 진행과 보상 장부의 의미를 바꾸므로 운영 데이터 migration 승인 없이 수행하지 않는다.
 
 ## Non-null 전환 조건
 

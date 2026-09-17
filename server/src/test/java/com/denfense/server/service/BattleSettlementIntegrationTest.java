@@ -10,6 +10,12 @@ import com.denfense.server.repository.BattleSettlementRepository;
 import com.denfense.server.repository.UserRepository;
 import com.denfense.server.repository.UserPlanetUnlockRepository;
 import com.denfense.server.repository.BattleEntryReservationRepository;
+import com.denfense.server.repository.QuestCycleProgressRepository;
+import com.denfense.server.repository.QuestProgressRepository;
+import com.denfense.server.repository.QuestRewardClaimRepository;
+import com.denfense.server.repository.QuestSettlementApplicationRepository;
+import com.denfense.server.domain.SessionSource;
+import com.denfense.server.balance.QuestCycleType;
 import com.denfense.server.domain.UserPlanetUnlock;
 import com.denfense.server.domain.PlanetUnlockSource;
 import com.denfense.server.service.balance.BalanceVersionRegistry;
@@ -49,9 +55,18 @@ class BattleSettlementIntegrationTest {
     @Autowired BattlePlanetEntryService battleEntries;
     @Autowired BattleEntryReservationRepository entryReservations;
     @Autowired BattleSettlementWriter settlementWriter;
+    @Autowired QuestSettlementApplicationRepository questApplications;
+    @Autowired QuestRewardClaimRepository questClaims;
+    @Autowired QuestCycleProgressRepository questCycleProgresses;
+    @Autowired QuestProgressRepository questProgresses;
+    @Autowired QuestTimeProvider questTime;
 
     @BeforeEach
     void cleanup() {
+        questApplications.deleteAllInBatch();
+        questClaims.deleteAllInBatch();
+        questCycleProgresses.deleteAllInBatch();
+        questProgresses.deleteAllInBatch();
         rewardClaims.deleteAll();
         playerSettlements.deleteAll();
         settlements.deleteAll();
@@ -70,6 +85,31 @@ class BattleSettlementIntegrationTest {
         assertThat(out.rewards()).isEmpty();
         assertThat(settlements.count()).isEqualTo(1);
         assertThat(playerSettlements.count()).isEqualTo(2);
+    }
+
+    @Test
+    void productionSettlementUpdatesQuestAndAchievementProgressExactlyOnce() {
+        User a = user("quest-e2e-a"), b = user("quest-e2e-b");
+        String sessionId = "quest-e2e-session";
+        register(sessionId, a, b, "EARTH", SessionSource.PRODUCTION);
+        var request = request("quest-e2e-request", sessionId, "ignored", a, b,
+                "DEFEAT", 1, "EARTH", false, false, false);
+
+        assertThat(service.settle(request).alreadyProcessed()).isFalse();
+        assertThat(service.settle(request).alreadyProcessed()).isTrue();
+
+        assertThat(questProgresses.findByUserIdAndQuestConditionId(
+                a.getId(), QuestSettlementProcessor.MATCH_PARTICIPATION)).get()
+                .extracting(com.denfense.server.domain.QuestProgress::getProgress).isEqualTo(1L);
+        assertThat(questCycleProgresses.findAllByUserIdAndCycleKey(
+                a.getId(), questTime.cycleKey(QuestCycleType.DAILY)))
+                .extracting(com.denfense.server.domain.QuestCycleProgress::getQuestId)
+                .contains("DAILY_PLAY_1");
+        assertThat(questCycleProgresses.findAllByUserIdAndCycleKey(
+                a.getId(), questTime.cycleKey(QuestCycleType.WEEKLY)))
+                .extracting(com.denfense.server.domain.QuestCycleProgress::getQuestId)
+                .contains("WEEKLY_PLAY_10");
+        assertThat(questApplications.findAll()).hasSizeGreaterThanOrEqualTo(2);
     }
 
     @Test
@@ -586,11 +626,15 @@ class BattleSettlementIntegrationTest {
     }
 
     private void register(String sessionId, User a, User b, String map) {
+        register(sessionId, a, b, map, SessionSource.LOCAL_DEVELOPMENT);
+    }
+
+    private void register(String sessionId, User a, User b, String map, SessionSource source) {
         unlockForTest(a, map);
         unlockForTest(b, map);
         battleEntries.reserve(sessionId, map, a.getId(), b.getId());
-        rosters.register(sessionId, 1, a.getUsername(), map, versions.getBalanceVersion(), versions.getContentHash());
-        rosters.register(sessionId, 2, b.getUsername(), map, versions.getBalanceVersion(), versions.getContentHash());
+        rosters.register(sessionId, 1, a.getUsername(), map, versions.getBalanceVersion(), versions.getContentHash(), source);
+        rosters.register(sessionId, 2, b.getUsername(), map, versions.getBalanceVersion(), versions.getContentHash(), source);
     }
 
     private void unlockForTest(User user, String map) {

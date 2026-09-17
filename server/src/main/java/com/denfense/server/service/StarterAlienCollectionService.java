@@ -9,6 +9,8 @@ import com.denfense.server.repository.AlienSpecRepository;
 import com.denfense.server.repository.UserAlienRepository;
 import com.denfense.server.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +25,9 @@ public class StarterAlienCollectionService {
     private final UserRepository userRepository;
     private final AlienSpecRepository alienSpecRepository;
     private final UserAlienRepository userAlienRepository;
+    private final Environment environment;
+
+    private static final Set<Long> LOCAL_TUTORIAL_PREVIEW_MYTHIC_IDS = Set.of(29L, 30L);
 
     @Transactional
     public User ensureStarterCollection(String username) {
@@ -35,7 +40,8 @@ public class StarterAlienCollectionService {
         }
 
         List<UserAlien> missingStarters = alienSpecRepository.findAll().stream()
-                .filter(spec -> spec.getGrade() != AlienSpec.Grade.MYTHIC)
+                .filter(spec -> spec.getGrade() != AlienSpec.Grade.MYTHIC
+                        || (tutorialPreviewEnabled() && LOCAL_TUTORIAL_PREVIEW_MYTHIC_IDS.contains(spec.getId())))
                 .filter(spec -> !ownedAlienIds.contains(spec.getId()))
                 .map(spec -> new UserAlien(user, spec))
                 .toList();
@@ -44,5 +50,13 @@ public class StarterAlienCollectionService {
             userAlienRepository.flush();
         }
         return user;
+    }
+
+    private boolean tutorialPreviewEnabled() {
+        // Test-only preview of the future tutorial reward; never an unconditional production grant.
+        // Replace with the authoritative tutorial-completion reward when that flow is implemented.
+        return environment.acceptsProfiles(Profiles.of("local", "dev"))
+                && !environment.acceptsProfiles(Profiles.of("prod", "production"))
+                && environment.getProperty("mydefense.collection.tutorial-mythic-preview-enabled", Boolean.class, false);
     }
 }

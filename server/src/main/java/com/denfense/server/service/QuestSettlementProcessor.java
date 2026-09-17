@@ -2,6 +2,7 @@ package com.denfense.server.service;
 
 import com.denfense.server.domain.*;
 import com.denfense.server.repository.*;
+import com.denfense.server.service.balance.QuestBalanceRegistry;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -32,11 +33,15 @@ public class QuestSettlementProcessor {
     private final UserRepository users;
     private final QuestProgressRepository progresses;
     private final QuestSettlementApplicationRepository applications;
+    private final QuestCycleProgressRepository cycleProgresses;
+    private final QuestBalanceRegistry questBalances;
+    private final QuestTimeProvider time;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public ProcessResult process(Long settlementId) {
         BattleSettlement settlement = settlements.findById(settlementId).orElseThrow();
-        if (settlement.getSessionSource() != SessionSource.PRODUCTION) {
+        if (settlement.getSessionSource() != SessionSource.PRODUCTION
+                || settlement.getResult() == BattleResult.ABORTED) {
             return new ProcessResult(true, 0, 0);
         }
 
@@ -60,13 +65,26 @@ public class QuestSettlementProcessor {
                 progress.add(amount);
                 progresses.save(progress);
                 applications.save(new QuestSettlementApplication(settlement, user, conditionId, amount));
+                applyCycleProgress(user, conditionId, amount);
                 applicationCount++;
                 appliedAmount = Math.addExact(appliedAmount, amount);
             }
         }
         applications.flush();
         progresses.flush();
+        cycleProgresses.flush();
         return new ProcessResult(false, applicationCount, appliedAmount);
+    }
+
+    private void applyCycleProgress(User user, String conditionId, long amount) {
+        for (var quest : questBalances.questsByCondition(conditionId)) {
+            String cycleKey = time.cycleKey(quest.cycleType());
+            QuestCycleProgress cycleProgress = cycleProgresses
+                    .findByUserIdAndQuestIdAndCycleKey(user.getId(), quest.questId(), cycleKey)
+                    .orElseGet(() -> new QuestCycleProgress(user, quest.questId(), quest.cycleType(), cycleKey));
+            cycleProgress.add(amount);
+            cycleProgresses.save(cycleProgress);
+        }
     }
 
     private Map<String, Long> contributions(BattleSettlement settlement, BattlePlayerSettlement player) {
@@ -83,6 +101,6 @@ public class QuestSettlementProcessor {
         return result;
     }
 
-    public record ProcessResult(boolean excludedBySource, int applicationCount, long appliedAmount) {
+    public record ProcessResult(boolean excluded, int applicationCount, long appliedAmount) {
     }
 }
