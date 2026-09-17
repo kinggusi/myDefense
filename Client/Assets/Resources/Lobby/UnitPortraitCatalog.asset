@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5c646cc85487d9c438fcc305d40625d6, type: 3}
+  m_Name: UnitPortraitCatalog
+  m_EditorClassIdentifier: Assembly-CSharp::LobbyUnitPortraitCatalog
+  entries:
+  - alienId: 1
+    grade: LEGEND
+    sprite: {fileID: 21300000, guid: e2a249af66ed77e44b43be3881d34170, type: 3}
+  - alienId: 2
+    grade: LEGEND
+    sprite: {fileID: 21300000, guid: dd39f95f879065c42861c6017e9edaee, type: 3}
+  - alienId: 3
+    grade: LEGEND
+    sprite: {fileID: 21300000, guid: e74b53bb8662dfd4ab247ab91811b0fd, type: 3}
+  - alienId: 4
+    grade: LEGEND
+    sprite: {fileID: 21300000, guid: a33eb895b2a9d654b8c5e04fadefe46b, type: 3}
+  - alienId: 5
+    grade: LEGEND
+    sprite: {fileID: 21300000, guid: ce4a9c96633c8b746939635a3db4afca, type: 3}
+  - alienId: 6
+    grade: LEGEND
+    sprite: {fileID: 21300000, guid: 03fff4d1a4f79344b87c63e3dc34f7e3, type: 3}
+  - alienId: 7
+    grade: LEGEND
+    sprite: {fileID: 21300000, guid: 0099b0dcf911924478e31cd472177cca, type: 3}

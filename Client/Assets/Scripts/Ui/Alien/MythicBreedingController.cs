@@ -70,6 +70,7 @@ public sealed class MythicBreedingController : MonoBehaviour
         RectTransform rect = shortcut.GetComponent<RectTransform>();
         rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(1f, 1f);
         rect.anchoredPosition = position;
+        LobbyFinalPresentation.StyleBreeding(shortcut);
         shortcuts.Add(shortcut);
     }
 

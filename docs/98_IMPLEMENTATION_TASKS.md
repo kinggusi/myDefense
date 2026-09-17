@@ -6,7 +6,27 @@
 
 ## 0. 사용 방법
 
+> 커밋 준비 재검증(2026-09-18): 누적 Quest/업적·Balance·로비 UI/아이콘·레전더리 일러 변경을 선별했다. Unity EditMode 587/587, 서버 391/391, BalanceTool 82/82 재실행 PASS. 독립 리뷰는 개발 브랜치 반영 가능(WARNING)이며 최종 사람 디자인 인수는 계속 대기한다. 운영 프로필 혼합 방어, Quest 자정 처리 경계, 기존 GUI Kit 투명 Image의 누락 Sprite 참조는 [커밋 검토 기록](test-reports/USER-LOBBY-COMMIT-2026-09-18.md)에 남겼다. 아래 과거 기록의 커밋/푸시 없음은 각 작업 당시 상태다.
+
+> 사용자 지정 로비 디자인 검증(2026-09-07): SampleScene 내 유닛 4열·미보유 포함 전체 카드와 네온 카드/강화·교배·Quest 팝업을 적용했다. CanvasRenderer 누락 및 동적 슬롯 배경 정리 문제를 수정했다. 후속으로 등급별 저채도 테두리, DNA/성장세포 아이콘·`+` 구매 안내를 추가했다. Unity EditMode 534/534, 서버 376/376, BalanceTool 82/82 및 compileJava PASS. 실제 클릭·스크롤·탭·팝업 재진입을 확인했다. Quest HTTP 500은 local 프로필 누락과 404 오분류를 확인하여 handler/실행 설정을 보완했으나 기존 H2 서버 재시작은 승인 대기다. 재료 판매 정책 미확정으로 실제 구매는 비활성화이며 최종 사용자 디자인 인수도 대기한다. 범위·증거·제한은 [로비 UI 검증 기록](test-reports/LOBBY-NEON-COLLECTION.md)을 참고한다.
+
 ### PM 자동 오케스트레이션
+
+> 레전더리 컬렉션 일러스트 적용(2026-09-08): 승인된 01~07 PNG를 canonical LEGEND 1~7(ID 1~7)에 연결했다. 원본·투명 배경 보존, 런타임 512px 임포트, 기존 카드 정보/프레임/프로필/Scene/Prefab 유지. 전체587/587 EditMode 및 독립리뷰PASS, 실제 내 유닛 스크롤·7종 표시·카드 선택/복귀 확인, Console error0. 상세창/Battle 외형은 이번 범위 제외. 사용자 디자인 인수 대기, 커밋/푸시 없음.
+
+> 카드 선 축소 누락 보완(2026-09-08): finalStyle Card의 외곽·내곽·수량 구분선 최소 두께를 보완하고 반대편대칭/8변폐쇄/축소픽셀커버리지 회귀검사를 추가했다. 프로필 및 재화/교배 Panel/Button 두께는 유지. 전체577/577 EditMode·독립리뷰PASS. 이번 사용자 요청으로 화면 조작/스크린샷 검증 생략, 시각 인수는 별도. Scene/Prefab/게임로직 변경 및 커밋/푸시 없음.
+
+> 하단 제공 아이콘 적용(2026-09-08): 상점/전투(홈)/클랜/콘텐츠의 제공 활성·비활성 Sprite를 실제 탭에 연결했고, 원본 마스코트의 외곽 흰 배경 제거 및 초록/회색 선택 표시를 적용했다. 프로필·메뉴 이벤트·경제 로직 유지. 전용5/5·전체560/560 EditMode, 독립 리뷰 PASS. 실제5탭 클릭·선택표시·투명배경 확인, Console error0. SampleScene 저장 완료, 사용자 디자인 인수 대기, 커밋/푸시 없음. 상세는 로비 UI 검증 기록 참조.
+
+> 최종 시안 내 유닛 UI 반영(2026-09-08): 기존 프로필·공통 부모 배치를 보존하고 재화 정렬, DNA/성장세포 2행 패널, 신화 교배/완료배지/화살표 분리, 첨부 우주선 배경, 4열 세로 카드와 지정 HEX, 실제 탭 상태의 아이콘/밑줄을 적용했다. Unity EditMode 555/555 및 독립 리뷰 PASS. 실제 재료 안내·교배·유닛 상세·5개 탭·목록 끝 스크롤과 3개 화면비를 확인했다. 원본 마스코트 JPG 흰 배경의 비파괴 투명 처리 승인 및 최종 사람 인수는 대기. 구매 로직·경제·Battle 변경 없음, 커밋/푸시 없음. 상세/화면 증거는 로비 UI 검증 기록 참조.
+
+> 미스틱 컬렉션 구역·초기 테스트 보유(2026-09-08): 하트 빨간색/공통 배경 저장 복구, 재화 수량 우측정렬 및 `+` 간격, 보유 목록/미해금 Mythic 별도4열 구역 구현. local/dev opt-in으로 Mythic1·2만 멱등 기본 해금하고 향후 튜토리얼 보상으로 분리. Unity542/542·서버391/391 및 독립 리뷰 PASS. 별도18080 서버로 실제 보유/미해금 상세·스크롤 확인, error0. 기존8080 데이터 유지, 사용자 서버 재시작/최종 디자인 인수 대기. 커밋/푸시 없음.
+
+> 재화 HUD 디자인 보완(2026-09-08): 하트/코인 선명도 조정, 세 재화 바를 기존 코인 폭·여백 비율로 통일, 상단3개·재료2개 `+` 정사각형 적용. 전용21/21 및 전체537/537 두 번 연속 PASS, 독립 리뷰 PASS. 실제 DNA/성장세포 버튼 클릭·닫기 확인, error0. 사용자 최종 디자인 인수 대기, 경제 정책 변경·커밋/푸시 없음.
+
+> 로비 UI 오류 보완(2026-09-08): Quest 상단 고정/보상-목록 겹침 수정, 닫기 영역 확대·포인터 회귀 검증, 재화 `+` 우측 여백, 컬렉션 내부 클리핑, 기존 젬 Sprite 연결. 전용29/29·EditMode537/537 PASS. 실제 탭 전환/닫기 반복/목록 끝 스크롤 확인 및 독립 리뷰 필수수정 없음. 사용자 최종 UI 인수 대기.
+
+> 로비 디자인 후속(2026-09-07): 컬렉션 좌우 패딩 36·4열 유지, DNA/성장세포 카드 테두리 및 상단 레벨/하트/골드/젬 네온 테마 통일. 중첩 재화 프리팹 배치 문제를 Unity API로 보완하고 EditMode 536/536·독립 재리뷰 PASS. 실제 목록/재료 팝업 클릭 확인, 사람 디자인 인수 대기. 현재 Quest API HTTP 200 확인. 상세는 로비 UI 검증 기록 참조.
 
 이 문서는 User/System Codex와 Battle Codex가 공통으로 사용하는 작업 관리 기준이다. 사용자가 `작업하자`라고 말하면 현재 Codex는 아래 절차를 자동으로 수행한다.
 
@@ -415,8 +435,9 @@ P0-1-1~4 → P0-1-5 → P0-1-6
 | P2-2-1 | jjangash | 완료 | 일일 콘텐츠 횟수·초기화·보상 서버 구현 |
 | P2-2-2 | kinggusi | 대기 | 배양 구역 5 Stage Battle 구현 — Shared Session 문맥과 canonical `DailyBattleStage` 선행 계약 준비 완료 |
 | P2-2-3 | kinggusi | 대기 | 변이 연구소 5 Stage Battle 구현 — Shared Session 문맥과 canonical `DailyBattleStage` 선행 계약 준비 완료 |
-| P2-3-1 | jjangash | 부분 완료 | Settlement 기반 Quest 사실 장부·조건별 정확히 한 번 누적 구현 — 일일/주간 조건 정의·보상·초기화·조회 UI는 정책 및 후속 구현 대기 |
+| P2-3-1 | jjangash | 검증 대기 | Settlement 기반 Quest 사실 장부, KST 일일·주간 진행/초기화, 개별·활동도 보상 멱등 수령 API, 메인 로비 Quest UI 구현 — 사용자 UI 수동 검증 대기 |
 | P2-3-2 | kinggusi | 부분 완료 | Battle Quest 진행 이벤트 제공 |
+| P2-3-3 | jjangash | 검증 대기 | 영구 Achievement 27종, 단계형 누적 진행·멱등 보상 API, Quest 화면 업적 탭 구현 — 사용자 UI 수동 검증 대기 |
 | P2-4-1 | jjangash | 정책 선행 | 무한 Wave 시즌·랭킹·구간 보상 서버 구현 |
 | P2-4-2 | kinggusi | 정책 선행 | 무한 Wave 전투 모드 구현 |
 | P2-4-3 | kinggusi | 정책 선행 | 무한 Wave 난이도 증가 공식 구현 |
@@ -442,6 +463,10 @@ P0-1-1~4 → P0-1-5 → P0-1-6
 > P2-3-2 미완료 Wave Settlement 스모크 보완(2026-09-01): non-P1VAL Development Session의 State Authority가 `RUNNING`, `currentWave == highestClearedWave + 1`, 실제 Spawn/Kill audit과 미해소 Spawn을 확인한 뒤 기존 terminal 경로로 `FAILED`를 정확히 한 번 확정하는 수동 스모크 진입점을 추가했다. Production Build와 P1VAL에서는 컴파일 또는 실행되지 않는다. Fixture 규칙 29/29, 관련 집중 EditMode 117/117, 전체 EditMode 493/493, `Battle.unity` 단독 Windows Development Build(error 0), 독립 리뷰 차단 0을 통과했다. 실제 Session `P23-PARTIAL-20260901-225458`에서 `DEFEAT/finalWave=2`, Wave 3 Spawn fact 4건과 Partial Kill 2건을 전송해 최초 `ACCEPTED/alreadyProcessed=false`, Unity/Spring SHA-256 일치, 동일 payload 재전송 `alreadyProcessed=true`, H2 Settlement 1건/Player 2건을 확인했다. Battle 측 실제 HTTP 게이트는 완료됐으며 User/System Quest 영속 Processor 연결 전까지 상태는 `부분 완료`를 유지한다.
 
 > P2-3-1 Quest Settlement 기반 구현(2026-09-02): trusted roster가 서버에서 부여한 `SessionSource(PRODUCTION/LOCAL_DEVELOPMENT/VALIDATION_FIXTURE)`를 Settlement에 영속하고, `PRODUCTION` 정산만 Quest 영구 진행에 반영한다. `QuestSettlementProcessor`는 저장된 Player Settlement 총계에서 참가·승리·행성 승리·완료 Wave·Kill·Support Kill·Boss Kill 사실을 만들며 `(settlementId, userId, questConditionId)` unique 장부와 사용자 잠금으로 동시 재처리까지 정확히 한 번 반영한다. FAILED의 미완료 Wave Kill/Support Kill은 이미 검증된 Player 총계에 포함되므로 partial 배열을 다시 더하지 않는다. Shared `BattleSessionSnapshot`은 authoritative `mapId`를 추가해 schema v3로 올리고 Builder 투영·누락 거부와 Unity/Spring 공용 JSON fixture를 검증한다. 기존 Settlement null source는 production으로 추정하지 않고 Quest에서 제외하며 운영 Migration 순서는 `docs/DATABASE_MIGRATION_POLICY.md`에 고정했다. Server 357/357, BalanceTool 77/77, Unity Shared 21/21 및 전체 EditMode 496/496를 통과했다. 일일/주간 Quest 정의·보상·초기화·조회 API/UI와 production JWT/matchmaking Adapter 및 production E2E가 남아 `부분 완료`다.
+
+> P2-3-1 일일·주간 Quest 완성(2026-09-02): Excel `Quest`/`QuestMilestone`을 canonical `quest-balance.json`으로 변환하고 일일·주간 각 4개 Quest와 활동도 25/50/75/100 보상을 정의했다. Settlement의 production 사실은 KST 일자/월요일 주차별 진행도에도 정확히 한 번 반영되며, 이전 주기 데이터 삭제 없이 새 cycle key를 사용한다. 조회 API는 서버 시간·다음 초기화·진행도·수령 상태를 반환하고, 개별 Quest 및 활동도 보상은 `(userId, rewardKey)`와 `(userId, requestId)` unique 장부로 중복 지급을 차단한다. 메인 로비에 일일/주간 탭, 활동도 게이지, 구간 보상, 개별 보상 수령 UI와 알림 배지를 추가했다. Server 370/370, BalanceTool 82/82, Unity EditMode 512/512를 통과했고 Unity MCP PlayMode에서 일일/주간 각 Quest 4개·활동도 보상 4개 렌더링과 탭 전환, 신규 오류 0건을 확인했다. 사용자 화면·실제 수령 버튼 수동 검증 전까지 `검증 대기`로 유지한다.
+
+> P2-3-3 영구 Achievement 완성(2026-09-03): Excel `Achievement` 시트에 전투 참가·승리·완료 Wave·Monster/Boss/Support Kill의 단계형 업적과 해왕성~태양 행성 승리 업적을 합계 27종 정의하고 기존 canonical `quest-balance.json`에 함께 생성한다. 서버가 승인한 `PRODUCTION` Settlement 사실만 기존 영구 `quest_progresses`에 누적하며, 일일·주간과 달리 초기화하지 않는다. ABORTED 결과와 이탈 참가자는 영구/주기 진행 모두에서 제외한다. 업적 보상은 `ACHIEVEMENT:<achievementId>` reward key와 requestId unique 장부로 정확히 한 번 지급한다. 메인 로비 Quest 화면에 일일/주간/업적 3개 탭과 합산 알림 배지를 연결했다. Settlement 최초 승인·동일 payload 재전송, 영구/주기 진행 동시 반영, ABORTED 제외, 업적 미완료·미존재 거절을 포함해 Server 374/374, BalanceTool 82/82, Unity EditMode 513/513을 통과했다. Unity MCP PlayMode에서 실제 API의 업적 27개, 영구 누적 표기, 주기 패널 숨김, 탭 전환 후 신규 앱 오류 0건을 확인했으며 사용자 화면·실제 보상 수령 수동 검증 전까지 `검증 대기`로 유지한다.
 
 ---
 

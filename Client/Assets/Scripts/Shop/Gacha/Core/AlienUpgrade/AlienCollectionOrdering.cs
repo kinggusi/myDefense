@@ -22,14 +22,31 @@ namespace AlienUpgrade.Core
                 ["EPIC"] = 1,
                 ["UNIQUE"] = 2,
                 ["LEGEND"] = 3,
+                ["LEGENDARY"] = 3,
                 ["MYTHIC"] = 4
             };
+
+        // Collection cards keep their position when ownership changes.
+        public static IReadOnlyList<long> AllAlienIds(IEnumerable<AlienCollectionItem> items)
+        {
+            return Order(items ?? Array.Empty<AlienCollectionItem>())
+                .Select(item => item.AlienId)
+                .ToArray();
+        }
 
         public static IReadOnlyList<long> OwnedAlienIds(IEnumerable<AlienCollectionItem> items)
         {
             return Order(items.Where(item => item.Owned))
                 .Select(item => item.AlienId)
                 .ToArray();
+        }
+
+        public static IReadOnlyList<long> MainSectionAlienIds(IEnumerable<AlienCollectionItem> items)
+        {
+            // Lower grades remain visible even if an older account has not been seeded yet.
+            return Order((items ?? Array.Empty<AlienCollectionItem>()).Where(item =>
+                    item.Owned || !string.Equals(item.Grade, "MYTHIC", StringComparison.OrdinalIgnoreCase)))
+                .Select(item => item.AlienId).ToArray();
         }
 
         public static IReadOnlyList<long> LockedMythicAlienIds(IEnumerable<AlienCollectionItem> items)

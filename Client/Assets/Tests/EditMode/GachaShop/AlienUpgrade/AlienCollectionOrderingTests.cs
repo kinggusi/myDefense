@@ -7,6 +7,39 @@ namespace AlienUpgrade.Core.Tests
     public sealed class AlienCollectionOrderingTests
     {
         [Test]
+        public void MainSectionIncludesLowerGradesButOnlyOwnedMythics()
+        {
+            var items = new[] { Item(29, "MYTHIC", 0, 0, false), Item(30, "MYTHIC", 1, 0, true),
+                Item(22, "NORMAL", 0, 0, false), Item(31, "MYTHIC", 0, 0, false) };
+            Assert.That(AlienCollectionOrdering.MainSectionAlienIds(items), Is.EqualTo(new long[] {22, 30}));
+            Assert.That(AlienCollectionOrdering.LockedMythicAlienIds(items), Is.EqualTo(new long[] {29, 31}));
+            items[0].Owned = true;
+            Assert.That(AlienCollectionOrdering.MainSectionAlienIds(items), Is.EqualTo(new long[] {22, 29, 30}));
+            Assert.That(AlienCollectionOrdering.LockedMythicAlienIds(items), Is.EqualTo(new long[] {31}));
+        }
+
+        [Test]
+        public void AllAliens_IncludesUnownedOfEveryGradeAndKeepsStableOrderAfterUnlock()
+        {
+            var items = new[]
+            {
+                Item(29, "MYTHIC", 0, 0, false), Item(1, "LEGEND", 0, 0, false),
+                Item(8, "UNIQUE", 0, 0, false), Item(15, "EPIC", 0, 0, false),
+                Item(23, "NORMAL", 0, 0, false), Item(22, "NORMAL", 1, 0, true)
+            };
+            long[] expected = { 22, 23, 15, 8, 1, 29 };
+            Assert.That(AlienCollectionOrdering.AllAlienIds(items), Is.EqualTo(expected));
+            foreach (var item in items) item.Owned = true;
+            Assert.That(AlienCollectionOrdering.AllAlienIds(items), Is.EqualTo(expected));
+        }
+
+        [Test]
+        public void AllAliens_EmptyResponseHasNoInventedInventory()
+        {
+            Assert.That(AlienCollectionOrdering.AllAlienIds(null), Is.Empty);
+        }
+
+        [Test]
         public void OwnedAliens_AreOrderedByFixedGradeAndSequence()
         {
             var items = new List<AlienCollectionItem>

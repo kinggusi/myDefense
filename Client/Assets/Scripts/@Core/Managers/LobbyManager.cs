@@ -33,6 +33,7 @@ public class LobbyManager : MonoBehaviour
     [Header("Alien 상세 화면")]
     public AlienDetailController alienDetailController;
     private MythicBreedingController mythicBreedingController;
+    private QuestController questController;
 
 
 
@@ -45,6 +46,12 @@ public class LobbyManager : MonoBehaviour
             mythicBreedingController = gameObject.AddComponent<MythicBreedingController>();
         }
         mythicBreedingController.Initialize(this);
+        questController = GetComponent<QuestController>();
+        if (questController == null)
+        {
+            questController = gameObject.AddComponent<QuestController>();
+        }
+        questController.Initialize(this);
         // 1. 처음엔 메인 화면(2번 탭) 띄우기
         OpenTab(2);
 
@@ -54,7 +61,8 @@ public class LobbyManager : MonoBehaviour
 
     private void EnsureMaterialCurrencyUI()
     {
-        Canvas canvas = FindFirstObjectByType<Canvas>();
+        Canvas canvas = viewObjects != null && viewObjects.Length > 1 && viewObjects[1] != null
+                ? viewObjects[1].GetComponentInParent<Canvas>() : FindFirstObjectByType<Canvas>();
         if (canvas == null)
         {
             Debug.LogWarning("로비 재화 UI를 생성할 Canvas를 찾지 못했습니다.");
@@ -89,7 +97,7 @@ public class LobbyManager : MonoBehaviour
         panelRect.anchorMax = new Vector2(0f, 1f);
         panelRect.pivot = new Vector2(0f, 1f);
         panelRect.anchoredPosition = new Vector2(72f, -165f);
-        panelRect.sizeDelta = new Vector2(310f, 118f);
+        panelRect.sizeDelta = new Vector2(450f, 118f);
 
         HorizontalLayoutGroup layout = panel.GetComponent<HorizontalLayoutGroup>();
         if (layout == null) layout = panel.AddComponent<HorizontalLayoutGroup>();
@@ -100,10 +108,8 @@ public class LobbyManager : MonoBehaviour
         layout.childForceExpandWidth = true;
         layout.childForceExpandHeight = true;
 
-        text_UniversalPiece = EnsureMaterialCard(panel.transform, "WakjeoDnaCard", "왹져 DNA",
-                new Color(0.20f, 0.28f, 0.48f, 0.96f));
-        text_GrowthCell = EnsureMaterialCard(panel.transform, "GrowthCellCard", "성장 세포",
-                new Color(0.15f, 0.45f, 0.38f, 0.96f));
+        text_UniversalPiece = EnsureMaterialCard(panel.transform, "WakjeoDnaCard", LobbyMaterialIconGraphic.MaterialKind.WakjeoDna);
+        text_GrowthCell = EnsureMaterialCard(panel.transform, "GrowthCellCard", LobbyMaterialIconGraphic.MaterialKind.GrowthCell);
 
         Transform catalystCard = panel.transform.Find("MutationCatalystCard");
         if (catalystCard != null)
@@ -111,9 +117,10 @@ public class LobbyManager : MonoBehaviour
             if (Application.isPlaying) Destroy(catalystCard.gameObject);
             else DestroyImmediate(catalystCard.gameObject);
         }
+        LobbyFinalPresentation.StyleMaterials(panel.transform);
     }
 
-    private static Text EnsureMaterialCard(Transform parent, string cardName, string label, Color color)
+    private Text EnsureMaterialCard(Transform parent, string cardName, LobbyMaterialIconGraphic.MaterialKind kind)
     {
         Transform existing = parent.Find(cardName);
         GameObject card = existing != null
@@ -121,8 +128,74 @@ public class LobbyManager : MonoBehaviour
                 : new GameObject(cardName, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(LayoutElement));
         card.layer = LayerMask.NameToLayer("UI");
         card.transform.SetParent(parent, false);
-        card.GetComponent<Image>().color = color;
-        card.GetComponent<LayoutElement>().preferredWidth = 150f;
+        card.GetComponent<Image>().color = Color.clear;
+        card.GetComponent<LayoutElement>().preferredWidth = 220f;
+
+        Transform border = card.transform.Find("LobbyNeonFrame");
+        if (border == null)
+        {
+            var borderObject = new GameObject("LobbyNeonFrame", typeof(RectTransform), typeof(LayoutElement));
+            borderObject.layer = card.layer;
+            borderObject.transform.SetParent(card.transform, false);
+            border = borderObject.transform;
+        }
+        var borderRect = (RectTransform)border;
+        borderRect.anchorMin = Vector2.zero; borderRect.anchorMax = Vector2.one;
+        borderRect.offsetMin = borderRect.offsetMax = Vector2.zero;
+        border.SetAsFirstSibling();
+        border.GetComponent<LayoutElement>().ignoreLayout = true;
+        var materialFrame = border.GetComponent<LobbyNeonGraphic>();
+        if (materialFrame == null) materialFrame = border.gameObject.AddComponent<LobbyNeonGraphic>();
+        materialFrame.Configure(LobbyNeonGraphic.FrameStyle.Panel);
+        materialFrame.raycastTarget = false;
+
+        Transform iconTransform = card.transform.Find("MaterialIcon");
+        var iconObject = iconTransform != null ? iconTransform.gameObject : new GameObject("MaterialIcon", typeof(RectTransform));
+        iconObject.layer = card.layer;
+        iconObject.transform.SetParent(card.transform, false);
+        RectTransform iconRect = iconObject.GetComponent<RectTransform>();
+        iconRect.anchorMin = new Vector2(.04f,.20f); iconRect.anchorMax = new Vector2(.29f,.80f);
+        iconRect.offsetMin = iconRect.offsetMax = Vector2.zero;
+        var icon = iconObject.GetComponent<LobbyMaterialIconGraphic>();
+        if (icon == null) icon = iconObject.AddComponent<LobbyMaterialIconGraphic>();
+        icon.Configure(kind);
+
+        Transform plusTransform = card.transform.Find("PurchasePlus");
+        var plusObject = plusTransform != null ? plusTransform.gameObject : new GameObject("PurchasePlus", typeof(RectTransform));
+        plusObject.layer = card.layer;
+        plusObject.transform.SetParent(card.transform, false);
+        var plusRect = plusObject.GetComponent<RectTransform>();
+        plusRect.anchorMin = new Vector2(.76f,.5f); plusRect.anchorMax = new Vector2(.93f,.5f);
+        plusRect.offsetMin = plusRect.offsetMax = Vector2.zero;
+        var square = plusObject.GetComponent<AspectRatioFitter>();
+        if (square == null) square = plusObject.AddComponent<AspectRatioFitter>();
+        square.aspectMode = AspectRatioFitter.AspectMode.WidthControlsHeight;
+        square.aspectRatio = 1f;
+        var plusFrame = plusObject.GetComponent<LobbyNeonGraphic>();
+        if (plusFrame == null) plusFrame = plusObject.AddComponent<LobbyNeonGraphic>();
+        plusFrame.Configure(LobbyNeonGraphic.FrameStyle.Button);
+        var plus = plusObject.GetComponent<Button>();
+        if (plus == null) plus = plusObject.AddComponent<Button>();
+        plus.targetGraphic = plusFrame;
+        plus.onClick.RemoveAllListeners();
+        plus.onClick.AddListener(() =>
+        {
+            var popup = GetComponent<LobbyMaterialPurchasePopup>();
+            if (popup == null) popup = gameObject.AddComponent<LobbyMaterialPurchasePopup>();
+            popup.Open(kind);
+        });
+        Transform plusLabel = plusObject.transform.Find("Label");
+        if (plusLabel == null)
+        {
+            var labelObject = new GameObject("Label", typeof(RectTransform), typeof(CanvasRenderer), typeof(Text));
+            labelObject.layer = card.layer; labelObject.transform.SetParent(plusObject.transform, false);
+            var labelRect = labelObject.GetComponent<RectTransform>();
+            labelRect.anchorMin = Vector2.zero; labelRect.anchorMax = Vector2.one;
+            labelRect.offsetMin = labelRect.offsetMax = Vector2.zero;
+            Text label = labelObject.GetComponent<Text>(); label.text = "+";
+            label.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf"); label.fontSize = 32;
+            label.alignment = TextAnchor.MiddleCenter; label.color = new Color(.66f,.83f,.87f); label.raycastTarget = false;
+        }
 
         Transform valueTransform = card.transform.Find("Value");
         GameObject value = valueTransform != null
@@ -131,10 +204,9 @@ public class LobbyManager : MonoBehaviour
         value.layer = LayerMask.NameToLayer("UI");
         value.transform.SetParent(card.transform, false);
         RectTransform rect = value.GetComponent<RectTransform>();
-        rect.anchorMin = Vector2.zero;
-        rect.anchorMax = Vector2.one;
-        rect.offsetMin = new Vector2(8f, 6f);
-        rect.offsetMax = new Vector2(-8f, -6f);
+        rect.anchorMin = new Vector2(.29f,.12f);
+        rect.anchorMax = new Vector2(.74f,.88f);
+        rect.offsetMin = rect.offsetMax = Vector2.zero;
 
         Text text = value.GetComponent<Text>();
         if (text == null)
@@ -147,7 +219,7 @@ public class LobbyManager : MonoBehaviour
             }
             text = value.AddComponent<Text>();
         }
-        text.text = label + "  0";
+        text.text = "0";
         text.fontSize = 23;
         Canvas canvas = parent.GetComponentInParent<Canvas>();
         Text koreanText = canvas == null
@@ -178,6 +250,9 @@ public class LobbyManager : MonoBehaviour
         {
             mythicBreedingController.SetLobbyTab(index);
         }
+        questController?.SetLobbyTab(index);
+        GetComponent<LobbyMaterialPurchasePopup>()?.Close();
+        GetComponent<LobbyFinalPresentation>()?.SelectTab(index);
         Debug.Log($"{index}번 탭으로 이동했습니다.");
     }
 
@@ -202,6 +277,7 @@ public class LobbyManager : MonoBehaviour
                 SpawnMyUnits(data.aliens);
 
                 mythicBreedingController?.RefreshStatus();
+                questController?.RefreshStatus();
 
                 Debug.Log($"{data.user.username}님 로비 로드 성공!");
                 onCompleted?.Invoke(true);
@@ -218,6 +294,14 @@ public class LobbyManager : MonoBehaviour
         text_Diamond.text = remainingDiamond.ToString("N0");
     }
 
+    public void UpdateQuestWallet(int gold, int universalPiece, int diamond)
+    {
+        if (text_Gold != null) text_Gold.text = gold.ToString("N0");
+        if (text_Diamond != null) text_Diamond.text = diamond.ToString("N0");
+        if (text_UniversalPiece != null)
+            text_UniversalPiece.text = universalPiece.ToString("N0");
+    }
+
     // 상단 재화 UI 업데이트
     void UpdateTopBarUI(UserDto user)
     {
@@ -227,17 +311,24 @@ public class LobbyManager : MonoBehaviour
         text_Gold.text = user.gold.ToString("N0"); // 1,000 단위 콤마
         text_Diamond.text = user.diamond.ToString("N0");
         if (text_UniversalPiece != null)
-            text_UniversalPiece.text = LobbyMaterialCurrencyFormatter.FormatUniversalPiece(user.universalPiece);
+            text_UniversalPiece.text = user.universalPiece.ToString("N0");
         if (text_GrowthCell != null)
-            text_GrowthCell.text = LobbyMaterialCurrencyFormatter.FormatGrowthCell(user.growthCell);
+            text_GrowthCell.text = user.growthCell.ToString("N0");
     }
 
     // 서버에서 받은 리스트만큼 카드 생성
-void SpawnMyUnits(List<AlienInventoryDto> aliens)
+    void SpawnMyUnits(List<AlienInventoryDto> aliens)
     {
-        foreach (Transform child in unitGridContent)
+        if (unitGridContent == null || unitCardPrefab == null) return;
+        LobbyCollectionGrid collectionGrid = unitGridContent.GetComponent<LobbyCollectionGrid>();
+        if (collectionGrid == null) collectionGrid = unitGridContent.gameObject.AddComponent<LobbyCollectionGrid>();
+        collectionGrid.RefreshLayout();
+        for (int i = unitGridContent.childCount - 1; i >= 0; i--)
         {
-            Destroy(child.gameObject);
+            Transform child = unitGridContent.GetChild(i);
+            child.gameObject.SetActive(false);
+            if (Application.isPlaying) Destroy(child.gameObject);
+            else DestroyImmediate(child.gameObject);
         }
 
         if (aliens == null)
@@ -255,23 +346,42 @@ void SpawnMyUnits(List<AlienInventoryDto> aliens)
             Owned = alien.owned
         }).ToArray();
 
-        IReadOnlyList<long> ownedAlienIds = AlienCollectionOrdering.OwnedAlienIds(collectionItems);
-        foreach (long alienId in ownedAlienIds)
+        foreach (long alienId in AlienCollectionOrdering.MainSectionAlienIds(collectionItems))
         {
             CreateUnitCard(aliensById[alienId]);
         }
-
-        IReadOnlyList<long> lockedMythicIds = AlienCollectionOrdering.LockedMythicAlienIds(collectionItems);
-        if (lockedMythicIds.Count == 0)
+        var lockedIds = AlienCollectionOrdering.LockedMythicAlienIds(collectionItems);
+        if (lockedIds.Count > 0)
         {
-            return;
+            CreateLockedMythicHeader(lockedIds.Count);
+            foreach (long alienId in lockedIds) CreateUnitCard(aliensById[alienId]);
         }
+        LayoutRebuilder.MarkLayoutForRebuild((RectTransform)unitGridContent);
+    }
 
-        CreateLockedMythicSectionHeader(ownedAlienIds.Count);
-        foreach (long alienId in lockedMythicIds)
-        {
-            CreateUnitCard(aliensById[alienId]);
-        }
+    private void CreateLockedMythicHeader(int count)
+    {
+        var header = new GameObject(LobbySectionGridLayout.LockedHeaderName, typeof(RectTransform),
+            typeof(CanvasRenderer), typeof(LobbyNeonGraphic));
+        header.layer = unitGridContent.gameObject.layer;
+        header.transform.SetParent(unitGridContent, false);
+        var frame = header.GetComponent<LobbyNeonGraphic>();
+        frame.Configure(LobbyNeonGraphic.FrameStyle.Panel);
+        frame.SetGrade("MYTHIC");
+        frame.raycastTarget = false;
+        var label = new GameObject("SectionTitle", typeof(RectTransform), typeof(CanvasRenderer), typeof(Text));
+        label.layer = header.layer;
+        label.transform.SetParent(header.transform, false);
+        var rect = (RectTransform)label.transform;
+        rect.anchorMin = Vector2.zero; rect.anchorMax = Vector2.one;
+        rect.offsetMin = new Vector2(24f, 8f); rect.offsetMax = new Vector2(-24f, -8f);
+        var text = label.GetComponent<Text>();
+        text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        text.text = "미해금 미스틱  ·  " + count + "종";
+        text.fontSize = 28;
+        text.color = new Color(.80f, .70f, .76f);
+        text.alignment = TextAnchor.MiddleLeft;
+        text.raycastTarget = false;
     }
 
     private void CreateUnitCard(AlienInventoryDto alien)
@@ -292,63 +402,4 @@ void SpawnMyUnits(List<AlienInventoryDto> aliens)
         }
     }
 
-    private void CreateLockedMythicSectionHeader(int precedingCardCount)
-    {
-        GridLayoutGroup grid = unitGridContent.GetComponent<GridLayoutGroup>();
-        int columnCount = CalculateGridColumnCount(grid);
-        int remainder = precedingCardCount % columnCount;
-        if (remainder != 0)
-        {
-            for (int i = remainder; i < columnCount; i++)
-            {
-                CreateGridSpacer("SectionRowSpacer");
-            }
-        }
-
-        int titleColumn = columnCount / 2;
-        for (int column = 0; column < columnCount; column++)
-        {
-            if (column == titleColumn)
-            {
-                CreateSectionTitle();
-            }
-            else
-            {
-                CreateGridSpacer("SectionTitleSpacer");
-            }
-        }
-    }
-
-    private int CalculateGridColumnCount(GridLayoutGroup grid)
-    {
-        if (grid == null || !(unitGridContent is RectTransform contentRect))
-        {
-            return 1;
-        }
-
-        float availableWidth = contentRect.rect.width - grid.padding.horizontal;
-        float cellAndSpacing = grid.cellSize.x + grid.spacing.x;
-        return Mathf.Max(1, Mathf.FloorToInt((availableWidth + grid.spacing.x) / cellAndSpacing));
-    }
-
-    private void CreateSectionTitle()
-    {
-        GameObject titleObject = new GameObject("LockedMythicSectionTitle", typeof(RectTransform), typeof(Text));
-        titleObject.transform.SetParent(unitGridContent, false);
-
-        Text title = titleObject.GetComponent<Text>();
-        title.text = "미해금 신화";
-        title.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        title.fontSize = 34;
-        title.fontStyle = FontStyle.Bold;
-        title.alignment = TextAnchor.MiddleCenter;
-        title.color = Color.white;
-        title.raycastTarget = false;
-    }
-
-    private void CreateGridSpacer(string objectName)
-    {
-        GameObject spacer = new GameObject(objectName, typeof(RectTransform));
-        spacer.transform.SetParent(unitGridContent, false);
-    }
 }
