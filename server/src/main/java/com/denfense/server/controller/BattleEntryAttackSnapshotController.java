@@ -14,10 +14,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class BattleEntryAttackSnapshotController {
 
     private final BattleEntryAttackSnapshotService service;
+    private final com.denfense.server.auth.AccountAccess accounts;
 
     @GetMapping("/attack-snapshots")
     public BattleAttackSnapshotDtos.Response getAttackSnapshots(
             @RequestParam(defaultValue = "") String playerId) {
-        return service.getForPlayer(playerId);
+        return service.getForPlayer(accounts.username(playerId));
     }
 }

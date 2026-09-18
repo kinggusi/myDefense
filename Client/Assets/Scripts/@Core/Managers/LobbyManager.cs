@@ -10,7 +10,8 @@ using MyDefense.Lobby;
 public class LobbyManager : MonoBehaviour
 {
     private const string DefaultUsername = "sh1";
-    private string currentUsername = DefaultUsername;
+    private string currentUsername;
+    private bool initialized;
 
     public string CurrentUsername => currentUsername;
     public string CurrentDiamondText => text_Diamond != null ? text_Diamond.text : "0";
@@ -39,6 +40,17 @@ public class LobbyManager : MonoBehaviour
 
     void Start()
     {
+        if (NetworkManager.AllowLegacyLobby && !MyDefense.Auth.DevelopmentLoginPolicy.IsRequested) InitializeForAccount(DefaultUsername, null);
+        else MyDefense.Auth.AuthStartupController.Begin(this);
+    }
+
+    public void InitializeForAccount(string username, Action<bool> completed)
+    {
+        if (string.IsNullOrWhiteSpace(username)) { completed?.Invoke(false); return; }
+        currentUsername = username;
+        if (!initialized)
+        {
+        initialized = true;
         EnsureMaterialCurrencyUI();
         mythicBreedingController = GetComponent<MythicBreedingController>();
         if (mythicBreedingController == null)
@@ -52,11 +64,11 @@ public class LobbyManager : MonoBehaviour
             questController = gameObject.AddComponent<QuestController>();
         }
         questController.Initialize(this);
+        gameObject.AddComponent<MyDefense.Auth.AuthAccountPanel>().Install(this);
         // 1. 처음엔 메인 화면(2번 탭) 띄우기
         OpenTab(2);
-
-        // 2. 서버에서 데이터 로드 시작!
-        LoadLobbyData();
+        }
+        LoadLobbyData(completed);
     }
 
     private void EnsureMaterialCurrencyUI()
@@ -259,16 +271,17 @@ public class LobbyManager : MonoBehaviour
     // 서버에서 데이터를 가져오는 핵심 함수
     public void LoadLobbyData(Action<bool> onCompleted = null)
     {
+        if (string.IsNullOrWhiteSpace(CurrentUsername)) { onCompleted?.Invoke(false); return; }
         Debug.Log("서버에 유저 정보를 요청합니다...");
 
         NetworkManager.Instance.Get($"/lobby/info/{CurrentUsername}",
             (json) => {
+                try
+                {
                 // 성공: JSON 데이터를 C# 객체로 변환
                 LobbyResponseDto data = JsonUtility.FromJson<LobbyResponseDto>(json);
-                if (data != null && data.user != null && !string.IsNullOrWhiteSpace(data.user.username))
-                {
-                    currentUsername = data.user.username;
-                }
+                if (data == null || data.user == null || data.user.username != currentUsername)
+                    throw new InvalidOperationException("Lobby account mismatch.");
                 
                 // 1. 상단 바 UI 갱신
                 UpdateTopBarUI(data.user);
@@ -281,9 +294,15 @@ public class LobbyManager : MonoBehaviour
 
                 Debug.Log($"{data.user.username}님 로비 로드 성공!");
                 onCompleted?.Invoke(true);
+                }
+                catch (Exception)
+                {
+                    Debug.LogWarning("로비 응답을 적용하지 못했습니다. 다시 시도해 주세요.");
+                    onCompleted?.Invoke(false);
+                }
             }, 
             (error) => {
-                Debug.LogError("서버 연결 실패: " + error);
+                Debug.LogWarning("로비 정보를 불러오지 못했습니다.");
                 onCompleted?.Invoke(false);
             }
         );
@@ -305,7 +324,8 @@ public class LobbyManager : MonoBehaviour
     // 상단 재화 UI 업데이트
     void UpdateTopBarUI(UserDto user)
     {
-        text_UserName.text = user.username;
+        var session = MyDefense.Auth.AuthSession.Instance;
+        text_UserName.text = FormatProfileName(session != null ? session.User : null, user.username);
         text_UserLevel.text = user.accountLevel.ToString();
         text_Heart.text = user.heart.ToString();
         text_Gold.text = user.gold.ToString("N0"); // 1,000 단위 콤마
@@ -314,6 +334,13 @@ public class LobbyManager : MonoBehaviour
             text_UniversalPiece.text = user.universalPiece.ToString("N0");
         if (text_GrowthCell != null)
             text_GrowthCell.text = user.growthCell.ToString("N0");
+    }
+
+    public static string FormatProfileName(MyDefense.Auth.AuthUser authenticatedUser, string username)
+    {
+        return authenticatedUser != null && authenticatedUser.isGuest && authenticatedUser.userId > 0
+            ? "Guest-" + authenticatedUser.userId.ToString(System.Globalization.CultureInfo.InvariantCulture)
+            : username;
     }
 
     // 서버에서 받은 리스트만큼 카드 생성

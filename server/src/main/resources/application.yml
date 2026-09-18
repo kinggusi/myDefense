@@ -12,10 +12,10 @@ spring:
   # 2. H2 ?? ??
   h2:
     console:
-      enabled: true
+      enabled: false
       path: /h2-console
       settings:
-        web-allow-others: true
+        web-allow-others: false
 
   # 3. JPA ??
   jpa:

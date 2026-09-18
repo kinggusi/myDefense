@@ -12,6 +12,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 
 import java.util.Comparator;
 import java.util.HashMap;
@@ -27,6 +29,7 @@ public class BattleEntryAttackSnapshotService {
     private final BalanceRegistry balanceRegistry;
     private final AlienStatCalculator statCalculator;
     private final BalanceVersionRegistry balanceVersionRegistry;
+    private final Environment environment;
 
     @Value("${mydefense.battle.allow-anonymous-entry-snapshots:false}")
     private boolean allowAnonymousEntrySnapshots;
@@ -50,7 +53,7 @@ public class BattleEntryAttackSnapshotService {
 
     private Map<Long, Integer> loadOwnedLevels(String playerId) {
         if (playerId.isBlank()) {
-            if (allowAnonymousEntrySnapshots) {
+            if (allowsAnonymousDevelopmentSnapshots()) {
                 return Map.of();
             }
             throw new com.denfense.server.exception.BusinessException(
@@ -60,7 +63,7 @@ public class BattleEntryAttackSnapshotService {
         if (user == null) {
             // Development Fusion identities do not always have a persistent
             // account yet. They still receive canonical level-one stats.
-            if (allowAnonymousEntrySnapshots) {
+            if (allowsAnonymousDevelopmentSnapshots()) {
                 return Map.of();
             }
             throw new com.denfense.server.exception.BusinessException(
@@ -76,6 +79,11 @@ public class BattleEntryAttackSnapshotService {
 
     void allowAnonymousEntrySnapshotsForTest() {
         this.allowAnonymousEntrySnapshots = true;
+    }
+
+    private boolean allowsAnonymousDevelopmentSnapshots() {
+        return allowAnonymousEntrySnapshots
+                && environment.acceptsProfiles(Profiles.of("(local | dev) & !prod & !production"));
     }
 
     private BattleAttackSnapshotDtos.AlienAttack toSnapshot(AlienSpecBalance spec, int level) {

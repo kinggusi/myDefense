@@ -9,24 +9,27 @@ import org.springframework.context.annotation.Profile;
 
 @RestController
 @RequiredArgsConstructor
-@Profile({"local", "dev"})
+@Profile("(local | dev) & !prod & !production")
 @RequestMapping("/api/daily-contents")
 public class DailyContentController {
     // FUTURE_AUTH_REPLACEMENT: production controller must bind username from JWT principal.
     private final DailyContentService service;
+    private final com.denfense.server.auth.AccountAccess accounts;
 
     @GetMapping
     public DailyContentDtos.ProgressResponse getProgress(@RequestParam String username) {
-        return service.getProgress(username);
+        return service.getProgress(accounts.username(username));
     }
 
     @PostMapping("/entries")
     public DailyContentDtos.RunResponse enter(@Valid @RequestBody DailyContentDtos.EnterRequest request) {
+        accounts.username(request.username());
         return service.enter(request);
     }
 
     @PostMapping("/sweeps")
     public DailyContentDtos.RunResponse sweep(@Valid @RequestBody DailyContentDtos.SweepRequest request) {
+        accounts.username(request.username());
         return service.sweep(request);
     }
 }

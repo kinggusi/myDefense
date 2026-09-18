@@ -2,7 +2,7 @@
 
 ## 현재 상태
 
-현재 Spring 설정은 H2 in-memory와 `hibernate.ddl-auto=create-drop`만 사용한다. MySQL/PostgreSQL 운영 Driver와 Flyway/Liquibase는 아직 연결되지 않았으므로 이 문서는 production DB 도입 시 적용할 schema 변경 순서를 고정한다. Hibernate 자동 DDL을 운영 Migration으로 사용하지 않는다.
+기본/자동 테스트 설정은 H2 in-memory와 `hibernate.ddl-auto=create-drop`을 사용한다. `local` 프로필은 2026-09-18부터 H2 파일 DB와 `update`로 개발 데이터를 보존하며, 테스트용 local 설정은 메모리 DB에 격리한다. 이는 운영 DB 전환이 아니다. MySQL/PostgreSQL 운영 Driver와 Flyway/Liquibase는 아직 연결되지 않았으므로 이 문서는 production DB 도입 시 적용할 schema 변경 순서를 고정한다. Hibernate 자동 DDL을 운영 Migration으로 사용하지 않는다. 로컬 경로·계정·백업은 `LOCAL_PERSISTENCE_GUIDE.md`를 따른다.
 
 ## P2-3 Quest Settlement Migration 순서
 

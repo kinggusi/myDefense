@@ -1,5 +1,7 @@
 package com.denfense.server;
 
+import org.springframework.test.context.ActiveProfiles;
+
 import com.denfense.server.domain.AlienSpec;
 import com.denfense.server.domain.MutationType;
 import com.denfense.server.domain.User;
@@ -31,6 +33,7 @@ import static org.mockito.Mockito.doThrow;
 
 @SpringBootTest(properties = "spring.datasource.url=jdbc:h2:mem:game-controller;MODE=MySQL")
 @AutoConfigureMockMvc
+@ActiveProfiles("dev")
 class GameControllerTest {
 
     @Autowired

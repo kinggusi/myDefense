@@ -17,6 +17,7 @@ import java.util.UUID;
 public class ShopController {
 
     private final ShopService shopService;
+    private final com.denfense.server.auth.AccountAccess accounts;
     private final com.denfense.server.service.gacha.GachaPurchaseService gachaPurchaseService;
 
     /**
@@ -32,7 +33,7 @@ public class ShopController {
                                             @RequestParam(defaultValue = "1") int count) {
 
         // 서비스에게 주문 전달하고, 결과(변경된 왹져 목록)를 바로 반환
-        return shopService.gachaAlien(username, count);
+        return shopService.gachaAlien(accounts.username(username), count);
     }
 
     @PostMapping("/gacha/purchase")
@@ -40,6 +41,6 @@ public class ShopController {
             @RequestParam String username,
             @RequestParam String productId,
             @RequestParam UUID purchaseRequestId) {
-        return gachaPurchaseService.purchase(username, productId, purchaseRequestId);
+        return gachaPurchaseService.purchase(accounts.username(username), productId, purchaseRequestId);
     }
 }

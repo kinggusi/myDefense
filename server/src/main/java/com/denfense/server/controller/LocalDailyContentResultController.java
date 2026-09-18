@@ -14,7 +14,7 @@ import java.net.InetAddress;
 
 @RestController
 @RequiredArgsConstructor
-@Profile({"local", "dev"})
+@Profile("(local | dev) & !prod & !production")
 @RequestMapping("/api/dev/daily-contents/results")
 public class LocalDailyContentResultController {
     private final DailyContentService service;

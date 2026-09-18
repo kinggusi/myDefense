@@ -22,7 +22,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
  */
 @SpringBootTest
 @AutoConfigureMockMvc
-@ActiveProfiles("test")
+@ActiveProfiles({"test", "dev"})
 class ShopControllerUuidValidationTest {
 
     @Autowired

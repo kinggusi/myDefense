@@ -6,6 +6,12 @@
 
 ## 0. 사용 방법
 
+> 로컬 영속 저장·개발 계정(2026-09-18): 사용자 요청으로 `local`을 H2 파일 DB + `update`로 변경하고 개발 계정 `jjangash`/`kingusi`, Editor 전용 계정 선택·비밀번호 로그인, Windows DPAPI 고정 JWT 키 실행 스크립트를 추가했다. 서버 450/450, BalanceTool 82/82, Unity 694/694 PASS. 실제 서버 재시작 후 두 계정 ID·기존 Access·저장 Refresh 유지 확인. 재화/유닛/교배 보존은 격리 파일 DB 재시작 테스트 PASS. 비밀번호 입력 창 수동 확인·상점 실제 구매 후 재시작은 후속이며 운영 DB/매칭 완료가 아니다. 다음 사용자 지정 작업은 상점이며 신규 상품 가격·제한은 정책 확정 후 구현한다. [저장 검증](test-reports/LOCAL-PERSISTENCE-2026-09-18.md). 과거 기록의 미커밋 표시는 해당 기록 당시 상태다.
+
+> P1-5-7 계정 인증·시작 UI 1차(2026-09-18): 게스트 로그인/복구, JWT·회전 Refresh·Principal 보호 API, Unity Windows DPAPI·인증 HTTP, SF 시작/로딩 UI와 테마·Prefab 교체 경계를 구현했다. 서버 437/437, BalanceTool 82/82, Unity 664/664 및 독립 리뷰 차단 없음. Windows local 동일 계정 재접속·동시 GET 갱신, 실제 업적/닫기/내 유닛 스크롤/교배 진입 확인. 후속 사용자 승인으로 게스트 프로필은 실제 서버 계정 번호 `Guest-{userId}`를 표시하며 디자인·내부 username은 유지한다. 표시/폰트 회귀 6개 추가 후 Unity 670/670 및 독립 리뷰 PASS. Google/Apple 실제 SDK·검증기, iOS/Android 저장소, production 영속 매칭·2클라이언트 E2E와 사용자 인수는 남아 **부분 완료**를 유지한다. [인증 검증](test-reports/AUTH-STARTUP-2026-09-18.md) / [UI 교체 가이드](AUTH_STARTUP_UI_GUIDE.md). 미커밋 merge와 이번 변경은 커밋/푸시하지 않았다.
+
+> 기존 코드 보완 및 P1-5-7 준비(2026-09-18): 최신 `origin/dev` `5322150`을 현재 feature 작업에 통합 중이다(미커밋 merge). Quest 정산의 일일/주간 주기를 단일 처리 시각으로 고정하고, 개발 API/Adapter 및 익명 Snapshot을 prod/production 혼합 Profile에서도 차단했다. SampleScene 투명 재화 Image 3개의 누락 Sprite만 Unity API로 제거했다. 서버 403/403, BalanceTool 82/82, Unity EditMode 655/655 및 서버/UI 독립 리뷰 PASS. 실제 일일·주간 Quest 진입/전환은 확인했으며 나머지 화면 조작은 사용자 PC 사용으로 일시 보류했다. 이후 사용자가 게스트 시작 + Google/Apple 연동 및 기존 유저 Host 유지로 확정했다. 전용 서버 전환은 운영 테스트에서 안정성·조작 위험·실측 비용을 보고 재판단하며 도입/계약은 보류한다. P1-5-7 production 구현·E2E는 아직 완료가 아니다. 상세는 [보완 검증 기록](test-reports/USER-HARDENING-2026-09-18.md)과 [JWT 운영 고려사항](JWT_OPERATION_CONSIDERATIONS.md)을 참고한다.
+
 > 커밋 준비 재검증(2026-09-18): 누적 Quest/업적·Balance·로비 UI/아이콘·레전더리 일러 변경을 선별했다. Unity EditMode 587/587, 서버 391/391, BalanceTool 82/82 재실행 PASS. 독립 리뷰는 개발 브랜치 반영 가능(WARNING)이며 최종 사람 디자인 인수는 계속 대기한다. 운영 프로필 혼합 방어, Quest 자정 처리 경계, 기존 GUI Kit 투명 Image의 누락 Sprite 참조는 [커밋 검토 기록](test-reports/USER-LOBBY-COMMIT-2026-09-18.md)에 남겼다. 아래 과거 기록의 커밋/푸시 없음은 각 작업 당시 상태다.
 
 > 사용자 지정 로비 디자인 검증(2026-09-07): SampleScene 내 유닛 4열·미보유 포함 전체 카드와 네온 카드/강화·교배·Quest 팝업을 적용했다. CanvasRenderer 누락 및 동적 슬롯 배경 정리 문제를 수정했다. 후속으로 등급별 저채도 테두리, DNA/성장세포 아이콘·`+` 구매 안내를 추가했다. Unity EditMode 534/534, 서버 376/376, BalanceTool 82/82 및 compileJava PASS. 실제 클릭·스크롤·탭·팝업 재진입을 확인했다. Quest HTTP 500은 local 프로필 누락과 404 오분류를 확인하여 handler/실행 설정을 보완했으나 기존 H2 서버 재시작은 승인 대기다. 재료 판매 정책 미확정으로 실제 구매는 비활성화이며 최종 사용자 디자인 인수도 대기한다. 범위·증거·제한은 [로비 UI 검증 기록](test-reports/LOBBY-NEON-COLLECTION.md)을 참고한다.
@@ -414,7 +420,7 @@ P0-1-1~4 → P0-1-5 → P0-1-6
 | P1-5-4 | jjangash | 완료 | 영구 재화 지급 Transaction 구현 |
 | P1-5-5 | jjangash | 완료 | 기존 멱등 저장을 영구 보상 중복 지급 방지까지 확장 |
 | P1-5-6 | kinggusi | 완료 | 실제 전투 종료 결과와 서버 응답 대조 테스트 — local/dev Host/Client terminal·동일 payload 멱등 재처리 PASS |
-| P1-5-7 | Shared | 부분 완료 | 인증된 matchmaking/Fusion Session authority를 Spring trusted roster adapter에 연결 — local/dev Adapter 완료, production JWT Adapter 선행 필요 |
+| P1-5-7 | Shared | 부분 완료 | local/dev roster 완료. 게스트/JWT·계정 Principal·Windows 인증 UI/HTTP 구현·검증. Google/Apple 실제 연동·모바일 저장소·production 영속 matchmaking/Photon identity Adapter와 E2E는 남음. 유저 Host 유지, 전용 서버는 운영 테스트 후 별도 결정 |
 
 > 8-1 보상 정책 구현 메모: 행성별 80 Wave를 기준으로 `highestClearedWave`(마지막으로 완전히 클리어한 Wave)에 따라 패배/재클리어 Gold를 계산한다. Wave 10~80 체크포인트는 최초 1회만 Gold·Universal Piece를 지급하고, Wave 80 최초 클리어는 행성별 Diamond를 1회 지급한다. 관전자와 연결이 유지된 탈락자는 지급 대상이며, 명시적 이탈/120초 초과 미복귀는 지급하지 않는다. 보상 Balance는 `BattleReward` Excel 시트와 `battle-reward.json`으로 관리한다. Settlement 서버는 Runtime이 확정한 `abandoned` 플래그를 영속화한다. local/dev 실제 2인 terminal Summary·저장·멱등 재처리는 P1-5-6에서 완료했고, production 인증 roster와 장시간 이탈·복귀 운영 검증은 P1-5-7 및 출시 전 2PC 통합 게이트로 유지한다.
 

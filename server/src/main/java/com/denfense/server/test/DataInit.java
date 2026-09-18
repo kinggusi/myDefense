@@ -15,6 +15,7 @@ import java.util.List;
 import org.springframework.core.annotation.Order;
 
 @Component
+@org.springframework.context.annotation.Profile("(local | dev) & !prod & !production")
 @RequiredArgsConstructor
 @Order(10)
 public class DataInit implements CommandLineRunner {

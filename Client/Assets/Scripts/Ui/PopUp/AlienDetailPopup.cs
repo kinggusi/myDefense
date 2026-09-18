@@ -41,7 +41,9 @@ public class AlienDetailPopup : MonoBehaviour
     // [강화 버튼]에 연결하세요
     public void OnClickUpgrade()
     {
-        string username = "MyDev"; // 하드코딩
+        var lobby = FindFirstObjectByType<LobbyManager>();
+        string username = lobby != null ? lobby.CurrentUsername : null;
+        if (string.IsNullOrWhiteSpace(username)) return;
 
         HttpManager.Instance.PostUpgrade(username, currentAlienId, (json) => 
         {

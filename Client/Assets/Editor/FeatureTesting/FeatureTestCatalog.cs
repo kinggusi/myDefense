@@ -99,6 +99,8 @@ namespace MyDefenseGame.Editor.FeatureTesting
         {
             return new FeatureTestCatalog(new[]
             {
+                Case("P1-5-7-AUTH", "계정 진입·로딩 UI", "jjangash", "Assets/Scenes/Tests/AuthStartupUiTest.unity", FeatureTestType.Scene,
+                    "UI-only fixture; 실제 게스트 E2E는 SampleScene과 isolated local 서버", "Play 종료 후 재실행; 운영 credential 삭제 금지", "AuthClientTests", "시작·복구·실패 재시도·화면 비율; Google/Apple 실제 기기 연동 별도", "docs/test-reports/AUTH-STARTUP-2026-09-18.md"),
                 Case("P0-2-5", "Battle Session Adapter", "kinggusi", "Assets/Scenes/Battle.unity", FeatureTestType.FusionTwoClient,
                     "Photon App ID와 동일 Session", "Host/Client 종료 후 Scene 재로드", "BattleSceneSessionAdapterTests;BattleMatchStartCoordinatorTests", "Host/Client Session·필드·공용 Lane", "docs/test-reports/P0-2-5.md"),
                 Case("P0-4-6", "탈락 관전 카메라", "kinggusi", "Assets/Scenes/Battle.unity", FeatureTestType.FusionTwoClient,

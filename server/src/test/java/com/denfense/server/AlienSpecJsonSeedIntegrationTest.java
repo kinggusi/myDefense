@@ -1,5 +1,7 @@
 package com.denfense.server;
 
+import org.springframework.test.context.ActiveProfiles;
+
 import com.denfense.server.balance.AlienSpecBalance;
 import com.denfense.server.domain.AlienSpec;
 import com.denfense.server.domain.MonsterSpec;
@@ -26,6 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
+@ActiveProfiles("dev")
 public class AlienSpecJsonSeedIntegrationTest {
 
     @Autowired

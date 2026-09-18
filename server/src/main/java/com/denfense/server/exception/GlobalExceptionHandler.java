@@ -16,6 +16,12 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(com.denfense.server.auth.AuthException.class)
+    public ResponseEntity<ErrorResponse> handleAuth(com.denfense.server.auth.AuthException failure) {
+        return ResponseEntity.status(failure.status()).header("Cache-Control", "no-store")
+                .body(new ErrorResponse(failure.code(), failure.getMessage()));
+    }
+
     @ExceptionHandler({NoResourceFoundException.class, NoHandlerFoundException.class})
     public ResponseEntity<ErrorResponse> handleResourceNotFound(Exception e) {
         // A disabled profile-specific route is still 404, never an internal server failure.
@@ -35,7 +41,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
-        log.warn("MethodArgumentNotValidException occurred", e);
+        // Binding exceptions can contain submitted tokens/secrets in rejected values.
+        log.warn("Request validation failed");
         return ResponseEntity
                 .status(ErrorCode.INVALID_REQUEST.getStatus())
                 .body(new ErrorResponse(ErrorCode.INVALID_REQUEST.name(), ErrorCode.INVALID_REQUEST.getMessage()));
@@ -43,7 +50,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ErrorResponse> handleHttpMessageNotReadableException(HttpMessageNotReadableException e) {
-        log.warn("HttpMessageNotReadableException occurred", e);
+        log.warn("Request body could not be read");
         return ResponseEntity
                 .status(ErrorCode.INVALID_REQUEST.getStatus())
                 .body(new ErrorResponse(ErrorCode.INVALID_REQUEST.name(), ErrorCode.INVALID_REQUEST.getMessage()));

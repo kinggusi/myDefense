@@ -1,5 +1,7 @@
 package com.denfense.server;
 
+import org.springframework.test.context.ActiveProfiles;
+
 import com.denfense.server.domain.MonsterSpec;
 import com.denfense.server.domain.User;
 import com.denfense.server.repository.MonsterSpecRepository;
@@ -17,6 +19,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
+@ActiveProfiles("dev")
 public class DataInitIntegrationTest {
 
     @Autowired

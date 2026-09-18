@@ -7,14 +7,19 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 @SpringBootTest
 class QuestSettlementProcessorIntegrationTest {
@@ -24,7 +29,7 @@ class QuestSettlementProcessorIntegrationTest {
     @Autowired QuestSettlementApplicationRepository applications;
     @Autowired QuestCycleProgressRepository cycleProgresses;
     @Autowired QuestRewardClaimRepository rewardClaims;
-    @Autowired QuestTimeProvider questTime;
+    @MockitoSpyBean QuestTimeProvider questTime;
     @Autowired BattlePlayerSettlementRepository playerSettlements;
     @Autowired BattleSettlementRepository settlements;
     @Autowired UserRepository users;
@@ -71,6 +76,40 @@ class QuestSettlementProcessorIntegrationTest {
         assertCycleProgress(first, "WEEKLY_PLAY_10", QuestCycleType.WEEKLY, 1);
         assertCycleProgress(first, "DAILY_KILL_100", QuestCycleType.DAILY, 7);
         assertCycleProgress(first, "WEEKLY_KILL_1000", QuestCycleType.WEEKLY, 7);
+    }
+
+    @Test
+    void sundayMidnightProcessingUsesOneInstantForAllPlayersAndConditionsAndRetryDoesNotMoveProgress() {
+        ZonedDateTime beforeMidnight = ZonedDateTime.of(2026, 9, 20, 23, 59, 59, 0, QuestTimeProvider.KST);
+        ZonedDateTime afterMidnight = beforeMidnight.plusSeconds(2);
+        doReturn(beforeMidnight, afterMidnight).when(questTime).now();
+        User first = saveUser("quest-midnight-first");
+        User second = saveUser("quest-midnight-second");
+        BattleSettlement settlement = settlement("quest-midnight", SessionSource.PRODUCTION, BattleResult.VICTORY, 80);
+        settlements.saveAndFlush(settlement);
+        for (int slot = 1; slot <= 2; slot++) {
+            playerSettlements.saveAndFlush(new BattlePlayerSettlement(
+                    settlement, slot == 1 ? first : second, slot, false, null, 100, 2, 8,
+                    100, 20, 10, 110, false));
+        }
+
+        assertThat(processor.process(settlement.getId()).applicationCount()).isEqualTo(14);
+        verify(questTime, times(1)).now();
+        assertThat(cycleProgresses.findAll()).hasSize(16).allSatisfy(progress ->
+                assertThat(progress.getCycleKey()).isEqualTo(progress.getCycleType() == QuestCycleType.DAILY
+                        ? "2026-09-20" : "2026-09-14"));
+        for (User user : List.of(first, second)) {
+            assertThat(cycleProgresses.findByUserIdAndQuestIdAndCycleKey(
+                    user.getId(), "DAILY_KILL_100", "2026-09-20").orElseThrow().getProgress()).isEqualTo(100);
+            assertThat(cycleProgresses.findByUserIdAndQuestIdAndCycleKey(
+                    user.getId(), "WEEKLY_PLAY_10", "2026-09-14").orElseThrow().getProgress()).isEqualTo(1);
+        }
+
+        assertThat(processor.process(settlement.getId()).applicationCount()).isZero();
+        verify(questTime, times(2)).now();
+        assertThat(cycleProgresses.findAll()).hasSize(16).allSatisfy(progress ->
+                assertThat(progress.getCycleKey()).isIn("2026-09-20", "2026-09-14"));
+        assertThat(applications.count()).isEqualTo(14);
     }
 
     @Test
