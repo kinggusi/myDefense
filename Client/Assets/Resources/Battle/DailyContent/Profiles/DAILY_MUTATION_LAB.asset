@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fd0a7275a5e5b444a8a6a67018ba1661, type: 3}
+  m_Name: DAILY_MUTATION_LAB
+  m_EditorClassIdentifier: Assembly-CSharp::MyDefense.Battle.Runtime.PlanetContentProfile
+  _mapId: DAILY_MUTATION_LAB
+  _enabled: 1
+  _environmentPrefab: {fileID: 702838588445781680, guid: 247d030e532838a4699ffc39f6c459d0, type: 3}
+  _backgroundSprite: {fileID: 0}
+  _backgroundColor: {r: 0.045, g: 0.015, b: 0.075, a: 1}
+  _environmentMaterial: {fileID: 2100000, guid: 1d8b53ec9e13aa74bbd0a8f01bc03921, type: 2}
+  _lighting:
+    _ambientColor: {r: 0.4055, g: 0.34425, b: 0.444, a: 1}
+    _ambientIntensity: 0.8
+    _directionalColor: {r: 0.694, g: 0.973, b: 1, a: 1}
+    _directionalIntensity: 1
+    _directionalEulerAngles: {x: 50, y: -30, z: 0}
+  _environmentEffects:
+  - {fileID: 8661420160800472929, guid: 6b4690739316e9d4e890b68c93b7e241, type: 3}

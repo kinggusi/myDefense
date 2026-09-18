@@ -55,6 +55,7 @@ namespace MyDefense.Battle
         private Coroutine _bossTimerCoroutine = null;
         private Coroutine _waveLoopCoroutine = null;
         private Coroutine _activeWaveCoroutine = null;
+        private Coroutine _dailyBattleTimerCoroutine = null;
         private bool _isCurrentWaveBoss;
         private bool _regularWaveSpawnCompleted;
         private bool _configuredWaveExecutionStarted;
@@ -88,6 +89,8 @@ namespace MyDefense.Battle
         private readonly List<BattleSpawnAuditRecord> _spawnAuditRecords = new List<BattleSpawnAuditRecord>();
         private readonly Dictionary<string, int> _spawnOrdinals = new Dictionary<string, int>(StringComparer.Ordinal);
         private BattleBossPatternRuntime _bossPatternRuntime;
+        private DailyBattleExecutionPlan _dailyBattlePlan;
+        private float _dailyBattleRemainingSeconds;
         private float _bossPatternStartedAt;
         private float _bossBaseMoveSpeed;
         private int _bossPhase;
@@ -118,7 +121,9 @@ namespace MyDefense.Battle
         public MatchState MatchState => _matchState;
         public bool Player1LimitReached => _player1BattleState == PlayerBattleState.ELIMINATED;
         public bool Player2LimitReached => _player2BattleState == PlayerBattleState.ELIMINATED;
-        public bool AreAllPlayersEliminated => Player1LimitReached && Player2LimitReached;
+        public bool AreAllPlayersEliminated => _dailyBattlePlan != null
+            ? Player1LimitReached
+            : Player1LimitReached && Player2LimitReached;
         public int MonsterLimit => _totalMonsterGoal;
         public int MonsterWarningThreshold => _monsterWarningThreshold;
         public int MonsterDangerThreshold => _monsterDangerThreshold;
@@ -139,6 +144,7 @@ namespace MyDefense.Battle
         public event System.Action<int> OnRegularWaveCompleted;
         public event System.Action<BossPatternSpecData> OnBossPatternTriggered;
         public event System.Action OnCatalogExhausted;
+        public event System.Action<float> OnDailyBattleTimerTick;
 
         public int CurrentRound => _currentRound;
         public string CurrentWaveId => _currentWaveSpec?.WaveId;
@@ -172,6 +178,14 @@ namespace MyDefense.Battle
                 return false;
 
             return TryResolveBossTimeout();
+        }
+
+        public bool TryResolveDailyBattleTimeoutFromAuthority()
+        {
+            if (!HasWaveAuthority() || _dailyBattlePlan == null
+                || _dailyBattleRemainingSeconds > 0f)
+                return false;
+            return TryTransitionMatchState(MatchState.FAILED);
         }
 
         /// <summary>
@@ -221,6 +235,36 @@ namespace MyDefense.Battle
         public string BattleContentVersion => (_battleBalanceProvider as ICanonicalCompositeBattleBalanceProvider)?.BattleContentVersion;
         public string BattleContentHash => (_battleBalanceProvider as ICanonicalCompositeBattleBalanceProvider)?.BattleContentHash;
         public BattleSessionContext RuntimeSession => _runtimeSession;
+        public bool IsDailyBattle => _dailyBattlePlan != null;
+        public float DailyBattleRemainingSeconds => _dailyBattleRemainingSeconds;
+
+        public bool TryApplyActiveDailyBattleStatus(
+            AlienAttackSnapshot source,
+            out AlienAttackSnapshot result)
+        {
+            result = source;
+            if (_dailyBattlePlan == null
+                || _matchState != MatchState.RUNNING
+                || !_isWaveRunning
+                || !_dailyBattlePlan.TryGetWave(_currentRound, out DailyBattleWavePlan wave)
+                || wave.StatusEffectType == CanonicalDailyBattleStatusEffect.NONE)
+                return false;
+
+            result = DailyBattleAttackSnapshotCalculator.Apply(
+                source,
+                wave.StatusEffectType,
+                wave.StatusEffectValue);
+            return true;
+        }
+
+        public static bool ShouldTrackDailyMonsterForWaveCompletion(
+            bool isDailyBattle,
+            LaneType lane,
+            bool canonicalCountsTowardLaneLimit)
+        {
+            return canonicalCountsTowardLaneLimit
+                || (isDailyBattle && lane == LaneType.Player1Lane);
+        }
 
         public bool TryGetCanonicalSummonCost(int useCount, out int cost)
         {
@@ -465,6 +509,18 @@ namespace MyDefense.Battle
             return true;
         }
 
+        public bool TryGetCanonicalDailyBattleProvider(
+            out ICanonicalCompositeBattleBalanceProvider provider)
+        {
+            provider = null;
+            if (!EnsureBalanceInitialized()
+                || _battleBalanceProvider is not ICanonicalCompositeBattleBalanceProvider canonical
+                || canonical.DailyBattleStages == null)
+                return false;
+            provider = canonical;
+            return true;
+        }
+
         private void Awake()
         {
             if (Instance == null)
@@ -613,15 +669,26 @@ namespace MyDefense.Battle
                 return false;
             }
 
-            string player1Id;
-            string player2Id;
-            if (!_playerIdentityProvider.TryGetPlayerId(LaneType.Player1Lane, out player1Id)
-                || string.IsNullOrWhiteSpace(player1Id)
-                || !_playerIdentityProvider.TryGetPlayerId(LaneType.Player2Lane, out player2Id)
-                || string.IsNullOrWhiteSpace(player2Id)
-                || string.Equals(player1Id, player2Id, StringComparison.Ordinal))
+            bool identityValid;
+            if (_dailyBattlePlan != null)
             {
-                FaultExecution("Battle player identity provider must resolve two distinct, non-empty player IDs.");
+                identityValid = _playerIdentityProvider.TryGetPlayerId(LaneType.Player1Lane, out string dailyPlayerId)
+                    && !string.IsNullOrWhiteSpace(dailyPlayerId)
+                    && !_playerIdentityProvider.TryGetPlayerId(LaneType.Player2Lane, out _);
+            }
+            else
+            {
+                identityValid = _playerIdentityProvider.TryGetPlayerId(LaneType.Player1Lane, out string player1Id)
+                    && !string.IsNullOrWhiteSpace(player1Id)
+                    && _playerIdentityProvider.TryGetPlayerId(LaneType.Player2Lane, out string player2Id)
+                    && !string.IsNullOrWhiteSpace(player2Id)
+                    && !string.Equals(player1Id, player2Id, StringComparison.Ordinal);
+            }
+            if (!identityValid)
+            {
+                FaultExecution(_dailyBattlePlan != null
+                    ? "Daily Battle identity provider must resolve Player 1 only."
+                    : "Battle player identity provider must resolve two distinct, non-empty player IDs.");
                 return false;
             }
 
@@ -656,6 +723,17 @@ namespace MyDefense.Battle
             }
         }
 
+        private static void ValidateDailyPlayerIdentityProvider(IBattlePlayerIdentityProvider playerIdentityProvider)
+        {
+            if (playerIdentityProvider == null) throw new ArgumentNullException(nameof(playerIdentityProvider));
+            if (!playerIdentityProvider.TryGetPlayerId(LaneType.Player1Lane, out string player1Id)
+                || string.IsNullOrWhiteSpace(player1Id)
+                || playerIdentityProvider.TryGetPlayerId(LaneType.Player2Lane, out _))
+                throw new ArgumentException(
+                    "Daily Battle identity provider must resolve Player 1 and must not create a virtual Player 2.",
+                    nameof(playerIdentityProvider));
+        }
+
         private void FaultExecution(string reason)
         {
             if (_isFaulted) return;
@@ -681,7 +759,8 @@ namespace MyDefense.Battle
             return lane switch
             {
                 LaneType.Player1Lane => _player1BattleState == PlayerBattleState.ACTIVE,
-                LaneType.Player2Lane => _player2BattleState == PlayerBattleState.ACTIVE,
+                LaneType.Player2Lane => _dailyBattlePlan == null
+                    && _player2BattleState == PlayerBattleState.ACTIVE,
                 _ => false
             };
         }
@@ -738,6 +817,7 @@ namespace MyDefense.Battle
 
             _matchState = nextState;
             _isWaveRunning = false;
+            StopDailyBattleTimer();
 
             if (_waveLoopCoroutine != null)
             {
@@ -764,6 +844,7 @@ namespace MyDefense.Battle
             }
 
             StopBossTimer();
+            StopDailyBattleTimer();
             _isWaveRunning = false;
             _isCurrentWaveBoss = false;
             _regularWaveSpawnCompleted = false;
@@ -777,6 +858,40 @@ namespace MyDefense.Battle
 
             StopCoroutine(_bossTimerCoroutine);
             _bossTimerCoroutine = null;
+        }
+
+        private void EnsureDailyBattleTimerStarted()
+        {
+            if (_dailyBattlePlan == null || _dailyBattleTimerCoroutine != null
+                || _matchState != MatchState.RUNNING)
+                return;
+            _dailyBattleRemainingSeconds = _dailyBattlePlan.TimeLimitSeconds;
+            OnDailyBattleTimerTick?.Invoke(_dailyBattleRemainingSeconds);
+            _dailyBattleTimerCoroutine = StartCoroutine(DailyBattleTimerRoutine());
+        }
+
+        private IEnumerator DailyBattleTimerRoutine()
+        {
+            while (_dailyBattleRemainingSeconds > 0f && _matchState == MatchState.RUNNING)
+            {
+                yield return new WaitForSeconds(1f);
+                _dailyBattleRemainingSeconds = Mathf.Max(0f, _dailyBattleRemainingSeconds - 1f);
+                OnDailyBattleTimerTick?.Invoke(_dailyBattleRemainingSeconds);
+            }
+
+            _dailyBattleTimerCoroutine = null;
+            if (_dailyBattlePlan != null && _matchState == MatchState.RUNNING)
+            {
+                if (TryResolveDailyBattleTimeoutFromAuthority())
+                    Debug.Log("[DailyBattle] Time limit exceeded. Daily run failed.");
+            }
+        }
+
+        private void StopDailyBattleTimer()
+        {
+            if (_dailyBattleTimerCoroutine == null) return;
+            StopCoroutine(_dailyBattleTimerCoroutine);
+            _dailyBattleTimerCoroutine = null;
         }
 
         private void ReleaseCurrentBoss()
@@ -850,6 +965,8 @@ namespace MyDefense.Battle
                 }
             }
 
+            if (countChanged && IsCurrentDailyBossWave())
+                HandleDailyLaneBossDefeated();
             if (countChanged) TryCompleteRegularWave();
         }
 
@@ -861,6 +978,7 @@ namespace MyDefense.Battle
                     "Reinitializing a runtime Battle session requires a new BattleSessionContext.");
             }
 
+            _dailyBattlePlan = null;
             _playerIdentityProvider = null;
             _spawnSequenceIssuer = null;
             ResetSessionState();
@@ -878,9 +996,33 @@ namespace MyDefense.Battle
                 throw new InvalidOperationException("Session reinitialization requires a new battleSessionId.");
             }
 
+            _dailyBattlePlan = null;
             _runtimeSession = sessionContext;
             _playerIdentityProvider = playerIdentityProvider;
             _spawnSequenceIssuer = new BattleSpawnSequenceIssuer();
+            ResetSessionState();
+        }
+
+        public void InitializeDailySession(
+            BattleSessionContext sessionContext,
+            IBattlePlayerIdentityProvider playerIdentityProvider,
+            DailyBattleExecutionPlan executionPlan)
+        {
+            if (sessionContext == null) throw new ArgumentNullException(nameof(sessionContext));
+            if (executionPlan == null) throw new ArgumentNullException(nameof(executionPlan));
+            ValidateDailyPlayerIdentityProvider(playerIdentityProvider);
+            if (!string.Equals(sessionContext.BattleSessionId, executionPlan.SessionContext.battleSessionId, StringComparison.Ordinal)
+                || !string.Equals(sessionContext.MapId, executionPlan.SessionContext.mapId, StringComparison.Ordinal)
+                || !string.Equals(sessionContext.CanonicalBalanceVersion, executionPlan.SessionContext.balanceVersion, StringComparison.Ordinal)
+                || !string.Equals(sessionContext.CanonicalContentHash, executionPlan.SessionContext.contentHash, StringComparison.Ordinal))
+                throw new ArgumentException("Daily execution plan does not match the Battle session context.", nameof(executionPlan));
+            if (_runtimeSession != null)
+                throw new InvalidOperationException("Session reinitialization requires a new battleSessionId.");
+
+            _runtimeSession = sessionContext;
+            _playerIdentityProvider = playerIdentityProvider;
+            _spawnSequenceIssuer = new BattleSpawnSequenceIssuer();
+            _dailyBattlePlan = executionPlan;
             ResetSessionState();
         }
 
@@ -917,6 +1059,7 @@ namespace MyDefense.Battle
             _catalogExhausted = false;
             _catalogExhaustedReported = false;
             _activeBossTimeLimitSeconds = 0f;
+            _dailyBattleRemainingSeconds = _dailyBattlePlan?.TimeLimitSeconds ?? 0f;
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             _p1ValidationArmed = false;
             _p1ValidationStartConsumed = false;
@@ -1193,6 +1336,7 @@ namespace MyDefense.Battle
             if (!HasWaveAuthority()) return;
             if (!EnsureBalanceInitialized()) return;
             if (!TryBeginNextWave()) return;
+            EnsureDailyBattleTimerStarted();
 
             if (_isCurrentWaveBoss)
             {
@@ -1252,18 +1396,31 @@ namespace MyDefense.Battle
             }
 
             WaveSpecData nextWave;
+            IReadOnlyList<WaveSpawnSpecData> spawns;
             int waveLookupCursor = _currentRound;
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (_p1ValidationArmed && !_p1ValidationStartConsumed)
                 waveLookupCursor = _p1ValidationLookupCursor;
 #endif
-            if (!_battleBalanceProvider.Catalog.Waves.TryGetNextEnabledWave(waveLookupCursor, out nextWave))
+            if (_dailyBattlePlan != null)
+            {
+                if (!_dailyBattlePlan.TryGetWaveAfter(waveLookupCursor, out DailyBattleWavePlan dailyWave))
+                {
+                    ReportCatalogExhausted();
+                    return false;
+                }
+                nextWave = dailyWave.ToRuntimeWave();
+                spawns = Array.AsReadOnly(new[] { dailyWave.ToRuntimeSpawn() });
+            }
+            else if (!_battleBalanceProvider.Catalog.Waves.TryGetNextEnabledWave(waveLookupCursor, out nextWave))
             {
                 ReportCatalogExhausted();
                 return false;
             }
-
-            IReadOnlyList<WaveSpawnSpecData> spawns = _battleBalanceProvider.Catalog.Waves.GetSpawns(nextWave.WaveId);
+            else
+            {
+                spawns = _battleBalanceProvider.Catalog.Waves.GetSpawns(nextWave.WaveId);
+            }
             if (spawns.Count == 0)
             {
                 FaultExecution($"Wave '{nextWave.WaveId}' has no spawn rows.");
@@ -1374,6 +1531,17 @@ namespace MyDefense.Battle
                 yield break;
             }
 
+            string dailyBossPatternWaveId = null;
+            if (IsCurrentDailyBossWave())
+            {
+                dailyBossPatternWaveId = ResolveDailyBossPatternWaveId();
+                if (dailyBossPatternWaveId == null)
+                {
+                    FaultExecution("Daily Lane Boss requires an enabled canonical Boss pattern.");
+                    yield break;
+                }
+            }
+
             for (int rowIndex = 0; rowIndex < _currentWaveSpawns.Count; rowIndex++)
             {
                 WaveSpawnSpecData spawn = _currentWaveSpawns[rowIndex];
@@ -1396,7 +1564,9 @@ namespace MyDefense.Battle
                     yield return new WaitForSeconds(spawn.SpawnDelaySeconds);
 
                 int player1Remaining = CanSpawnInLane(LaneType.Player1Lane) ? spawn.SpawnCount : 0;
-                int player2Remaining = CanSpawnInLane(LaneType.Player2Lane) ? spawn.SpawnCount : 0;
+                int player2Remaining = _dailyBattlePlan == null && CanSpawnInLane(LaneType.Player2Lane)
+                    ? spawn.SpawnCount
+                    : 0;
                 while (player1Remaining > 0 || player2Remaining > 0)
                 {
                     if (!CanContinueWaveExecution()) yield break;
@@ -1405,8 +1575,15 @@ namespace MyDefense.Battle
                     {
                         if (CanSpawnInLane(LaneType.Player1Lane))
                         {
-                            if (!SpawnConfiguredMonster(LaneType.Player1Lane, definition, spawn, 1f, out _))
+                            if (!SpawnConfiguredMonster(
+                                    LaneType.Player1Lane,
+                                    definition,
+                                    spawn,
+                                    1f,
+                                    out GameObject spawnedPlayerOne))
                                 yield break;
+                            if (dailyBossPatternWaveId != null)
+                                ActivateDailyLaneBoss(spawnedPlayerOne, dailyBossPatternWaveId);
                             player1Remaining--;
                         }
                         else
@@ -1519,17 +1696,78 @@ namespace MyDefense.Battle
 
         private void ActivateBoss(GameObject bossInstance)
         {
+            ActivateBossRuntime(bossInstance, true, _currentWaveSpec?.WaveId);
+        }
+
+        private void ActivateDailyLaneBoss(GameObject bossInstance, string patternWaveId)
+        {
+            ActivateBossRuntime(bossInstance, false, patternWaveId);
+        }
+
+        private string ResolveDailyBossPatternWaveId()
+        {
+            BattleBalanceCatalog catalog = _battleBalanceProvider?.Catalog;
+            if (catalog == null)
+                return null;
+
+            WaveSpecData selected = null;
+            IReadOnlyList<WaveSpecData> waves = catalog.Waves.All;
+            for (int index = 0; index < waves.Count; index++)
+            {
+                WaveSpecData wave = waves[index];
+                if (wave.Enabled
+                    && wave.WaveType == WaveType.BOSS
+                    && catalog.BossPatterns.GetByWave(wave.WaveId).Count > 0
+                    && (selected == null
+                        || wave.RoundNumber < selected.RoundNumber
+                        || (wave.RoundNumber == selected.RoundNumber
+                            && string.CompareOrdinal(wave.WaveId, selected.WaveId) < 0)))
+                    selected = wave;
+            }
+
+            return selected?.WaveId;
+        }
+
+        private void ActivateBossRuntime(
+            GameObject bossInstance,
+            bool usesExclusiveBossState,
+            string patternWaveId)
+        {
             _currentBossInstance = bossInstance;
-            _isBossActive = bossInstance != null;
-            _bossState = _isBossActive ? BossStatusState.Active : BossStatusState.None;
+            _isBossActive = usesExclusiveBossState && bossInstance != null;
+            _bossState = bossInstance != null ? BossStatusState.Active : BossStatusState.None;
             _bossPhase = 0;
             BattleMonsterMovement movement = bossInstance == null ? null : bossInstance.GetComponent<BattleMonsterMovement>();
             _bossBaseMoveSpeed = movement == null ? 0f : movement.Speed;
             IReadOnlyList<BossPatternSpecData> patterns = _battleBalanceProvider?.Catalog?.BossPatterns
-                ?.GetByWave(_currentWaveSpec?.WaveId);
+                ?.GetByWave(patternWaveId);
             _bossPatternRuntime = new BattleBossPatternRuntime(patterns);
             _bossPatternStartedAt = Time.time;
             TickBossPatterns();
+        }
+
+        private bool IsCurrentDailyBossWave()
+        {
+            return _dailyBattlePlan != null
+                && _dailyBattlePlan.TryGetWave(_currentRound, out DailyBattleWavePlan wave)
+                && wave.Boss;
+        }
+
+        private bool HandleDailyLaneBossDefeated()
+        {
+            if (_bossState != BossStatusState.Active || !IsCurrentDailyBossWave())
+                return false;
+
+            if (_bossPatternRuntime != null)
+                _bossPatternRuntime.Tick(Time.time - _bossPatternStartedAt, 0f, ApplyBossPattern);
+            _bossState = BossStatusState.Defeated;
+            _isBossActive = false;
+            _currentBossInstance = null;
+            _bossPatternRuntime = null;
+            StopBossTimer();
+            Debug.Log("[DailyBattle] Player 1 Lane Boss defeated. Daily Wave remainder cleared.");
+            OnBossDefeated?.Invoke();
+            return true;
         }
 
         private void TickBossPatterns()
@@ -1763,7 +2001,8 @@ namespace MyDefense.Battle
             float planetHpMultiplier = 1f;
             float planetSpeedMultiplier = 1f;
             float planetBossHpMultiplier = 1f;
-            if (_battleBalanceProvider is ICanonicalCompositeBattleBalanceProvider canonical)
+            if (_dailyBattlePlan == null
+                && _battleBalanceProvider is ICanonicalCompositeBattleBalanceProvider canonical)
             {
                 string mapId = _runtimeSession?.MapId;
                 if (string.IsNullOrWhiteSpace(mapId)
@@ -1785,6 +2024,7 @@ namespace MyDefense.Battle
             BattleMonsterRuntimeContext runtimeContext = spawnedInstance.GetComponent<BattleMonsterRuntimeContext>();
             try
             {
+                bool isBoss = lane == LaneType.BossSharedLane || IsCurrentDailyBossWave();
                 runtimeContext.Initialize(new BattleMonsterRuntimeIdentity(
                     _runtimeSession,
                     spawnSequence,
@@ -1792,7 +2032,8 @@ namespace MyDefense.Battle
                     runtimeLanePolicy,
                     fieldOwnerPlayerId,
                     _currentRound,
-                    spawnSequence));
+                    spawnSequence,
+                    isBoss));
 
                 BattleMonsterNetworkState networkState = spawnedInstance.GetComponent<BattleMonsterNetworkState>();
                 if (networkState != null)
@@ -1818,7 +2059,11 @@ namespace MyDefense.Battle
 
             MonsterStat stat = spawnedInstance.GetComponent<MonsterStat>();
             stat.InitializeHp(resolvedMaxHp);
-            stat.InitializeBattleContext(lane, definition.CountsTowardLaneLimit);
+            bool tracksWaveCompletion = ShouldTrackDailyMonsterForWaveCompletion(
+                _dailyBattlePlan != null,
+                lane,
+                definition.CountsTowardLaneLimit);
+            stat.InitializeBattleContext(lane, tracksWaveCompletion);
             spawnedInstance.transform.localScale = Vector3.one * scale;
 
             if (!TryRegisterSpawnAudit(runtimeContext.Identity, spawn, lane))
@@ -1828,7 +2073,7 @@ namespace MyDefense.Battle
                 return false;
             }
 
-            if (definition.CountsTowardLaneLimit)
+            if (tracksWaveCompletion)
                 RegisterMonsterSpawned(lane);
 
             if (_isFaulted)
@@ -1885,7 +2130,8 @@ namespace MyDefense.Battle
                     identity.LanePolicy,
                     ownerSlot,
                     spawn.SpawnOrder,
-                    ordinal);
+                    ordinal,
+                    identity.IsBoss);
                 if (_spawnAuditRecords.Exists(existing => existing.RuntimeKey.Equals(record.RuntimeKey)))
                     throw new InvalidOperationException("Runtime monster ID was already recorded by the Spawn audit ledger.");
                 _spawnAuditRecords.Add(record);

@@ -65,6 +65,59 @@ namespace MyDefense.Battle.Runtime
                 return false;
             }
 
+            return TryApplyResolvedProfile(authoritativeMapId, profile, out error);
+        }
+
+        /// <summary>
+        /// Applies an already fail-fast-resolved presentation Profile. Daily content
+        /// uses this entry point so its two-map Catalog remains isolated from the
+        /// canonical nine-planet Catalog.
+        /// </summary>
+        public bool TryApplyResolvedProfile(
+            string authoritativeMapId,
+            PlanetContentProfile profile,
+            out string error)
+        {
+            if (profile == null)
+            {
+                error = "Resolved PlanetContentProfile is required.";
+                LastError = error;
+                return false;
+            }
+            if (!profile.Enabled)
+            {
+                error = "Resolved PlanetContentProfile is disabled: '" + profile.MapId + "'.";
+                LastError = error;
+                return false;
+            }
+            if (string.IsNullOrWhiteSpace(authoritativeMapId)
+                || !string.Equals(authoritativeMapId, profile.MapId, StringComparison.Ordinal))
+            {
+                error = "Resolved PlanetContentProfile mapId does not match the authoritative mapId.";
+                LastError = error;
+                return false;
+            }
+            IReadOnlyList<string> presentationErrors =
+                PlanetContentValidator.ValidatePresentationPrefab(profile.EnvironmentPrefab, profile.MapId + " environmentPrefab");
+            for (int index = 0; index < profile.EnvironmentEffects.Length; index++)
+            {
+                IReadOnlyList<string> effectErrors = PlanetContentValidator.ValidatePresentationPrefab(
+                    profile.EnvironmentEffects[index],
+                    profile.MapId + " environmentEffect[" + index + "]");
+                if (effectErrors.Count > 0)
+                {
+                    var combined = new List<string>(presentationErrors);
+                    combined.AddRange(effectErrors);
+                    presentationErrors = combined;
+                }
+            }
+            if (presentationErrors.Count > 0)
+            {
+                error = string.Join(Environment.NewLine + " - ", presentationErrors);
+                LastError = error;
+                return false;
+            }
+
             if (_activeEnvironment != null
                 && ReferenceEquals(_activeProfile, profile)
                 && string.Equals(_activeMapId, authoritativeMapId, StringComparison.Ordinal))

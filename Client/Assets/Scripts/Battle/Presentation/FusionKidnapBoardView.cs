@@ -31,8 +31,18 @@ namespace MyDefense.Battle.Presentation
         private readonly Dictionary<int, string> _loadedPlayerIds = new();
         private readonly Dictionary<int, string> _requestedPlayerIds = new();
         private int _selectedLocalMythicSlot = -1;
+        private bool _soloPlayerOneMode;
+        private BattleWaveExecutor _dailyWaveExecutor;
 
         public int SelectedLocalMythicSlot => _selectedLocalMythicSlot;
+
+        public void SetSoloPlayerOneMode(bool enabled)
+        {
+            _soloPlayerOneMode = enabled;
+            _player2Grid ??= GameObject.Find("EnemyGridParent")?.transform;
+            if (_player2Grid != null)
+                _player2Grid.gameObject.SetActive(!enabled);
+        }
 
         private void OnEnable()
         {
@@ -49,6 +59,7 @@ namespace MyDefense.Battle.Presentation
             _authority.BoardChanged += ApplyBoardChange;
             _authority.BoardSwapped += ApplyBoardSwap;
             _authority.ResonanceUpgraded += ApplyResonanceUpgrade;
+            BindDailyWaveEvents();
         }
 
         private void OnDisable()
@@ -64,6 +75,7 @@ namespace MyDefense.Battle.Presentation
                 _authority.BoardSwapped -= ApplyBoardSwap;
                 _authority.ResonanceUpgraded -= ApplyResonanceUpgrade;
             }
+            UnbindDailyWaveEvents();
         }
 
         private void Update()
@@ -71,15 +83,19 @@ namespace MyDefense.Battle.Presentation
             if (_authority == null || !_authority.Object || !_authority.Object.IsValid)
                 return;
 
+            BindDailyWaveEvents();
+
             EnsureAttackCatalog(1, _authority.Player1UserId.ToString());
-            EnsureAttackCatalog(2, _authority.Player2UserId.ToString());
+            if (!_soloPlayerOneMode)
+                EnsureAttackCatalog(2, _authority.Player2UserId.ToString());
 
             // Reconcile from the replicated occupancy snapshot so late joins,
             // scene reloads, and reconnects do not depend on past RPC events.
             for (int slotIndex = 0; slotIndex < 24; slotIndex++)
             {
                 ReconcileSlot(1, slotIndex);
-                ReconcileSlot(2, slotIndex);
+                if (!_soloPlayerOneMode)
+                    ReconcileSlot(2, slotIndex);
             }
         }
 
@@ -751,6 +767,42 @@ namespace MyDefense.Battle.Presentation
             ApplyCatalogToExistingUnits(playerSlot);
         }
 
+        private void BindDailyWaveEvents()
+        {
+            BattleWaveExecutor executor = _authority == null ? null : _authority.Executor;
+            if (ReferenceEquals(_dailyWaveExecutor, executor))
+                return;
+            UnbindDailyWaveEvents();
+            _dailyWaveExecutor = executor;
+            if (_dailyWaveExecutor == null)
+                return;
+            _dailyWaveExecutor.OnRoundChanged += RefreshDailyWaveAttackSnapshots;
+            _dailyWaveExecutor.OnRegularWaveCompleted += RefreshDailyWaveAttackSnapshots;
+            _dailyWaveExecutor.OnMatchStateChanged += RefreshDailyTerminalAttackSnapshots;
+        }
+
+        private void UnbindDailyWaveEvents()
+        {
+            if (_dailyWaveExecutor == null)
+                return;
+            _dailyWaveExecutor.OnRoundChanged -= RefreshDailyWaveAttackSnapshots;
+            _dailyWaveExecutor.OnRegularWaveCompleted -= RefreshDailyWaveAttackSnapshots;
+            _dailyWaveExecutor.OnMatchStateChanged -= RefreshDailyTerminalAttackSnapshots;
+            _dailyWaveExecutor = null;
+        }
+
+        private void RefreshDailyWaveAttackSnapshots(int _)
+        {
+            if (_dailyWaveExecutor != null)
+                ApplyCatalogToExistingUnits(1);
+        }
+
+        private void RefreshDailyTerminalAttackSnapshots(MatchState _)
+        {
+            if (_dailyWaveExecutor != null)
+                ApplyCatalogToExistingUnits(1);
+        }
+
         private bool ApplyAttackSnapshot(GameObject unit, int playerSlot, long alienId)
         {
             if (unit == null
@@ -780,6 +832,10 @@ namespace MyDefense.Battle.Presentation
                 && _authority?.Executor != null
                 && _authority.Executor.TryGetCanonicalMutationSpec(data.activeMutationType, out var mutationSpec))
                 snapshot = MutationAttackSnapshotCalculator.Apply(snapshot, mutationSpec);
+            BattleWaveExecutor executor = _authority?.Executor;
+            if (executor != null
+                && executor.TryApplyActiveDailyBattleStatus(snapshot, out AlienAttackSnapshot dailySnapshot))
+                snapshot = dailySnapshot;
             attack.ApplyAttackSnapshot(snapshot);
             return true;
         }

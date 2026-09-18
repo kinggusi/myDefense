@@ -21,6 +21,7 @@ namespace MyDefense.Battle
         [Networked] public int LanePolicyValue { get; private set; }
         [Networked] public NetworkString<_64> FieldOwnerPlayerId { get; private set; }
         [Networked] public int SpawnWave { get; private set; }
+        [Networked] public NetworkBool IsBoss { get; private set; }
         [Networked] public float CurrentHp { get; private set; }
         [Networked] public float MaxHp { get; private set; }
         [Networked] public NetworkBool IsDead { get; private set; }
@@ -340,6 +341,7 @@ namespace MyDefense.Battle
             LanePolicyValue = (int)identity.LanePolicy;
             FieldOwnerPlayerId = identity.FieldOwnerPlayerId ?? string.Empty;
             SpawnWave = identity.SpawnWave;
+            IsBoss = identity.IsBoss;
             return true;
         }
 

@@ -25,11 +25,14 @@ namespace MyDefense.Battle.Runtime
             if (executor == null) throw new ArgumentNullException(nameof(executor));
             if (!authority.IsAuthoritative || !authority.IsSpawnedForAccess)
                 throw new InvalidOperationException("Only the spawned State Authority can capture a reconnect snapshot.");
+            string authoritativeMapId = ResolveAuthoritativeMapId(
+                session.MapId,
+                authority.AuthoritativeMapId.ToString());
 
             var snapshot = new BattleSessionSnapshot
             {
                 battleSessionId = session.BattleSessionId,
-                mapId = session.MapId,
+                mapId = authoritativeMapId,
                 balanceVersion = session.CanonicalBalanceVersion,
                 contentHash = session.CanonicalContentHash,
                 matchState = authority.MatchState,
@@ -47,6 +50,22 @@ namespace MyDefense.Battle.Runtime
             };
             BattleSessionSnapshotValidator.Validate(snapshot);
             return snapshot;
+        }
+
+        public static string ResolveAuthoritativeMapId(string sessionMapId, string authoritativeMapId)
+        {
+            if (string.IsNullOrWhiteSpace(sessionMapId))
+                throw new InvalidOperationException("BattleSessionContext.MapId is required for reconnect snapshot capture.");
+            if (string.IsNullOrWhiteSpace(authoritativeMapId))
+                throw new InvalidOperationException("Spawned State Authority mapId is required for reconnect snapshot capture.");
+            if (!string.Equals(sessionMapId, sessionMapId.Trim(), StringComparison.Ordinal)
+                || !string.Equals(authoritativeMapId, authoritativeMapId.Trim(), StringComparison.Ordinal))
+                throw new InvalidOperationException("Reconnect snapshot mapId must match canonical text exactly.");
+            if (!string.Equals(sessionMapId, authoritativeMapId, StringComparison.Ordinal))
+                throw new InvalidOperationException(
+                    "BattleSessionContext.MapId does not match the spawned State Authority mapId.");
+
+            return authoritativeMapId;
         }
 
         private static BattleSessionPlayerSnapshot CreatePlayer(

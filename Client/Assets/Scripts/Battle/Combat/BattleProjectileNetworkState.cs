@@ -257,7 +257,7 @@ namespace MyDefense.Battle.Combat
             float resolvedDamage = MutationAttackSnapshotCalculator.ResolveDeterministicDamage(
                 mutationSnapshot,
                 RuntimeProjectileId,
-                monster != null && monster.LanePolicy == BattleMonsterLanePolicy.BOSS_SHARED);
+                monster != null && monster.IsBoss);
             DamagePayload payload = new DamagePayload
             {
                 BattleSessionId = BattleSessionId.ToString(),

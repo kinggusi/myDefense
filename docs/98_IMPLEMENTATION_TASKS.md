@@ -433,8 +433,8 @@ P0-1-1~4 → P0-1-5 → P0-1-6
 | P2-1-1 | jjangash | 완료 | 행성 Stage 해금·입장·보상 서버 구현 |
 | P2-1-2 | kinggusi | 검증 대기 | 단일 `Battle.unity`의 `PlanetContentProfile + 환경 Prefab` 기반 행성 Presentation 구현 — P2-1-1 local/dev 입장·roster `mapId` 연결 호환 및 자동검증 PASS, Shared Snapshot `mapId`·production Adapter·jjangash 사람 비주얼 검증 대기 |
 | P2-2-1 | jjangash | 완료 | 일일 콘텐츠 횟수·초기화·보상 서버 구현 |
-| P2-2-2 | kinggusi | 대기 | 배양 구역 5 Stage Battle 구현 — Shared Session 문맥과 canonical `DailyBattleStage` 선행 계약 준비 완료 |
-| P2-2-3 | kinggusi | 대기 | 변이 연구소 5 Stage Battle 구현 — Shared Session 문맥과 canonical `DailyBattleStage` 선행 계약 준비 완료 |
+| P2-2-2 | kinggusi | 부분 완료 | 배양 구역 5 Stage solo Battle·canonical 실행·P1 환경 구현. 전체 EditMode 573/573, S1~S5 서버 Snapshot·정상 Kidnap·Fixture 기능 완주 확인. S5 최초 NONE 구성 timeout FAIL 및 GIANT 추가 재실행 PASS 별도 기록. 정상 구성 난이도·사람 검증·trusted Daily Result Adapter E2E 대기. `docs/test-reports/P2-2-2.md` |
+| P2-2-3 | kinggusi | 부분 완료 | 변이 연구소 5 Stage·상태 이상·P1 Lane 최종 Boss·환경 구현. 전체 EditMode 573/573, S1~S5 Fixture 최종 Boss/완주 smoke, S2~S5 실제 UnitAttack 소비 수치·종료 복원 PASS. 실제 DoT/Splash 피해량·정상 구성 난이도·사람 검증·trusted Daily Result E2E 대기. `docs/test-reports/P2-2-3.md` |
 | P2-3-1 | jjangash | 검증 대기 | Settlement 기반 Quest 사실 장부, KST 일일·주간 진행/초기화, 개별·활동도 보상 멱등 수령 API, 메인 로비 Quest UI 구현 — 사용자 UI 수동 검증 대기 |
 | P2-3-2 | kinggusi | 부분 완료 | Battle Quest 진행 이벤트 제공 |
 | P2-3-3 | jjangash | 검증 대기 | 영구 Achievement 27종, 단계형 누적 진행·멱등 보상 API, Quest 화면 업적 탭 구현 — 사용자 UI 수동 검증 대기 |
@@ -450,6 +450,8 @@ P0-1-1~4 → P0-1-5 → P0-1-6
 > P2-1-2 local/dev 구현 기록(2026-08-27): authoritative `NetworkString<_16>` mapId 최초 고정, Client 복제 대기·불일치 fail-closed, Spawn 초기화 race 차단, 9개 canonical Profile/환경 Prefab/Material/Effect placeholder 및 presentation allowlist 검증을 구현했다. PlanetContent targeted 14/14, Unity 전체 EditMode 455/455, compile error 0, 독립 리뷰 Blocker 0/Major 0으로 PASS했다. 현재 Shared `BattleSessionSnapshot`에는 mapId가 없으므로 Snapshot schema 확장은 Shared 담당 후속 의존성으로 남긴다. 최종 상태는 사람 비주얼 검증, 실제 2클라이언트 Smoke, P1-5-7 production Adapter 전까지 `검증 대기`다.
 
 > P2-1-2 최신 dev 동기화 기록(2026-08-31): 완료된 P2-1-1의 local/dev 행성 입장·trusted roster `mapId` 계약과 PlanetContent의 authoritative Fusion `mapId` binding을 함께 유지한다. 서버가 승인한 canonical `mapId`가 Session Adapter를 통해 동일 Profile로 적용되고, 알 수 없거나 불일치하는 값은 Wave 시작 전에 fail-closed한다. 최신 `origin/dev` `3816fae` 병합 후 집중 EditMode 72/72, 전체 EditMode 478/478, Battle Scene 자동 검사, `Battle.unity` 단독 Windows Development Build를 통과했고 독립 리뷰 차단 0으로 판정됐다. 남은 완료 게이트는 Shared `BattleSessionSnapshot.mapId` 계약, P1-5-7 production JWT/matchmaking Adapter, 실제 production 경계 2클라이언트 Smoke, jjangash 사람 비주얼 PASS다.
+
+> P2-1-2 Snapshot v3 후속(2026-09-02): PR #110이 병합된 `origin/dev` `e422255` 기준으로 Shared `BattleSessionSnapshot.mapId` 의존성을 해소했다. Battle reconnect Snapshot 캡처는 spawned State Authority의 `AuthoritativeMapId` 누락 및 `BattleSessionContext.MapId`와의 ordinal exact 불일치를 fail-closed하고, 검증된 authority 값을 Snapshot에 투영한다. 서버 권위 `SessionSource`는 Unity Snapshot에 추가하지 않는다. PlanetContent·Session Adapter·State Authority·reconnect 집중 EditMode 72/72, Unity 전체 EditMode 504/504, compile error 0을 통과했다. 호출 가능한 Unity MCP 도구는 0개였고 Scene/Prefab은 변경하지 않았다. 남은 완료 게이트는 P1-5-7 production JWT/matchmaking Adapter, 실제 production 경계 2클라이언트 reconnect Smoke, jjangash 사람 비주얼 PASS다.
 
 > P2-3-2 Shared 선행 계약 보정(2026-08-30): FAILED 매치에서 `finalWave + 1` 미완료 Wave의 실제 Spawn과 처치를 분리 검증하도록 Unity/Spring `BattleSettlementSummary`에 `waveSpawnFacts`와 `partialWaveKills`를 확정했다. 두 장부는 `spawnGroupId`, canonical Spawn row/ordinal, `fieldOwnerPlayerSlot`을 공유하고 Kill 귀속은 `killerPlayerSlot`/`supportPlayerSlot`으로 표현한다. `killedAtTick`과 사용자 ID 기반 귀속은 전송 계약에서 제거했다. Fusion `ulong runtimeMonsterId`는 decimal string으로 전송하며 두 배열을 unsigned 정렬한다. `summaryHash`는 해당 속성 자체를 제외한 canonical JSON의 SHA-256으로 Unity/Spring 동일 fixture를 고정한다. Battle State Authority의 실제 장부 투영과 Quest 영속 Processor 연결은 후속 구현·2클라이언트 검증 전까지 남아 있어 `부분 완료`다.
 
