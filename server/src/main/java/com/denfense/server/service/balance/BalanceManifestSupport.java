@@ -33,6 +33,7 @@ public final class BalanceManifestSupport {
             "mutation-spec.json",
             "injector-pool.json",
             "shop-products.json",
+            "shop-catalog.json",
             "summon-balance.json",
             "summon-pools.json",
             "wave-spawn.json",

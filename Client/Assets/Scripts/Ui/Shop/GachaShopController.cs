@@ -80,6 +80,7 @@ public sealed class GachaShopController : MonoBehaviour
         gachaScreen.SetActive(true);
         ResetRevealState();
         ShowIdle();
+        lobbyManager?.GetComponent<ShopCatalogController>()?.SetGachaVisible(true);
     }
 
     public void CloseGachaScreen()
@@ -93,6 +94,7 @@ public sealed class GachaShopController : MonoBehaviour
 
         StopRevealCoroutine();
         gachaScreen.SetActive(false);
+        lobbyManager?.GetComponent<ShopCatalogController>()?.SetGachaVisible(false);
     }
 
     public void StartSinglePurchase()
@@ -165,13 +167,44 @@ public sealed class GachaShopController : MonoBehaviour
 
     private void StartNewPurchase(string productId)
     {
-        if (!revealState.CanStartPurchase || !requestContext.TryStartNew(productId))
-        {
-            return;
-        }
+        if (!revealState.CanStartPurchase) return;
+        var shop = lobbyManager == null ? null : lobbyManager.GetComponent<ShopCatalogController>();
+        if (shop != null) shop.RequestGacha(productId);
+        else { errorText.text = "상점 정보를 먼저 조회해 주세요."; errorText.gameObject.SetActive(true); }
+    }
 
-        ClearResultPresentation();
-        SendCurrentRequest();
+    public void SetCatalogPrices(int? single, int? ten, int discountRemaining)
+    {
+        SetPurchaseLabels(singlePurchaseButton, "1회 뽑기", single);
+        SetPurchaseLabels(tenPurchaseButton, $"10회 뽑기 · 할인 {discountRemaining}회 남음", ten);
+    }
+
+    public static void SetPurchaseLabels(Button button, string title, int? price)
+    {
+        if(button == null) return;
+        // This prefab has two independent labels; never leave its old static price visible.
+        foreach(var text in button.GetComponentsInChildren<Text>(true))
+        {
+            if(text.name == "LabelText") text.text = title;
+            else if(text.name == "PriceText") text.text = price.HasValue ? $"다이아 {price.Value:N0}" : "상점 조회 필요";
+        }
+    }
+
+    public void PresentShopPurchase(GachaPurchaseResponse response)
+    {
+        if (response == null) return;
+        gachaScreen.SetActive(true);
+        lobbyManager?.GetComponent<ShopCatalogController>()?.SetGachaVisible(true);
+        ResetRevealState();
+        requestContext.MarkCompleted();
+        currentResponse = response;
+        lobbyRefreshPending = true;
+        var model = GachaPurchasePresenter.CreateViewModel(response);
+        resultSummaryText.text = model.Summary + "\n\n" + model.Details;
+        loadingIndicator.SetActive(false);
+        errorText.gameObject.SetActive(false);
+        retryButton.gameObject.SetActive(false);
+        PlayReveal(response);
     }
 
     private void SendCurrentRequest()

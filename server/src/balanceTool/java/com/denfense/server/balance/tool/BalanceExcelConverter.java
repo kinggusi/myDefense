@@ -39,11 +39,14 @@ public class BalanceExcelConverter {
         try {
             ExcelBalanceReader.BalanceData data = new ExcelBalanceReader(excelPath).read();
             validate(data);
+            ShopCatalogBalance shopCatalog = new ShopExcelReader().read(excelPath);
+            com.denfense.server.service.balance.ShopBalanceValidator.validate(shopCatalog, data.shopProducts(), data.alienSpecs());
             List<Long> excludedAlienIds = readCanonicalMythicChoiceExcludedAlienIds();
 
             stagingDirectory = Files.createTempDirectory(generatedDirectory.getParent(), "balance-generation-");
             BalanceJsonWriter writer = new BalanceJsonWriter();
             Map<Path, Object> stagedDocuments = documents(stagingDirectory, data, excludedAlienIds);
+            stagedDocuments.put(stagingDirectory.resolve("shop-catalog.json"), shopCatalog);
             for (Map.Entry<Path, Object> entry : stagedDocuments.entrySet()) {
                 Path temp = writer.writeTempJson(entry.getKey(), entry.getValue());
                 writer.replaceFile(temp, entry.getKey());
@@ -76,6 +79,7 @@ public class BalanceExcelConverter {
             stagedToTarget.put(
                     stagingDirectory.resolve("quest-balance.json"),
                     generatedDirectory.resolve("quest-balance.json"));
+            stagedToTarget.put(stagingDirectory.resolve("shop-catalog.json"), generatedDirectory.resolve("shop-catalog.json"));
             writer.replaceFilesAtomically(stagedToTarget);
 
             System.out.println("Conversion successful. Generated files: " + stagedToTarget.size());

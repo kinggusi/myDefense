@@ -6,7 +6,7 @@
       "drawCount" : 1,
       "gachaPoolId" : "STANDARD_ALIEN_POOL",
       "name" : "왹져 1회 뽑기",
-      "price" : 500,
+      "price" : 300,
       "productId" : "ALIEN_GACHA_SINGLE"
     },
     {
@@ -15,7 +15,7 @@
       "drawCount" : 10,
       "gachaPoolId" : "STANDARD_ALIEN_POOL",
       "name" : "왹져 10회 연속 뽑기",
-      "price" : 5000,
+      "price" : 3000,
       "productId" : "ALIEN_GACHA_TEN"
     }
   ]

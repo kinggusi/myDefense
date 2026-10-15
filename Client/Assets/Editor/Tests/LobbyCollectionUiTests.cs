@@ -73,17 +73,24 @@ public sealed class LobbyCollectionUiTests
     }
 
     [Test]
-    public void MaterialIconsAndPlusButtonsOpenCorrectPendingConfirmation()
+    public void MaterialIconsAndPlusButtonsOpenCorrectShopProduct()
     {
         var canvas = new GameObject("MaterialCanvasTest", typeof(Canvas));
         var unit = new GameObject("view_Unit", typeof(RectTransform));
+        var shopView = new GameObject("view_Shop", typeof(RectTransform));
         var manager = new GameObject("MaterialLobbyTest", typeof(LobbyManager));
         unit.transform.SetParent(canvas.transform, false);
+        shopView.transform.SetParent(canvas.transform, false);
         manager.transform.SetParent(canvas.transform, false);
         try
         {
             var lobby = manager.GetComponent<LobbyManager>();
-            lobby.viewObjects = new[] { unit, unit };
+            lobby.viewObjects = new[] { shopView, unit };
+            // UI navigation fixture only: no AuthSession, HTTP or account mutation.
+            var shop = manager.AddComponent<ShopCatalogController>();
+            var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+            typeof(ShopCatalogController).GetField("lobby", flags).SetValue(shop, lobby);
+            var focus = typeof(ShopCatalogController).GetField("focusReward", flags);
             var ensure = typeof(LobbyManager).GetMethod("EnsureMaterialCurrencyUI",
                 System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
             Assert.That(ensure, Is.Not.Null);
@@ -102,17 +109,22 @@ public sealed class LobbyCollectionUiTests
                 Assert.That(border.GetComponent<LobbyNeonGraphic>().raycastTarget, Is.False);
             }
             foreach (var icon in icons) Assert.That(icon.GetComponent<CanvasRenderer>(), Is.Not.Null);
-            plus[0].onClick.Invoke();
-            var popup = manager.GetComponent<MyDefense.Lobby.LobbyMaterialPurchasePopup>();
-            Assert.That(popup.IsOpen, Is.True);
-            Assert.That(System.Array.Exists(canvas.GetComponentsInChildren<Text>(true), t => t.text == "왹져 DNA 구매"), Is.True);
-            popup.Close();
-            plus[1].onClick.Invoke();
-            Assert.That(System.Array.Exists(canvas.GetComponentsInChildren<Text>(true), t => t.text == "성장 세포 구매"), Is.True);
-            var buy = System.Array.Find(canvas.GetComponentsInChildren<Button>(true), b => b.name == "Purchase");
-            Assert.That(buy.interactable, Is.False, "가격 미확정 상태에서 재화 차감은 허용하지 않는다.");
-            popup.Close();
-            Assert.That(popup.IsOpen, Is.False);
+            var dnaPlus = unit.transform.Find("LobbyMaterialCurrencies/WakjeoDnaCard/PurchasePlus").GetComponent<Button>();
+            var cellPlus = unit.transform.Find("LobbyMaterialCurrencies/GrowthCellCard/PurchasePlus").GetComponent<Button>();
+            lobby.OpenTab(1);
+            dnaPlus.onClick.Invoke();
+            Assert.That(shopView.activeSelf, Is.True);
+            Assert.That(unit.activeSelf, Is.False);
+            Assert.That(focus.GetValue(shop), Is.EqualTo("DNA"));
+            Assert.That(shop.HasPending, Is.False, "+ 클릭만으로 구매 요청을 만들지 않는다.");
+            lobby.OpenTab(1);
+            cellPlus.onClick.Invoke();
+            Assert.That(shopView.activeSelf, Is.True);
+            Assert.That(unit.activeSelf, Is.False);
+            Assert.That(focus.GetValue(shop), Is.EqualTo("GROWTH_CELL"));
+            Assert.That(shop.HasPending, Is.False);
+            Assert.That(manager.GetComponent<MyDefense.Lobby.LobbyMaterialPurchasePopup>(), Is.Null,
+                "정책이 확정된 상품은 예전 판매 준비 중 팝업을 만들지 않는다.");
         }
         finally { Object.DestroyImmediate(manager); Object.DestroyImmediate(canvas); }
     }
