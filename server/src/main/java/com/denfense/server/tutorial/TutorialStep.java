@@ -1,0 +1,2 @@
+package com.denfense.server.tutorial;
+public enum TutorialStep { NOT_STARTED, PRACTICE_PENDING, COLLECTION_GUIDE, UPGRADE_GUIDE, REWARD_READY, BREEDING_GUIDE, COMPLETED }
