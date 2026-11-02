@@ -99,6 +99,8 @@ namespace MyDefenseGame.Editor.FeatureTesting
         {
             return new FeatureTestCatalog(new[]
             {
+                Case("P2-6-1-SHOP", "상점 상품·구매·광고 새로고침", "jjangash", "Assets/Scenes/Tests/UserSystem/P2_06_01_Shop_Test.unity", FeatureTestType.Scene,
+                    "UI-only fixture; API E2E는 별도 local 서버와 격리 계정", "Play 종료 후 재실행; 실제 계정 재화 초기화 금지", "ShopCatalogTests", "가격 확인·매진·스크롤·광고 완료/취소/실패; 실제 구매/동일 요청/재시작 복구 별도", "docs/test-reports/P2-6-1-SHOP.md"),
                 Case("P1-5-7-AUTH", "계정 진입·로딩 UI", "jjangash", "Assets/Scenes/Tests/AuthStartupUiTest.unity", FeatureTestType.Scene,
                     "UI-only fixture; 실제 게스트 E2E는 SampleScene과 isolated local 서버", "Play 종료 후 재실행; 운영 credential 삭제 금지", "AuthClientTests", "시작·복구·실패 재시도·화면 비율; Google/Apple 실제 기기 연동 별도", "docs/test-reports/AUTH-STARTUP-2026-09-18.md"),
                 Case("P0-2-5", "Battle Session Adapter", "kinggusi", "Assets/Scenes/Battle.unity", FeatureTestType.FusionTwoClient,

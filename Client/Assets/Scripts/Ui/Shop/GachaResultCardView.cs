@@ -44,13 +44,6 @@ public sealed class GachaResultCardView : MonoBehaviour
 
     private static Color GradeColor(string grade)
     {
-        switch (grade)
-        {
-            case "EPIC": return new Color(0.74f, 0.36f, 1f);
-            case "UNIQUE": return new Color(0.2f, 0.72f, 1f);
-            case "LEGEND": return new Color(1f, 0.66f, 0.12f);
-            case "MYTHIC": return new Color(1f, 0.2f, 0.55f);
-            default: return new Color(0.7f, 0.82f, 0.9f);
-        }
+        return LobbyNeonGraphic.GradeBorderColor(grade);
     }
 }

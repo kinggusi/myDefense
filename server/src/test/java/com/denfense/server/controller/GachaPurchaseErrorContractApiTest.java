@@ -38,7 +38,7 @@ class GachaPurchaseErrorContractApiTest {
         UUID requestId = UUID.randomUUID();
         GachaPurchaseResponseDto response = new GachaPurchaseResponseDto(
                 "ALIEN_GACHA_SINGLE", "DIAMOND", 500, 0, 1, List.of(), List.of());
-        when(gachaPurchaseService.purchase("user", "ALIEN_GACHA_SINGLE", requestId)).thenReturn(response);
+        when(gachaPurchaseService.replayLegacy("user", "ALIEN_GACHA_SINGLE", requestId)).thenReturn(response);
 
         perform("user", "ALIEN_GACHA_SINGLE", requestId)
                 .andExpect(status().isOk())
@@ -115,7 +115,7 @@ class GachaPurchaseErrorContractApiTest {
     @DisplayName("예상하지 못한 RuntimeException은 HTTP 500과 INTERNAL_SERVER_ERROR")
     void unexpectedRuntimeException_returns500() throws Exception {
         UUID requestId = UUID.randomUUID();
-        when(gachaPurchaseService.purchase("user", "ALIEN_GACHA_SINGLE", requestId))
+        when(gachaPurchaseService.replayLegacy("user", "ALIEN_GACHA_SINGLE", requestId))
                 .thenThrow(new RuntimeException("unexpected"));
 
         perform("user", "ALIEN_GACHA_SINGLE", requestId)
@@ -126,7 +126,7 @@ class GachaPurchaseErrorContractApiTest {
 
     private void assertBusinessError(ErrorCode errorCode) throws Exception {
         UUID requestId = UUID.randomUUID();
-        when(gachaPurchaseService.purchase("user", "ALIEN_GACHA_SINGLE", requestId))
+        when(gachaPurchaseService.replayLegacy("user", "ALIEN_GACHA_SINGLE", requestId))
                 .thenThrow(new BusinessException(errorCode));
 
         perform("user", "ALIEN_GACHA_SINGLE", requestId)

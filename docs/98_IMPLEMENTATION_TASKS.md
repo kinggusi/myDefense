@@ -6,6 +6,8 @@
 
 ## 0. 사용 방법
 
+> 작업 우선순위 조정(2026-10-15 사용자 확정): 현재는 **P2-6-1 상점 1차 검증·리뷰 마감**을 진행한다. P1-5-7의 Google/Apple 실제 연동·모바일 보안 저장소·production 영속 매칭/Photon identity 및 운영 E2E는 실오픈 준비 시점까지 착수를 유예한다. 이미 구현된 게스트/JWT와 계정 보호는 유지하며 상태는 `부분 완료`다. 유예는 공개 서비스 승인이나 운영 fail-closed 해제가 아니다. 공개 서비스 전 P1-5-7의 운영 게이트를 반드시 완료한다. 튜토리얼은 P2-7-1~3, 클랜 본기능은 P3-1-1~3으로 별도 관리하며 이번 상점 작업에 포함하지 않는다.
+
 > 로컬 영속 저장·개발 계정(2026-09-18): 사용자 요청으로 `local`을 H2 파일 DB + `update`로 변경하고 개발 계정 `jjangash`/`kingusi`, Editor 전용 계정 선택·비밀번호 로그인, Windows DPAPI 고정 JWT 키 실행 스크립트를 추가했다. 서버 450/450, BalanceTool 82/82, Unity 694/694 PASS. 실제 서버 재시작 후 두 계정 ID·기존 Access·저장 Refresh 유지 확인. 재화/유닛/교배 보존은 격리 파일 DB 재시작 테스트 PASS. 비밀번호 입력 창 수동 확인·상점 실제 구매 후 재시작은 후속이며 운영 DB/매칭 완료가 아니다. 다음 사용자 지정 작업은 상점이며 신규 상품 가격·제한은 정책 확정 후 구현한다. [저장 검증](test-reports/LOCAL-PERSISTENCE-2026-09-18.md). 과거 기록의 미커밋 표시는 해당 기록 당시 상태다.
 
 > P1-5-7 계정 인증·시작 UI 1차(2026-09-18): 게스트 로그인/복구, JWT·회전 Refresh·Principal 보호 API, Unity Windows DPAPI·인증 HTTP, SF 시작/로딩 UI와 테마·Prefab 교체 경계를 구현했다. 서버 437/437, BalanceTool 82/82, Unity 664/664 및 독립 리뷰 차단 없음. Windows local 동일 계정 재접속·동시 GET 갱신, 실제 업적/닫기/내 유닛 스크롤/교배 진입 확인. 후속 사용자 승인으로 게스트 프로필은 실제 서버 계정 번호 `Guest-{userId}`를 표시하며 디자인·내부 username은 유지한다. 표시/폰트 회귀 6개 추가 후 Unity 670/670 및 독립 리뷰 PASS. Google/Apple 실제 SDK·검증기, iOS/Android 저장소, production 영속 매칭·2클라이언트 E2E와 사용자 인수는 남아 **부분 완료**를 유지한다. [인증 검증](test-reports/AUTH-STARTUP-2026-09-18.md) / [UI 교체 가이드](AUTH_STARTUP_UI_GUIDE.md). 미커밋 merge와 이번 변경은 커밋/푸시하지 않았다.
@@ -420,7 +422,7 @@ P0-1-1~4 → P0-1-5 → P0-1-6
 | P1-5-4 | jjangash | 완료 | 영구 재화 지급 Transaction 구현 |
 | P1-5-5 | jjangash | 완료 | 기존 멱등 저장을 영구 보상 중복 지급 방지까지 확장 |
 | P1-5-6 | kinggusi | 완료 | 실제 전투 종료 결과와 서버 응답 대조 테스트 — local/dev Host/Client terminal·동일 payload 멱등 재처리 PASS |
-| P1-5-7 | Shared | 부분 완료 | local/dev roster 완료. 게스트/JWT·계정 Principal·Windows 인증 UI/HTTP 구현·검증. Google/Apple 실제 연동·모바일 저장소·production 영속 matchmaking/Photon identity Adapter와 E2E는 남음. 유저 Host 유지, 전용 서버는 운영 테스트 후 별도 결정 |
+| P1-5-7 | Shared | 부분 완료 | local/dev roster 완료. 게스트/JWT·계정 Principal·Windows 인증 UI/HTTP 구현·검증. Google/Apple 실제 연동·모바일 저장소·production 영속 matchmaking/Photon identity Adapter와 E2E는 남음. **2026-10-15 사용자 결정으로 잔여 운영 작업은 실오픈 준비 시점까지 착수 유예, 공개 서비스 전 필수 완료.** 기존 인증·운영 fail-closed 유지. 유저 Host 유지, 전용 서버는 운영 테스트 후 별도 결정 |
 
 > 8-1 보상 정책 구현 메모: 행성별 80 Wave를 기준으로 `highestClearedWave`(마지막으로 완전히 클리어한 Wave)에 따라 패배/재클리어 Gold를 계산한다. Wave 10~80 체크포인트는 최초 1회만 Gold·Universal Piece를 지급하고, Wave 80 최초 클리어는 행성별 Diamond를 1회 지급한다. 관전자와 연결이 유지된 탈락자는 지급 대상이며, 명시적 이탈/120초 초과 미복귀는 지급하지 않는다. 보상 Balance는 `BattleReward` Excel 시트와 `battle-reward.json`으로 관리한다. Settlement 서버는 Runtime이 확정한 `abandoned` 플래그를 영속화한다. local/dev 실제 2인 terminal Summary·저장·멱등 재처리는 P1-5-6에서 완료했고, production 인증 roster와 장시간 이탈·복귀 운영 검증은 P1-5-7 및 출시 전 2PC 통합 게이트로 유지한다.
 
@@ -448,8 +450,11 @@ P0-1-1~4 → P0-1-5 → P0-1-6
 | P2-4-2 | kinggusi | 정책 선행 | 무한 Wave 전투 모드 구현 |
 | P2-4-3 | kinggusi | 정책 선행 | 무한 Wave 난이도 증가 공식 구현 |
 | P2-5-1 | jjangash | 검증 대기 | Breeding Unity UI·API 연결 — 190조합 Excel/JSON·공개 조합표, 서버 조합 추첨·3슬롯·사용자 단위 요청 멱등 이력·가속 구현. Unity API로 정식 Screen/Shortcut Prefab을 생성하고 Unit 탭 전용 진입, 보상 준비 상태, 조합표를 연결했다. NORMAL~LEGEND 28종 기본 보유, 24시간 타이머, 10분당 Diamond 100 가속 계약을 반영했다. Server 310/310, BalanceTool 77/77, Unity EditMode 396/396, Scene validate 0. 실제 계정의 부모 선택·시작·가속·수령 Play 검증과 최종 아트 적용이 남음 |
-| P2-6-1 | jjangash | 정책 선행 | Shop·스킨·편의 상품 서버·UI 구현 |
+| P2-6-1 | jjangash | 부분 완료 | Shop 1차 서버493/493·Balance84/84·상점38/38 PASS(10/15 재실행). Unity 전체732개 실행 중 Battle 고정 hash 기대값1건 실패(담당 승인 대기). 승인된 화면 겹침/옛 가격/스크롤 보완, 9/19 실제 구매·휠·복귀 검증 및 10/15 UI Fixture 휠·럭키 확인/취소·모의 광고 완료 검증. 드래그 이벤트 경로 PASS/네이티브 드래그 미확인. 실행 JAR 교체 오류 복구 및 고유 실행 복사본 보호 추가. 정책 SHOP_POLICY.md, 검증 test-reports/SHOP-P2-6-1-2026-09-19.md. 실제 광고 SDK·스킨·패스·현금 상품 후속, 사람 인수 대기 |
 | P2-6-2 | kinggusi | 대기 | 스킨·Projectile·처치 Effect 적용 |
+| P2-7-1 | jjangash | 정책 선행 | 튜토리얼 단계·완료 증거·중단/재개·기존 계정 처리 정책 확정. Mythic 1·2(ID 29·30) 완료 보상은 기존 확정 정책을 유지하고 구체적인 완료 조건은 임의로 정하지 않음 |
+| P2-7-2 | jjangash | 대기 | P2-7-1 선행. 서버 권위 튜토리얼 완료 판정·영속 상태와 Mythic 1·2 정확히 한 번 지급. 재요청·동시 요청·재시작에도 중복 지급하지 않고 기존 보유 레벨·조각을 보존. local/dev 미리보기 지급과 운영 보상 장부 분리 |
+| P2-7-3 | jjangash | 대기 | P2-7-1·2 선행. 튜토리얼 UI·진행/재개·완료 보상 연결 및 통합 검증. Battle 안내가 필요한 단계는 kinggusi와 범위 합의 후 연결하며 최종 사람 인수는 별도 |
 
 > P2-1 정책 확정(2026-08-27): 행성 자체를 Stage로 사용하고 서버가 trusted roster에서 확정한 canonical `mapId`를 Fusion Session/Snapshot/Settlement까지 고정한다. Battle은 단일 `Battle.unity`와 공통 Board/Lane/Waypoint/Boss Runtime을 유지하며 `PlanetContentProfile`과 presentation-only 환경 Prefab으로 배경·재질·조명·Particle/환경 Effect만 교체한다. Additive Scene과 행성 고유 기믹·Boss 패턴·컷신은 1차 범위에서 제외한다. 알 수 없거나 비활성인 mapId, canonical PlanetBattle 대비 Profile 누락·중복·비활성은 fallback 없이 Wave 시작 전에 fail-closed한다. local/dev 구현은 진행하되 production 완료 판정에는 P1-5-7 JWT/matchmaking Adapter와 실제 2클라이언트 Smoke Test가 필요하다.
 
@@ -478,7 +483,29 @@ P0-1-1~4 → P0-1-5 → P0-1-6
 
 ---
 
+## 3.1. P3 — 소셜·장기 운영
+
+`99_MASTER.md`의 P3 방향에 따라 클랜 본기능을 분리한다. 기존 로비 클랜 탭은 본기능 완료를 의미하지 않는다. 생성·가입·출석·기부는 현재 권장 후보이며 구체적인 권한·비용·제한은 정책 승인 전 구현하지 않는다. 클랜 Boss·클랜 상점·시즌 경쟁은 아래 1차 범위에 자동 포함하지 않는다.
+
+| Task ID | 담당 | 상태 | Codex 작업 | 선행 |
+|---|---|---|---|---|
+| P3-1-1 | jjangash | 정책 선행 | 클랜 1차 출시 범위·가입/탈퇴·권한·비용·제한 정책 확정 | 사용자 정책 승인 |
+| P3-1-2 | jjangash | 대기 | 확정 정책에 따른 클랜 서버 본기능·영속화·계정 권한 검증 | P3-1-1 |
+| P3-1-3 | jjangash | 대기 | 기존 클랜 탭과 서버 기능 연결, UI·통합 검증 및 별도 사람 인수 | P3-1-2 |
+
+---
+
 ## 4. 권장 실행 순서
+
+### 현재 적용 순서 — 2026-10-15
+
+1. P2-6-1 상점 1차의 남은 실제 UI·영속 검증과 독립 리뷰를 마감한다. 자동 검증과 최종 사람 인수를 구분한다.
+2. Unity 전체 검증의 `BattleCanonicalBalanceTests` 고정 Balance hash 실패는 Battle 담당 인계/승인 대상으로 유지한다. 테스트 제외·데이터 롤백·User/System의 무단 수정으로 우회하지 않는다.
+3. 새로 발견한 화면 오류나 계획과 다른 동작은 사용자에게 보고하고 수정 승인을 받은 뒤 재검증한다.
+4. 튜토리얼(P2-7)·클랜(P3-1)은 각각 정책 선행 Task부터 별도로 착수한다. 상점 후속 광고 SDK·스킨·패스·현금 상품은 이번 검증 마감에 자동 포함하지 않는다.
+5. P1-5-7 잔여 운영 구현은 실오픈 준비 시점에 재개하며, 공개 서비스 전에 외부 로그인·모바일 보안 저장·trusted matchmaking/Photon identity·운영 E2E 게이트를 완료한다. 유예 기간에도 production Adapter 미구성 시 거부하는 경계는 유지한다.
+
+아래 1~4차 순서는 기존 전투 기반 구현의 선행 관계를 보존한 기록이다.
 
 ### 1차: 계약 고정
 

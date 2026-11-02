@@ -1,7 +1,7 @@
 {
   "schemaVersion" : 1,
-  "balanceVersion" : "1-2c24f2a29fd63b81",
-  "contentHash" : "2c24f2a29fd63b81c092f7c648acb2acc405b7429901230e17e74fc6e4330cb5",
+  "balanceVersion" : "1-e37af4a5ff9b7204",
+  "contentHash" : "e37af4a5ff9b72048fc59868a9ed3068781c96829bb2cbf3bafe346aede2ecda",
   "files" : [ {
     "name" : "alien-level-stat.json",
     "sha256" : "2afc3bb0d4e009c185e35cf76e56cf942e7925b288f77577eb20722b906a6f8f",
@@ -83,8 +83,12 @@
     "sha256" : "7f53c360202de3d53a4ff6bb417e276ca15acba5fdde2bad26ed139c2cc151f4",
     "size" : 1950
   }, {
+    "name" : "shop-catalog.json",
+    "sha256" : "a66e5aaa5f031a565fa6ea02400f61128196608a5ef58ad64b689fc9426f483e",
+    "size" : 4466
+  }, {
     "name" : "shop-products.json",
-    "sha256" : "2a17d5f64c3c443de189b0f2c62c4efd4a6e29d429bd0a64047e0fa37ce92cd1",
+    "sha256" : "33238257cc1aa22b0d9d4aa317a571012d1affdfafaee54c3a5de68798226c45",
     "size" : 505
   }, {
     "name" : "summon-balance.json",

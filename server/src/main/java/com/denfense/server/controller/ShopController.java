@@ -33,7 +33,8 @@ public class ShopController {
                                             @RequestParam(defaultValue = "1") int count) {
 
         // 서비스에게 주문 전달하고, 결과(변경된 왹져 목록)를 바로 반환
-        return shopService.gachaAlien(accounts.username(username), count);
+        accounts.username(username);
+        throw new com.denfense.server.exception.BusinessException(com.denfense.server.exception.ErrorCode.SHOP_LEGACY_DISABLED);
     }
 
     @PostMapping("/gacha/purchase")
@@ -41,6 +42,6 @@ public class ShopController {
             @RequestParam String username,
             @RequestParam String productId,
             @RequestParam UUID purchaseRequestId) {
-        return gachaPurchaseService.purchase(accounts.username(username), productId, purchaseRequestId);
+        return gachaPurchaseService.replayLegacy(accounts.username(username), productId, purchaseRequestId);
     }
 }

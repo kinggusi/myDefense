@@ -57,7 +57,7 @@ class GachaPurchaseIdempotencyConcurrencyTest {
     @BeforeEach
     void setUp() {
         User user = new User("concurrentIdempotentUser", "pw");
-        user.setDiamond(500);
+        user.setDiamond(300);
         userRepository.saveAndFlush(user);
         when(randomGenerator.nextInt(anyInt())).thenReturn(0);
     }

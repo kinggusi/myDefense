@@ -4,6 +4,15 @@
 
 현재 로컬·개발 환경의 Battle Session 참가자 등록 구조를 유지하면서, 실제 운영에서는 JWT 인증과 서버 권위 Matchmaking 결과로 안전하게 교체하기 위한 기준을 기록한다.
 
+### 착수 시점 조정 — 2026-10-15 사용자 확정
+
+- P1-5-7은 `부분 완료`를 유지한다. Google/Apple 실제 SDK·검증기, iOS/Android 보안 저장소, production 영속 matchmaking roster·Photon identity 및 운영 E2E의 잔여 작업은 **실오픈 준비 시점까지 착수를 유예**한다.
+- 게스트/JWT, 계정 Principal 보호, Windows DPAPI, 개발/운영 Profile 분리 등 현재 구현은 제거하거나 약화하지 않는다.
+- 유예는 공개 서비스 허용이나 운영 Adapter 미구성 fail-closed 해제를 의미하지 않는다. 개발 Adapter를 production에 노출하거나 개발 검증을 운영 E2E로 대체하지 않는다.
+- 공개 서비스 전에는 11절의 운영 잔여 항목을 재개·완료하고, 실제 Google/Apple 로그인·복구, 모바일 안전 저장, 서버 권위 참가자/Slot/mapId/Photon identity 고정, 운영 환경의 Host/Client 정산·재접속 및 개발 Endpoint 차단을 검증해야 한다.
+- 운영 배포/DB migration·백업·복구·Secret/HTTPS 등 관련 준비도 함께 확인한다. 기존 유저 Host 방식의 결과 조작 신뢰 한계는 그대로 남는다.
+- 현재 작업 순서는 상점 1차 검증·리뷰 마감을 우선하며, 다음 착수와 상태의 단일 기준은 `98_IMPLEMENTATION_TASKS.md`다.
+
 ## 2. 현재 구현 상태
 
 - 2026-09-18 로컬 데이터 보존: `local` H2 파일 DB + Hibernate `update`, 개발용 비밀번호 계정(BCrypt), DPAPI 보호 고정 JWT 키 실행 스크립트를 추가했다. 운영 DB migration·영속 matchmaking은 별개로 남는다. 자세한 실행/복구 범위는 [로컬 보존 가이드](LOCAL_PERSISTENCE_GUIDE.md)를 따른다.

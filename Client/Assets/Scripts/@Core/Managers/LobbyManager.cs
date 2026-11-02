@@ -12,6 +12,8 @@ public class LobbyManager : MonoBehaviour
     private const string DefaultUsername = "sh1";
     private string currentUsername;
     private bool initialized;
+    private readonly Dictionary<long,string> alienDisplayNames = new Dictionary<long,string>();
+    public string GetAlienDisplayName(long alienId) => alienDisplayNames.TryGetValue(alienId,out var value) ? value : null;
 
     public string CurrentUsername => currentUsername;
     public string CurrentDiamondText => text_Diamond != null ? text_Diamond.text : "0";
@@ -64,6 +66,9 @@ public class LobbyManager : MonoBehaviour
             questController = gameObject.AddComponent<QuestController>();
         }
         questController.Initialize(this);
+        var shop = GetComponent<ShopCatalogController>();
+        if (shop == null) shop = gameObject.AddComponent<ShopCatalogController>();
+        shop.Initialize(this);
         gameObject.AddComponent<MyDefense.Auth.AuthAccountPanel>().Install(this);
         // 1. 처음엔 메인 화면(2번 탭) 띄우기
         OpenTab(2);
@@ -192,9 +197,8 @@ public class LobbyManager : MonoBehaviour
         plus.onClick.RemoveAllListeners();
         plus.onClick.AddListener(() =>
         {
-            var popup = GetComponent<LobbyMaterialPurchasePopup>();
-            if (popup == null) popup = gameObject.AddComponent<LobbyMaterialPurchasePopup>();
-            popup.Open(kind);
+            var shop = GetComponent<ShopCatalogController>();
+            if (shop != null) shop.OpenReward(kind == LobbyMaterialIconGraphic.MaterialKind.WakjeoDna ? "DNA" : "GROWTH_CELL");
         });
         Transform plusLabel = plusObject.transform.Find("Label");
         if (plusLabel == null)
@@ -265,6 +269,7 @@ public class LobbyManager : MonoBehaviour
         questController?.SetLobbyTab(index);
         GetComponent<LobbyMaterialPurchasePopup>()?.Close();
         GetComponent<LobbyFinalPresentation>()?.SelectTab(index);
+        GetComponent<ShopCatalogController>()?.SetLobbyTab(index);
         Debug.Log($"{index}번 탭으로 이동했습니다.");
     }
 
@@ -287,6 +292,8 @@ public class LobbyManager : MonoBehaviour
                 UpdateTopBarUI(data.user);
 
                 // 2. 유닛 목록 생성
+                alienDisplayNames.Clear();
+                foreach (var alien in data.aliens ?? new List<AlienInventoryDto>()) alienDisplayNames[alien.id] = alien.name;
                 SpawnMyUnits(data.aliens);
 
                 mythicBreedingController?.RefreshStatus();

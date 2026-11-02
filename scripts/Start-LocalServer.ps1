@@ -9,6 +9,7 @@ param(
 
 # Local Windows development only. Secrets and the H2 database stay outside Git.
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'LocalServer.Runtime.ps1')
 # A lower-level JPA setting can override ddl-auto (for example
 # SPRING_JPA_PROPERTIES_HIBERNATE_HBM2DDL_AUTO=create-drop). Reject inherited
 # Spring configuration wholesale instead of trying to enumerate destructive aliases.
@@ -35,6 +36,7 @@ $jar = Get-ChildItem -LiteralPath (Join-Path $server 'build/libs') -Filter '*.ja
     Where-Object { $_.Name -notlike '*-plain.jar' } | Sort-Object LastWriteTime -Descending | Select-Object -First 1
 if (!$jar) { throw 'Build the server first: server/gradlew.bat bootJar' }
 $java = (Get-Command $JavaPath -ErrorAction Stop).Source
+$snapshot = New-LocalServerRuntimeSnapshot -SourceJar $jar.FullName -RuntimeRoot (Join-Path $local 'runtime')
 foreach ($folder in @($data, $secrets, $logs)) { [void](New-Item -ItemType Directory -Path $folder -Force) }
 Add-Type -AssemblyName System.Security
 $keyFile = Join-Path $secrets 'local-jwt.dpapi'
@@ -83,15 +85,27 @@ try {
     $stdout = Join-Path $logs "server-$stamp.out.log"
     $stderr = Join-Path $logs "server-$stamp.err.log"
     # Pin non-secret safety settings at CLI precedence; credentials stay out of arguments.
-    $arguments = @('-jar', ('"' + $jar.FullName + '"'), '--spring.profiles.active=local',
+    $marker = [Guid]::NewGuid().ToString()
+    $arguments = @('-jar', ('"' + $snapshot.Path + '"'), '--spring.profiles.active=local',
         '--server.address=127.0.0.1', "--server.port=$Port",
+        "--mydefense.local-launcher.ready-marker=$marker",
         ('"--spring.datasource.url=' + $values.SPRING_DATASOURCE_URL + '"'),
         '--spring.jpa.hibernate.ddl-auto=update', '--spring.sql.init.mode=never',
         '--mydefense.auth.local-accounts.enabled=true',
         ('--mydefense.auth.local-accounts.bootstrap-enabled=' + $values.MYDEFENSE_AUTH_LOCALACCOUNTS_BOOTSTRAPENABLED))
     $process = Start-Process -FilePath $java -ArgumentList $arguments `
         -WorkingDirectory $server -WindowStyle Hidden -PassThru -RedirectStandardOutput $stdout -RedirectStandardError $stderr
-    $record = @{ processId = $process.Id; port = $Port; database = $values.MYDEFENSE_LOCAL_DB_PATH; stdout = $stdout; stderr = $stderr }
+    $startedAt = $process.StartTime
+    try {
+        Wait-LocalServerReady -Process $process -StartedAt $startedAt -RuntimeJar $snapshot.Path `
+            -Port $Port -Stdout $stdout -Stderr $stderr -Marker $marker -TimeoutSeconds 45
+    } catch {
+        try { Stop-LocalServerOwnChild $process $startedAt $snapshot.Path } catch { Write-Warning 'Could not confirm/stop the newly launched child; inspect its recorded log paths. No other process was stopped.' }
+        throw
+    }
+    $record = @{ processId = $process.Id; startedAt = $startedAt.ToUniversalTime().ToString('o'); port = $Port;
+        database = $values.MYDEFENSE_LOCAL_DB_PATH; stdout = $stdout; stderr = $stderr;
+        runtimeJar = $snapshot.Path; sourceJar = $snapshot.Source; sha256 = $snapshot.Sha256; ready = $true }
     $record | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $local "server-$Port.json") -Encoding UTF8
     [pscustomobject]$record
 } finally {

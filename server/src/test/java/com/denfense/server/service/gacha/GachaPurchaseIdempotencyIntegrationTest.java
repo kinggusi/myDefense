@@ -188,8 +188,8 @@ class GachaPurchaseIdempotencyIntegrationTest {
         // 두 사용자 각각 차감
         User u1 = userRepository.findByUsername("idempotencyUser1").orElseThrow();
         User u2 = userRepository.findByUsername("idempotencyUser2").orElseThrow();
-        assertThat(u1.getDiamond()).isEqualTo(10000 - 500);
-        assertThat(u2.getDiamond()).isEqualTo(10000 - 500);
+        assertThat(u1.getDiamond()).isEqualTo(10000 - 300);
+        assertThat(u2.getDiamond()).isEqualTo(10000 - 300);
 
         // 두 사용자 각각 지급
         assertThat(userAlienRepository.findAll()).hasSize(2);

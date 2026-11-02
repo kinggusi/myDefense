@@ -45,10 +45,10 @@ class GachaPurchaseServiceConcurrencyTest {
     @BeforeEach
     void setUp() {
         testUser = new User("concurrentUser", "pw");
-        testUser.setDiamond(500); // 1회 뽑기 가능 금액
+        testUser.setDiamond(300); // 1회 뽑기 가능 금액
         userRepository.save(testUser);
         
-        // SINGLE(500원), POOL1(테스트용 풀), 뽑기 확률 고정
+        // SINGLE(300 Diamond), POOL1(테스트용 풀), 뽑기 확률 고정
         // NORMAL 등급(가중치 누적 알고리즘 기준), alienId 22 고정
         when(randomGenerator.nextInt(org.mockito.ArgumentMatchers.anyInt())).thenReturn(0);
     }
@@ -61,7 +61,7 @@ class GachaPurchaseServiceConcurrencyTest {
     }
 
     @Test
-    @DisplayName("31,32,33,34. 동시성 - 다이아 500으로 동시 2건 요청 시 1건만 성공하고 보상(UserAlien)이 1회분만 지급됨")
+    @DisplayName("31,32,33,34. 동시성 - 다이아 300으로 동시 2건 요청 시 1건만 성공하고 보상(UserAlien)이 1회분만 지급됨")
     void concurrentPurchaseTest() throws InterruptedException {
         int threadCount = 2;
         ExecutorService executorService = Executors.newFixedThreadPool(threadCount);

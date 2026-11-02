@@ -46,7 +46,22 @@ public class GachaPurchaseService {
     private static final int PIECES_FOR_UNLOCK = 1;
 
     @Transactional
+    public GachaPurchaseResponseDto purchaseQuoted(String username, String productId, UUID requestId, int price) {
+        var user = userRepository.findByUsernameForUpdate(username).orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+        // New ShopReceipt requests must not reuse historical legacy receipt IDs.
+        if (gachaPurchaseRepository.findByUserAndPurchaseRequestId(user, requestId).isPresent())
+            throw new BusinessException(ErrorCode.PURCHASE_REQUEST_CONFLICT);
+        return purchaseAtServerPrice(username, productId, requestId, price);
+    }
+
+    @Transactional
     public GachaPurchaseResponseDto purchase(String username, String productId, UUID purchaseRequestId) {
+        return purchaseAtServerPrice(username, productId, purchaseRequestId, null);
+    }
+
+    /** Trusted shop service only; never bind this price directly to an HTTP request. */
+    @Transactional
+    public GachaPurchaseResponseDto purchaseAtServerPrice(String username, String productId, UUID purchaseRequestId, Integer serverPrice) {
         if (purchaseRequestId == null) {
             throw new BusinessException(ErrorCode.INVALID_REQUEST, "purchaseRequestId는 필수입니다.");
         }
@@ -86,7 +101,8 @@ public class GachaPurchaseService {
             throw new BusinessException(ErrorCode.UNSUPPORTED_CURRENCY);
         }
 
-        int price = product.price();
+        int price = serverPrice == null ? product.price() : serverPrice;
+        if (price <= 0 || price > product.price()) throw new BusinessException(ErrorCode.INVALID_REQUEST);
         if (user.getDiamond() < price) {
             throw new BusinessException(ErrorCode.INSUFFICIENT_DIAMOND);
         }
@@ -167,6 +183,8 @@ public class GachaPurchaseService {
                 newlyUnlocked = false;
                 piecesAdded = totalValue;
                 
+                if ((long)userAlien.getPieces() + piecesAdded > Integer.MAX_VALUE)
+                    throw new BusinessException(ErrorCode.SHOP_BALANCE_CAP);
                 userAlien.addPieces(piecesAdded);
                 
                 currentLevel = userAlien.getLevel();
@@ -192,7 +210,7 @@ public class GachaPurchaseService {
         GachaPurchaseResponseDto response = new GachaPurchaseResponseDto(
                 productId,
                 product.currencyType(),
-                product.price(),
+                price,
                 user.getDiamond(),
                 product.drawCount(),
                 List.copyOf(drawDtos),
@@ -208,6 +226,17 @@ public class GachaPurchaseService {
         } catch (JsonProcessingException e) {
             throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR, "가챠 구매 응답 직렬화에 실패했습니다.");
         }
+    }
+
+    /** Retired HTTP endpoint may replay old receipts, but must not create new purchases. */
+    @Transactional(readOnly = true)
+    public GachaPurchaseResponseDto replayLegacy(String username, String productId, UUID requestId) {
+        User user = userRepository.findByUsername(username).orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+        var old = gachaPurchaseRepository.findByUserAndPurchaseRequestId(user, requestId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.SHOP_LEGACY_DISABLED));
+        if (!old.getProductId().equals(productId)) throw new BusinessException(ErrorCode.PURCHASE_REQUEST_CONFLICT);
+        if (old.getStatus() != GachaPurchaseStatus.COMPLETED) throw new BusinessException(ErrorCode.PURCHASE_ALREADY_PROCESSING);
+        return deserializeResponse(old.getResponseJson());
     }
 
     private GachaPurchaseResponseDto deserializeResponse(String responseJson) {
