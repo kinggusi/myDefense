@@ -1,5 +1,24 @@
 # P3-1-3 클랜 UI 구현·검증 기록
 
+## 2026-11-02 후속: 승인 시안 기반 디자인 정리
+
+- 사용자 승인된 미가입/가입 후 시안을 기준으로 클랜 전용 표현을 정리했다. 큰 외곽 네온 프레임과 상단 상태문구의 빈 공간을 제거하고 저채도 남색 surface, 얇은 청록 버튼, 큰 제목, 검색/추천 카드로 재구성했다. 아래 최초 구현 기록은 당시 결과다.
+- 가입 후 첫 화면은 클랜 identity 카드 → 공지 요약 → 멤버 목록 순서다. 공지·소개 전체 내용은 별도 스크롤 팝업에서 읽을 수 있다. 가입 신청/설정/멤버 관리·위임/탈퇴·해산과 기존 권한·확인·재시도 계약을 유지한다.
+- 엠블럼 선택 데이터는 추가하지 않았다. 기존 `WakjeoMascot.png`를 기본 방패·멤버 아바타에 재사용한다. 시안의 다른 색상·복장 아바타와 클랜별 엠블럼은 구현된 사용자 꾸미기 기능으로 간주하지 않는다. 예시 4개 클랜은 Editor-only UI fixture에만 존재한다.
+- 기존 상단 프로필·재화 HUD·하단 탭·다른 로비 화면·서버·Battle·Shared는 변경하지 않았다. 새 `ClanSurfaceGraphic`은 클랜 전용 코드-native UI 장식이며 시안 전체를 이미지로 덮지 않는다.
+- 변경 파일: `ClanView.cs`, `ClanSurfaceGraphic.cs`, `ClanUiFixture.cs`, `ClanAssetBuilder.cs`, `ClanClientTests.cs`, `ClanScreen.prefab`, 격리 UI/HTTP 씬 2개 및 본 문서/작업표. Prefab/Scene/meta는 Unity API/AssetDatabase로 생성했다.
+- 구현 Thread Unity MCP 호출 성공: `E:/study/MyDefenseGame/Client/Assets`, SampleScene, Play=false/Compile=false/Dirty=false 확인 후 작업했다.
+- 집중 **ClanClientTests 56/56 PASS**(job `986770a7368c4c4d9574b4f868f37346`). 추가 회귀: 기본 가입화면 구성, 공지500자/소개120자 원문 보존·스크롤, 관리 왕복·단일 설정 진입, 자기 관리/위험 탈퇴 미노출, 1080×1920·1080×2340·1536×2048 배치 경계, Prefab 마스코트/버튼 roundtrip.
+- 전체 Unity EditMode **812개 중811 PASS / 기존 Battle hash1 FAIL**(job `e4118e8c1efc4b439b74ffca948a06c2`). 기존과 동일한 expected `1-2c24f2a29fd63b81`, actual `1-e37af4a5ff9b7204`다. 신규 실패0이며 전체 PASS로 기록하지 않는다.
+- 독립 리뷰 보완: 추천 fixture 4개의 상세 요청이 각각 요청한 ID·회원 수와 일치하도록 수정했다. 요약은 UTF-16 코드 단위가 아닌 `StringInfo` text element 기준으로 잘라 surrogate/결합문자 분리를 방지한다. 5개 회귀 추가 후 집중 **61/61 PASS**(job `bc604282f55f43d7849c939c2ae955d4`). 이 5개 추가 후 전체 재실행은 아직 하지 않았으므로 위 812개 결과와 구분한다.
+- PM 최종 재실행(job `b0b9cccfddb44d659826775cb6649e77`): **817/817건 실행 완료, 기존 Battle hash 1건 실패**, 신규 실패 없음. MCP result summary는 null이므로 progress completed/total=817 및 uncapped failures 목록 1건을 근거로 기록한다. 종료 후 SampleScene/Play=false/Compile=false/Dirty=false 확인.
+- Prefab·격리2씬 Missing Script0. 테스트 씬 Production Build 제외 회귀 PASS. 자동 검증 종료시 SampleScene/Play=false/Dirty=false.
+- 독립 read-only 코드 리뷰 승인(필수 수정0). PM의 실제 Windows 클릭으로 미가입 추천 상세/닫기, 신청 대기, MEMBER/DEPUTY/LEADER 화면, 공지 전체보기/닫기, 가입 신청 관리 왕복, 멤버 관리 팝업/닫기, 설정/닫기를 확인했다. 1080×1920·1080×2340에서 해당 UI 배치와 휠 스크롤 마지막 Guest-129 및 상하단 클리핑을 확인했다.
+- 새 디자인의 실제 HTTP 격리 씬에서 임시 클랜 생성 → 테스트 계정2 전환 → 상세 → 자유 가입 → MEMBER 2명/설정·관리 미노출을 직접 클릭으로 확인했다. 이번 HTTP 검사 종료 전 Console error0. 배경은 격리 씬의 기본 skybox이며 실제 로비 배경 디자인을 변경한 결과가 아니다. 증거: `Client/_localbuild/P3Clan/Clan_Redesign_2340.png`, `Clan_Redesign_HTTP_Member.png`.
+- 이번 자동 `sky.drag`도 목록 위치 이동이 확인되지 않았다. 기존 held 이동 프레임 미전달 진단/이벤트 회귀 결과와 구분하고 실제 손가락·마우스 드래그를 PASS로 처리하지 않는다. 실제 로비 통합 시각 판정·모바일 기기·사용자 최종 디자인 인수 및 아래 나머지 HTTP 흐름은 별도 유지한다.
+- Play 종료 후 SampleScene으로 복귀했으며, PID43160 commandline이 `ClanUiSmokeServer`인 것을 확인한 뒤 해당 임시 서버만 종료했다. 실제 개발 DB·계정은 사용하지 않았다. 커밋·푸시 없음.
+- `git diff --check`의 남은 공백 경고는 Unity가 직렬화한 YAML의 빈 `m_Name: ` / `m_Text: ` 줄이다. C#/문서에는 해당 경고가 없다. Unity YAML 직접 수정 금지에 따라 출력 파일을 수동 정리하지 않았다.
+
 기준일: 2026-11-02. 담당: User/System. 상태: **UI 구현·자동검증·일부 실제HTTP 검증 완료 / 잔여 검증 및 사람 인수 전 부분 완료**. 커밋·푸시하지 않았다.
 
 ## 범위
