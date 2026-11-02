@@ -219,11 +219,72 @@ public sealed class ClanClientTests
     {
         Assert.IsFalse(UnityEditor.EditorBuildSettings.scenes.Any(s=>s.enabled&&(s.path==ClanAssetBuilder.FixturePath||s.path==ClanAssetBuilder.HttpFixturePath)));
     }
+    [Test] public void JoinedHomeShowsIdentityNoticeAndMembersWithoutExtraTab()
+    {
+        transport.state=ClanUiFixture.Example(4);controller.Refresh();
+        Assert.AreEqual("클랜",view.titleText.text);
+        Assert.IsNotNull(view.content.Find("ClanIdentity"));Assert.IsNotNull(view.content.Find("Announcement"));
+        Assert.AreEqual(3,view.content.Cast<Transform>().Count(x=>x.name.StartsWith("Member_")));
+        Assert.IsFalse(view.createButton.gameObject.activeSelf);
+        Assert.IsFalse(view.GetComponentsInChildren<LobbyNeonGraphic>(true).Any());
+    }
+    [TestCase(7)][TestCase(8)][TestCase(9)][TestCase(10)]
+    public void EveryRecommendedFixtureClanReturnsMatchingValidDetail(long id)
+    {
+        var type=typeof(ClanUiFixture).GetNestedType("FixtureTransport",System.Reflection.BindingFlags.NonPublic);
+        var fixture=(IClanTransport)Activator.CreateInstance(type,true);AuthHttpResult result=null;
+        fixture.Send(ClanClientContract.Root+"/"+id,"GET",null,r=>result=r);
+        Assert.AreEqual(200,result.Status);var detail=ClanJson.Read<ClanDetail>(result.Body);
+        Assert.AreEqual(id,detail.clan.clanId);Assert.IsTrue(ClanClientContract.ValidDetail(detail));
+        Assert.AreEqual(detail.clan.memberCount,detail.members.Length);
+    }
+    [Test] public void ClanPreviewDoesNotSplitSurrogateOrCombiningTextElement()
+    {
+        var preview=typeof(ClanView).GetMethod("Preview",System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Static);
+        Assert.AreEqual("가🚀…",preview.Invoke(null,new object[]{"가🚀나다",2}));
+        Assert.AreEqual("e\u0301…",preview.Invoke(null,new object[]{"e\u0301남은글",1}));
+    }
+    [Test] public void FullNoticeAndIntroductionArePreservedInScrollableReader()
+    {
+        transport.state=ClanUiFixture.Example(5);transport.state.clan.clan.description=new string('나',120);controller.Refresh();
+        FindButton("Notice").onClick.Invoke();
+        var text=view.GetComponentsInChildren<Text>().Single(x=>x.name=="FullInformation");
+        StringAssert.Contains(transport.state.clan.notice,text.text);StringAssert.Contains(transport.state.clan.clan.description,text.text);
+        Assert.IsFalse(text.resizeTextForBestFit);Assert.IsNotNull(text.GetComponent<ContentSizeFitter>());
+        Assert.IsTrue(text.GetComponentInParent<ScrollRect>().vertical);
+        FindButton("Close").onClick.Invoke();Assert.IsFalse(view.HasModal);
+    }
+    [Test] public void ManagementHasOneSettingsEntryAndCanReturnToHome()
+    {
+        transport.state=ClanUiFixture.Example(4);controller.Refresh();FindButton("Manage").onClick.Invoke();
+        Assert.AreEqual(1,view.GetComponentsInChildren<Button>().Count(x=>x.name=="Settings"));
+        Assert.IsNotNull(FindButton("Approve"));FindButton("Members").onClick.Invoke();
+        Assert.IsNotNull(view.content.Find("Announcement"));Assert.IsNotNull(view.content.Find("Member_100"));
+    }
+    [Test] public void MemberOwnRowHasNoMutationActionAndLeaderHasNoUnsafeLeave()
+    {
+        transport.state=ClanUiFixture.Example(4);controller.Refresh();
+        Assert.IsFalse(view.content.Find("Member_100").GetComponentsInChildren<Button>().Any());
+        Assert.IsFalse(view.GetComponentsInChildren<Button>().Any(x=>x.name=="LEAVE"||x.name=="DISBAND"));
+    }
+    [TestCase(1080,1920)][TestCase(1080,2340)][TestCase(1536,2048)]
+    public void ClanHeaderListAndFooterRemainSeparatedAcrossPortraitRatios(int width,int height)
+    {
+        root.GetComponent<Canvas>().renderMode=RenderMode.WorldSpace;
+        ((RectTransform)root.transform).sizeDelta=new Vector2(width,height);Canvas.ForceUpdateCanvases();
+        Assert.Less(view.scroll.viewport.anchorMax.y,((RectTransform)view.searchInput.transform.parent).anchorMin.y);
+        Assert.Greater(view.scroll.viewport.anchorMin.y,((RectTransform)view.previousButton.transform).anchorMax.y);
+        Assert.GreaterOrEqual(view.safeRoot.offsetMin.y,225);Assert.LessOrEqual(view.safeRoot.offsetMax.y,-165);
+        transport.state=ClanUiFixture.Example(4);controller.Refresh();Canvas.ForceUpdateCanvases();
+        Assert.LessOrEqual(view.scroll.viewport.anchorMax.y,view.subtitleText.rectTransform.anchorMin.y);
+        Assert.Greater(view.scroll.viewport.anchorMin.y,view.statusText.rectTransform.anchorMax.y);
+    }
     [Test] public void SavedPrefabReloadBindsToolbarAndButtonCallbacks()
     {
         var asset=UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(ClanAssetBuilder.PrefabPath);
         Assert.IsNotNull(asset,"Run ClanAssetBuilder.Rebuild before the prefab regression test.");
         view=UnityEngine.Object.Instantiate(asset,root.transform).GetComponent<ClanView>();
+        Assert.IsNotNull(view.mascotSprite,"The existing original mascot must be referenced, not regenerated.");
         controller.Attach(view,transport,store,null);controller.SetLobbyTab(3);
         Assert.IsTrue(view.transform.Find("SafeContent/Toolbar").gameObject.activeSelf);
         view.createButton.onClick.Invoke();Assert.IsTrue(view.HasModal);view.CloseModal();

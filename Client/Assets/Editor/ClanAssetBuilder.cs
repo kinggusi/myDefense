@@ -28,7 +28,7 @@ public static class ClanAssetBuilder
         try
         {
             var temporary=new GameObject("Temporary");SceneManager.MoveGameObjectToScene(temporary,preview);
-            var view=ClanView.Build(temporary.transform);PrefabUtility.SaveAsPrefabAsset(view.gameObject,PrefabPath);
+            var view=ClanView.Build(temporary.transform);ApplyArt(view);PrefabUtility.SaveAsPrefabAsset(view.gameObject,PrefabPath);
         }
         finally{EditorSceneManager.ClosePreviewScene(preview);}
         BuildScene(FixturePath,false);BuildScene(HttpFixturePath,true);AssetDatabase.SaveAssets();
@@ -40,7 +40,7 @@ public static class ClanAssetBuilder
         {
             var canvas=new GameObject(http?"Clan isolated HTTP fixture":"Clan UI fixture - NO HTTP",typeof(Canvas),typeof(CanvasScaler),typeof(GraphicRaycaster));SceneManager.MoveGameObjectToScene(canvas,scene);
             canvas.GetComponent<Canvas>().renderMode=RenderMode.ScreenSpaceOverlay;var scaler=canvas.GetComponent<CanvasScaler>();scaler.uiScaleMode=CanvasScaler.ScaleMode.ScaleWithScreenSize;scaler.referenceResolution=new Vector2(1080,1920);scaler.matchWidthOrHeight=.5f;
-            var view=ClanView.Build(canvas.transform);
+            var view=ClanView.Build(canvas.transform);ApplyArt(view);
             if(http)canvas.AddComponent<ClanHttpUiFixture>().view=view;else canvas.AddComponent<ClanUiFixture>().view=view;
             var events=new GameObject("EventSystem",typeof(EventSystem),typeof(InputSystemUIInputModule));SceneManager.MoveGameObjectToScene(events,scene);
             var camera=new GameObject("Main Camera",typeof(Camera));SceneManager.MoveGameObjectToScene(camera,scene);camera.GetComponent<Camera>().backgroundColor=new Color(.008f,.025f,.045f);
@@ -52,6 +52,11 @@ public static class ClanAssetBuilder
     private static void Folder(string path)
     {
         if(AssetDatabase.IsValidFolder(path))return;int separator=path.LastIndexOf('/');string parent=path.Substring(0,separator);Folder(parent);AssetDatabase.CreateFolder(parent,path.Substring(separator+1));
+    }
+    private static void ApplyArt(ClanView view)
+    {
+        view.mascotSprite=AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/Lobby/Final/WakjeoMascot.png");
+        if(view.mascotSprite==null)Debug.LogWarning("Clan mascot asset was not found; no guessed reference was assigned.");
     }
 }
 #endif

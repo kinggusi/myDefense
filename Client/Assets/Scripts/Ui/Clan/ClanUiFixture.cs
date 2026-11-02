@@ -49,12 +49,29 @@ namespace MyDefense.Clans
             public void Send(string path,string method,string json,Action<AuthHttpResult> completed)
             {
                 if(method=="POST"){completed(drop?new AuthHttpResult{Status=0}:new AuthHttpResult{Status=409,Body="{\"code\":\"CLAN_STATE_CHANGED\"}"});return;}
-                object value=path.EndsWith("/policy")?(object)Policy():path.EndsWith("/me")?status:
-                    path.Contains("?q=")?new ClanSearch{page=0,pageSize=20,clans=new[]{Summary()}}:
-                    new ClanDetail{clan=Summary(),revision=1,members=new[]{new ClanMember{userId=999,role="LEADER",displayName="테스트 클랜장"}},applications=Array.Empty<ClanApplicant>()};
+                object value;
+                if(path.EndsWith("/policy"))value=Policy();
+                else if(path.EndsWith("/me"))value=status;
+                else if(path.Contains("?q="))value=new ClanSearch{page=0,pageSize=20,clans=new[]{Summary(7),Summary(8),Summary(9),Summary(10)}};
+                else
+                {
+                    long id;if(!long.TryParse(path.Substring(path.LastIndexOf('/')+1),out id)||id<7||id>10){completed(new AuthHttpResult{Status=404});return;}
+                    var clan=Summary(id);var members=new ClanMember[clan.memberCount];
+                    for(int i=0;i<members.Length;i++)members[i]=new ClanMember{userId=999+i,role=i==0?"LEADER":"MEMBER",displayName=i==0?"테스트 클랜장":"Guest-"+(999+i)};
+                    value=new ClanDetail{clan=clan,revision=1,members=members,applications=Array.Empty<ClanApplicant>()};
+                }
                 completed(new AuthHttpResult{Status=200,Body=ClanJson.SerializeFixture(value)});
             }
-            private ClanSummary Summary()=>new ClanSummary{clanId=7,name="별빛 왹져",description="함께할 왹져를 기다리고 있어요.",joinMode="OPEN",memberCount=1,maximumMembers=30};
+            private ClanSummary Summary(long id)
+            {
+                switch(id)
+                {
+                    case 8:return new ClanSummary{clanId=8,name="초록별 원정대",description="함께 즐기는 협동 디펜스",joinMode="APPROVAL",memberCount=12,maximumMembers=30};
+                    case 9:return new ClanSummary{clanId=9,name="은하수",description="서로 도우며 성장해요",joinMode="OPEN",memberCount=24,maximumMembers=30};
+                    case 10:return new ClanSummary{clanId=10,name="우주 수호대",description="함께할 동료를 기다려요",joinMode="APPROVAL",memberCount=21,maximumMembers=30};
+                    default:return new ClanSummary{clanId=7,name="별빛 왹져",description="함께할 왹져를 기다리고 있어요.",joinMode="OPEN",memberCount=1,maximumMembers=30};
+                }
+            }
         }
     }
 }
