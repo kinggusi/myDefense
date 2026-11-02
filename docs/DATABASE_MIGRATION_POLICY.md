@@ -62,3 +62,17 @@
 ## Non-null 전환 조건
 
 모든 지원 환경에서 legacy Settlement 보존·백업 정책과 production JWT/matchmaking Adapter가 확정되기 전에는 `session_source`를 non-null로 바꾸지 않는다. 전환 시에도 기존 null 행은 Quest 제외 상태를 유지할 별도 archive/backfill 정책을 먼저 정한다.
+
+## P3-1 클랜 Migration·보존
+
+2026-11-02 서버 1차는 신규 테이블만 추가한다. 실개발 파일 DB를 초기화하지 않으며 검증은 임시 디렉터리의 별도 파일 H2에서 한다. 운영 DB·Migration 실행기는 여전히 미구성이므로 아래는 배포 선행 계약이지 운영 배포 완료가 아니다.
+
+1. 애플리케이션 배포 전에 expand-first로 다음 테이블·제약을 생성한다.
+   - `clans`: PK `id`, `name`, `normalized_name` UNIQUE, `description`, `notice`, `join_mode`, `leader_id`, `member_count`, `revision`, `active`, nullable `disbanded_at`.
+   - `clan_account_states`: PK `user_id`(계정당 소속 최대 1개), nullable `clan_id`, `role`, `joined_at`, `rejoin_available_at`, `pending_clan_id`. `clan_id`, `pending_clan_id` 조회 인덱스.
+   - `clan_command_receipts`: PK `id`, `user_id`, `request_id` UUID, `fingerprint` SHA-256 hex64, `operation`, `processed_at`, UNIQUE `(user_id, request_id)`.
+2. 기존 계정은 미가입으로 간주하며 account state는 최초 인증 조회/명령에서 User row 잠금 후 생성한다. 기존 User/Wallet/Battle 테이블의 값을 backfill하지 않는다.
+3. 현재 Entity는 ID scalar 참조를 사용하며 애플리케이션이 사용자·클랜 존재를 검증한다. 운영 DB 적용 시 `user_id/leader_id -> users.id`, `clan_id/pending_clan_id -> clans.id` FK와 정원/역할 check constraint를 사전 검토하고 orphan 0건 확인 후 함께 활성화한다. 운영 데이터 정리로 유저/클랜을 물리 삭제하는 기능은 이번에 제공하지 않는다.
+4. 해산은 `active=false` soft-delete로 기록한다. 이름 유일 키·성공 영수증·탈퇴/추방 쿨다운은 보존한다. 해산 클랜에 대한 pending 참조는 논리 무효이며 재신청 시 교체 가능하다. 앱 rollback 시 신규 테이블을 삭제하지 않는다.
+5. 운영 DB의 collation/Unicode NFKC 대소문자 중복, UTC timestamp, UUID 타입, PESSIMISTIC_WRITE 동작과 deadlock timeout을 검증한다. H2의 자동 DDL/update 결과를 운영 migration으로 재사용하지 않는다.
+6. 잠금은 actor/target User ID 오름차순 후 Clan 한 행으로 통일한다. 운영 DB에서 정원 마지막 자리·동일 계정 다중 가입·동일 요청/이름 생성 경합·해산/가입·권한 위임 경쟁을 재검증한다.
