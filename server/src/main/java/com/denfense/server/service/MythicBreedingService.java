@@ -6,6 +6,7 @@ import com.denfense.server.dto.breeding.MythicBreedingDtos;
 import com.denfense.server.exception.*;
 import com.denfense.server.repository.*;
 import com.denfense.server.service.balance.MythicBreedingBalanceRegistry;
+import com.denfense.server.service.random.EconomyRandomSource;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -13,7 +14,6 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
-import java.util.concurrent.ThreadLocalRandom;
 
 @Service @RequiredArgsConstructor
 public class MythicBreedingService {
@@ -25,6 +25,7 @@ public class MythicBreedingService {
     private final MythicBreedingAccelerationRepository accelerationRepository;
     private final MythicBreedingRequestRepository requestRepository;
     private final MythicBreedingBalanceRegistry balance;
+    private final EconomyRandomSource random;
 
     @Transactional
     public MythicBreedingDtos.SlotsResponse slots(String username) {
@@ -90,7 +91,16 @@ public class MythicBreedingService {
         if(slot.getStatus()!=MythicBreedingSlotStatus.REWARD_READY) throw new BusinessException(ErrorCode.MYTHIC_BREEDING_NOT_READY);
         long result=Optional.ofNullable(slot.getResultAlienId()).orElseThrow(()->new BusinessException(ErrorCode.MYTHIC_BREEDING_RESULT_NOT_FOUND));
         AlienSpec spec=alienSpecRepository.findById(result).orElseThrow(()->new BusinessException(ErrorCode.ALIEN_SPEC_NOT_FOUND));
-        UserAlien existing=userAlienRepository.findByUserAndAlienSpec(user,spec).orElse(null); if(existing==null) userAlienRepository.save(new UserAlien(user,spec)); else existing.addPieces(balance.getConfig().duplicateRewardPieces());
+        UserAlien existing=userAlienRepository.findByUserAndAlienSpec(user,spec).orElse(null);
+        if(existing==null) {
+            userAlienRepository.save(new UserAlien(user,spec));
+        } else {
+            int rewardPieces=balance.getConfig().duplicateRewardPieces();
+            // Check before consuming parents, clearing the result, or writing the claim receipt.
+            if((long)existing.getPieces()+rewardPieces>Integer.MAX_VALUE)
+                throw new BusinessException(ErrorCode.MYTHIC_BREEDING_BALANCE_CAP);
+            existing.addPieces(rewardPieces);
+        }
         parentRepository.deleteAllByBreedingSlot(slot); Instant claimed=now(); slot.claim(claimed,req.requestId());
         MythicBreedingDtos.ClaimResponse response=new MythicBreedingDtos.ClaimResponse(slotNo,result,slot.getStatus().name(),slot.getClaimedAt());
         requestRepository.save(history(user,req.requestId(),MythicBreedingRequestOperation.CLAIM,slotNo,"CLAIM",null,null,response));
@@ -155,5 +165,5 @@ public class MythicBreedingService {
                 request.getResponseStartedAt(),request.getResponseReadyAt());
     }
     private Instant now(){return Instant.now().truncatedTo(ChronoUnit.MICROS);}
-    private long pickResult(long parentAlienIdA, long parentAlienIdB){MythicBreedingRecipeBalance recipe=balance.getRecipe(parentAlienIdA,parentAlienIdB); int total=recipe.standardWeightEach()*recipe.standardResultAlienIds().size()+recipe.exclusive19Weight()+recipe.exclusive20Weight(), n=ThreadLocalRandom.current().nextInt(total); for(long alienId:recipe.standardResultAlienIds()){n-=recipe.standardWeightEach();if(n<0)return alienId;} n-=recipe.exclusive19Weight();if(n<0)return recipe.exclusive19AlienId();return recipe.exclusive20AlienId();}
+    private long pickResult(long parentAlienIdA, long parentAlienIdB){MythicBreedingRecipeBalance recipe=balance.getRecipe(parentAlienIdA,parentAlienIdB); int total=recipe.standardWeightEach()*recipe.standardResultAlienIds().size()+recipe.exclusive19Weight()+recipe.exclusive20Weight(), n=random.nextInt(total); for(long alienId:recipe.standardResultAlienIds()){n-=recipe.standardWeightEach();if(n<0)return alienId;} n-=recipe.exclusive19Weight();if(n<0)return recipe.exclusive19AlienId();return recipe.exclusive20AlienId();}
 }

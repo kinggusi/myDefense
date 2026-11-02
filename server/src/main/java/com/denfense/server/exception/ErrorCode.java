@@ -49,6 +49,7 @@ public enum ErrorCode {
     MYTHIC_BREEDING_SLOT_BUSY(HttpStatus.CONFLICT, "교배 슬롯을 사용할 수 없습니다."),
     MYTHIC_BREEDING_INVALID_PARENT(HttpStatus.BAD_REQUEST, "교배 부모가 유효하지 않습니다."),
     MYTHIC_BREEDING_NOT_READY(HttpStatus.CONFLICT, "교배 보상이 아직 준비되지 않았습니다."),
+    MYTHIC_BREEDING_BALANCE_CAP(HttpStatus.CONFLICT, "보유 조각 한도로 교배 보상을 받을 수 없습니다. 조각 사용 후 다시 시도해 주세요."),
     MYTHIC_BREEDING_REQUEST_CONFLICT(HttpStatus.CONFLICT, "교배 요청이 충돌했습니다."),
     MYTHIC_BREEDING_RESULT_NOT_FOUND(HttpStatus.INTERNAL_SERVER_ERROR, "교배 결과를 찾을 수 없습니다."),
     MYTHIC_BREEDING_ACCELERATION_INVALID(HttpStatus.BAD_REQUEST, "교배 가속 요청이 유효하지 않습니다."),
