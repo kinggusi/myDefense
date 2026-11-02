@@ -38,6 +38,7 @@ public static class MythicBreedingUiPrefabBuilder
         view.statusText = status;
         view.badgeObject = badge;
         view.badgeText = badgeText;
+        LobbyNeonUiBuilder.StylePopup(root);
         PrefabUtility.SaveAsPrefabAsset(root, Folder + "/MythicBreedingShortcut.prefab");
         Object.DestroyImmediate(root);
     }
@@ -140,6 +141,7 @@ public static class MythicBreedingUiPrefabBuilder
         view.combinationPanel = combinationPanel;
         view.combinationCloseButton = combinationClose;
         view.combinationText = combinationText;
+        LobbyNeonUiBuilder.StylePopup(root);
         PrefabUtility.SaveAsPrefabAsset(root, Folder + "/MythicBreedingScreen.prefab");
         Object.DestroyImmediate(root);
     }
