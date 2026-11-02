@@ -6,6 +6,30 @@ using UnityEngine.UI;
 
 public sealed class LobbyFinalUiTests
 {
+    [Test]
+    public void CurrencyBackgroundsHaveNoMissingSpriteReferences()
+    {
+        var scene = UnityEditor.SceneManagement.EditorSceneManager.OpenPreviewScene("Assets/Scenes/SampleScene.unity");
+        try
+        {
+            string[] names = { "Heart_Amount_Small", "Coin_Amount_Small", "Diamond_Amount_Small" };
+            var images = scene.GetRootGameObjects().SelectMany(root => root.GetComponentsInChildren<Image>(true))
+                .Where(image => names.Contains(image.name)).ToArray();
+            Assert.That(images.Length, Is.EqualTo(3));
+            foreach (var image in images)
+            {
+                var serialized = new SerializedObject(image);
+                var sprite = serialized.FindProperty("m_Sprite");
+                Assert.That(sprite.objectReferenceInstanceIDValue, Is.Zero, image.name);
+                Assert.That(image.color.a, Is.Zero, image.name + " remains transparent");
+            }
+        }
+        finally
+        {
+            UnityEditor.SceneManagement.EditorSceneManager.ClosePreviewScene(scene);
+        }
+    }
+
     [TestCase(.975f, .866f)]
     [TestCase(.975f, 1f)]
     [TestCase(1.80f, .866f)]

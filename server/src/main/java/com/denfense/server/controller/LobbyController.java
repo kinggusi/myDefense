@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 public class LobbyController {
 
     private final UserRepository userRepository;
+    private final com.denfense.server.auth.AccountAccess accounts;
     private final AlienSpecRepository alienSpecRepository;
     private final UserAlienRepository userAlienRepository;
     private final com.denfense.server.service.HeartPolicy heartPolicy;
@@ -34,6 +35,7 @@ public class LobbyController {
 
     @GetMapping("/info/{username}")
     public ResponseEntity<?> getLobbyInfo(@PathVariable String username) {
+        username = accounts.username(username);
         // 1. 유저 조회 (존재하지 않는 유저 처리)
         User user = starterAlienCollectionService.ensureStarterCollection(username);
 

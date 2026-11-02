@@ -1,5 +1,7 @@
 package com.denfense.server;
 
+import org.springframework.test.context.ActiveProfiles;
+
 import com.denfense.server.domain.AlienSpec;
 import com.denfense.server.domain.User;
 import com.denfense.server.domain.UserAlien;
@@ -21,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = "spring.datasource.url=jdbc:h2:mem:alien-api;MODE=MySQL")
+@ActiveProfiles("dev")
 public class AlienApiIntegrationTest {
 
     @LocalServerPort

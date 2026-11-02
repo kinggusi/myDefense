@@ -1,5 +1,7 @@
 package com.denfense.server;
 
+import org.springframework.test.context.ActiveProfiles;
+
 import com.denfense.server.domain.AlienSpec;
 import com.denfense.server.domain.User;
 import com.denfense.server.domain.UserAlien;
@@ -21,6 +23,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest(properties = "spring.datasource.url=jdbc:h2:mem:alien-upgrade-status;MODE=MySQL")
 @AutoConfigureMockMvc
+@ActiveProfiles("dev")
 class AlienUpgradeStatusApiIntegrationTest {
 
     @Autowired MockMvc mockMvc;

@@ -18,13 +18,17 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
 
     private final UserRepository userRepository;
+    private final com.denfense.server.auth.AccountAccess accounts;
 
     // [GET] http://localhost:8080/api/users/{username}
     // 예: /api/users/MyDev
     @Operation(summary = "유저 정보 찾기.", description = "유저 정보 찾기.")
     @GetMapping("/{username}")
-    public User getUserInfo(@PathVariable String username) {
-        return userRepository.findByUsername(username)
+    public PublicUser getUserInfo(@PathVariable String username) {
+        accounts.username(username);
+        User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("없는 유저입니다: " + username));
+        return new PublicUser(user.getId(), user.getUsername());
     }
+    public record PublicUser(long id, String username) {}
 }

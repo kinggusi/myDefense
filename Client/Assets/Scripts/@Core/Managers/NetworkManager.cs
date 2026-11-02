@@ -1,176 +1,81 @@
 using System;
 using System.Collections;
 using System.Text;
+using MyDefense.Auth;
 using UnityEngine;
 using UnityEngine.Networking;
 
 public class NetworkManager : MonoBehaviour
 {
     public static NetworkManager Instance;
-    
-    // 🔥 자신의 서버 주소로 수정 (localhost는 유니티 에디터 기준)
     public string BaseUrl = RuntimeEnvironmentConfig.DefaultApiBaseUrl;
-
+    public static bool AllowLegacyLobby => (Application.isEditor || Debug.isDebugBuild)
+        && (Environment.GetEnvironmentVariable("MYDEFENSE_ENV") == "local" || Environment.GetEnvironmentVariable("MYDEFENSE_ENV") == "dev")
+        && Environment.GetEnvironmentVariable("MYDEFENSE_LEGACY_LOBBY") == "1";
     void Awake()
     {
+        if (Instance != null && Instance != this) { Destroy(this); return; }
         Instance = this;
-        if (RuntimeEnvironmentConfig.HasApiBaseUrlOverride)
-            BaseUrl = RuntimeEnvironmentConfig.ApiBaseUrl;
-        else if (string.IsNullOrWhiteSpace(BaseUrl))
-            BaseUrl = RuntimeEnvironmentConfig.DefaultApiBaseUrl;
+        if (RuntimeEnvironmentConfig.HasApiBaseUrlOverride) BaseUrl = RuntimeEnvironmentConfig.ApiBaseUrl;
+        else if (string.IsNullOrWhiteSpace(BaseUrl)) BaseUrl = RuntimeEnvironmentConfig.DefaultApiBaseUrl;
         DontDestroyOnLoad(gameObject);
     }
-
-    // 일반적인 POST (소환 등)
+    private void OnDestroy() { if (Instance == this) Instance = null; }
     public void Post(string uri, WWWForm form, Action<string> onSuccess, Action<string> onError)
-    {
-        StartCoroutine(PostRequest(BaseUrl + uri, form, onSuccess, onError));
-    }
-
-    // JSON POST (머지 등 @RequestBody용)
+        => StartCoroutine(Send(uri, "POST", null, form, r => Dispatch(r, onSuccess, onError)));
     public void PostJson(string uri, string json, Action<string> onSuccess, Action<string> onError)
-    {
-        StartCoroutine(PostJsonRequest(BaseUrl + uri, json, onSuccess, onError));
-    }
-
-    IEnumerator PostRequest(string url, WWWForm form, Action<string> onSuccess, Action<string> onError)
-    {
-        using (UnityWebRequest www = UnityWebRequest.Post(url, form))
-        {
-            yield return www.SendWebRequest();
-            if (www.result != UnityWebRequest.Result.Success) onError?.Invoke(www.error);
-            else onSuccess?.Invoke(www.downloadHandler.text);
-        }
-    }
-
-    IEnumerator PostJsonRequest(string url, string json, Action<string> onSuccess, Action<string> onError)
-    {
-        using (var www = new UnityWebRequest(url, "POST")) 
-    {
-        byte[] bodyRaw = Encoding.UTF8.GetBytes(json);
-        www.uploadHandler = new UploadHandlerRaw(bodyRaw);
-        www.downloadHandler = new DownloadHandlerBuffer();
-        www.SetRequestHeader("Content-Type", "application/json");
-
-        yield return www.SendWebRequest();
-
-        if (www.result != UnityWebRequest.Result.Success)
-            onError?.Invoke(string.IsNullOrWhiteSpace(www.downloadHandler.text) ? www.error : www.downloadHandler.text);
-        else onSuccess?.Invoke(www.downloadHandler.text);
-    }
-    }
-
-    // ✅ 로비 데이터 조회용 GET (Action<string>으로 결과를 돌려줌)
+        => StartCoroutine(Send(uri, "POST", json, null, r => Dispatch(r, onSuccess, onError)));
     public void Get(string uri, Action<string> onSuccess, Action<string> onError)
+        => StartCoroutine(Send(uri, "GET", null, null, r => Dispatch(r, onSuccess, onError)));
+    private static void Dispatch(AuthHttpResult result, Action<string> success, Action<string> failure)
     {
-        StartCoroutine(GetRequest(BaseUrl + uri, onSuccess, onError));
+        if (result.Success) success?.Invoke(result.Body);
+        else failure?.Invoke(string.IsNullOrWhiteSpace(result.Body) ? result.Error ?? AuthSession.FriendlyError(result) : result.Body);
     }
-
-    private IEnumerator GetRequest(string url, Action<string> onSuccess, Action<string> onError)
+    public void PostJsonAsync<TRequest, TResponse>(string uri, TRequest body, Action<ApiResult<TResponse>> callback)
     {
-        using (UnityWebRequest www = UnityWebRequest.Get(url))
+        StartCoroutine(Send(uri, "POST", JsonUtility.ToJson(body), null, response =>
         {
-            yield return www.SendWebRequest();
-
-            if (www.result != UnityWebRequest.Result.Success)
+            var result = new ApiResult<TResponse> { StatusCode = response.Status, IsSuccess = response.Success };
+            if (response.Success)
             {
-                Debug.LogError($"[GET ERROR] {url} : {www.error}");
-                onError?.Invoke(www.error);
+                try { result.Data = JsonUtility.FromJson<TResponse>(response.Body); }
+                catch (Exception) { result.IsSuccess = false; result.NetworkError = "JSON_PARSE_ERROR"; }
             }
             else
             {
-                onSuccess?.Invoke(www.downloadHandler.text);
+                try { if (!string.IsNullOrEmpty(response.Body)) result.Error = JsonUtility.FromJson<ApiErrorResponse>(response.Body); }
+                catch (Exception) { }
+                if (result.Error == null) result.NetworkError = response.Error ?? AuthSession.FriendlyError(response);
             }
-        }
-    }
-
-    // 타임아웃 기본값
-    private const int DefaultTimeoutSeconds = 10;
-
-    // 제네릭 POST 공통 처리 API
-    public void PostJsonAsync<TRequest, TResponse>(string uri, TRequest requestBody, Action<ApiResult<TResponse>> callback)
-    {
-        StartCoroutine(PostJsonCoroutine(BaseUrl + uri, requestBody, callback));
-    }
-
-    private IEnumerator PostJsonCoroutine<TRequest, TResponse>(string url, TRequest requestBody, Action<ApiResult<TResponse>> callback)
-    {
-        string json = JsonUtility.ToJson(requestBody);
-        using (var www = new UnityWebRequest(url, "POST"))
-        {
-            byte[] bodyRaw = Encoding.UTF8.GetBytes(json);
-            www.uploadHandler = new UploadHandlerRaw(bodyRaw);
-            www.downloadHandler = new DownloadHandlerBuffer();
-            www.SetRequestHeader("Content-Type", "application/json");
-            www.timeout = DefaultTimeoutSeconds;
-
-            yield return www.SendWebRequest();
-
-            var result = new ApiResult<TResponse>();
-            result.StatusCode = www.responseCode;
-
-            if (www.result == UnityWebRequest.Result.Success)
-            {
-                result.IsSuccess = true;
-                try
-                {
-                    result.Data = JsonUtility.FromJson<TResponse>(www.downloadHandler.text);
-                }
-                catch (Exception e)
-                {
-                    result.IsSuccess = false;
-                    result.NetworkError = "JSON_PARSE_ERROR: " + e.Message;
-                }
-            }
-            else
-            {
-                result.IsSuccess = false;
-                string errorBody = www.downloadHandler.text;
-
-                if (www.result == UnityWebRequest.Result.ConnectionError)
-                {
-                    result.StatusCode = 0; // 연결 자체가 실패한 경우
-                    result.NetworkError = "CONNECTION_FAILED: " + www.error;
-                }
-                else if (www.result == UnityWebRequest.Result.ProtocolError)
-                {
-                    // HTTP 4xx/5xx 에러 본문 파싱
-                    if (!string.IsNullOrEmpty(errorBody) && errorBody.Trim().StartsWith("{") && errorBody.Trim().EndsWith("}"))
-                    {
-                        try
-                        {
-                            result.Error = JsonUtility.FromJson<ApiErrorResponse>(errorBody);
-                        }
-                        catch (Exception ex)
-                        {
-                            result.NetworkError = "ERROR_JSON_PARSE_FAILED: Failed to parse ErrorResponse. " + ex.Message;
-                        }
-                    }
-                    else
-                    {
-                        result.NetworkError = "HTTP_PROTOCOL_ERROR: " + www.error;
-                    }
-                }
-                else if (www.result == UnityWebRequest.Result.DataProcessingError)
-                {
-                    result.NetworkError = "DATA_PROCESSING_ERROR: " + www.error;
-                }
-                else
-                {
-                    // 타임아웃 등 기타 네트워크 장애
-                    if (www.error != null && www.error.Contains("Request timeout"))
-                    {
-                        result.StatusCode = 0;
-                        result.NetworkError = "TIMEOUT_ERROR: Request timed out.";
-                    }
-                    else
-                    {
-                        result.NetworkError = "UNKNOWN_NETWORK_ERROR: " + www.error;
-                    }
-                }
-            }
-
             callback?.Invoke(result);
+        }));
+    }
+    private IEnumerator Send(string uri, string method, string json, WWWForm form, Action<AuthHttpResult> completed)
+    {
+        var session = AuthSession.Instance;
+        if (session != null)
+        {
+            string normalized = null;
+            try { normalized = AuthSession.NormalizeEndpoint(BaseUrl); } catch (Exception) { }
+            if (normalized != session.ApiBaseUrl)
+            { completed(new AuthHttpResult { Error = "계정 서버가 변경되었습니다. 다시 시작해 주세요." }); yield break; }
+            yield return session.SendAccount(uri, method, json, form, completed);
+            yield break;
+        }
+        if (!AllowLegacyLobby || !Uri.TryCreate(BaseUrl, UriKind.Absolute, out var endpoint) || !endpoint.IsLoopback)
+        { completed(new AuthHttpResult { Status = 401, Error = "로그인이 필요합니다." }); yield break; }
+        // Explicit local fixtures only. Never a production authentication fallback.
+        if (string.IsNullOrEmpty(uri) || !uri.StartsWith("/") || uri.StartsWith("//"))
+        { completed(new AuthHttpResult { Error = "잘못된 요청입니다." }); yield break; }
+        using (var request = form != null ? UnityWebRequest.Post(BaseUrl + uri, form) : new UnityWebRequest(BaseUrl + uri, method))
+        {
+            if (form == null && method != "GET")
+            { request.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(json ?? "{}")); request.SetRequestHeader("Content-Type", "application/json"); }
+            request.downloadHandler = new DownloadHandlerBuffer(); request.timeout = 15; request.redirectLimit = 0;
+            yield return request.SendWebRequest();
+            completed(new AuthHttpResult { Status = request.responseCode, Body = request.downloadHandler.text,
+                Error = request.result == UnityWebRequest.Result.Success ? null : "서버 요청 실패" });
         }
     }
 }

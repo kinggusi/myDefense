@@ -17,10 +17,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class EconomyController {
     
     private final EconomyService economyService;
+    private final com.denfense.server.auth.AccountAccess accounts;
 
     @Operation(summary = "계정 영구 재화 조회", description = "메인화면, 상점 등에서 사용하는 통합 재화 조회 API")
     @GetMapping("/balance")
     public EconomyBalanceResponseDto getBalance(@RequestParam String username) {
-        return economyService.getBalance(username);
+        return economyService.getBalance(accounts.username(username));
     }
 }

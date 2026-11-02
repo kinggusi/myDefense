@@ -96,7 +96,9 @@ class BattleEntryAttackSnapshotServiceTest {
             BalanceRegistry specs,
             AlienStatCalculator calculator,
             BalanceVersionRegistry versions) {
-        return new BattleEntryAttackSnapshotService(users, userAliens, specs, calculator, versions);
+        var environment = new org.springframework.mock.env.MockEnvironment();
+        environment.setActiveProfiles("local");
+        return new BattleEntryAttackSnapshotService(users, userAliens, specs, calculator, versions, environment);
     }
 
     private static AlienSpec entitySpec(long id) {

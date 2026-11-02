@@ -13,9 +13,10 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/planet-progressions")
 public class PlanetProgressionController {
     private final PlanetProgressionService progression;
+    private final com.denfense.server.auth.AccountAccess accounts;
 
     @GetMapping
     public PlanetProgressionDtos.Response get(@RequestParam String username) {
-        return progression.getProgress(username);
+        return progression.getProgress(accounts.username(username));
     }
 }

@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.time.ZonedDateTime;
 
 /**
  * Converts an accepted production Settlement into permanent quest fact
@@ -39,6 +40,7 @@ public class QuestSettlementProcessor {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public ProcessResult process(Long settlementId) {
+        ZonedDateTime processingTime = time.now();
         BattleSettlement settlement = settlements.findById(settlementId).orElseThrow();
         if (settlement.getSessionSource() != SessionSource.PRODUCTION
                 || settlement.getResult() == BattleResult.ABORTED) {
@@ -65,7 +67,7 @@ public class QuestSettlementProcessor {
                 progress.add(amount);
                 progresses.save(progress);
                 applications.save(new QuestSettlementApplication(settlement, user, conditionId, amount));
-                applyCycleProgress(user, conditionId, amount);
+                applyCycleProgress(user, conditionId, amount, processingTime);
                 applicationCount++;
                 appliedAmount = Math.addExact(appliedAmount, amount);
             }
@@ -76,9 +78,9 @@ public class QuestSettlementProcessor {
         return new ProcessResult(false, applicationCount, appliedAmount);
     }
 
-    private void applyCycleProgress(User user, String conditionId, long amount) {
+    private void applyCycleProgress(User user, String conditionId, long amount, ZonedDateTime processingTime) {
         for (var quest : questBalances.questsByCondition(conditionId)) {
-            String cycleKey = time.cycleKey(quest.cycleType());
+            String cycleKey = time.cycleKey(quest.cycleType(), processingTime);
             QuestCycleProgress cycleProgress = cycleProgresses
                     .findByUserIdAndQuestIdAndCycleKey(user.getId(), quest.questId(), cycleKey)
                     .orElseGet(() -> new QuestCycleProgress(user, quest.questId(), quest.cycleType(), cycleKey));

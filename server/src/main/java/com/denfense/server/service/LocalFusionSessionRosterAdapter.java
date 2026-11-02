@@ -25,7 +25,7 @@ import java.util.Set;
  * client-hosted Fusion State Authority.
  */
 @Service
-@Profile({"local", "dev"})
+@Profile("(local | dev) & !prod & !production")
 @RequiredArgsConstructor
 @Slf4j
 public class LocalFusionSessionRosterAdapter implements BattleSessionRosterAuthorityAdapter {

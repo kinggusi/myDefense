@@ -24,7 +24,7 @@ import java.net.InetAddress;
  * authenticated adapter; never enable this controller in production.
  */
 @RestController
-@Profile({"local", "dev"})
+@Profile("(local | dev) & !prod & !production")
 @RequiredArgsConstructor
 @RequestMapping("/api/dev/battle/session-rosters")
 public class LocalBattleSessionRosterController {

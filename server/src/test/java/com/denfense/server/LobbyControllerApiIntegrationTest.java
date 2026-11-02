@@ -1,5 +1,7 @@
 package com.denfense.server;
 
+import org.springframework.test.context.ActiveProfiles;
+
 import com.denfense.server.domain.AlienSpec;
 import com.denfense.server.domain.User;
 import com.denfense.server.domain.UserAlien;
@@ -24,6 +26,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@ActiveProfiles("dev")
 public class LobbyControllerApiIntegrationTest {
 
     @Autowired

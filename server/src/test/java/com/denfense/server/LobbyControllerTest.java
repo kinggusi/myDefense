@@ -1,5 +1,7 @@
 package com.denfense.server;
 
+import org.springframework.test.context.ActiveProfiles;
+
 import com.denfense.server.domain.User;
 import com.denfense.server.dto.response.EconomyBalanceResponseDto;
 import com.denfense.server.repository.UserRepository;
@@ -18,6 +20,7 @@ import java.time.LocalDateTime;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@ActiveProfiles("dev")
 class LobbyControllerTest {
 
     @Autowired
