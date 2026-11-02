@@ -73,6 +73,9 @@ public class LobbyManager : MonoBehaviour
         // 1. 처음엔 메인 화면(2번 탭) 띄우기
         OpenTab(2);
         }
+        var tutorial = GetComponent<MyDefense.Tutorial.TutorialController>();
+        if (tutorial == null) tutorial = gameObject.AddComponent<MyDefense.Tutorial.TutorialController>();
+        tutorial.Install(this);
         LoadLobbyData(completed);
     }
 
