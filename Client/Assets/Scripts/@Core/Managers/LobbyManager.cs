@@ -76,6 +76,9 @@ public class LobbyManager : MonoBehaviour
         var tutorial = GetComponent<MyDefense.Tutorial.TutorialController>();
         if (tutorial == null) tutorial = gameObject.AddComponent<MyDefense.Tutorial.TutorialController>();
         tutorial.Install(this);
+        var clan = GetComponent<MyDefense.Clans.ClanController>();
+        if (clan == null) clan = gameObject.AddComponent<MyDefense.Clans.ClanController>();
+        clan.Install(this);
         LoadLobbyData(completed);
     }
 
@@ -273,6 +276,7 @@ public class LobbyManager : MonoBehaviour
         GetComponent<LobbyMaterialPurchasePopup>()?.Close();
         GetComponent<LobbyFinalPresentation>()?.SelectTab(index);
         GetComponent<ShopCatalogController>()?.SetLobbyTab(index);
+        GetComponent<MyDefense.Clans.ClanController>()?.SetLobbyTab(index);
         Debug.Log($"{index}번 탭으로 이동했습니다.");
     }
 

@@ -1,0 +1,11 @@
+<linker>
+  <assembly fullname="Assembly-CSharp">
+    <type fullname="MyDefense.Clans.ClanPolicyDto" preserve="all" />
+    <type fullname="MyDefense.Clans.ClanSummary" preserve="all" />
+    <type fullname="MyDefense.Clans.ClanMember" preserve="all" />
+    <type fullname="MyDefense.Clans.ClanApplicant" preserve="all" />
+    <type fullname="MyDefense.Clans.ClanDetail" preserve="all" />
+    <type fullname="MyDefense.Clans.ClanStatus" preserve="all" />
+    <type fullname="MyDefense.Clans.ClanSearch" preserve="all" />
+  </assembly>
+</linker>

@@ -99,6 +99,10 @@ namespace MyDefenseGame.Editor.FeatureTesting
         {
             return new FeatureTestCatalog(new[]
             {
+                Case("P3-1-3-CLAN", "클랜 검색·가입·역할 UI", "jjangash", "Assets/Scenes/Tests/UserSystem/P3_01_03_Clan_Test.unity", FeatureTestType.Scene,
+                    "Editor UI-only fixture; NO HTTP/실제 재화 변경 없음", "Play 종료 후 재실행; 실제 계정 초기화 금지", "ClanClientTests;ClanServiceTest;ClanPersistenceConcurrencyTest", "미가입·신청·MEMBER/DEPUTY/LEADER·긴 목록·닫기·스크롤·재시도·화면비", "docs/test-reports/P3-1-3-CLAN-UI.md"),
+                Case("P3-1-3-CLAN-HTTP", "클랜 격리 서버 HTTP UI", "jjangash", "Assets/Scenes/Tests/UserSystem/P3_01_03_Clan_Http_Test.unity", FeatureTestType.Scene,
+                    "test-only ClanUiSmokeServer 18083; 임시 DB·3개 fixture 계정·메모리 AuthSession", "Play 종료/별도 테스트 서버 재시작; 개발 계정 DB·credential 접근 금지", "ClanClientTests;ClanServiceTest", "실제 UI HTTP 생성·가입·승인·위임·탈퇴·해산·골드 1회 차감; 프로필/다른 탭 회귀는 SampleScene 별도", "docs/test-reports/P3-1-3-CLAN-UI.md"),
                 Case("P2-7-TUTORIAL", "튜토리얼 진행·보상 안내", "jjangash", "Assets/Scenes/Tests/UserSystem/P2_07_Tutorial_Test.unity", FeatureTestType.Scene,
                     "Editor UI-only fixture; NO HTTP/실제 보상, 연습 Adapter는 기본 미연결", "Play 종료 후 재실행; 계정 진행 초기화 금지", "TutorialClientTests;TutorialServiceTest;TutorialPersistenceTest", "선택 진입·닫기·재개·강화 비소비 안내·보상/교배 안내·미연결 표시, 실제 Battle 완료 E2E 별도", "docs/test-reports/P2-7-TUTORIAL.md"),
                 Case("P2-6-1-SHOP", "상점 상품·구매·광고 새로고침", "jjangash", "Assets/Scenes/Tests/UserSystem/P2_06_01_Shop_Test.unity", FeatureTestType.Scene,
