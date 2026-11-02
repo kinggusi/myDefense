@@ -73,6 +73,9 @@ public class BalanceExcelConverter {
             stagedToTarget.put(
                     stagingDirectory.resolve("daily-battle-stage.json"),
                     generatedDirectory.resolve("daily-battle-stage.json"));
+            stagedToTarget.put(
+                    stagingDirectory.resolve("quest-balance.json"),
+                    generatedDirectory.resolve("quest-balance.json"));
             writer.replaceFilesAtomically(stagedToTarget);
 
             System.out.println("Conversion successful. Generated files: " + stagedToTarget.size());
@@ -119,6 +122,7 @@ public class BalanceExcelConverter {
         validator.validateDailyBattleStages(
                 new DailyBattleStageBalanceDocument(data.dailyBattleStages()),
                 new MonsterSpecBalanceDocument(data.monsters()));
+        validator.validateQuests(new QuestBalanceDocument(data.quests(), data.questMilestones(), data.achievements()));
         validator.validateResonanceBalance(data.resonanceBalances());
         validateMutationBalance(data);
         validateBreedingBalance(data, poolDocument, new MythicChoiceBalanceDocument(data.mythicChoices(),
@@ -158,6 +162,8 @@ public class BalanceExcelConverter {
         documents.put(directory.resolve("daily-content.json"), new DailyContentBalanceDocument(data.dailyContents()));
         documents.put(directory.resolve("daily-battle-stage.json"),
                 new DailyBattleStageBalanceDocument(data.dailyBattleStages()));
+        documents.put(directory.resolve("quest-balance.json"),
+                new QuestBalanceDocument(data.quests(), data.questMilestones(), data.achievements()));
         return documents;
     }
 

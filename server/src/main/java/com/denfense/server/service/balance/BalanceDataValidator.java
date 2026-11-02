@@ -13,6 +13,82 @@ import java.util.stream.Collectors;
 @Component
 public class BalanceDataValidator {
 
+    public void validateQuests(QuestBalanceDocument document) {
+        if (document == null || document.quests() == null || document.milestones() == null
+                || document.achievements() == null) {
+            throw new IllegalStateException("Quest balance is missing.");
+        }
+        Set<String> questIds = new HashSet<>();
+        Map<QuestCycleType, Integer> questCounts = new java.util.EnumMap<>(QuestCycleType.class);
+        Map<QuestCycleType, Set<Integer>> milestonePoints = new java.util.EnumMap<>(QuestCycleType.class);
+        for (QuestBalance quest : document.quests()) {
+            if (quest == null || !quest.enabled() || quest.questId() == null || quest.questId().isBlank()
+                    || quest.title() == null || quest.title().isBlank()
+                    || quest.description() == null || quest.description().isBlank()
+                    || quest.conditionId() == null || quest.conditionId().isBlank()
+                    || quest.targetAmount() <= 0 || quest.activityPoints() <= 0
+                    || quest.rewardGold() < 0 || quest.rewardUniversalPiece() < 0 || quest.rewardDiamond() < 0
+                    || quest.sortOrder() <= 0 || !questIds.add(quest.questId())) {
+                throw new IllegalStateException("Invalid Quest row: " + quest);
+            }
+            questCounts.merge(quest.cycleType(), 1, Integer::sum);
+        }
+        for (QuestCycleType cycleType : QuestCycleType.values()) {
+            if (questCounts.getOrDefault(cycleType, 0) != 4) {
+                throw new IllegalStateException(cycleType + " must define exactly four Quests.");
+            }
+        }
+        for (QuestMilestoneBalance milestone : document.milestones()) {
+            if (milestone == null || !milestone.enabled() || milestone.requiredActivityPoints() <= 0
+                    || milestone.rewardGold() < 0 || milestone.rewardUniversalPiece() < 0
+                    || milestone.rewardDiamond() < 0 || milestone.sortOrder() <= 0
+                    || !milestonePoints.computeIfAbsent(milestone.cycleType(), key -> new HashSet<>())
+                    .add(milestone.requiredActivityPoints())) {
+                throw new IllegalStateException("Invalid Quest milestone row: " + milestone);
+            }
+        }
+        Set<Integer> expected = Set.of(25, 50, 75, 100);
+        for (QuestCycleType cycleType : QuestCycleType.values()) {
+            if (!expected.equals(milestonePoints.get(cycleType))) {
+                throw new IllegalStateException(cycleType + " milestones must be 25/50/75/100.");
+            }
+        }
+
+        Set<String> achievementIds = new HashSet<>();
+        Set<Integer> achievementSortOrders = new HashSet<>();
+        Set<String> conditionTargets = new HashSet<>();
+        if (document.achievements().isEmpty()) {
+            throw new IllegalStateException("Achievement balance must not be empty.");
+        }
+        for (AchievementBalance achievement : document.achievements()) {
+            boolean hasReward = achievement != null && (achievement.rewardGold() > 0
+                    || achievement.rewardUniversalPiece() > 0 || achievement.rewardDiamond() > 0);
+            if (achievement == null || !achievement.enabled()
+                    || achievement.achievementId() == null || achievement.achievementId().isBlank()
+                    || achievement.category() == null || achievement.category().isBlank()
+                    || achievement.tier() <= 0 || achievement.title() == null || achievement.title().isBlank()
+                    || achievement.description() == null || achievement.description().isBlank()
+                    || achievement.conditionId() == null || achievement.conditionId().isBlank()
+                    || !isSupportedAchievementCondition(achievement.conditionId())
+                    || achievement.targetAmount() <= 0 || achievement.rewardGold() < 0
+                    || achievement.rewardUniversalPiece() < 0 || achievement.rewardDiamond() < 0 || !hasReward
+                    || achievement.sortOrder() <= 0 || !achievementIds.add(achievement.achievementId())
+                    || !achievementSortOrders.add(achievement.sortOrder())
+                    || !conditionTargets.add(achievement.conditionId() + "\0" + achievement.targetAmount())) {
+                throw new IllegalStateException("Invalid Achievement row: " + achievement);
+            }
+        }
+    }
+
+    private boolean isSupportedAchievementCondition(String conditionId) {
+        return Set.of("BATTLE_MATCH_PARTICIPATION", "BATTLE_MATCH_VICTORY", "BATTLE_WAVE_CLEARED",
+                        "BATTLE_MONSTER_KILL", "BATTLE_SUPPORT_KILL", "BATTLE_BOSS_KILL")
+                .contains(conditionId)
+                || Set.of("NEPTUNE", "URANUS", "SATURN", "JUPITER", "MARS", "EARTH", "VENUS",
+                        "MERCURY", "SUN").stream()
+                .anyMatch(mapId -> ("BATTLE_PLANET_VICTORY:" + mapId).equals(conditionId));
+    }
+
     public void validateDailyContents(DailyContentBalanceDocument document) {
         if (document == null || document.contents() == null || document.contents().size() != 10) {
             throw new IllegalStateException("DailyContent must contain exactly 10 rows.");

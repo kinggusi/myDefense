@@ -1,4 +1,8 @@
 mydefense:
+  collection:
+    # Temporary tutorial-reward preview: MYTHIC 1/2, level 1, no bonus pieces.
+    # The service additionally requires local/dev and rejects prod/production profiles.
+    tutorial-mythic-preview-enabled: true
   battle:
     # Local Photon Host/Client smoke tests use dev-host/dev-client identities.
     # Any deployed profile keeps the secure false default from application.yml.

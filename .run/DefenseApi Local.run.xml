@@ -1,0 +1,11 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="DefenseApi Local" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="com.denfense.server.DefenseServerApplication" />
+    <module name="server.main" />
+    <option name="PROGRAM_PARAMETERS" value="--spring.profiles.active=local --server.address=127.0.0.1" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/server" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

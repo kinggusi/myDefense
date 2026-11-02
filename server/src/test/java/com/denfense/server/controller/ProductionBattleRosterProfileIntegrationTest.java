@@ -18,5 +18,6 @@ class ProductionBattleRosterProfileIntegrationTest {
     void productionContextDoesNotExposeLocalRosterControllerOrAdapter() {
         assertThat(context.getBeansOfType(LocalBattleSessionRosterController.class)).isEmpty();
         assertThat(context.getBeansOfType(LocalFusionSessionRosterAdapter.class)).isEmpty();
+        assertThat(context.getBeansOfType(QuestController.class)).isEmpty();
     }
 }

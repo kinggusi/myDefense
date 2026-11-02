@@ -110,6 +110,48 @@ final class BattleBalanceTestWorkbook {
         addBreedingSheets(workbook);
         addDailyContentSheet(workbook);
         addDailyBattleStageSheet(workbook);
+        addQuestSheets(workbook);
+    }
+
+    private static void addQuestSheets(Workbook workbook) {
+        if (workbook.getSheet("Quest") == null) {
+            addRows(workbook, "Quest",
+                    new String[]{"questId", "cycleType", "title", "description", "conditionId", "targetAmount",
+                            "activityPoints", "rewardGold", "rewardUniversalPiece", "rewardDiamond", "sortOrder", "enabled"},
+                    new Object[][]{
+                            {"D1", "DAILY", "Play", "Play once", "BATTLE_MATCH_PARTICIPATION", 1, 25, 500, 0, 0, 1, true},
+                            {"D2", "DAILY", "Wave", "Clear waves", "BATTLE_WAVE_CLEARED", 20, 25, 1000, 0, 0, 2, true},
+                            {"D3", "DAILY", "Kill", "Kill monsters", "BATTLE_MONSTER_KILL", 100, 25, 1000, 0, 0, 3, true},
+                            {"D4", "DAILY", "Win", "Win once", "BATTLE_MATCH_VICTORY", 1, 25, 1500, 0, 0, 4, true},
+                            {"W1", "WEEKLY", "Play", "Play ten", "BATTLE_MATCH_PARTICIPATION", 10, 25, 5000, 0, 0, 1, true},
+                            {"W2", "WEEKLY", "Wave", "Clear waves", "BATTLE_WAVE_CLEARED", 400, 25, 10000, 10, 0, 2, true},
+                            {"W3", "WEEKLY", "Kill", "Kill monsters", "BATTLE_MONSTER_KILL", 1000, 25, 10000, 10, 0, 3, true},
+                            {"W4", "WEEKLY", "Win", "Win five", "BATTLE_MATCH_VICTORY", 5, 25, 15000, 20, 0, 4, true}
+                    });
+        }
+        if (workbook.getSheet("QuestMilestone") == null) {
+            java.util.List<Object[]> rows = new java.util.ArrayList<>();
+            for (String cycle : new String[]{"DAILY", "WEEKLY"}) {
+                for (int index = 1; index <= 4; index++) {
+                    rows.add(new Object[]{cycle, index * 25, 500, index == 4 ? 10 : 0,
+                            "WEEKLY".equals(cycle) && index == 4 ? 300 : 0, index, true});
+                }
+            }
+            addRows(workbook, "QuestMilestone",
+                    new String[]{"cycleType", "requiredActivityPoints", "rewardGold", "rewardUniversalPiece",
+                            "rewardDiamond", "sortOrder", "enabled"}, rows.toArray(Object[][]::new));
+        }
+        if (workbook.getSheet("Achievement") == null) {
+            addRows(workbook, "Achievement",
+                    new String[]{"achievementId", "category", "tier", "title", "description", "conditionId",
+                            "targetAmount", "rewardGold", "rewardUniversalPiece", "rewardDiamond", "sortOrder", "enabled"},
+                    new Object[][]{
+                            {"ACH_PLAY_1", "BATTLE", 1, "First battle", "Play once",
+                                    "BATTLE_MATCH_PARTICIPATION", 1, 1000, 0, 0, 1, true},
+                            {"ACH_WIN_1", "VICTORY", 1, "First victory", "Win once",
+                                    "BATTLE_MATCH_VICTORY", 1, 2000, 5, 0, 2, true}
+                    });
+        }
     }
 
     private static void addDailyContentSheet(Workbook workbook) {

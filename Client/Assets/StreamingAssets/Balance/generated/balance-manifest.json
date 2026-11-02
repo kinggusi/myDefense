@@ -1,7 +1,7 @@
 {
   "schemaVersion" : 1,
-  "balanceVersion" : "1-b6ca576fc911aecb",
-  "contentHash" : "b6ca576fc911aecbdff4817778532fc2547bc734972538b3a36e5b8d54df63b2",
+  "balanceVersion" : "1-2c24f2a29fd63b81",
+  "contentHash" : "2c24f2a29fd63b81c092f7c648acb2acc405b7429901230e17e74fc6e4330cb5",
   "files" : [ {
     "name" : "alien-level-stat.json",
     "sha256" : "2afc3bb0d4e009c185e35cf76e56cf942e7925b288f77577eb20722b906a6f8f",
@@ -74,6 +74,10 @@
     "name" : "planet-battle-balance.json",
     "sha256" : "4da1a97bd718de08540903fb0e9d872c3c0a96c1ee006598b896816958a9f180",
     "size" : 1595
+  }, {
+    "name" : "quest-balance.json",
+    "sha256" : "492b635939e5bee2565afe2abdeb9df2635ab2f57fb1cda68970ce638962ee08",
+    "size" : 15960
   }, {
     "name" : "resonance-balance.json",
     "sha256" : "7f53c360202de3d53a4ff6bb417e276ca15acba5fdde2bad26ed139c2cc151f4",

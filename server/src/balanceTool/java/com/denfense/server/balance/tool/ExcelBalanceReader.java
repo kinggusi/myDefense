@@ -56,11 +56,15 @@ public class ExcelBalanceReader {
             List<com.denfense.server.balance.MythicBreedingRecipeBalance> breedingRecipes = readMythicBreedingRecipeSheet(workbook);
             List<com.denfense.server.balance.DailyContentBalance> dailyContents = readDailyContentSheet(workbook);
             List<com.denfense.server.balance.DailyBattleStageBalance> dailyBattleStages = readDailyBattleStageSheet(workbook);
+            List<com.denfense.server.balance.QuestBalance> quests = readQuestSheet(workbook);
+            List<com.denfense.server.balance.QuestMilestoneBalance> questMilestones = readQuestMilestoneSheet(workbook);
+            List<com.denfense.server.balance.AchievementBalance> achievements = readAchievementSheet(workbook);
 
             return new BalanceData(reward, battleReward, upgradeCosts, levelStats, alienSpecs, shopProducts, gachaPools, summonPools,
                     monsters, waves, waveSpawns, planetBattles, fieldLimits, summons, mergeRules, mythicChoices,
                     mutationSpecs, mutationConfig, injectorPools, resonanceBalances,
-                    breedingConfig, breedingResults, breedingRecipes, dailyContents, dailyBattleStages);
+                    breedingConfig, breedingResults, breedingRecipes, dailyContents, dailyBattleStages,
+                    quests, questMilestones, achievements);
 
         } catch (IOException e) {
             throw new BalanceConversionException("파일을 읽는 중 오류가 발생했습니다: " + filePath, e);
@@ -1115,6 +1119,85 @@ public class ExcelBalanceReader {
         return readHeaders(sheet.getSheetName(), header, Arrays.asList(expected));
     }
 
+    private List<com.denfense.server.balance.QuestBalance> readQuestSheet(Workbook workbook) {
+        Sheet sheet = getSheetOrThrow(workbook, "Quest");
+        List<String> headers = requiredHeaders(sheet, "questId", "cycleType", "title", "description",
+                "conditionId", "targetAmount", "activityPoints", "rewardGold", "rewardUniversalPiece",
+                "rewardDiamond", "sortOrder", "enabled");
+        List<com.denfense.server.balance.QuestBalance> rows = new ArrayList<>();
+        for (int rowIndex = 1; rowIndex <= sheet.getLastRowNum(); rowIndex++) {
+            Row row = sheet.getRow(rowIndex);
+            if (row == null || isBlankRow(row, headers.size())) continue;
+            rows.add(new com.denfense.server.balance.QuestBalance(
+                    readStringCell(sheet.getSheetName(), rowIndex, "questId", row.getCell(headers.indexOf("questId"))),
+                    com.denfense.server.balance.QuestCycleType.valueOf(readStringCell(
+                            sheet.getSheetName(), rowIndex, "cycleType", row.getCell(headers.indexOf("cycleType")))),
+                    readStringCell(sheet.getSheetName(), rowIndex, "title", row.getCell(headers.indexOf("title"))),
+                    readStringCell(sheet.getSheetName(), rowIndex, "description", row.getCell(headers.indexOf("description"))),
+                    readStringCell(sheet.getSheetName(), rowIndex, "conditionId", row.getCell(headers.indexOf("conditionId"))),
+                    readLongCell(sheet.getSheetName(), rowIndex, "targetAmount", row.getCell(headers.indexOf("targetAmount"))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "activityPoints", row.getCell(headers.indexOf("activityPoints"))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "rewardGold", row.getCell(headers.indexOf("rewardGold"))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "rewardUniversalPiece", row.getCell(headers.indexOf("rewardUniversalPiece"))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "rewardDiamond", row.getCell(headers.indexOf("rewardDiamond"))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "sortOrder", row.getCell(headers.indexOf("sortOrder"))),
+                    readBooleanCell(sheet.getSheetName(), rowIndex, "enabled", row.getCell(headers.indexOf("enabled")))));
+        }
+        rows.sort(Comparator.comparing(com.denfense.server.balance.QuestBalance::cycleType)
+                .thenComparingInt(com.denfense.server.balance.QuestBalance::sortOrder));
+        return rows;
+    }
+
+    private List<com.denfense.server.balance.QuestMilestoneBalance> readQuestMilestoneSheet(Workbook workbook) {
+        Sheet sheet = getSheetOrThrow(workbook, "QuestMilestone");
+        List<String> headers = requiredHeaders(sheet, "cycleType", "requiredActivityPoints", "rewardGold",
+                "rewardUniversalPiece", "rewardDiamond", "sortOrder", "enabled");
+        List<com.denfense.server.balance.QuestMilestoneBalance> rows = new ArrayList<>();
+        for (int rowIndex = 1; rowIndex <= sheet.getLastRowNum(); rowIndex++) {
+            Row row = sheet.getRow(rowIndex);
+            if (row == null || isBlankRow(row, headers.size())) continue;
+            rows.add(new com.denfense.server.balance.QuestMilestoneBalance(
+                    com.denfense.server.balance.QuestCycleType.valueOf(readStringCell(
+                            sheet.getSheetName(), rowIndex, "cycleType", row.getCell(headers.indexOf("cycleType")))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "requiredActivityPoints", row.getCell(headers.indexOf("requiredActivityPoints"))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "rewardGold", row.getCell(headers.indexOf("rewardGold"))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "rewardUniversalPiece", row.getCell(headers.indexOf("rewardUniversalPiece"))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "rewardDiamond", row.getCell(headers.indexOf("rewardDiamond"))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "sortOrder", row.getCell(headers.indexOf("sortOrder"))),
+                    readBooleanCell(sheet.getSheetName(), rowIndex, "enabled", row.getCell(headers.indexOf("enabled")))));
+        }
+        rows.sort(Comparator.comparing(com.denfense.server.balance.QuestMilestoneBalance::cycleType)
+                .thenComparingInt(com.denfense.server.balance.QuestMilestoneBalance::sortOrder));
+        return rows;
+    }
+
+    private List<com.denfense.server.balance.AchievementBalance> readAchievementSheet(Workbook workbook) {
+        Sheet sheet = getSheetOrThrow(workbook, "Achievement");
+        List<String> headers = requiredHeaders(sheet, "achievementId", "category", "tier", "title", "description",
+                "conditionId", "targetAmount", "rewardGold", "rewardUniversalPiece", "rewardDiamond",
+                "sortOrder", "enabled");
+        List<com.denfense.server.balance.AchievementBalance> rows = new ArrayList<>();
+        for (int rowIndex = 1; rowIndex <= sheet.getLastRowNum(); rowIndex++) {
+            Row row = sheet.getRow(rowIndex);
+            if (row == null || isBlankRow(row, headers.size())) continue;
+            rows.add(new com.denfense.server.balance.AchievementBalance(
+                    readStringCell(sheet.getSheetName(), rowIndex, "achievementId", row.getCell(headers.indexOf("achievementId"))),
+                    readStringCell(sheet.getSheetName(), rowIndex, "category", row.getCell(headers.indexOf("category"))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "tier", row.getCell(headers.indexOf("tier"))),
+                    readStringCell(sheet.getSheetName(), rowIndex, "title", row.getCell(headers.indexOf("title"))),
+                    readStringCell(sheet.getSheetName(), rowIndex, "description", row.getCell(headers.indexOf("description"))),
+                    readStringCell(sheet.getSheetName(), rowIndex, "conditionId", row.getCell(headers.indexOf("conditionId"))),
+                    readLongCell(sheet.getSheetName(), rowIndex, "targetAmount", row.getCell(headers.indexOf("targetAmount"))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "rewardGold", row.getCell(headers.indexOf("rewardGold"))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "rewardUniversalPiece", row.getCell(headers.indexOf("rewardUniversalPiece"))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "rewardDiamond", row.getCell(headers.indexOf("rewardDiamond"))),
+                    readIntCell(sheet.getSheetName(), rowIndex, "sortOrder", row.getCell(headers.indexOf("sortOrder"))),
+                    readBooleanCell(sheet.getSheetName(), rowIndex, "enabled", row.getCell(headers.indexOf("enabled")))));
+        }
+        rows.sort(Comparator.comparingInt(com.denfense.server.balance.AchievementBalance::sortOrder));
+        return rows;
+    }
+
     public static record BalanceData(
         GameRewardBalance gameReward,
         com.denfense.server.balance.BattleRewardBalance battleReward,
@@ -1141,5 +1224,8 @@ public class ExcelBalanceReader {
         List<com.denfense.server.balance.MythicBreedingRecipeBalance> mythicBreedingRecipes
         , List<com.denfense.server.balance.DailyContentBalance> dailyContents
         , List<com.denfense.server.balance.DailyBattleStageBalance> dailyBattleStages
+        , List<com.denfense.server.balance.QuestBalance> quests
+        , List<com.denfense.server.balance.QuestMilestoneBalance> questMilestones
+        , List<com.denfense.server.balance.AchievementBalance> achievements
     ) {}
 }

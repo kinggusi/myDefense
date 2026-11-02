@@ -61,7 +61,14 @@ public enum ErrorCode {
     DAILY_CONTENT_RESULT_INVALID(HttpStatus.CONFLICT, "처리할 수 없는 일일 콘텐츠 결과입니다."),
     DAILY_CONTENT_RESULT_FORBIDDEN(HttpStatus.FORBIDDEN, "신뢰되지 않은 일일 콘텐츠 결과 요청입니다."),
     DAILY_CONTENT_SWEEP_LOCKED(HttpStatus.FORBIDDEN, "클리어하지 않은 Stage는 소탕할 수 없습니다."),
+    QUEST_NOT_FOUND(HttpStatus.NOT_FOUND, "퀘스트 또는 누적 보상을 찾을 수 없습니다."),
+    QUEST_NOT_COMPLETED(HttpStatus.CONFLICT, "아직 완료하지 않은 퀘스트입니다."),
+    QUEST_MILESTONE_LOCKED(HttpStatus.CONFLICT, "활동도가 부족해 누적 보상을 받을 수 없습니다."),
+    QUEST_REQUEST_CONFLICT(HttpStatus.CONFLICT, "동일한 퀘스트 보상 요청 ID가 충돌했습니다."),
+    ACHIEVEMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "업적을 찾을 수 없습니다."),
+    ACHIEVEMENT_NOT_COMPLETED(HttpStatus.CONFLICT, "아직 완료하지 않은 업적입니다."),
     BATTLE_SETTLEMENT_CONFLICT(HttpStatus.CONFLICT,"Battle settlement conflict"), BATTLE_SUMMARY_INVALID(HttpStatus.BAD_REQUEST,"Invalid battle summary"), BATTLE_PARTICIPANT_MISMATCH(HttpStatus.BAD_REQUEST,"Invalid participants"), BATTLE_BALANCE_VERSION_MISMATCH(HttpStatus.CONFLICT,"Balance version mismatch"), BATTLE_CONTENT_HASH_MISMATCH(HttpStatus.CONFLICT,"Balance content hash mismatch"), BATTLE_UNKNOWN_MONSTER(HttpStatus.BAD_REQUEST,"Unknown monster"), BATTLE_REQUEST_CONFLICT(HttpStatus.CONFLICT,"Battle request conflict"),
+    RESOURCE_NOT_FOUND(HttpStatus.NOT_FOUND, "요청한 경로를 찾을 수 없습니다."),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "예상치 못한 서버 에러가 발생했습니다.");
 
     private final HttpStatus status;

@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
+import java.util.List;
 
 public interface QuestProgressRepository extends JpaRepository<QuestProgress, Long> {
     Optional<QuestProgress> findByUserIdAndQuestConditionId(Long userId, String questConditionId);
@@ -16,4 +17,6 @@ public interface QuestProgressRepository extends JpaRepository<QuestProgress, Lo
     @Query("select q from QuestProgress q where q.user.id = :userId and q.questConditionId = :conditionId")
     Optional<QuestProgress> findForUpdate(@Param("userId") Long userId,
                                           @Param("conditionId") String questConditionId);
+
+    List<QuestProgress> findAllByUserId(Long userId);
 }

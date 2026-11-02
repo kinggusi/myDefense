@@ -1,5 +1,6 @@
 package com.denfense.server.service;
 
+import com.denfense.server.balance.QuestCycleType;
 import com.denfense.server.domain.*;
 import com.denfense.server.repository.*;
 import org.junit.jupiter.api.AfterEach;
@@ -21,12 +22,17 @@ class QuestSettlementProcessorIntegrationTest {
     @Autowired QuestSettlementProcessor processor;
     @Autowired QuestProgressRepository progresses;
     @Autowired QuestSettlementApplicationRepository applications;
+    @Autowired QuestCycleProgressRepository cycleProgresses;
+    @Autowired QuestRewardClaimRepository rewardClaims;
+    @Autowired QuestTimeProvider questTime;
     @Autowired BattlePlayerSettlementRepository playerSettlements;
     @Autowired BattleSettlementRepository settlements;
     @Autowired UserRepository users;
 
     @AfterEach
     void cleanup() {
+        rewardClaims.deleteAllInBatch();
+        cycleProgresses.deleteAllInBatch();
         applications.deleteAllInBatch();
         progresses.deleteAllInBatch();
         playerSettlements.deleteAllInBatch();
@@ -51,7 +57,7 @@ class QuestSettlementProcessorIntegrationTest {
         QuestSettlementProcessor.ProcessResult firstResult = processor.process(settlement.getId());
         QuestSettlementProcessor.ProcessResult retryResult = processor.process(settlement.getId());
 
-        assertThat(firstResult.excludedBySource()).isFalse();
+        assertThat(firstResult.excluded()).isFalse();
         assertThat(firstResult.applicationCount()).isEqualTo(8);
         assertThat(retryResult.applicationCount()).isZero();
         assertThat(applications.count()).isEqualTo(8);
@@ -61,6 +67,10 @@ class QuestSettlementProcessorIntegrationTest {
         assertProgress(first, QuestSettlementProcessor.SUPPORT_KILL, 1);
         assertProgress(second, QuestSettlementProcessor.MONSTER_KILL, 5);
         assertProgress(second, QuestSettlementProcessor.SUPPORT_KILL, 2);
+        assertCycleProgress(first, "DAILY_PLAY_1", QuestCycleType.DAILY, 1);
+        assertCycleProgress(first, "WEEKLY_PLAY_10", QuestCycleType.WEEKLY, 1);
+        assertCycleProgress(first, "DAILY_KILL_100", QuestCycleType.DAILY, 7);
+        assertCycleProgress(first, "WEEKLY_KILL_1000", QuestCycleType.WEEKLY, 7);
     }
 
     @Test
@@ -69,6 +79,29 @@ class QuestSettlementProcessorIntegrationTest {
         assertExcluded("quest-fixture", SessionSource.VALIDATION_FIXTURE);
 
         assertThat(progresses.count()).isZero();
+        assertThat(applications.count()).isZero();
+    }
+
+    @Test
+    void abortedProductionSettlementNeverMutatesQuestOrAchievementProgress() {
+        User first = saveUser("quest-aborted-first");
+        User second = saveUser("quest-aborted-second");
+        BattleSettlement settlement = settlement(
+                "quest-aborted", SessionSource.PRODUCTION, BattleResult.ABORTED, 2);
+        settlements.saveAndFlush(settlement);
+        playerSettlements.save(new BattlePlayerSettlement(
+                settlement, first, 1, false, null, 7, 1, 0,
+                100, 20, 10, 110, false));
+        playerSettlements.saveAndFlush(new BattlePlayerSettlement(
+                settlement, second, 2, false, null, 5, 2, 0,
+                100, 20, 10, 110, false));
+
+        QuestSettlementProcessor.ProcessResult result = processor.process(settlement.getId());
+
+        assertThat(result.excluded()).isTrue();
+        assertThat(result.applicationCount()).isZero();
+        assertThat(progresses.count()).isZero();
+        assertThat(cycleProgresses.count()).isZero();
         assertThat(applications.count()).isZero();
     }
 
@@ -146,7 +179,7 @@ class QuestSettlementProcessorIntegrationTest {
                 settlement, second, 2, false, null, 5, 2, 0,
                 100, 20, 10, 110, false));
 
-        assertThat(processor.process(settlement.getId()).excludedBySource()).isTrue();
+        assertThat(processor.process(settlement.getId()).excluded()).isTrue();
     }
 
     private BattleSettlement settlement(String key, SessionSource source, BattleResult result, int finalWave) {
@@ -166,5 +199,11 @@ class QuestSettlementProcessorIntegrationTest {
     private void assertProgress(User user, String conditionId, long expected) {
         assertThat(progresses.findByUserIdAndQuestConditionId(user.getId(), conditionId))
                 .get().extracting(QuestProgress::getProgress).isEqualTo(expected);
+    }
+
+    private void assertCycleProgress(User user, String questId, QuestCycleType cycleType, long expected) {
+        assertThat(cycleProgresses.findByUserIdAndQuestIdAndCycleKey(
+                user.getId(), questId, questTime.cycleKey(cycleType)).orElseThrow().getProgress())
+                .isEqualTo(expected);
     }
 }
