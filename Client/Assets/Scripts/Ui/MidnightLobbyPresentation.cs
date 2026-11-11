@@ -37,7 +37,8 @@ public sealed class MidnightLobbyPresentation : MonoBehaviour
     }
     private void BuildShell()
     {
-        // The profile and all its ancestors are intentionally untouched.
+        // Canvas/tab_bar ancestors remain unchanged. The profile itself is now explicitly
+        // approved for compact restyling; bound text/button/Slider objects are preserved.
         MidnightLobbyTheme.RegisterCanvas(canvas);
         var oldBackground=canvas.transform.Find("LobbySpaceshipBackground");
         if(oldBackground!=null)oldBackground.gameObject.SetActive(false);
@@ -48,7 +49,7 @@ public sealed class MidnightLobbyPresentation : MonoBehaviour
             if(view==null)continue;
             var image=view.GetComponent<Image>();if(image!=null) { image.color=Color.clear;image.raycastTarget=false; }
         }
-        BuildCollection();BuildMain();BuildContent();StyleCurrencies();
+        BuildCollection();BuildMain();BuildContent();MidnightHeaderPresentation.Apply(lobby);
         // One initial pass for authored legacy frames. Future popup instances opt in on OnEnable.
         foreach(var frame in canvas.GetComponentsInChildren<LobbyNeonGraphic>(true))
             if(!MidnightLobbyTheme.IsProtectedProfile(frame.transform))frame.UseMidnightStyle();
@@ -200,7 +201,12 @@ public sealed class MidnightLobbyPresentation : MonoBehaviour
             var row=panel.Find(names[i]) as RectTransform;if(row==null)continue;
             LobbyFinalPresentation.Place(row,i*.51f,0,i*.51f+.49f,1);
             var border=LobbyFinalPresentation.Frame(row.gameObject);border.gameObject.SetActive(true);border.UseMidnightStyle();
-            var icon=row.Find("MaterialIcon") as RectTransform;if(icon!=null)LobbyFinalPresentation.Place(icon,.04f,.18f,.28f,.82f);
+            var icon=row.Find("MaterialIcon") as RectTransform;if(icon!=null)
+            {
+                LobbyFinalPresentation.Place(icon,.015f,.08f,.31f,.92f);
+                var old=icon.GetComponent<Graphic>();if(old!=null)old.enabled=false;
+                MidnightIconAtlas.Place(icon,i==0?MidnightIconAtlas.Icon.Dna:MidnightIconAtlas.Icon.Cells);
+            }
             var name=LobbyFinalPresentation.TextChild(row,"MaterialName",labels[i],28);LobbyFinalPresentation.Place(name.rectTransform,.31f,.53f,.79f,.90f);name.alignment=TextAnchor.MiddleLeft;MidnightLobbyTheme.Typography(name,28);
             var value=row.Find("Value") as RectTransform;if(value!=null){LobbyFinalPresentation.Place(value,.31f,.10f,.78f,.52f);var text=value.GetComponent<Text>();text.alignment=TextAnchor.MiddleLeft;MidnightLobbyTheme.Typography(text,34);}
             var plus=row.Find("PurchasePlus") as RectTransform;if(plus!=null)LobbyFinalPresentation.Place(plus,.80f,.5f,.95f,.5f);
@@ -211,7 +217,8 @@ public sealed class MidnightLobbyPresentation : MonoBehaviour
         Top((RectTransform)view.transform,.69f,.96f,285,415);
         LobbyFinalPresentation.Frame(view.gameObject).UseMidnightAccent(new Color(.23f,.14f,.30f,.98f));
         var dna=LobbyFinalPresentation.Child(view.transform,"MidnightDnaIcon");LobbyFinalPresentation.Place(dna,.055f,.40f,.26f,.93f);
-        LobbyFinalPresentation.Get<MyDefense.Lobby.LobbyMaterialIconGraphic>(dna.gameObject).Configure(MyDefense.Lobby.LobbyMaterialIconGraphic.MaterialKind.WakjeoDna);
+        var oldDna=dna.GetComponent<MyDefense.Lobby.LobbyMaterialIconGraphic>();if(oldDna!=null)oldDna.enabled=false;
+        MidnightIconAtlas.Place(dna,MidnightIconAtlas.Icon.Dna);
         LobbyFinalPresentation.Place(view.titleText.rectTransform,.30f,.49f,.72f,.90f);MidnightLobbyTheme.Typography(view.titleText,32);
         LobbyFinalPresentation.Place(view.statusText.rectTransform,.09f,.07f,.88f,.39f);MidnightLobbyTheme.Typography(view.statusText,24,FontStyle.Normal);
         var arrow=view.transform.Find("EntryArrow") as RectTransform;if(arrow!=null)LobbyFinalPresentation.Place(arrow,.85f,.26f,.98f,.80f);

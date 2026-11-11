@@ -138,12 +138,12 @@ public sealed partial class ShopCatalogView
                     Frame(card,LobbyNeonGraphic.FrameStyle.Panel);card.GetComponent<LobbyNeonGraphic>().raycastTarget=true;
                     if(!string.IsNullOrEmpty(offer.grade))card.GetComponent<LobbyNeonGraphic>().SetGrade(offer.grade);
                     var icon=Rect("Icon",card);Stretch(icon,.15f,.48f,.85f,.88f);
-                    if(offer.rewardType=="DNA"||offer.rewardType=="GROWTH_CELL")icon.gameObject.AddComponent<LobbyMaterialIconGraphic>().Configure(offer.rewardType=="DNA"?LobbyMaterialIconGraphic.MaterialKind.WakjeoDna:LobbyMaterialIconGraphic.MaterialKind.GrowthCell);
+                    if(offer.rewardType=="DNA"||offer.rewardType=="GROWTH_CELL"||offer.rewardType=="GOLD")
+                        MidnightIconAtlas.Place(icon,offer.rewardType=="DNA"?MidnightIconAtlas.Icon.Dna:offer.rewardType=="GROWTH_CELL"?MidnightIconAtlas.Icon.Cells:MidnightIconAtlas.Icon.Coin);
                     else
                     {
                         var sprite=Resources.Load<LobbyUnitPortraitCatalog>(LobbyUnitPortraitCatalog.ResourcePath)?.Find(offer.alienId,offer.grade);
                         if(sprite!=null){var image=icon.gameObject.AddComponent<Image>();image.sprite=sprite;image.preserveAspect=true;image.raycastTarget=false;}
-                        else if(offer.rewardType=="GOLD")icon.gameObject.AddComponent<MidnightCoinGraphic>();
                         else Label(icon,"Symbol","◆",70,0,0,1,1).color=new Color(.77f,.64f,1f);
                     }
                     bool discounted=offer.regularPrice>offer.price;
@@ -185,8 +185,6 @@ public sealed partial class ShopCatalogView
         var label=button.GetComponentInChildren<Text>();MidnightLobbyTheme.Typography(label,fontSize);
         LobbyFinalPresentation.Place(label.rectTransform,.24f,.06f,.96f,.94f);
         var icon=Rect("CurrencyIcon",button.transform);Stretch(icon,.065f,.21f,.23f,.79f);
-        var sprite=MidnightLobbyTheme.CurrencySprite(currency=="GOLD"?"Coin":"Gem");
-        if(sprite!=null){var image=icon.gameObject.AddComponent<Image>();image.sprite=sprite;image.preserveAspect=true;image.raycastTarget=false;}
-        else Label(icon,"CurrencySymbol",currency=="GOLD"?"●":"◆",fontSize,0,0,1,1).color=currency=="GOLD"?new Color(1,.8f,.32f):MidnightLobbyTheme.Accent;
+        MidnightIconAtlas.Place(icon,currency=="GOLD"?MidnightIconAtlas.Icon.Coin:MidnightIconAtlas.Icon.Diamond);
     }
 }

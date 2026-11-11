@@ -29,7 +29,7 @@ public sealed class LobbyMidnightUiTests
         }
         finally {if(existed)PlayerPrefs.SetInt(MidnightLobbyTheme.PreferenceKey,old);else PlayerPrefs.DeleteKey(MidnightLobbyTheme.PreferenceKey);PlayerPrefs.Save();}
     }
-    [Test] public void ShellLeavesProfileAndAncestorTransformsAndRenderedStyleUntouched()
+    [Test] public void ShellRestylesProfileButPreservesBoundTextAndAncestorTransforms()
     {
         var root=new GameObject("MidnightProfileTest",typeof(RectTransform),typeof(Canvas));
         try
@@ -46,11 +46,12 @@ public sealed class LobbyMidnightUiTests
             var skin=managerObject.AddComponent<MidnightLobbyPresentation>();
             typeof(MidnightLobbyPresentation).GetField("lobby",Private).SetValue(skin,lobby);
             typeof(MidnightLobbyPresentation).GetField("canvas",Private).SetValue(skin,canvas);
-            var profileBefore=new RectSnapshot(profile);var barBefore=new RectSnapshot(bar);var canvasBefore=new RectSnapshot((RectTransform)root.transform);
+            var barBefore=new RectSnapshot(bar);var canvasBefore=new RectSnapshot((RectTransform)root.transform);
             typeof(MidnightLobbyPresentation).GetMethod("BuildShell",Private).Invoke(skin,null);
-            profileBefore.AssertUnchanged(profile);barBefore.AssertUnchanged(bar,false);canvasBefore.AssertUnchanged((RectTransform)root.transform);
-            Assert.AreEqual("Guest-23",label.text);Assert.AreEqual(26,label.fontSize);Assert.AreEqual(Color.yellow,label.color);
-            Assert.IsFalse(frame.IsMidnightStyle,"Profile must retain the legacy rendering path, not just its RectTransform.");
+            barBefore.AssertUnchanged(bar,false);canvasBefore.AssertUnchanged((RectTransform)root.transform);
+            Assert.AreSame(label,lobby.text_UserName);Assert.AreEqual("Guest-23",label.text);Assert.AreEqual(28,label.fontSizeMax);Assert.AreEqual(MidnightLobbyTheme.Ink,label.color);
+            Assert.IsFalse(frame.enabled,"The old profile frame must be hidden, not layered under the compact profile.");
+            Assert.NotNull(profile.Find("MidnightAvatar/MidnightAtlasIcon"));
             var main=lobby.viewObjects[2].transform.Find("MidnightMainBody");
             var progressPlate=main.Find("MidnightProgressPlate").GetComponent<Image>();
             Assert.IsFalse(progressPlate.raycastTarget);Assert.GreaterOrEqual(progressPlate.color.a,.85f);
@@ -105,6 +106,7 @@ public sealed class LobbyMidnightUiTests
     [TestCase("observatory-background")]
     [TestCase("gacha-prism")]
     [TestCase("neptune-observatory")]
+    [TestCase("status-material-icons-v3")]
     public void ArtworkImporterPreservesRawPngDimensionsAndAspect(string name)
     {
         string path="Assets/Resources/Lobby/Midnight/"+name+".png";
@@ -163,7 +165,7 @@ public sealed class LobbyMidnightUiTests
         var uv=MidnightArtworkCrop.CoverUv(2,1,new Vector2(focal,.5f));
         Assert.That(uv.x,Is.EqualTo(expectedX).Within(.001f));Assert.AreEqual(.5f,uv.width);Assert.AreEqual(1,uv.height);
     }
-    [Test] public void RibbonIsOnlyDrawnForGradedCardsAndButtonsHaveLargeCuts()
+    [Test] public void RibbonIsOnlyDrawnForGradedCardsAndButtonsKeepReducedSlantedCuts()
     {
         var root=new GameObject("RibbonTest",typeof(RectTransform),typeof(LobbyNeonGraphic));
         try
@@ -172,6 +174,7 @@ public sealed class LobbyMidnightUiTests
             frame.SetGrade("NORMAL");Assert.IsTrue(frame.HasMidnightRibbon);
             frame.Configure(LobbyNeonGraphic.FrameStyle.Panel);Assert.IsFalse(frame.HasMidnightRibbon);
             Assert.Greater(LobbyNeonGraphic.MidnightCorner(LobbyNeonGraphic.FrameStyle.Button,450,140),LobbyNeonGraphic.MidnightCorner(LobbyNeonGraphic.FrameStyle.Panel,450,140));
+            Assert.Less(LobbyNeonGraphic.MidnightCorner(LobbyNeonGraphic.FrameStyle.Button,450,140),20);
         }
         finally{UnityEngine.Object.DestroyImmediate(root);}
     }
@@ -279,6 +282,110 @@ public sealed class LobbyMidnightUiTests
             }
         }
         finally{UnityEngine.Object.DestroyImmediate(root);}
+    }
+    [TestCase(0,0,512)][TestCase(1,512,512)][TestCase(2,1024,512)]
+    [TestCase(3,0,0)][TestCase(4,512,0)][TestCase(5,1024,0)]
+    public void IconAtlasUsesExactTileAndCachedSprite(int index,int x,int y)
+    {
+        var icon=(MidnightIconAtlas.Icon)index;
+        Assert.AreEqual(new Rect(x,y,512,512),MidnightIconAtlas.TileRect(icon,1536,1024));
+        var sprite=MidnightIconAtlas.Get(icon);Assert.NotNull(sprite);Assert.AreSame(sprite,MidnightIconAtlas.Get(icon));
+        Assert.AreEqual(new Rect(x,y,512,512),sprite.rect);Assert.AreEqual(1536,sprite.texture.width);Assert.AreEqual(1024,sprite.texture.height);
+    }
+    [Test] public void AtlasRepeatedPlacementUsesOneNonBlockingImage()
+    {
+        var root=new GameObject("AtlasPlacement",typeof(RectTransform));
+        try
+        {
+            var first=MidnightIconAtlas.Place(root.transform,MidnightIconAtlas.Icon.Dna);
+            var second=MidnightIconAtlas.Place(root.transform,MidnightIconAtlas.Icon.Dna);
+            Assert.AreSame(first,second);Assert.AreEqual(1,root.transform.childCount);Assert.IsFalse(first.raycastTarget);Assert.IsTrue(first.preserveAspect);
+        }
+        finally{UnityEngine.Object.DestroyImmediate(root);}
+    }
+    [TestCase(1440)][TestCase(1920)][TestCase(2340)]
+    public void CompactHeaderPreservesDataCallbacksAndFitsNineDigitWallet(int height)
+    {
+        var root=new GameObject("CompactHeader",typeof(RectTransform),typeof(Canvas));
+        try
+        {
+            root.GetComponent<Canvas>().renderMode=RenderMode.WorldSpace;((RectTransform)root.transform).sizeDelta=new Vector2(1080,height);
+            var bar=ShopCatalogView.Rect("tab_bar",root.transform);bar.sizeDelta=new Vector2(1080,116);
+            var profile=ShopCatalogView.Rect("LobbyProfileStatus",bar);profile.gameObject.AddComponent<LobbyNeonGraphic>();
+            var owner=new GameObject("Manager",typeof(LobbyManager));owner.transform.SetParent(root.transform);var lobby=owner.GetComponent<LobbyManager>();
+            lobby.text_UserName=Tmp(profile,"Name","Guest-999999");lobby.text_UserLevel=Tmp(profile,"Level","123");
+            var xp=ShopCatalogView.Rect("Experience_Slider",profile).gameObject.AddComponent<Slider>();xp.value=.15f;
+            int xpEvents=0;xp.onValueChanged.AddListener(_=>xpEvents++);
+            string[] names={"Heart","Coin","Gem"};var texts=new TMPro.TMP_Text[3];var buttons=new Button[3];int clicks=0;
+            for(int i=0;i<3;i++)
+            {
+                var panel=ShopCatalogView.Rect("Wallet"+i,bar);panel.gameObject.AddComponent<Image>();
+                ShopCatalogView.Rect(names[i],panel).gameObject.AddComponent<Image>();texts[i]=Tmp(panel,"Amount","999,999,999");
+                var plus=ShopCatalogView.Rect("Plus Button",panel);buttons[i]=plus.gameObject.AddComponent<Button>();buttons[i].onClick.AddListener(()=>clicks++);
+                ShopCatalogView.Label(plus,"NeonPlusLabel","+",22,0,0,1,1);
+            }
+            lobby.text_Heart=texts[0];lobby.text_Gold=texts[1];lobby.text_Diamond=texts[2];
+            var before=new RectSnapshot(bar);MidnightHeaderPresentation.Apply(lobby);MidnightHeaderPresentation.Apply(lobby);before.AssertUnchanged(bar);
+            Assert.AreEqual("Guest-999999",lobby.text_UserName.text);Assert.AreEqual("123",lobby.text_UserLevel.text);
+            Assert.AreEqual(.15f,xp.value);Assert.AreEqual(0,xpEvents);Assert.IsFalse(xp.gameObject.activeSelf);
+            Assert.AreEqual(1,profile.GetComponentsInChildren<Image>().Count(i=>i.name=="MidnightAtlasIcon"));
+            Canvas.ForceUpdateCanvases();
+            for(int i=0;i<3;i++)
+            {
+                Assert.AreEqual("999,999,999",texts[i].text);texts[i].ForceMeshUpdate(true,true);
+                Assert.IsFalse(texts[i].isTextOverflowing,"Nine-digit wallet must fit without ellipsis.");
+                Assert.Greater(texts[i].rectTransform.rect.width,90);Assert.AreSame(texts[i],i==0?lobby.text_Heart:i==1?lobby.text_Gold:lobby.text_Diamond);
+                var hit=(RectTransform)buttons[i].transform;Assert.AreEqual(new Vector2(44,88),hit.sizeDelta);
+                Assert.AreEqual(new Vector2(44,44),((RectTransform)buttons[i].targetGraphic.transform).sizeDelta);
+                Assert.IsTrue(hit.GetComponent<Image>().raycastTarget);buttons[i].onClick.Invoke();
+            }
+            Assert.AreEqual(3,clicks);
+        }
+        finally{UnityEngine.Object.DestroyImmediate(root);}
+    }
+    [Test] public void SatinSurfaceContainsRoundedNonDegenerateGeometryAndSubtleHighlights()
+    {
+        var bounds=new Rect(0,0,240,160);Assert.AreEqual(24,MidnightSurfaceMesh.Outline(bounds,10,false).Length);
+        using(var helper=new VertexHelper())
+        {
+            MidnightSurfaceMesh.Draw(helper,bounds,new Color(.10f,.135f,.205f,.97f),new Color(.57f,.66f,.81f,.42f),Color.white,10,1);
+            var mesh=new Mesh();try
+            {
+                helper.FillMesh(mesh);Assert.Greater(mesh.vertexCount,100);var vertices=mesh.vertices;var triangles=mesh.triangles;
+                for(int i=0;i<triangles.Length;i+=3)
+                    Assert.Greater(Vector3.Cross(vertices[triangles[i+1]]-vertices[triangles[i]],vertices[triangles[i+2]]-vertices[triangles[i]]).sqrMagnitude,.000001f);
+                Assert.Greater(mesh.colors32.Select(c=>c.a).Distinct().Count(),3);
+                Assert.IsTrue(mesh.colors32.Any(c=>c.a>200&&c.b<100&&c.r<70),"Main fill must remain dark navy, not whitewashed.");
+            }
+            finally{UnityEngine.Object.DestroyImmediate(mesh);}
+        }
+    }
+    [TestCase(0f)][TestCase(.5f)]
+    public void ClanMidnightOpacityScalesEveryLayerExactlyOnce(float opacity)
+    {
+        var root=new GameObject("ClanOpacity",typeof(RectTransform),typeof(MyDefense.Clans.ClanSurfaceGraphic));
+        try
+        {
+            var graphic=root.GetComponent<MyDefense.Clans.ClanSurfaceGraphic>();graphic.shape=MyDefense.Clans.ClanSurfaceGraphic.Shape.Panel;
+            var draw=typeof(MyDefense.Clans.ClanSurfaceGraphic).GetMethod("DrawMidnightPanel",Private);
+            Color32[][] colors=new Color32[2][];
+            for(int pass=0;pass<2;pass++)using(var helper=new VertexHelper())
+            {
+                graphic.color=new Color(.2f,.3f,.4f,pass==0?1f:opacity);
+                draw.Invoke(graphic,new object[]{helper,new Rect(0,0,240,160)});
+                var mesh=new Mesh();try{helper.FillMesh(mesh);colors[pass]=mesh.colors32;}finally{UnityEngine.Object.DestroyImmediate(mesh);}
+            }
+            Assert.AreEqual(colors[0].Length,colors[1].Length);Assert.Greater(colors[0].Length,100);
+            for(int i=0;i<colors[0].Length;i++)
+                Assert.That((float)colors[1][i].a,Is.EqualTo(colors[0][i].a*opacity).Within(1f),"All fill, rim, shadow and inner-highlight vertices must receive opacity once.");
+            Assert.That((float)colors[1].Max(c=>c.a),Is.EqualTo(255f*opacity).Within(1f),"Fill alpha must not be squared.");
+        }
+        finally{UnityEngine.Object.DestroyImmediate(root);}
+    }
+    private static TMPro.TMP_Text Tmp(Transform parent,string name,string value)
+    {
+        var rect=ShopCatalogView.Rect(name,parent);var text=rect.gameObject.AddComponent<TMPro.TextMeshProUGUI>();
+        text.font=TMPro.TMP_Settings.defaultFontAsset;Assert.NotNull(text.font);text.text=value;return text;
     }
     private sealed class RectSnapshot
     {

@@ -23,7 +23,7 @@ public sealed class LobbyNeonGraphic : MaskableGraphic
     public bool IsMidnightStyle => midnightStyle;
     public bool HasMidnightRibbon => midnightStyle&&style==FrameStyle.Card&&gradeTint;
     public static float MidnightCorner(FrameStyle kind,float width,float height)
-        => kind==FrameStyle.Button?Mathf.Min(height*.20f,width*.10f):Mathf.Min(12f,Mathf.Min(width,height)*.08f);
+        => kind==FrameStyle.Button?Mathf.Min(height*.12f,width*.055f):Mathf.Min(11f,Mathf.Min(width,height)*.075f);
     public void UseMidnightStyle()
     {
         midnightStyle = true;
@@ -121,10 +121,9 @@ public sealed class LobbyNeonGraphic : MaskableGraphic
             float scale = canvas != null ? canvas.scaleFactor : 1f;
             float stroke = Mathf.Max(1.5f, 1f / Mathf.Max(.001f, scale));
             Color surface = midnightPrimary ? MidnightLobbyTheme.Accent : midnightAccentSet?midnightAccent:owned ? new Color(.10f,.135f,.205f,.97f) : new Color(.055f,.075f,.12f,.97f);
-            Color midnightEdge = midnightPrimary ? new Color(.65f,.97f,1f) : gradeTint ? Alpha(rim,.55f) : new Color(.40f,.49f,.63f,.55f);
+            Color midnightEdge = midnightPrimary ? new Color(.65f,.97f,1f,.75f) : gradeTint ? Alpha(rim,.43f) : new Color(.57f,.66f,.81f,.42f);
             float midnightCut=MidnightCorner(style,bounds.width,bounds.height);
-            FillGradient(mesh,Inset(bounds,stroke),midnightCut,surface);
-            Ring(mesh, Inset(bounds,stroke), midnightCut, stroke, midnightEdge);
+            MidnightSurfaceMesh.Draw(mesh,bounds,surface,midnightEdge,color,midnightCut,scale,style==FrameStyle.Button);
             if (HasMidnightRibbon)
             {
                 Rect ribbon = new Rect(bounds.xMin+stroke*2, bounds.yMax-bounds.height*.145f,

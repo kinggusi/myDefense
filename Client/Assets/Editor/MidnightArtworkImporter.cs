@@ -2,16 +2,17 @@
 using UnityEditor;
 using UnityEngine;
 
-/// <summary>Only the three Midnight background illustrations. Never edits .meta text.</summary>
+/// <summary>Only the Midnight illustrations and six-icon atlas. Never edits .meta text.</summary>
 public sealed class MidnightArtworkImporter : AssetPostprocessor
 {
-    public const int ImportVersion=1;
+    public const int ImportVersion=2;
     public override uint GetVersion() => ImportVersion;
     public static bool IsMidnightArtwork(string path)
     {
         return path=="Assets/Resources/Lobby/Midnight/observatory-background.png"
             ||path=="Assets/Resources/Lobby/Midnight/gacha-prism.png"
-            ||path=="Assets/Resources/Lobby/Midnight/neptune-observatory.png";
+            ||path=="Assets/Resources/Lobby/Midnight/neptune-observatory.png"
+            ||path=="Assets/Resources/Lobby/Midnight/status-material-icons-v3.png";
     }
     private void OnPreprocessTexture()
     {

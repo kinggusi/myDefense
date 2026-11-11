@@ -24,6 +24,11 @@ namespace MyDefense.Clans
             Rect r = GetPixelAdjustedRect();
             if (r.width <= 0 || r.height <= 0) return;
             bool midnight=MidnightLobbyTheme.IsPresentationTarget(transform);
+            if(midnight&&shape==Shape.Panel)
+            {
+                DrawMidnightPanel(vh,r);
+                return;
+            }
             Vector2[] outer = Points(r, 0,ResolveCorner(midnight));
             Vector2[] inner = Points(r, Mathf.Clamp(thickness, 0, Mathf.Min(r.width, r.height) * .2f),ResolveCorner(midnight));
             Color32 edge = ResolveBorder(midnight);
@@ -41,6 +46,15 @@ namespace MyDefense.Clans
             vh.AddVert(r.center, fill, Vector2.zero);
             for (int i = 0; i < inner.Length; i++) vh.AddVert(inner[i], fill, Vector2.zero);
             for (int i = 0; i < inner.Length; i++) vh.AddTriangle(center, center + 1 + i, center + 1 + (i + 1) % inner.Length);
+        }
+
+        private void DrawMidnightPanel(VertexHelper mesh,Rect bounds)
+        {
+            // The authored Graphic alpha is a group opacity for every surface layer.
+            // Keep fill opaque here, then multiply once through tint (also rim/shadow/highlight).
+            Color fill=ResolveFill(true);fill.a=1f;
+            Color tint=Color.white;tint.a=color.a;
+            MidnightSurfaceMesh.Draw(mesh,bounds,fill,ResolveBorder(true),tint,ResolveCorner(true),canvas!=null?canvas.scaleFactor:1);
         }
 
         private Vector2[] Points(Rect r, float inset,float resolvedCorner)

@@ -49,6 +49,8 @@ public static class MidnightLobbyTheme
 
     public static bool IsProtectedProfile(Transform target)
     {
+        // Generic popup/frame passes must skip authored profile children. The explicit compact
+        // header presentation now owns their style; this is not a profile-immutability policy.
         for(var node=target;node!=null;node=node.parent)
             if(node.name=="LobbyProfileStatus") return true;
         return false;
