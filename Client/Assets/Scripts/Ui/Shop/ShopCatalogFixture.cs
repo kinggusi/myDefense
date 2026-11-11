@@ -24,9 +24,9 @@ public sealed class ShopCatalogFixture : MonoBehaviour
         offers=new[]{
             Offer("GACHA_SINGLE","GACHA","GACHA",1,300,"DIAMOND"),
             Offer("GACHA_TEN","GACHA","GACHA",10,2700,"DIAMOND",regular:3000,discount:3),
-            Offer("GOLD","STATIC","GOLD",10000,500,"DIAMOND",remaining:3),
-            Offer("DNA","STATIC","DNA",20,500,"DIAMOND",remaining:2),
-            Offer("CELL","STATIC","GROWTH_CELL",10,300,"DIAMOND",remaining:3),
+            Offer("GOLD","RESOURCE","GOLD",10000,500,"DIAMOND",remaining:3),
+            Offer("DNA","RESOURCE","DNA",20,500,"DIAMOND",remaining:2),
+            Offer("CELL","RESOURCE","GROWTH_CELL",10,300,"DIAMOND",remaining:3),
             Offer("DAILY_NORMAL","DAILY","ALIEN_PIECE",20,1000,"GOLD",remaining:1,grade:"NORMAL",alien:22),
             Offer("DAILY_EPIC","DAILY","ALIEN_PIECE",10,2500,"GOLD",remaining:1,grade:"EPIC",alien:15),
             Offer("DAILY_UNIQUE","DAILY","ALIEN_PIECE",5,5000,"GOLD",remaining:1,grade:"UNIQUE",alien:8),

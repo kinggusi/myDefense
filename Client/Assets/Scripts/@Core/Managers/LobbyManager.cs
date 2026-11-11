@@ -40,6 +40,11 @@ public class LobbyManager : MonoBehaviour
 
 
 
+    private void Awake()
+    {
+        if (MidnightLobbyTheme.Enabled) MidnightLobbyPresentation.Install(this);
+    }
+
     void Start()
     {
         if (NetworkManager.AllowLegacyLobby && !MyDefense.Auth.DevelopmentLoginPolicy.IsRequested) InitializeForAccount(DefaultUsername, null);

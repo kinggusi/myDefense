@@ -35,6 +35,7 @@ namespace MyDefense.Auth
             foreach (var label in GetComponentsInChildren<Text>(true))
             { if (theme.font != null) label.font = theme.font; label.color = theme.text; }
             title.color = theme.accent; subtitle.color = notice.color = theme.muted;
+            if(MidnightLobbyTheme.Enabled)MidnightLobbyPresentation.StyleAuth(this);
         }
         public void SetState(string message, bool busy, int stage = -1, bool failure = false)
         {

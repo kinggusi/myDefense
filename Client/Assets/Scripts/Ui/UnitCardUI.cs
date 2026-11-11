@@ -72,6 +72,7 @@ public class UnitCardUI : MonoBehaviour
         }
 
         selection.Bind(data.id, onSelected);
+        if (MidnightLobbyTheme.Enabled) MidnightLobbyTheme.StyleCard(this);
         cardButton = GetComponent<Button>();
         if (cardButton != null)
         {

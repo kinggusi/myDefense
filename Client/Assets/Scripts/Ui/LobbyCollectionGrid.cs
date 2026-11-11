@@ -23,8 +23,9 @@ public sealed class LobbyCollectionGrid : MonoBehaviour
         grid.startCorner = GridLayoutGroup.Corner.UpperLeft;
         grid.startAxis = GridLayoutGroup.Axis.Horizontal;
         grid.childAlignment = TextAnchor.UpperLeft;
-        if (grid.padding.left != SidePadding || grid.padding.right != SidePadding)
-            grid.padding = new RectOffset(SidePadding, SidePadding, grid.padding.top, grid.padding.bottom);
+        int side=MidnightLobbyTheme.Enabled?18:SidePadding;
+        if (grid.padding.left != side || grid.padding.right != side)
+            grid.padding = new RectOffset(side, side, grid.padding.top, grid.padding.bottom);
         float width = Mathf.Max(1f, (rect.rect.width - grid.padding.horizontal
                                       - grid.spacing.x * (Columns - 1)) / Columns);
         Vector2 cell = new Vector2(width, width * 1.42f);

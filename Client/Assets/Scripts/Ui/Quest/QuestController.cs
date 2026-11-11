@@ -36,6 +36,7 @@ public sealed class QuestController : MonoBehaviour
         RectTransform shortcutRect = shortcut.GetComponent<RectTransform>();
         shortcutRect.anchorMin = shortcutRect.anchorMax = shortcutRect.pivot = new Vector2(0f, 1f);
         shortcutRect.anchoredPosition = new Vector2(28f, -150f);
+        if(MidnightLobbyTheme.Enabled)MidnightLobbyPresentation.PositionQuest(shortcut);
         WireEvents();
     }
 

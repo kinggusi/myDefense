@@ -26,6 +26,7 @@ namespace MyDefense.Auth
             label.alignment = TextAnchor.MiddleCenter; label.color = Color.white; label.text = "계정 연동"; label.raycastTarget = false;
             root.GetComponent<Button>().targetGraphic = frame;
             root.GetComponent<Button>().onClick.AddListener(() => Open(lobby));
+            if(MidnightLobbyTheme.Enabled)MidnightLobbyPresentation.PositionAccountLink(rect);
         }
         private void Open(LobbyManager lobby)
         {

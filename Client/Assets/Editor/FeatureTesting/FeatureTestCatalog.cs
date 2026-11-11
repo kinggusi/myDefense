@@ -99,6 +99,8 @@ namespace MyDefenseGame.Editor.FeatureTesting
         {
             return new FeatureTestCatalog(new[]
             {
+                Case("UI-MIDNIGHT", "Midnight 로비 표현·복귀 회귀", "jjangash", "Assets/Scenes/Tests/UserSystem/P2_06_01_Shop_Test.unity", FeatureTestType.EditMode,
+                    "LobbyMidnightUiTests는 임시 GameObject만 사용; 표시 Scene은 기존 격리 상점 fixture, 신규 Scene 미생성", "Play 종료 후 Theme/Legacy (next Play); 계정 데이터·씬 저장 금지", "LobbyMidnightUiTests;LobbyFinalUiTests;ShopCatalogTests", "후속 SampleScene에서 3개 화면비·프로필 동일·5탭·팝업·스크롤·Legacy 복귀 확인", "docs/test-reports/UI-MIDNIGHT-2026-11-11.md"),
                 Case("P3-1-3-CLAN", "클랜 검색·가입·역할 UI", "jjangash", "Assets/Scenes/Tests/UserSystem/P3_01_03_Clan_Test.unity", FeatureTestType.Scene,
                     "Editor UI-only fixture; NO HTTP/실제 재화 변경 없음", "Play 종료 후 재실행; 실제 계정 초기화 금지", "ClanClientTests;ClanServiceTest;ClanPersistenceConcurrencyTest", "미가입·신청·MEMBER/DEPUTY/LEADER·긴 목록·닫기·스크롤·재시도·화면비", "docs/test-reports/P3-1-3-CLAN-UI.md"),
                 Case("P3-1-3-CLAN-HTTP", "클랜 격리 서버 HTTP UI", "jjangash", "Assets/Scenes/Tests/UserSystem/P3_01_03_Clan_Http_Test.unity", FeatureTestType.Scene,

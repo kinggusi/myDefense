@@ -6,7 +6,7 @@ using MyDefense.Shop;
 using UnityEngine;
 using UnityEngine.UI;
 
-public sealed class ShopCatalogView : MonoBehaviour
+public sealed partial class ShopCatalogView : MonoBehaviour
 {
     public Text statusText;
     public Text walletText;
@@ -24,6 +24,7 @@ public sealed class ShopCatalogView : MonoBehaviour
 
     public static ShopCatalogView Build(Transform parent)
     {
+        if(MidnightLobbyTheme.Enabled)return BuildMidnight(parent);
         var root = Rect("ShopCatalog", parent); Stretch(root, 0, 0, 1, 1);
         var view = root.gameObject.AddComponent<ShopCatalogView>();
         Label(root,"Title","상점",44,.07f,.845f,.5f,.89f,TextAnchor.MiddleLeft);
@@ -52,6 +53,12 @@ public sealed class ShopCatalogView : MonoBehaviour
     public void Render(ShopCatalog catalog,Action<ShopOffer> purchase)
     {
         if(catalog==null)return;
+        if(MidnightLobbyTheme.Enabled)
+        {
+            EnsureMidnightLayout();
+            RenderMidnight(catalog,purchase);
+            return;
+        }
         foreach(Transform child in content) { child.gameObject.SetActive(false); Destroy(child.gameObject); }
         buyButtons.Clear();cards.Clear();
         walletText.text=catalog.wallet==null?"":$"골드 {catalog.wallet.gold:N0}   |   다이아 {catalog.wallet.diamond:N0}";
@@ -105,7 +112,8 @@ public sealed class ShopCatalogView : MonoBehaviour
         if(!cards.TryGetValue(offerId,out var card))return;
         Canvas.ForceUpdateCanvases();
         float available=Mathf.Max(0,content.rect.height-scroll.viewport.rect.height);
-        content.anchoredPosition=new Vector2(0,Mathf.Clamp(-card.anchoredPosition.y-card.rect.height*.5f,0,available));
+        float y=-content.InverseTransformPoint(card.position).y;
+        content.anchoredPosition=new Vector2(0,Mathf.Clamp(y-card.rect.height*.5f,0,available));
     }
     public void Confirm(ShopOffer offer,Action accepted)
     {
@@ -147,7 +155,7 @@ public sealed class ShopCatalogView : MonoBehaviour
     public static void Stretch(RectTransform rect,float x0,float y0,float x1,float y1)
     {rect.anchorMin=new Vector2(x0,y0);rect.anchorMax=new Vector2(x1,y1);rect.offsetMin=rect.offsetMax=Vector2.zero;}
     public static void Frame(RectTransform rect,LobbyNeonGraphic.FrameStyle style)
-    {var graphic=rect.gameObject.AddComponent<LobbyNeonGraphic>();graphic.Configure(style);graphic.UseFinalStyle();graphic.raycastTarget=false;}
+    {var graphic=rect.gameObject.AddComponent<LobbyNeonGraphic>();graphic.Configure(style);graphic.UseFinalStyle();if(MidnightLobbyTheme.Enabled)graphic.UseMidnightStyle();graphic.raycastTarget=false;}
     public static Text Label(Transform parent,string name,string value,int size,float x0,float y0,float x1,float y1,TextAnchor alignment=TextAnchor.MiddleCenter)
     {
         var rect=Rect(name,parent);Stretch(rect,x0,y0,x1,y1);var text=rect.gameObject.AddComponent<Text>();
@@ -158,6 +166,9 @@ public sealed class ShopCatalogView : MonoBehaviour
     {
         var rect=Rect(name,parent);Stretch(rect,x0,y0,x1,y1);Frame(rect,LobbyNeonGraphic.FrameStyle.Button);
         var graphic=rect.GetComponent<LobbyNeonGraphic>();graphic.raycastTarget=true;var button=rect.gameObject.AddComponent<Button>();button.targetGraphic=graphic;
-        Label(rect,"Label",text,26,.04f,.04f,.96f,.96f);return button;
+        float inset=MidnightLobbyTheme.Enabled?.06f:.04f;
+        var label=Label(rect,"Label",text,MidnightLobbyTheme.Enabled?36:26,inset,inset,1-inset,1-inset);
+        if(MidnightLobbyTheme.Enabled)MidnightLobbyTheme.Typography(label,36);
+        return button;
     }
 }

@@ -58,6 +58,7 @@ public sealed class LobbyFinalPresentation : MonoBehaviour
             else mascot.material = null;
             mascot.color = index == 1 ? Color.white : new Color(.64f,.64f,.64f,1f);
         }
+        if(MidnightLobbyTheme.Enabled)GetComponent<MidnightLobbyPresentation>()?.RefreshNavigation(index);
     }
 
     private void UpdateSafeArea()
@@ -111,6 +112,7 @@ public sealed class LobbyFinalPresentation : MonoBehaviour
         var divider = Child(panel,"RowDivider").gameObject;
         Place((RectTransform)divider.transform,.06f,.498f,.94f,.502f);
         var image = Get<Image>(divider); image.color = new Color(.25f,.63f,.69f,.35f); image.raycastTarget = false;
+        if(MidnightLobbyTheme.Enabled)MidnightLobbyPresentation.StyleMaterials(panel);
     }
 
     public static void StyleBreeding(MythicBreedingShortcutView view)
@@ -142,6 +144,7 @@ public sealed class LobbyFinalPresentation : MonoBehaviour
             view.badgeText.resizeTextMinSize = 14;
             view.badgeText.resizeTextMaxSize = 24;
         }
+        if(MidnightLobbyTheme.Enabled)MidnightLobbyPresentation.StyleBreeding(view);
     }
 
     public static RectTransform Child(Transform parent,string name)

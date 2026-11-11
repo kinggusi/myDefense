@@ -34,6 +34,7 @@ namespace MyDefense.Tutorial
                 entry=ShopCatalogView.Button(owner.viewObjects[2].transform,"TutorialEntry","무료 연습 · 튜토리얼",.20f,.24f,.80f,.30f);
                 entry.onClick.AddListener(Open);
             }
+            if(MidnightLobbyTheme.Enabled)MidnightLobbyPresentation.PositionTutorial((RectTransform)entry.transform);
         }
         public void SetPracticeLauncher(ITutorialPracticeLauncher adapter) { launcher=adapter??new UnavailableTutorialPracticeLauncher();Render(); }
         public void Open()

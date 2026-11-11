@@ -15,6 +15,32 @@ public sealed class LobbyNeonGraphic : MaskableGraphic
     [SerializeField] private Color violet = new Color(0.69f, 0.36f, 0.95f, 1f);
     [SerializeField] private bool gradeTint;
     [SerializeField] private bool finalStyle;
+    private bool midnightStyle;
+    private bool midnightPrimary;
+    private bool midnightAccentSet;
+    private Color midnightAccent;
+
+    public bool IsMidnightStyle => midnightStyle;
+    public bool HasMidnightRibbon => midnightStyle&&style==FrameStyle.Card&&gradeTint;
+    public static float MidnightCorner(FrameStyle kind,float width,float height)
+        => kind==FrameStyle.Button?Mathf.Min(height*.20f,width*.10f):Mathf.Min(12f,Mathf.Min(width,height)*.08f);
+    public void UseMidnightStyle()
+    {
+        midnightStyle = true;
+        SetVerticesDirty();
+    }
+    public void UseMidnightPrimary()
+    {
+        midnightPrimary=true;UseMidnightStyle();
+    }
+    public void UseMidnightAccent(Color surface)
+    {midnightAccentSet=true;midnightAccent=surface;UseMidnightStyle();}
+
+    protected override void OnEnable()
+    {
+        base.OnEnable();
+        if(MidnightLobbyTheme.IsPresentationTarget(transform))UseMidnightStyle();
+    }
 
     public bool IsOwned => owned;
     public FrameStyle Style => style;
@@ -90,6 +116,24 @@ public sealed class LobbyNeonGraphic : MaskableGraphic
         Color accent = owned ? violet : (gradeTint ? rim : new Color(0.38f, 0.35f, 0.47f, 1f));
         Color fill = owned ? background : new Color(0.035f, 0.043f, 0.066f, 0.99f);
 
+        if (midnightStyle)
+        {
+            float scale = canvas != null ? canvas.scaleFactor : 1f;
+            float stroke = Mathf.Max(1.5f, 1f / Mathf.Max(.001f, scale));
+            Color surface = midnightPrimary ? MidnightLobbyTheme.Accent : midnightAccentSet?midnightAccent:owned ? new Color(.10f,.135f,.205f,.97f) : new Color(.055f,.075f,.12f,.97f);
+            Color midnightEdge = midnightPrimary ? new Color(.65f,.97f,1f) : gradeTint ? Alpha(rim,.55f) : new Color(.40f,.49f,.63f,.55f);
+            float midnightCut=MidnightCorner(style,bounds.width,bounds.height);
+            FillGradient(mesh,Inset(bounds,stroke),midnightCut,surface);
+            Ring(mesh, Inset(bounds,stroke), midnightCut, stroke, midnightEdge);
+            if (HasMidnightRibbon)
+            {
+                Rect ribbon = new Rect(bounds.xMin+stroke*2, bounds.yMax-bounds.height*.145f,
+                    bounds.width*.76f,bounds.height*.13f);
+                Ribbon(mesh,ribbon,Color.Lerp(surface,rim,owned?.48f:.18f));
+            }
+            return;
+        }
+
         Fill(mesh, Inset(bounds, 3f * unit), Mathf.Max(1f, cut - 3f * unit), fill);
         if (finalStyle)
         {
@@ -152,6 +196,22 @@ public sealed class LobbyNeonGraphic : MaskableGraphic
         AddVertex(mesh, rect.center, tint);
         foreach (Vector2 point in points) AddVertex(mesh, point, tint);
         for (int i = 0; i < points.Length; i++) mesh.AddTriangle(start, start + 1 + i, start + 1 + (i + 1) % points.Length);
+    }
+    private void FillGradient(VertexHelper mesh,Rect rect,float cut,Color tint)
+    {
+        Vector2[] points=Corners(rect,cut);int start=mesh.currentVertCount;
+        Color top=Color.Lerp(tint,Color.white,midnightPrimary?.14f:.08f);
+        Color bottom=Color.Lerp(tint,Color.black,midnightPrimary?.04f:.16f);
+        top.a=bottom.a=tint.a;AddVertex(mesh,rect.center,Color.Lerp(bottom,top,.5f));
+        foreach(var point in points)AddVertex(mesh,point,Color.Lerp(bottom,top,Mathf.InverseLerp(rect.yMin,rect.yMax,point.y)));
+        for(int i=0;i<points.Length;i++)mesh.AddTriangle(start,start+1+i,start+1+(i+1)%points.Length);
+    }
+    private void Ribbon(VertexHelper mesh,Rect r,Color tint)
+    {
+        int start=mesh.currentVertCount;
+        AddVertex(mesh,new Vector2(r.xMin,r.yMin),tint);AddVertex(mesh,new Vector2(r.xMin,r.yMax),tint);
+        AddVertex(mesh,new Vector2(r.xMax,r.yMax),tint);AddVertex(mesh,new Vector2(r.xMax-r.height*.65f,r.yMin),tint);
+        mesh.AddTriangle(start,start+1,start+2);mesh.AddTriangle(start,start+2,start+3);
     }
 
     private void Ring(VertexHelper mesh, Rect rect, float cut, float width, Color tint)
