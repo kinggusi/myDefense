@@ -12,6 +12,25 @@ tasks.register('clanUiSmokeServer', JavaExec) {
     args '--clan-ui-smoke'
 }
 
+tasks.register('shopUiSmokeServer', JavaExec) {
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.denfense.server.auth.ShopUiSmokeServer'
+    args '--shop-ui-smoke'
+}
+
+tasks.register('shopPersistenceUiServer', JavaExec) {
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.denfense.server.auth.ShopPersistenceUiServer'
+    workingDir = projectDir
+    doFirst {
+        if (!project.hasProperty('shopUiMode') || !project.hasProperty('shopUiRunId'))
+            throw new GradleException('Explicit -PshopUiMode=fresh|resume and -PshopUiRunId=canonical-UUID required')
+        args '--shop-persistence-ui', project.property('shopUiMode'), project.property('shopUiRunId')
+    }
+}
+
 group = 'com.denfense'
 version = '0.0.1-SNAPSHOT'
 description = 'Backend for Defense Game SHHM'

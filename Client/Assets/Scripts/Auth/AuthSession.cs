@@ -24,6 +24,10 @@ namespace MyDefense.Auth
         private bool lastRefreshSucceeded;
         private ISecureCredentialStore store;
         private StoredCredential credential;
+#if UNITY_EDITOR
+        // In-memory transport seam for deterministic authentication regression tests only.
+        private Func<string, string, string, string, Action<AuthHttpResult>, WWWForm, IEnumerator> testTransport;
+#endif
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatic() { Instance = null; }
@@ -78,6 +82,8 @@ namespace MyDefense.Auth
         }
         public IEnumerator SignInGuest(Action<bool> completed)
         {
+            int generation = Generation;
+            if (!IsCurrent(generation)) { LastError = "계정이 변경되었습니다."; completed(false); yield break; }
             if (IsDevelopmentSession)
             { LastError = "개발 계정 창에서 비밀번호로 로그인해 주세요. 게스트 계정은 변경하지 않았습니다."; completed(false); yield break; }
             if (credential != null && string.IsNullOrEmpty(credential.guestSecret))
@@ -90,10 +96,13 @@ namespace MyDefense.Auth
             }
             AuthHttpResult response = null;
             yield return SendRaw("/auth/guest", "POST", JsonUtility.ToJson(new GuestRequest { guestSecret = credential.guestSecret }), null, r => response = r);
+            if (!IsCurrent(generation)) { LastError = "계정이 변경되었습니다."; completed(false); yield break; }
             completed(Accept(response));
         }
         public IEnumerator SignInDevelopment(string password, Action<bool> completed)
         {
+            int generation = Generation;
+            if (!IsCurrent(generation)) { password = null; LastError = "계정이 변경되었습니다."; completed(false); yield break; }
             if (!IsDevelopmentSession || !DevelopmentLoginPolicy.IsAllowed(ApiBaseUrl, DevelopmentAccount)
                 || DevelopmentLoginPolicy.SelectedAccount != DevelopmentAccount || IsAuthenticated || refreshing)
             { password = null; LastError = "개발 계정 선택 또는 실행 환경을 확인해 주세요. 계정 전환은 Play 종료 후 가능합니다."; completed(false); yield break; }
@@ -104,6 +113,7 @@ namespace MyDefense.Auth
             AuthHttpResult response = null;
             yield return SendRaw("/dev/auth/login", "POST", body, null, r => response = r);
             body = null;
+            if (!IsCurrent(generation)) { LastError = "계정이 변경되었습니다."; completed(false); yield break; }
             completed(Accept(response));
         }
         public IEnumerator Restore(Action<bool> completed)
@@ -132,13 +142,15 @@ namespace MyDefense.Auth
             }
             refreshing = true;
             bool ok = false;
+            int generation = Generation;
             try
             {
                 AuthHttpResult response = null;
                 yield return SendRaw("/auth/refresh", "POST", JsonUtility.ToJson(new RefreshRequest { refreshToken = credential.refreshToken }), null, r => response = r);
-                ok = Accept(response);
+                if (!IsCurrent(generation)) LastError = "계정이 변경되었습니다.";
+                else ok = Accept(response);
                 // Expired/replayed refresh can be recovered with the same protected device credential.
-                if (!ok && response.Status == 401 && recoverGuest && !string.IsNullOrEmpty(credential.guestSecret))
+                if (IsCurrent(generation) && !ok && response.Status == 401 && recoverGuest && !string.IsNullOrEmpty(credential.guestSecret))
                     yield return SignInGuest(value => ok = value);
             }
             finally { lastRefreshSucceeded = ok; refreshing = false; }
@@ -176,24 +188,37 @@ namespace MyDefense.Auth
         }
         public IEnumerator SendAccount(string path, string method, string json, WWWForm form, Action<AuthHttpResult> completed)
         {
+            int generation = Generation;
+            if (!IsCurrent(generation)) { completed(AccountChanged()); yield break; }
             bool ready = false;
             yield return EnsureFresh(ok => ready = ok);
+            if (!IsCurrent(generation)) { completed(AccountChanged()); yield break; }
             if (!ready) { completed(new AuthHttpResult { Status = 401, Error = LastError }); yield break; }
-            int generation = Generation;
             string usedToken = accessToken;
             AuthHttpResult response = null;
             yield return SendRaw(path, method, json, usedToken, r => response = r, form);
-            if (generation != Generation) { completed(new AuthHttpResult { Status = 409, Error = "계정이 변경되었습니다." }); yield break; }
+            if (!IsCurrent(generation)) { completed(AccountChanged()); yield break; }
+            // Preserve the POST payload/requestId for explicit retry, but do not keep reusing
+            // a server-rejected token merely because its local expiry has not elapsed.
+            if (response.Status == 401 && usedToken == accessToken) expiresAt = 0;
             // Never blindly replay spending POSTs. Their existing requestId retry UX remains authoritative.
             if (response.Status == 401 && method == "GET")
             {
                 bool refreshed = usedToken != accessToken;
                 if (!refreshed) yield return Refresh(ok => refreshed = ok, true);
-                if (refreshed) yield return SendRaw(path, method, json, accessToken, r => response = r, form);
+                if (!IsCurrent(generation)) { completed(AccountChanged()); yield break; }
+                if (refreshed)
+                {
+                    string retryToken = accessToken;
+                    yield return SendRaw(path, method, json, retryToken, r => response = r, form);
+                    if (IsCurrent(generation) && response.Status == 401 && retryToken == accessToken) expiresAt = 0;
+                }
             }
-            if (generation != Generation) { completed(new AuthHttpResult { Status = 409, Error = "계정이 변경되었습니다." }); yield break; }
+            if (!IsCurrent(generation)) { completed(AccountChanged()); yield break; }
             completed(response);
         }
+        private bool IsCurrent(int generation) => this != null && ReferenceEquals(Instance, this) && Generation == generation;
+        private static AuthHttpResult AccountChanged() => new AuthHttpResult { Status = 409, Error = "계정이 변경되었습니다." };
         public IEnumerator Providers(Action<ProvidersResponse> completed)
         {
             AuthHttpResult response = null;
@@ -237,6 +262,9 @@ namespace MyDefense.Auth
         {
             if (string.IsNullOrEmpty(path) || !path.StartsWith("/") || path.StartsWith("//") || path.Contains("://") || path.Contains("..") || path.Contains("\\"))
             { completed(new AuthHttpResult { Error = "잘못된 API 경로입니다." }); yield break; }
+#if UNITY_EDITOR
+            if (testTransport != null) { yield return testTransport(path, method, json, bearer, completed, form); yield break; }
+#endif
             using (var request = form != null ? UnityWebRequest.Post(ApiBaseUrl + path, form) : new UnityWebRequest(ApiBaseUrl + path, method))
             {
                 if (form == null && method != "GET")
@@ -257,6 +285,30 @@ namespace MyDefense.Auth
             if (response.Status == 429) return "요청이 많습니다. 잠시 후 다시 시도해 주세요.";
             if (response.Status == 401) return "계정 확인이 필요합니다. 다시 시도해 주세요.";
             return "요청을 완료하지 못했습니다. 다시 시도해 주세요. (" + response.Status + ")";
+        }
+    }
+
+    /// <summary>UI lifetime binding. Token refresh keeps this scope; replacing an account/session does not.</summary>
+    public sealed class AuthAccountScope
+    {
+        private readonly AuthSession session;
+        private readonly int generation;
+        private readonly long userId;
+        private readonly string endpoint;
+        public AuthAccountScope(AuthSession session, string endpoint)
+        {
+            this.session = session;
+            generation = session?.Generation ?? 0;
+            userId = session?.User?.userId ?? 0;
+            this.endpoint = Normalize(endpoint);
+        }
+        public bool IsCurrent(string currentEndpoint) => session != null && ReferenceEquals(session, AuthSession.Instance)
+            && session.IsAuthenticated && session.Generation == generation && userId > 0 && session.User?.userId == userId
+            && endpoint != null && session.ApiBaseUrl == endpoint && Normalize(currentEndpoint) == endpoint;
+        private static string Normalize(string value)
+        {
+            try { return AuthSession.NormalizeEndpoint(value); }
+            catch (Exception) { return null; }
         }
     }
 }

@@ -13,6 +13,7 @@ public sealed class ShopCatalogController : MonoBehaviour
     private ShopPendingRequestStore store;
     private ShopPendingRequest pending;
     private long userId;
+    private AuthAccountScope accountScope;
     private string endpoint;
     private bool requesting;
     private bool shown;
@@ -22,13 +23,14 @@ public sealed class ShopCatalogController : MonoBehaviour
     private GachaShopController gacha;
     public ShopCatalog Catalog => catalog;
     public bool HasPending => pending!=null;
-    private bool ValidAccount => this!=null&&AuthSession.Instance?.User?.userId==userId&&NetworkManager.Instance!=null&&NetworkManager.Instance.BaseUrl==endpoint;
+    private bool ValidAccount => this!=null&&accountScope?.IsCurrent(NetworkManager.Instance?.BaseUrl)==true;
 
     public void Initialize(LobbyManager owner)
     {
         lobby=owner;userId=AuthSession.Instance?.User?.userId??0;
         if(userId<=0||NetworkManager.Instance==null)return;
         endpoint=NetworkManager.Instance.BaseUrl;
+        accountScope=new AuthAccountScope(AuthSession.Instance,endpoint);
         store=new ShopPendingRequestStore(endpoint,userId);
         try{pending=store.Load();}catch(Exception){storageError=true;}
         var shop=owner.viewObjects!=null&&owner.viewObjects.Length>0?owner.viewObjects[0]:null;

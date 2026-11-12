@@ -6,6 +6,27 @@ using UnityEngine;
 
 public sealed class ShopCatalogTests
 {
+    [Test] public void HttpFixtureIsIsolatedRegisteredAndExcludedFromProduction()
+    {
+        Assert.IsTrue(System.IO.File.Exists(ShopCatalogAssetBuilder.HttpFixturePath));
+        Assert.IsFalse(System.Linq.Enumerable.Any(EditorBuildSettings.scenes, s => s.enabled && s.path == ShopCatalogAssetBuilder.HttpFixturePath));
+        Assert.IsTrue(System.Linq.Enumerable.Any(MyDefenseGame.Editor.FeatureTesting.FeatureTestCatalog.CreateDefault().Cases,
+            c => c.ScenePath == ShopCatalogAssetBuilder.HttpFixturePath));
+        Assert.AreEqual("http://127.0.0.1:18084/api", ShopHttpUiFixture.Endpoint);
+    }
+    [Test] public void HttpFixtureBuilderRefusesAlreadyLoadedTarget()
+    {
+        var scene = UnityEngine.SceneManagement.SceneManager.GetSceneByPath(ShopCatalogAssetBuilder.HttpFixturePath);
+        bool opened = !scene.IsValid() || !scene.isLoaded;
+        if (opened) scene = UnityEditor.SceneManagement.EditorSceneManager.OpenScene(ShopCatalogAssetBuilder.HttpFixturePath, UnityEditor.SceneManagement.OpenSceneMode.Additive);
+        try
+        {
+            var error = Assert.Throws<InvalidOperationException>(() => ShopCatalogAssetBuilder.RebuildHttpFixture());
+            Assert.That(error.Message, Does.Contain("Close the existing HTTP fixture"));
+            Assert.IsTrue(scene.IsValid() && scene.isLoaded);
+        }
+        finally { if (opened) UnityEditor.SceneManagement.EditorSceneManager.CloseScene(scene, true); }
+    }
     [Test] public void ConfirmationCapturesServerPriceAndRevision()
     {
         var catalog=ShopCatalogFixture.Example();var offer=catalog.offers[1];var request=ShopPurchaseRequest.Confirm(catalog,offer);

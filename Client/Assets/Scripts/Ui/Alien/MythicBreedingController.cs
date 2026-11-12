@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using MyDefense.Auth;
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.UI;
@@ -27,11 +28,14 @@ public sealed class MythicBreedingController : MonoBehaviour
     private bool combinationLoaded;
     private float nextCountdownRefreshAt;
     private bool readyRefreshRequested;
+    private AuthAccountScope accountScope;
+    private bool ValidAccount => this != null && accountScope?.IsCurrent(NetworkManager.Instance?.BaseUrl) == true;
 
     public void Initialize(LobbyManager manager)
     {
         if (lobby != null) return;
         lobby = manager;
+        accountScope = new AuthAccountScope(AuthSession.Instance, NetworkManager.Instance?.BaseUrl);
         BuildFromPrefabs();
     }
 
@@ -93,20 +97,21 @@ public sealed class MythicBreedingController : MonoBehaviour
 
     public void RefreshStatus()
     {
-        if (summaryRequesting || lobby == null || NetworkManager.Instance == null) return;
+        if (!ValidAccount || summaryRequesting || lobby == null) return;
         summaryRequesting = true;
         string user = UnityWebRequest.EscapeURL(lobby.CurrentUsername);
         NetworkManager.Instance.Get(MythicBreedingClientContract.SlotsPath(user), json =>
         {
+            if (!ValidAccount) return;
             summaryRequesting = false;
             slots = JsonUtility.FromJson<MythicBreedingSlotsResponse>(json);
             UpdateShortcuts();
-        }, _ => summaryRequesting = false);
+        }, _ => { if (ValidAccount) summaryRequesting = false; });
     }
 
     public void Open()
     {
-        if (view == null || requesting) return;
+        if (!ValidAccount || view == null || requesting) return;
         view.gameObject.SetActive(true);
         view.transform.SetAsLastSibling();
         selectedParents.Clear();
@@ -122,15 +127,18 @@ public sealed class MythicBreedingController : MonoBehaviour
 
     private void LoadAll()
     {
+        if (!ValidAccount) return;
         requesting = true;
         SetBusy(true);
         SetStatus("교배 정보를 불러오는 중...");
         string user = UnityWebRequest.EscapeURL(lobby != null ? lobby.CurrentUsername : string.Empty);
         NetworkManager.Instance.Get(MythicBreedingClientContract.SlotsPath(user), json =>
         {
+            if (!ValidAccount) return;
             slots = JsonUtility.FromJson<MythicBreedingSlotsResponse>(json);
             NetworkManager.Instance.Get(MythicBreedingClientContract.CandidatesPath(user), candidateJson =>
             {
+                if (!ValidAccount) return;
                 candidates = JsonUtility.FromJson<MythicBreedingCandidatesResponse>(candidateJson);
                 requesting = false;
                 Render();
@@ -228,7 +236,7 @@ public sealed class MythicBreedingController : MonoBehaviour
 
     private void ToggleParent(MythicBreedingCandidateDto candidate)
     {
-        if (requesting || !MythicBreedingClientContract.CanSelectParents(ActiveSlot()?.status) || !candidate.selectable) return;
+        if (!ValidAccount || requesting || !MythicBreedingClientContract.CanSelectParents(ActiveSlot()?.status) || !candidate.selectable) return;
         if (selectedParents.Contains(candidate.userAlienId)) selectedParents.Remove(candidate.userAlienId);
         else
         {
@@ -241,7 +249,7 @@ public sealed class MythicBreedingController : MonoBehaviour
     private void PrimaryAction()
     {
         MythicBreedingSlotDto slot = ActiveSlot();
-        if (slot == null || requesting) return;
+        if (!ValidAccount || slot == null || requesting) return;
         if (slot.status == "LOCKED")
         {
             string key = MythicBreedingClientContract.IntentKey("unlock", selectedSlot);
@@ -267,7 +275,7 @@ public sealed class MythicBreedingController : MonoBehaviour
 
     private void Accelerate(int units)
     {
-        if (units <= 0 || requesting) return;
+        if (!ValidAccount || units <= 0 || requesting) return;
         string key = MythicBreedingClientContract.IntentKey("accelerate", selectedSlot, units);
         Post("accelerate", new MythicBreedingAccelerateRequest { requestId = RequestIdFor(key), units = units }, key, json =>
         {
@@ -309,11 +317,13 @@ public sealed class MythicBreedingController : MonoBehaviour
 
     private void Post<T>(string action, T body, string intentKey, Action<string> success)
     {
+        if (!ValidAccount) return;
         requesting = true;
         SetBusy(true);
         string user = UnityWebRequest.EscapeURL(lobby.CurrentUsername);
         NetworkManager.Instance.PostJson(MythicBreedingClientContract.SlotActionPath(selectedSlot, action, user), JsonUtility.ToJson(body), json =>
         {
+            if (!ValidAccount) return;
             requesting = false;
             pendingRequestIds.Remove(intentKey);
             success(json);
@@ -332,6 +342,7 @@ public sealed class MythicBreedingController : MonoBehaviour
 
     private void Fail(string error)
     {
+        if (!ValidAccount) return;
         requesting = false;
         SetBusy(false);
         SetStatus("요청 실패: " + error);
@@ -364,7 +375,7 @@ public sealed class MythicBreedingController : MonoBehaviour
 
     private void Update()
     {
-        if (view == null || !view.gameObject.activeSelf || slots?.slots == null || requesting ||
+        if (!ValidAccount || view == null || !view.gameObject.activeSelf || slots?.slots == null || requesting ||
             Time.unscaledTime < nextCountdownRefreshAt) return;
 
         nextCountdownRefreshAt = Time.unscaledTime + 0.25f;
