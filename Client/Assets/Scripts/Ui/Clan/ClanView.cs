@@ -23,6 +23,8 @@ namespace MyDefense.Clans
         private GameObject modal;
         private readonly List<Button> mutationButtons=new List<Button>();
         private float lastBottom=-1;
+        private Canvas viewCanvas;
+        private bool midnightApplied,lastJoined;
         public bool HasModal=>modal!=null;
         public Action<string> SearchRequested;
         public Action CreateRequested,RefreshRequested,RetryRequested;
@@ -66,8 +68,9 @@ namespace MyDefense.Clans
         }
         private void Update()
         {
-            if(safeRoot==null)return;var canvas=GetComponentInParent<Canvas>();float bottom=Screen.safeArea.yMin/Mathf.Max(.01f,canvas==null?1:canvas.scaleFactor);
-            if(Mathf.Abs(lastBottom-bottom)<.1f)return;lastBottom=bottom;safeRoot.offsetMin=new Vector2(48,225+Mathf.Max(0,bottom));
+            if(safeRoot==null)return;if(!midnightApplied&&MidnightLobbyTheme.IsPresentationTarget(transform))ApplyMidnightPresentation(lastJoined);
+            if(viewCanvas==null)viewCanvas=GetComponentInParent<Canvas>();float bottom=Screen.safeArea.yMin/Mathf.Max(.01f,viewCanvas==null?1:viewCanvas.scaleFactor);
+            if(Mathf.Abs(lastBottom-bottom)<.1f)return;lastBottom=bottom;safeRoot.offsetMin=new Vector2(48,(midnightApplied?MidnightLobbyTheme.ContentBottom:225)+Mathf.Max(0,bottom));
         }
         // Unity does not serialize runtime lambda UnityEvent listeners into a prefab.
         // Bind after every controller attachment, including Resources prefab reload.
@@ -99,6 +102,7 @@ namespace MyDefense.Clans
             previousButton.gameObject.SetActive(!joined);nextButton.gameObject.SetActive(!joined);pageText.gameObject.SetActive(!joined);
             previousButton.interactable=!busy&&(results?.page??0)>0;nextButton.interactable=!busy&&(results?.hasNext??false);
             pageText.text=results==null?"":(results.page+1)+" 페이지";
+            lastJoined=joined;if(MidnightLobbyTheme.IsPresentationTarget(transform))ApplyMidnightPresentation(joined);
             if(state==null||policy==null)return;
             if(!joined)
             {
@@ -226,7 +230,8 @@ namespace MyDefense.Clans
         {
             CloseModal();var overlay=ShopCatalogView.Rect("ClanModal",safeRoot);ShopCatalogView.Stretch(overlay,0,0,1,1);overlay.gameObject.AddComponent<Image>().color=new Color(0,.008f,.02f,.96f);modal=overlay.gameObject;
             var panel=ShopCatalogView.Rect("Panel",overlay);ShopCatalogView.Stretch(panel,.025f,.025f,.975f,.975f);var frame=panel.gameObject.AddComponent<ClanSurfaceGraphic>();frame.color=new Color(.035f,.065f,.115f,1);frame.border=new Color(.27f,.46f,.59f,.75f);
-            Label(panel,"Title",title,37,.06f,.89f,.76f,.98f,TextAnchor.MiddleLeft);var close=Button(panel,"Close","닫기",.78f,.90f,.95f,.97f);close.onClick.AddListener(CloseModal);
+            var heading=Label(panel,"Title",title,37,.06f,.89f,.76f,.98f,TextAnchor.MiddleLeft);if(MidnightLobbyTheme.IsPresentationTarget(panel))MidnightLobbyTheme.DisplayTypography(heading,56,false);
+            var close=Button(panel,"Close","닫기",.78f,.90f,.95f,.97f);close.onClick.AddListener(CloseModal);
             body=ShopCatalogView.Rect("Body",panel);ShopCatalogView.Stretch(body,.03f,.035f,.97f,.88f);return panel;
         }
         public void CloseModal(){if(modal!=null){modal.SetActive(false);if(Application.isPlaying)Destroy(modal);else DestroyImmediate(modal);modal=null;}}
@@ -241,7 +246,36 @@ namespace MyDefense.Clans
         {
             var surface=Surface(parent,name,x0,y0,x1,y1,new Color(.08f,.19f,.27f,.98f));surface.border=new Color(.28f,.68f,.78f,.85f);surface.corner=12;surface.thickness=1.8f;
             var button=surface.gameObject.AddComponent<Button>();button.targetGraphic=surface;var colors=button.colors;colors.normalColor=Color.white;colors.highlightedColor=new Color(.85f,.95f,1);colors.pressedColor=new Color(.66f,.82f,.9f);colors.disabledColor=new Color(.5f,.55f,.6f,.5f);button.colors=colors;
-            Label(surface.transform,"Text",value,27,.055f,.06f,.945f,.94f).fontStyle=FontStyle.Bold;return button;
+            Label(surface.transform,"Text",value,27,.055f,.06f,.945f,.94f).fontStyle=FontStyle.Bold;
+            if(MidnightLobbyTheme.IsPresentationTarget(parent))StyleMidnightButton(button);return button;
+        }
+        public void ApplyMidnightPresentation(bool joined)
+        {
+            midnightApplied=true;
+            safeRoot.offsetMin=new Vector2(48,MidnightLobbyTheme.ContentBottom+Mathf.Max(0,lastBottom));safeRoot.offsetMax=new Vector2(-48,-165);
+            var backdrop=safeRoot.Find("Backdrop")?.GetComponent<ClanSurfaceGraphic>();if(backdrop!=null)backdrop.color=new Color(.025f,.055f,.1f,.20f);
+            MidnightLobbyPresentation.Top(titleText.rectTransform,.015f,.70f,35,195);MidnightLobbyTheme.DisplayTypography(titleText,120);
+            MidnightLobbyPresentation.Top(subtitleText.rectTransform,.025f,.975f,192,255);MidnightLobbyTheme.Typography(subtitleText,29,FontStyle.Normal);
+            MidnightLobbyPresentation.Top((RectTransform)createButton.transform,.72f,.975f,105,185);
+            MidnightLobbyPresentation.Top(toolbar,.025f,.975f,275,365);
+            MidnightLobbyPresentation.Top(listTitle.rectTransform,.025f,.75f,380,445);MidnightLobbyTheme.Typography(listTitle,40);
+            MidnightLobbyPresentation.Top((RectTransform)refreshButton.transform,.79f,.975f,joined?105:380,joined?185:445);
+            scroll.viewport.anchorMin=new Vector2(.015f,0);scroll.viewport.anchorMax=new Vector2(.985f,1);
+            scroll.viewport.offsetMin=new Vector2(0,joined?105:190);scroll.viewport.offsetMax=new Vector2(0,joined?-275:-460);
+            MidnightLobbyPresentation.BottomBox((RectTransform)previousButton.transform,.08f,.28f,95,75);
+            MidnightLobbyPresentation.BottomBox((RectTransform)nextButton.transform,.72f,.92f,95,75);
+            MidnightLobbyPresentation.BottomBox(pageText.rectTransform,.30f,.70f,95,75);
+            MidnightLobbyPresentation.BottomBox(statusText.rectTransform,.025f,retryButton.gameObject.activeSelf?.64f:.975f,8,75);MidnightLobbyTheme.Typography(statusText,25,FontStyle.Normal);
+            MidnightLobbyPresentation.BottomBox((RectTransform)retryButton.transform,.67f,.975f,8,75);
+            foreach(var button in new[]{refreshButton,searchButton,createButton,previousButton,nextButton,retryButton})StyleMidnightButton(button);
+        }
+        public static void StyleMidnightButton(Button button)
+        {
+            if(button==null)return;var surface=button.GetComponent<ClanSurfaceGraphic>();if(surface==null)return;
+            bool primary=button.name=="Create"||button.name=="Join"||button.name=="Save"||button.name=="Approve";
+            surface.UseMidnightButton(primary);surface.raycastTarget=true;
+            var label=button.GetComponentInChildren<Text>(true);if(label!=null){MidnightLobbyTheme.Typography(label,32);label.color=primary?new Color(.025f,.065f,.10f):Ink;}
+            var colors=button.colors;colors.normalColor=Color.white;colors.highlightedColor=new Color(.90f,.97f,1);colors.pressedColor=new Color(.63f,.78f,.88f);colors.disabledColor=new Color(.43f,.49f,.58f,.55f);colors.fadeDuration=.09f;button.colors=colors;
         }
         private static ClanSurfaceGraphic Surface(Transform parent,string name,float x0,float y0,float x1,float y1,Color fill)
         {var rect=ShopCatalogView.Rect(name,parent);ShopCatalogView.Stretch(rect,x0,y0,x1,y1);var graphic=rect.gameObject.AddComponent<ClanSurfaceGraphic>();graphic.color=fill;return graphic;}

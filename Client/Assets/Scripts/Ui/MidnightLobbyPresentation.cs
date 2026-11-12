@@ -12,6 +12,7 @@ public sealed class MidnightLobbyPresentation : MonoBehaviour
     private int selected=-1;
     private bool installed;
     private RectTransform mainBody;
+    private RectTransform contentBody;
     private float previousBottom=-1;
     private float previousBodyHeight=-1;
     private readonly MidnightNavGraphic[] midnightSymbols=new MidnightNavGraphic[5];
@@ -34,7 +35,7 @@ public sealed class MidnightLobbyPresentation : MonoBehaviour
         if(tab!=selected) { selected=tab;StyleNavigation(); }
         float bottom=Screen.safeArea.yMin/Mathf.Max(.01f,canvas.scaleFactor);
         if(mainBody!=null&&Mathf.Abs(previousBottom-bottom)>.1f)
-        {previousBottom=bottom;mainBody.offsetMin=new Vector2(0,MidnightLobbyTheme.ContentBottom+Mathf.Max(0,bottom));}
+        {previousBottom=bottom;mainBody.offsetMin=new Vector2(0,MidnightLobbyTheme.ContentBottom+Mathf.Max(0,bottom));if(contentBody!=null)contentBody.offsetMin=new Vector2(0,MidnightLobbyTheme.ContentBottom+Mathf.Max(0,bottom));}
         if(mainBody!=null&&Mathf.Abs(previousBodyHeight-mainBody.rect.height)>.1f)
         {previousBodyHeight=mainBody.rect.height;LayoutMainControls(mainBody);}
     }
@@ -145,7 +146,7 @@ public sealed class MidnightLobbyPresentation : MonoBehaviour
         BottomBox(body.Find("MidnightDailyUnavailable") as RectTransform,.08f,.49f,0,subHeight);
         BottomBox(body.Find("TutorialEntry") as RectTransform,.52f,.92f,0,subHeight);
     }
-    private static void BottomBox(RectTransform rect,float left,float right,float bottom,float height)
+    public static void BottomBox(RectTransform rect,float left,float right,float bottom,float height)
     {
         if(rect==null)return;rect.anchorMin=new Vector2(left,0);rect.anchorMax=new Vector2(right,0);
         rect.offsetMin=new Vector2(0,bottom);rect.offsetMax=new Vector2(0,bottom+height);
@@ -153,10 +154,34 @@ public sealed class MidnightLobbyPresentation : MonoBehaviour
     private void BuildContent()
     {
         var root=lobby.viewObjects[4].transform;Header(root,"콘텐츠");
-        var panel=ShopCatalogView.Rect("MidnightContentPanel",root);ShopCatalogView.Stretch(panel,.07f,.32f,.93f,.72f);
-        ShopCatalogView.Frame(panel,LobbyNeonGraphic.FrameStyle.Panel);
-        ShopCatalogView.Label(panel,"Title","새로운 탐사를 준비 중이에요",40,.07f,.69f,.93f,.91f);
-        ShopCatalogView.Label(panel,"Description","배양 구역 · 변이 연구소\n전투 진입 연동 후 이곳에서 만나요",29,.08f,.25f,.92f,.68f).color=MidnightLobbyTheme.Muted;
+        contentBody=BuildContentCards(root);
+    }
+    public static RectTransform BuildContentCards(Transform root)
+    {
+        var existing=root.Find("MidnightContentViewport") as RectTransform;if(existing!=null)return existing;
+        var viewport=ShopCatalogView.Rect("MidnightContentViewport",root);
+        viewport.anchorMin=new Vector2(.045f,0);viewport.anchorMax=new Vector2(.955f,1);viewport.offsetMin=new Vector2(0,MidnightLobbyTheme.ContentBottom);viewport.offsetMax=new Vector2(0,-370);
+        viewport.gameObject.AddComponent<Image>().color=new Color(0,0,0,.001f);viewport.gameObject.AddComponent<RectMask2D>();
+        var rows=ShopCatalogView.Rect("ContentCards",viewport);rows.anchorMin=new Vector2(0,1);rows.anchorMax=new Vector2(1,1);rows.pivot=new Vector2(.5f,1);rows.sizeDelta=Vector2.zero;
+        var layout=rows.gameObject.AddComponent<VerticalLayoutGroup>();layout.padding=new RectOffset(8,8,8,30);layout.spacing=28;layout.childControlWidth=true;layout.childControlHeight=true;layout.childForceExpandHeight=false;
+        rows.gameObject.AddComponent<ContentSizeFitter>().verticalFit=ContentSizeFitter.FitMode.PreferredSize;
+        var scroll=viewport.gameObject.AddComponent<ScrollRect>();scroll.viewport=viewport;scroll.content=rows;scroll.horizontal=false;scroll.movementType=ScrollRect.MovementType.Clamped;scroll.scrollSensitivity=38;
+        string[] titles={"배양 구역","변이 연구소"};string[] detail={"성장 세포를 연구하는 배양 시설","생체변이의 가능성을 탐사하는 연구소"};
+        for(int i=0;i<2;i++)
+        {
+            var card=ShopCatalogView.Rect(i==0?"CultivationCard":"MutationCard",rows);card.gameObject.AddComponent<LayoutElement>().preferredHeight=420;
+            ShopCatalogView.Frame(card,LobbyNeonGraphic.FrameStyle.Panel);var frame=card.GetComponent<LobbyNeonGraphic>();frame.UseMidnightAccent(new Color(.09f,.13f,.21f,.98f));frame.raycastTarget=true;
+            var art=ShopCatalogView.Rect("ContentIcon",card);ShopCatalogView.Stretch(art,.045f,.28f,.30f,.90f);
+            if(i==0)MidnightIconAtlas.Place(art,MidnightIconAtlas.Icon.Cells);
+            else {var symbol=art.gameObject.AddComponent<MidnightNavGraphic>();symbol.Configure(4);symbol.color=new Color(.66f,.57f,.94f);symbol.raycastTarget=false;}
+            var title=ShopCatalogView.Label(card,"Title",titles[i],56,.34f,.62f,.94f,.88f,TextAnchor.MiddleLeft);MidnightLobbyTheme.DisplayTypography(title,56,false);
+            ShopCatalogView.Label(card,"Description",detail[i],29,.34f,.38f,.94f,.64f,TextAnchor.MiddleLeft).color=MidnightLobbyTheme.Muted;
+            ShopCatalogView.Label(card,"State","전투 진입 연동 준비 중",25,.06f,.08f,.51f,.24f,TextAnchor.MiddleLeft).color=MidnightLobbyTheme.Muted;
+            var button=ShopCatalogView.Button(card,"Unavailable","연결 준비 중",.54f,.07f,.94f,.25f);
+            button.GetComponent<LobbyNeonGraphic>().UseMidnightButtonGloss();button.interactable=false;
+            // This is presentation only: no entry counts, fabricated rewards, or launch callback.
+        }
+        return viewport;
     }
     private void StyleCurrencies()
     {

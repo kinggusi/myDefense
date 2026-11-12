@@ -6,6 +6,8 @@
 
 ## 0. 사용 방법
 
+> 최신 v8 콘텐츠·클랜·퀘스트 후속(2026-11-12, baa482d): **social-v8-final.xml 전체947/947·Social19/19 PASS, 독립 최종 리뷰 PASS/Approve(XML·native3장 직접확인).** 콘텐츠2개 준비중 카드/disabled CTA, 클랜 공통 버튼/목록·팝업, Quest 정보분리/3탭/닫기/활동도·보상/scroll 및 후속 불투명배경 보정.9:16 콘텐츠·클랜미가입/생성팝업·Quest3탭/닫기,3:4 배치·휠스크롤·닫기/콘텐츠비겹침 PASS. 짧은click 누락으로1px held 이동 검사 사례가 있어 사람반복터치·긴drag 미확인 잔여. 가입후클랜전수/실제보상수령 미실행. 서버/경제/Shared/Battle/ScenePrefab/수기meta 변경 없음, 기존Hub fixture재사용·신규Scene없음. sourcefreeze·diff--checkPASS·미커밋/미푸시, 최종사람인수잔여. PM Play=false/Galaxy1080×1920복원/Scene저장명령없음 확인, 자체server session30451 Ctrl+C종료·PID23172부재확인·사용자8080불변. 아래928PASS는 직전v7 이력. [최종XML·캡처·검증경계](test-reports/UI-MIDNIGHT-2026-11-11.md).
+
 > 최신 v7 보급 표시 후속(2026-11-12): **reference-v7-supply-label.xml 전체928/928·전용101/101 PASS, 독립 최종 PASS.** SUPPLY 미구매 카드의 `남은 N회`만 숨김. 실제 한도3/2/3·데이터·가격·callback 및 구매완료/한도0차단, LUCKY·주간할인·광고리롤 잔여 유지. 실제9:16 상점 휠 스크롤로 보급7카드 문구제거/가격유지 확인, 실제구매없음. Playfalse/원래9:16/Scene선행별표미저장보존, 작업용서버41716만종료·8080불변. 소스freeze·diff--checkPASS·커밋푸시없음. 구매/광고소모·터치드래그·사람인수잔여 유지, 전체UI완료아님. 아래927/100은 직전v6 기준선. [최종XML·실화면·검증경계](test-reports/UI-MIDNIGHT-2026-11-11.md).
 
 > v6 마무리 상태: PM 확인 Play=false, 원래 Galaxy1080×1920 복원, SampleScene 선행별표 미저장 보존. 작업용 ShopPersistenceUiServer PID41472만 신원 확인 후 종료, 사용자8080 불변. 최종 diff--check exit0.

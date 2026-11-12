@@ -12,6 +12,9 @@ namespace MyDefense.Clans
         public Color border = new Color(.22f, .36f, .49f, .65f);
         public float thickness = 1.6f;
         public float corner = 16;
+        private bool midnightButton,midnightPrimary;
+        public bool HasMidnightButtonFinish=>midnightButton;
+        public void UseMidnightButton(bool primary=false){midnightButton=true;midnightPrimary=primary;SetVerticesDirty();}
 
         public Color ResolveFill(bool midnight) => midnight&&shape==Shape.Panel
             ? new Color(MidnightLobbyTheme.Surface.r,MidnightLobbyTheme.Surface.g,MidnightLobbyTheme.Surface.b,color.a):color;
@@ -26,7 +29,7 @@ namespace MyDefense.Clans
             bool midnight=MidnightLobbyTheme.IsPresentationTarget(transform);
             if(midnight&&shape==Shape.Panel)
             {
-                DrawMidnightPanel(vh,r);
+                if(midnightButton)DrawMidnightButton(vh,r);else DrawMidnightPanel(vh,r);
                 return;
             }
             Vector2[] outer = Points(r, 0,ResolveCorner(midnight));
@@ -55,6 +58,11 @@ namespace MyDefense.Clans
             Color fill=ResolveFill(true);fill.a=1f;
             Color tint=Color.white;tint.a=color.a;
             MidnightSurfaceMesh.Draw(mesh,bounds,fill,ResolveBorder(true),tint,ResolveCorner(true),canvas!=null?canvas.scaleFactor:1);
+        }
+        private void DrawMidnightButton(VertexHelper mesh,Rect bounds)
+        {
+            var tint=Color.white;tint.a=color.a;
+            MidnightSurfaceMesh.DrawReferenceButton(mesh,bounds,tint,Mathf.Min(10,bounds.height*.16f),canvas!=null?canvas.scaleFactor:1,midnightPrimary,midnightPrimary);
         }
 
         private Vector2[] Points(Rect r, float inset,float resolvedCorner)

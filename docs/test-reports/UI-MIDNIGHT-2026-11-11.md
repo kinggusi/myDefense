@@ -2,7 +2,21 @@
 
 > 커밋 범위(2026-11-12): 이번 UI 커밋은 누적 로비/상점 표현 변경과 v7 보급 문구 제거만 포함한다. 별도의 Auth/JWT·서버 검증 fixture·Battle canonical hash 기대값 수정·Photon/ProjectSettings는 제외했다. 아래 전체928/928 결과는 이 별도 미커밋 변경도 존재하는 누적 작업 트리에서 실행한 결과이며, UI-only 커밋의 깨끗한 checkout 전체 검사 결과가 아니다. UI 전용101/101 및 실제 화면·독립 리뷰 결과와 구분한다. 기존 Battle hash 기대값 수정은 별도 반영 전까지 깨끗한 checkout의 알려진 테스트 잔여다.
 
-## 최신 v7 — 오늘의 보급 잔여 문구 숨김 / 자동·실화면·독립 리뷰 PASS
+## 최신 v8 — 자동·실화면·독립 최종 리뷰 PASS / 사람 인수 대기
+
+- 최종 [social-v8-final.xml](../../Client/_localbuild/MidnightValidation/social-v8-final.xml) **전체947/947 PASS, Social 전용19/19 PASS**. 최초946/946 이후 PM 실화면에서 Quest 배경 비침을 발견하여 해당 popup 루트 Image와 panel alpha만1로 보정하고 전체 재검증했다. 불투명 full-bounds 배경/상단HUD·하단nav 비침범 회귀1건을 추가했다. 독립 최종 리뷰는 XML947/Social19와 native3장을 직접 확인하여 **PASS/Approve**했다.
+- 최신 native 캡처: [콘텐츠](../../Client/_localbuild/MidnightValidation/screenshots-v2/content-20261112-095813-543.png), [클랜](../../Client/_localbuild/MidnightValidation/screenshots-v2/clan-20261112-095920-409.png), [퀘스트 최종](../../Client/_localbuild/MidnightValidation/screenshots-v2/main-20261112-100814-345.png). 퀘스트는 메인에서 연 popup이므로 파일명이 main이며 내용은 최종 불투명 Quest 창이다.
+- PM 실제 검증:9:16 콘텐츠/클랜 미가입/생성 팝업/Quest 일일·주간·업적 전환/닫기 PASS.3:4 Quest 배치·휠스크롤·닫기, 클랜 미가입·생성 팝업·닫기, 콘텐츠 비겹침 PASS. 짧은 click을 Unity가 놓쳐1px held-pointer 이동으로 버튼을 검사한 사례가 있으므로 사람 반복터치 검증을 남긴다. 실제 긴 drag는 미확인이다. 가입 후 클랜 전수/실제 보상 수령은 이번에 실행하지 않았다.
+- 기준 `baa482d`, 사용자 지정 User/System UI 후속. 호출 가능한 Unity MCP는0개이며 PM이 `E:/study/MyDefenseGame/Client`, Unity6000.3.4f1 SampleScene/Play=false/선행별표를 확인했다. runtime source only, Scene/Prefab 저장·수기meta 없음. 기존 Photon/ProjectSettings/삭제meta/Captures dirty는 제외했다.
+- 콘텐츠는 기존 안내패널을 배양 구역·변이 연구소2개 카드/스크롤로 정리했다. 실제 Daily launcher가 없으므로 CTA는 `연결 준비 중` disabled/callback 없음. 가짜 입장잔여·진행·보상 숫자 없이 기존 재료 atlas/도형만 재사용한다.
+- 클랜은 Resources prefab 경로에도 Render/최초 presentation 진입에서 제목·검색toolbar·목록·페이지/상태영역을 정렬한다. 제목 BlackHanSans120, primary/secondary/pressed/disabled 구분. `ClanSurfaceGraphic`의 Button opt-in만 기존 `DrawReferenceButton`을 호출하고 Panel/Shield/Circle 기본 matte는 유지한다. 실제 기능/권한/한줄입력/pending/fresh/API는 변경하지 않는다.
+- Quest는 기존 prefab 객체/직렬화 참조를 보존하고 header·닫기·3탭·활동도/보상·목록을 정렬한다. 일일/주간 scroll top620, 업적310, 행높이215. 원래 첫 Text는 비활성 component로 남겨 Controller의 기존 첫 Text 쓰기 계약을 유지하고, 쓰기 후 제목·설명·진행·보상·수령 상태를 non-raycast child로 분리한다. 행은 matte, 받기만 softcyan bevel. 선택 탭은 청록 underline, 잠김/수령완료는 별도 비활성 표현. API/요청ID/보상 계산과 요청 중 닫기 허용은 그대로다.
+- 반복 Render는 template을 변경하지 않고 generated row만 교체한다. cleanup에 EditMode DestroyImmediate 분기만 추가했고 Play의 Destroy는 유지한다. 전역 Canvas 반복 스캔은 추가하지 않았으며 캐시/해당 view 생성 경로만 처리한다.
+- 수정: `MidnightLobbyPresentation.cs`, `ClanView.cs`, `ClanSurfaceGraphic.cs`, `QuestUiView.cs`, `QuestController.cs`, 신규 `Editor/Tests/LobbyMidnightSocialUiTests.cs`, `FeatureTestCatalog.cs`, 작업표/보고서. 공통 mesh 본체·상점·컬렉션·메인·HUD/nav 표현은 변경하지 않는다(`BottomBox` 동일 구현을 public 유틸로 공유).
+- 신규19case: 콘텐츠4비율/미연결·재사용, Quest3비율/3상태/3탭반복렌더/불투명 배경1, Clan prefab2상태/mesh alpha3. 최종947/947 실행에 포함되어 PASS했다. Hub `UI-MIDNIGHT-SOCIAL`은 기존 Clan 격리 scene을 안내하며 신규 scene/Build Settings 변경 없음. diff--checkPASS·sourcefreeze·미커밋/미푸시.
+- 잔여: 사람 반복터치/실제 drag/최종 시각 인수, 가입 후 클랜 전수·실제 보상수령·Legacy/전체 팝업·운영 기능은 별도다. 서버·경제는 변경하지 않았다. PM 최종 확인: Play=false, 원래 Galaxy1080×1920 복원, Scene 저장 명령 없음. 자체 실행 격리 서버 session30451을 Ctrl+C로 종료하고 PID23172 부재를 확인했으며 사용자8080은 변경하지 않았다.
+
+## 직전 v7 — 오늘의 보급 잔여 문구 숨김 / 자동·실화면·독립 리뷰 PASS
 
 - 최종 [reference-v7-supply-label.xml](../../Client/_localbuild/MidnightValidation/reference-v7-supply-label.xml) **전체928/928·전용101/101 PASS**, 독립 최종 리뷰 PASS. 실제9:16 상점 휠 스크롤로 보급7개 카드에서 잔여 문구가 없고 가격은 유지됨을 확인했다. [실제 확인 화면](../../Client/_localbuild/MidnightValidation/screenshots-v2/v7-supply-label-removed-window.png). 실제 구매는 수행하지 않았다.
 - 사용자 요청으로 SUPPLY(RESOURCE+DAILY) 미구매 카드의 `남은 N회` Label 생성만 제거했다. 실제 RESOURCE 구매 한도3/2/3 및 기타 remaining 값, 가격·상품·callback은 그대로다. 구매 완료 표시와 한도0 구매불가, 별도 LUCKY 잔여, 주간 할인·광고 리롤 잔여는 유지한다. 카드 높이/가격 위치도 바꾸지 않았다.

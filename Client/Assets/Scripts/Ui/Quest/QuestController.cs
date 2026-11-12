@@ -30,6 +30,7 @@ public sealed class QuestController : MonoBehaviour
         GameObject screen = Instantiate(screenPrefab, canvas.transform, false);
         screen.name = "QuestScreen";
         view = screen.GetComponent<QuestUiView>();
+        if(MidnightLobbyTheme.Enabled)view.ApplyMidnightPresentation();
         screen.SetActive(false);
         shortcut = Instantiate(shortcutPrefab, manager.viewObjects[2].transform, false).GetComponent<QuestShortcutView>();
         shortcut.name = "QuestShortcut";
@@ -125,6 +126,7 @@ public sealed class QuestController : MonoBehaviour
         view.dailyTabButton.interactable = weekly;
         view.weeklyTabButton.interactable = !weekly;
         view.achievementTabButton.interactable = true;
+        view.StyleMidnightTabs(weekly?1:0);
         SetCyclePanelsVisible(true);
         ClearGenerated(view.milestoneRoot, view.milestoneTemplate.gameObject);
         ClearGenerated(view.questRoot, view.questTemplate.gameObject);
@@ -140,6 +142,7 @@ public sealed class QuestController : MonoBehaviour
                 button.interactable = milestone.unlocked && !milestone.claimed && !requesting;
                 int points = milestone.requiredActivityPoints;
                 button.onClick.AddListener(() => ClaimMilestone(cycle.cycleType, points));
+                view.StyleMidnightMilestone(button,points,QuestClientContract.FormatReward(milestone.reward),milestone.claimed);
             }
 
         if (cycle.quests != null)
@@ -154,6 +157,7 @@ public sealed class QuestController : MonoBehaviour
                 button.interactable = quest.completed && !quest.claimed && !requesting;
                 string questId = quest.questId;
                 button.onClick.AddListener(() => ClaimQuest(questId));
+                view.StyleMidnightQuest(button,quest.title,quest.description,QuestClientContract.FormatProgress(quest.progress,quest.targetAmount),QuestClientContract.FormatReward(quest.reward),quest.claimed);
             }
         SetStatus(string.Empty);
     }
@@ -165,6 +169,7 @@ public sealed class QuestController : MonoBehaviour
         view.dailyTabButton.interactable = true;
         view.weeklyTabButton.interactable = true;
         view.achievementTabButton.interactable = false;
+        view.StyleMidnightTabs(2);
         SetCyclePanelsVisible(false);
         ClearGenerated(view.milestoneRoot, view.milestoneTemplate.gameObject);
         ClearGenerated(view.questRoot, view.questTemplate.gameObject);
@@ -182,6 +187,7 @@ public sealed class QuestController : MonoBehaviour
                 button.interactable = achievement.completed && !achievement.claimed && !requesting;
                 string achievementId = achievement.achievementId;
                 button.onClick.AddListener(() => ClaimAchievement(achievementId));
+                view.StyleMidnightQuest(button,achievement.title+"  T"+achievement.tier,achievement.description,QuestClientContract.FormatProgress(achievement.progress,achievement.targetAmount),QuestClientContract.FormatReward(achievement.reward),achievement.claimed);
             }
         SetStatus(string.Empty);
     }
@@ -194,6 +200,7 @@ public sealed class QuestController : MonoBehaviour
         if (view.questScrollRect != null)
             view.questScrollRect.offsetMax = new Vector2(-30f,
                 visible ? -QuestUiView.CycleScrollTop : -QuestUiView.AchievementScrollTop);
+        view.SetMidnightCycleLayout(visible);
     }
 
     private void ClaimQuest(string questId)
@@ -272,7 +279,7 @@ public sealed class QuestController : MonoBehaviour
             if (child != template)
             {
                 child.SetActive(false);
-                Destroy(child);
+                if(Application.isPlaying)Destroy(child);else DestroyImmediate(child);
             }
         }
     }
