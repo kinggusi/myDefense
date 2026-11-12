@@ -76,8 +76,8 @@ public sealed class LobbyFinalPresentation : MonoBehaviour
         bottom = Mathf.Max(0,bottom);
         if (navigation == null) return;
         navigation.offsetMin = new Vector2(navigation.offsetMin.x, bottom);
-        navigation.offsetMax = new Vector2(navigation.offsetMax.x, bottom + 180f);
-        if (collectionScroll != null) collectionScroll.offsetMin = new Vector2(collectionScroll.offsetMin.x,225f+bottom);
+        navigation.offsetMax = new Vector2(navigation.offsetMax.x, bottom + (MidnightLobbyTheme.Enabled?MidnightLobbyTheme.NavigationHeight:180f));
+        if (collectionScroll != null) collectionScroll.offsetMin = new Vector2(collectionScroll.offsetMin.x,(MidnightLobbyTheme.Enabled?MidnightLobbyTheme.ContentBottom:225f)+bottom);
     }
 
     public static void StyleMaterials(Transform panel)

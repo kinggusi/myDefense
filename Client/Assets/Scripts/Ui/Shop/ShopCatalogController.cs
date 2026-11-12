@@ -75,15 +75,15 @@ public sealed class ShopCatalogController : MonoBehaviour
     public void Refresh()
     {
         if(view==null||!ValidAccount||requesting)return;
-        requesting=true;catalogFresh=false;view.SetBusy(true);view.statusText.text="상점 정보를 확인하는 중...";
+        requesting=true;catalogFresh=false;view.ShowRecoveryRefresh(false);view.SetBusy(true);view.statusText.text="상점 정보를 확인하는 중...";
         NetworkManager.Instance.Get("/shop/catalog",json=>
         {
             if(!ValidAccount)return;requesting=false;
             try{Apply(JsonUtility.FromJson<ShopCatalog>(json));}
-            catch(Exception){view.statusText.text="상점 응답을 읽지 못했습니다. 다시 조회해 주세요.";view.refreshButton.interactable=true;return;}
+            catch(Exception){view.statusText.text="상점 응답을 읽지 못했습니다. 다시 조회해 주세요.";view.ShowRecoveryRefresh(true);view.refreshButton.interactable=true;return;}
             if(storageError)view.Message("구매 복구 오류","저장된 요청을 읽지 못했습니다. 고객 지원이 필요합니다.");
             else if(pending!=null&&shown)view.Message("처리 확인 필요","이전 구매·새로고침 요청의 결과가 아직 확인되지 않았습니다.\n같은 요청으로 안전하게 확인합니다.",Retry);
-        },error=>{if(!ValidAccount)return;requesting=false;view.statusText.text="상점 조회 실패 · 다시 조회해 주세요.";view.refreshButton.interactable=true;});
+        },error=>{if(!ValidAccount)return;requesting=false;view.statusText.text="상점 조회 실패 · 다시 조회해 주세요.";view.ShowRecoveryRefresh(true);view.refreshButton.interactable=true;});
     }
     private void Apply(ShopCatalog value)
     {
@@ -166,7 +166,7 @@ public sealed class ShopCatalogController : MonoBehaviour
         {
             string pendingMessage=status==401||status==403 ? "로그인 상태를 복원한 뒤 같은 요청으로 다시 확인해 주세요. 구매 기록은 보존됩니다." :
                 "응답을 확인하지 못했습니다. 같은 요청 재시도는 중복 결제하지 않습니다.";
-            view.Message("결과 확인 필요",pendingMessage,Retry);view.refreshButton.interactable=true;return;
+            view.Message("결과 확인 필요",pendingMessage,Retry);view.ShowRecoveryRefresh(true);view.refreshButton.interactable=true;return;
         }
         if(!ClearPending())return;
         string message=code=="SHOP_QUOTE_CHANGED"?"가격 또는 상품이 갱신됐습니다. 다시 선택하고 변경된 가격을 확인해 주세요.":

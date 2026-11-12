@@ -13,6 +13,7 @@ public sealed class MidnightLobbyPresentation : MonoBehaviour
     private bool installed;
     private RectTransform mainBody;
     private float previousBottom=-1;
+    private float previousBodyHeight=-1;
     private readonly MidnightNavGraphic[] midnightSymbols=new MidnightNavGraphic[5];
     public static void Install(LobbyManager manager)
     {
@@ -33,7 +34,9 @@ public sealed class MidnightLobbyPresentation : MonoBehaviour
         if(tab!=selected) { selected=tab;StyleNavigation(); }
         float bottom=Screen.safeArea.yMin/Mathf.Max(.01f,canvas.scaleFactor);
         if(mainBody!=null&&Mathf.Abs(previousBottom-bottom)>.1f)
-        {previousBottom=bottom;mainBody.offsetMin=new Vector2(0,225+Mathf.Max(0,bottom));}
+        {previousBottom=bottom;mainBody.offsetMin=new Vector2(0,MidnightLobbyTheme.ContentBottom+Mathf.Max(0,bottom));}
+        if(mainBody!=null&&Mathf.Abs(previousBodyHeight-mainBody.rect.height)>.1f)
+        {previousBodyHeight=mainBody.rect.height;LayoutMainControls(mainBody);}
     }
     private void BuildShell()
     {
@@ -44,6 +47,10 @@ public sealed class MidnightLobbyPresentation : MonoBehaviour
         if(oldBackground!=null)oldBackground.gameObject.SetActive(false);
         var bg=MidnightLobbyTheme.Art(canvas.transform,"MidnightBackground",MidnightLobbyTheme.BackgroundResource,0,0,1,1);
         bg.transform.SetAsFirstSibling();
+        var shade=LobbyFinalPresentation.Child(canvas.transform,"MidnightContentShade");
+        ShopCatalogView.Stretch(shade,0,0,1,1);shade.offsetMax=new Vector2(0,-140);
+        var shadeImage=LobbyFinalPresentation.Get<Image>(shade.gameObject);shadeImage.color=new Color(.015f,.025f,.055f,.37f);shadeImage.raycastTarget=false;
+        shade.SetSiblingIndex(bg.transform.GetSiblingIndex()+1);
         foreach(var view in lobby.viewObjects)
         {
             if(view==null)continue;
@@ -63,13 +70,16 @@ public sealed class MidnightLobbyPresentation : MonoBehaviour
             for(int i=0;i<names.Length;i++)
             {
                 var button=nav.navigation.Find(names[i]);if(button==null)continue;
-                if(i==1)continue; // Preserve the original transparent mascot asset.
                 var oldIcon=button.Find("FinalIcon");if(oldIcon!=null)oldIcon.gameObject.SetActive(false);
-                var icon=LobbyFinalPresentation.Child(button,"MidnightIcon");LobbyFinalPresentation.Place(icon,.15f,.17f,.85f,.89f);
+                foreach(var oldSymbol in button.GetComponentsInChildren<LobbyNavIconGraphic>(true))oldSymbol.enabled=false;
+                if(i==1&&nav.mascot!=null)nav.mascot.enabled=false;
+                var icon=LobbyFinalPresentation.Child(button,"MidnightIcon");
+                icon.anchorMin=icon.anchorMax=new Vector2(.5f,.57f);icon.pivot=new Vector2(.5f,.5f);icon.sizeDelta=new Vector2(106,106);icon.anchoredPosition=Vector2.zero;
                 var symbol=LobbyFinalPresentation.Get<MidnightNavGraphic>(icon.gameObject);symbol.Configure(i);midnightSymbols[i]=symbol;
                 var underline=button.Find("SelectedUnderline") as RectTransform;
-                if(underline!=null)LobbyFinalPresentation.Place(underline,.08f,.075f,.92f,.12f);
+                if(underline!=null)LobbyFinalPresentation.Place(underline,.20f,.22f,.80f,.25f);
             }
+            nav.ApplySafeBottom(Screen.safeArea.yMin/Mathf.Max(.01f,canvas.scaleFactor));
         }
         StyleNavigation();
     }
@@ -81,7 +91,7 @@ public sealed class MidnightLobbyPresentation : MonoBehaviour
         var scroll=lobby.unitGridContent!=null?lobby.unitGridContent.GetComponentInParent<ScrollRect>(true):null;
         if(scroll!=null)
         {
-            var r=(RectTransform)scroll.transform;r.offsetMax=new Vector2(r.offsetMax.x,-435);
+            var r=(RectTransform)scroll.transform;r.anchorMin=new Vector2(.02f,0);r.anchorMax=new Vector2(.98f,1);r.offsetMax=new Vector2(0,-505);r.offsetMin=new Vector2(0,MidnightLobbyTheme.ContentBottom);
             var grid=lobby.unitGridContent.GetComponent<LobbySectionGridLayout>();
             if(grid!=null){grid.spacing=new Vector2(16,18);grid.padding=new RectOffset(18,18,8,50);}
             lobby.unitGridContent.GetComponent<LobbyCollectionGrid>()?.RefreshLayout();
@@ -90,37 +100,55 @@ public sealed class MidnightLobbyPresentation : MonoBehaviour
     private static void Header(Transform root,string title)
     {
         var eyebrow=root.Find("MidnightEyebrow");if(eyebrow!=null)eyebrow.gameObject.SetActive(false);
-        var label=LobbyFinalPresentation.TextChild(root,"MidnightTitle",title,88);
-        Top(label.rectTransform,.055f,.94f,165,275);label.alignment=TextAnchor.MiddleLeft;MidnightLobbyTheme.Typography(label,88,FontStyle.BoldAndItalic);
+        var label=LobbyFinalPresentation.TextChild(root,"MidnightTitle",title,120);
+        Top(label.rectTransform,.055f,.94f,200,360);label.alignment=TextAnchor.MiddleLeft;MidnightLobbyTheme.DisplayTypography(label,120);
     }
     private void BuildMain()
     {
         var root=lobby.viewObjects[2].transform;Header(root,"메인");
         mainBody=ShopCatalogView.Rect("MidnightMainBody",root);mainBody.anchorMin=Vector2.zero;mainBody.anchorMax=Vector2.one;
-        mainBody.offsetMin=new Vector2(0,225);mainBody.offsetMax=new Vector2(0,-290);
-        var art=MidnightLobbyTheme.Art(mainBody,"MidnightPlanet",MidnightLobbyTheme.PlanetResource,.04f,.31f,.96f,1);
+        mainBody.offsetMin=new Vector2(0,MidnightLobbyTheme.ContentBottom);mainBody.offsetMax=new Vector2(0,-350);
+        var art=MidnightLobbyTheme.Art(mainBody,"MidnightPlanet",MidnightLobbyTheme.MainResource,.04f,.31f,.96f,1);
         art.transform.SetAsFirstSibling();
-        var planet=ShopCatalogView.Label(mainBody,"MidnightPlanetName","해왕성",70,.15f,.55f,.85f,.62f);
+        var planet=ShopCatalogView.Label(mainBody,"MidnightPlanetName","해왕성",64,.15f,.65f,.85f,.71f);
         planet.fontStyle=FontStyle.Bold;
         var progressPlate=ShopCatalogView.Rect("MidnightProgressPlate",mainBody);
-        ShopCatalogView.Stretch(progressPlate,.12f,.50f,.88f,.55f);
+        ShopCatalogView.Stretch(progressPlate,.12f,.61f,.88f,.65f);
         var progressBackground=progressPlate.gameObject.AddComponent<Image>();
         progressBackground.color=new Color(.025f,.045f,.085f,.88f);progressBackground.raycastTarget=false;
         ShopCatalogView.Label(progressPlate,"MidnightProgress","행성 진행 정보 · 연동 준비 중",32,.025f,0,.975f,1).color=MidnightLobbyTheme.Ink;
         ShopCatalogView.Label(mainBody,"MidnightMode","2인 협동 디펜스",44,.15f,.29f,.85f,.35f);
         var battle=ShopCatalogView.Button(mainBody,"MidnightBattleUnavailable","전투 시작",.08f,.14f,.92f,.275f);
-        battle.GetComponent<LobbyNeonGraphic>().UseMidnightPrimary();
+        battle.GetComponent<LobbyNeonGraphic>().UseMidnightMainCta();
         battle.GetComponentInChildren<Text>().color=new Color(.025f,.065f,.10f);
-        MidnightLobbyTheme.Typography(battle.GetComponentInChildren<Text>(),66,FontStyle.BoldAndItalic);
+        MidnightLobbyTheme.DisplayTypography(battle.GetComponentInChildren<Text>(),105);
         battle.interactable=false;
-        var disabled=battle.colors;disabled.disabledColor=new Color(.55f,.70f,.80f,.85f);battle.colors=disabled;
+        var disabled=battle.colors;disabled.disabledColor=new Color(.92f,.96f,1f,1f);battle.colors=disabled;
         ShopCatalogView.Label(mainBody,"MidnightBattleNotice","연결 준비 중 · 운영 매칭 연결 후 이용 가능",28,.08f,.09f,.92f,.14f).color=MidnightLobbyTheme.Muted;
         var daily=ShopCatalogView.Button(mainBody,"MidnightDailyUnavailable","일일 콘텐츠",.08f,0,.49f,.085f);
         MidnightLobbyTheme.Typography(daily.GetComponentInChildren<Text>(),36);
+        UtilityIcon(daily.transform,6);LobbyFinalPresentation.Place(daily.GetComponentInChildren<Text>().rectTransform,.25f,.06f,.94f,.94f);
         daily.interactable=false;
         var tutorial=root.Find("TutorialEntry") as RectTransform;if(tutorial!=null)PositionTutorial(tutorial);
         foreach(var shortcut in root.GetComponentsInChildren<QuestShortcutView>(true))PositionQuest(shortcut);
         var account=root.Find("AccountLinkShortcut") as RectTransform;if(account!=null)PositionAccountLink(account);
+        LayoutMainControls(mainBody);
+    }
+    public static void LayoutMainControls(RectTransform body)
+    {
+        float height=Mathf.Max(500,body.rect.height),ctaHeight=Mathf.Min(200,height*.16f),subHeight=Mathf.Min(100,height*.085f);
+        float bottom=Mathf.Clamp(height*.14f,120,260);
+        BottomBox(body.Find("MidnightBattleUnavailable") as RectTransform,.08f,.92f,bottom,ctaHeight);
+        BottomBox(body.Find("MidnightMode") as RectTransform,.15f,.85f,bottom+ctaHeight+22,60);
+        float noticeBottom=Mathf.Max(subHeight+8,bottom-65);
+        BottomBox(body.Find("MidnightBattleNotice") as RectTransform,.08f,.92f,noticeBottom,Mathf.Max(25,bottom-noticeBottom-8));
+        BottomBox(body.Find("MidnightDailyUnavailable") as RectTransform,.08f,.49f,0,subHeight);
+        BottomBox(body.Find("TutorialEntry") as RectTransform,.52f,.92f,0,subHeight);
+    }
+    private static void BottomBox(RectTransform rect,float left,float right,float bottom,float height)
+    {
+        if(rect==null)return;rect.anchorMin=new Vector2(left,0);rect.anchorMax=new Vector2(right,0);
+        rect.offsetMin=new Vector2(0,bottom);rect.offsetMax=new Vector2(0,bottom+height);
     }
     private void BuildContent()
     {
@@ -146,10 +174,11 @@ public sealed class MidnightLobbyPresentation : MonoBehaviour
     }
     public static void PositionQuest(QuestShortcutView shortcut)
     {
-        Top((RectTransform)shortcut.transform,.74f,.96f,177,267);
+        Top((RectTransform)shortcut.transform,.74f,.96f,235,325);
         if(shortcut.statusText!=null)shortcut.statusText.gameObject.SetActive(false);
         var title=shortcut.transform.Find("Title")?.GetComponent<Text>();
-        if(title!=null){LobbyFinalPresentation.Place(title.rectTransform,.10f,.08f,.87f,.92f);MidnightLobbyTheme.Typography(title,38);title.alignment=TextAnchor.MiddleCenter;}
+        if(title!=null){LobbyFinalPresentation.Place(title.rectTransform,.25f,.08f,.92f,.92f);MidnightLobbyTheme.Typography(title,38);title.alignment=TextAnchor.MiddleCenter;}
+        UtilityIcon(shortcut.transform,5);
         if(shortcut.badgeObject!=null)LobbyFinalPresentation.Place((RectTransform)shortcut.badgeObject.transform,.86f,.70f,1f,1.05f);
     }
     public static void StyleCurrencyPlus(RectTransform plus)
@@ -165,7 +194,7 @@ public sealed class MidnightLobbyPresentation : MonoBehaviour
     }
     public static void PositionAccountLink(RectTransform rect)
     {
-        Top(rect,.53f,.71f,177,267);
+        Top(rect,.53f,.71f,235,325);
         rect.GetComponent<LobbyNeonGraphic>()?.UseMidnightStyle();
         var label=rect.GetComponentInChildren<Text>();if(label!=null){label.text="계정 연동";MidnightLobbyTheme.Typography(label,32);}
     }
@@ -175,7 +204,9 @@ public sealed class MidnightLobbyPresentation : MonoBehaviour
         var body=root.name=="MidnightMainBody"?root:root.Find("MidnightMainBody");
         if(body==null)return;
         entry.SetParent(body,false);LobbyFinalPresentation.Place(entry,.52f,0,.92f,.085f);
-        var label=entry.GetComponentInChildren<Text>();if(label!=null){label.text="튜토리얼";MidnightLobbyTheme.Typography(label,36);}
+        var label=entry.GetComponentInChildren<Text>();if(label!=null){label.text="튜토리얼";MidnightLobbyTheme.Typography(label,36);LobbyFinalPresentation.Place(label.rectTransform,.25f,.06f,.94f,.94f);}
+        UtilityIcon(entry,7);
+        LayoutMainControls((RectTransform)body);
     }
     public static void StyleAuth(MyDefense.Auth.AuthStartupView auth)
     {
@@ -192,7 +223,7 @@ public sealed class MidnightLobbyPresentation : MonoBehaviour
     }
     public static void StyleMaterials(Transform panel)
     {
-        Top((RectTransform)panel,.04f,.665f,285,415);
+        Top((RectTransform)panel,.04f,.665f,350,480);
         var frame=panel.Find("LobbyNeonFrame");if(frame!=null)frame.gameObject.SetActive(false);
         var divider=panel.Find("RowDivider");if(divider!=null)divider.gameObject.SetActive(false);
         string[] names={"WakjeoDnaCard","GrowthCellCard"};string[] labels={"왹져DNA","성장세포"};
@@ -214,7 +245,7 @@ public sealed class MidnightLobbyPresentation : MonoBehaviour
     }
     public static void StyleBreeding(MythicBreedingShortcutView view)
     {
-        Top((RectTransform)view.transform,.69f,.96f,285,415);
+        Top((RectTransform)view.transform,.69f,.96f,350,480);
         LobbyFinalPresentation.Frame(view.gameObject).UseMidnightAccent(new Color(.23f,.14f,.30f,.98f));
         var dna=LobbyFinalPresentation.Child(view.transform,"MidnightDnaIcon");LobbyFinalPresentation.Place(dna,.055f,.40f,.26f,.93f);
         var oldDna=dna.GetComponent<MyDefense.Lobby.LobbyMaterialIconGraphic>();if(oldDna!=null)oldDna.enabled=false;
@@ -234,9 +265,14 @@ public sealed class MidnightLobbyPresentation : MonoBehaviour
             }
         if(nav.mascot!=null)nav.mascot.color=selected==1?MidnightLobbyTheme.Accent:MidnightLobbyTheme.Muted;
         for(int i=0;i<midnightSymbols.Length;i++)
-            if(midnightSymbols[i]!=null)midnightSymbols[i].color=i==selected?MidnightLobbyTheme.Accent:MidnightLobbyTheme.Muted;
+            if(midnightSymbols[i]!=null)midnightSymbols[i].SetSelected(i==selected);
     }
     public void RefreshNavigation(int index) {selected=index;StyleNavigation();}
+    public static MidnightNavGraphic UtilityIcon(Transform parent,int index,string name="MidnightUtilityIcon",float left=.06f,float right=.23f)
+    {
+        var rect=LobbyFinalPresentation.Child(parent,name);LobbyFinalPresentation.Place(rect,left,.19f,right,.81f);
+        var graphic=LobbyFinalPresentation.Get<MidnightNavGraphic>(rect.gameObject);graphic.Configure(index);graphic.color=MidnightLobbyTheme.Ink;return graphic;
+    }
     public static void Top(RectTransform rect,float left,float right,float top,float bottom)
     {
         rect.anchorMin=new Vector2(left,1);rect.anchorMax=new Vector2(right,1);rect.pivot=new Vector2(.5f,1);

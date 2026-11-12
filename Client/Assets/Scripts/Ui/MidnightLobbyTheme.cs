@@ -8,6 +8,12 @@ public static class MidnightLobbyTheme
     public const string BackgroundResource = "Lobby/Midnight/observatory-background";
     public const string GachaResource = "Lobby/Midnight/gacha-prism";
     public const string PlanetResource = "Lobby/Midnight/neptune-observatory";
+    public const string MainResource = "Lobby/Midnight/main-observatory-v4";
+    public const string GachaCutoutResource = "Lobby/Midnight/gacha-prism-cutout-v5";
+    public const string DisplayFontResource = "Lobby/Midnight/Fonts/BlackHanSans-Regular";
+    public const float NavigationHeight=225f;
+    public const float ContentBottom=245f;
+    private static Font displayFont;
     public static readonly Color Ink = new Color(.93f,.96f,1f);
     public static readonly Color Muted = new Color(.58f,.66f,.78f);
     public static readonly Color Accent = new Color(.30f,.88f,.97f);
@@ -39,6 +45,13 @@ public static class MidnightLobbyTheme
     {
         if(text==null)return;text.fontSize=size;text.resizeTextForBestFit=true;
         text.resizeTextMinSize=Mathf.Max(22,size-8);text.resizeTextMaxSize=size;text.fontStyle=style;
+    }
+    public static void DisplayTypography(Text text,int size,bool italic=true)
+    {
+        if(text==null)return;
+        if(displayFont==null)displayFont=Resources.Load<Font>(DisplayFontResource);
+        if(displayFont!=null)text.font=displayFont;
+        Typography(text,size,italic?FontStyle.Italic:FontStyle.Normal);
     }
 
     public static void SelectForNextSession(bool enabled)
@@ -78,20 +91,20 @@ public static class MidnightLobbyTheme
     public static void StyleCard(UnitCardUI card)
     {
         if(card==null)return;
-        if(card.neonFrame!=null)card.neonFrame.UseMidnightStyle();
-        Place(card.text_Grade,.07f,.865f,.73f,.98f,25,TextAnchor.MiddleLeft);
+        if(card.neonFrame!=null)card.neonFrame.UseMidnightAccent(card.neonFrame.IsOwned?new Color(.085f,.125f,.20f,.97f):new Color(.045f,.065f,.105f,.97f));
+        Place(card.text_Grade,.07f,.88f,.73f,.98f,23,TextAnchor.MiddleLeft);
         if(card.text_Grade!=null){card.text_Grade.color=Color.white;card.text_Grade.fontStyle=FontStyle.BoldAndItalic;}
-        Place(card.text_Name,.07f,.15f,.94f,.29f,31,TextAnchor.MiddleLeft);
-        Place(card.text_Level,.07f,.025f,.49f,.14f,27,TextAnchor.MiddleLeft);
-        Place(card.text_Pieces,.53f,.025f,.94f,.14f,27,TextAnchor.MiddleCenter);
+        Place(card.text_Name,.07f,.15f,.94f,.29f,28,TextAnchor.MiddleLeft);
+        Place(card.text_Level,.07f,.025f,.49f,.14f,25,TextAnchor.MiddleLeft);
+        Place(card.text_Pieces,.53f,.025f,.94f,.14f,25,TextAnchor.MiddleCenter);
         var countPlate=LobbyFinalPresentation.Child(card.transform,"MidnightQuantityPlate");
         LobbyFinalPresentation.Place(countPlate,.51f,.028f,.95f,.13f);
-        var plate=LobbyFinalPresentation.Get<Image>(countPlate.gameObject);plate.color=new Color(.40f,.47f,.58f,.32f);plate.raycastTarget=false;
+        var plate=LobbyFinalPresentation.Get<Image>(countPlate.gameObject);plate.color=new Color(.36f,.44f,.56f,.30f);plate.raycastTarget=false;
         countPlate.SetAsLastSibling();if(card.text_Pieces!=null)card.text_Pieces.transform.SetAsLastSibling();
         var well=card.transform.Find("PortraitWell") as RectTransform;
         if(well!=null)
         {
-            LobbyFinalPresentation.Place(well,.07f,.31f,.93f,.87f);
+            LobbyFinalPresentation.Place(well,.06f,.30f,.94f,.88f);
             foreach(var frame in well.GetComponentsInChildren<LobbyNeonGraphic>(true))frame.enabled=false;
         }
         if(card.portraitImage!=null) { card.portraitImage.preserveAspect=true;card.portraitImage.raycastTarget=false; }

@@ -6,6 +6,22 @@ using UnityEngine;
 public static class LobbyMidnightUiMenu
 {
     private const string Root="Tools/MyDefense/Lobby/Theme/";
+    private const string ReimportMenu="Tools/MyDefense/Lobby/Reimport Midnight Artwork";
+    [MenuItem(ReimportMenu)]
+    public static void ReimportMidnightArtwork()
+    {
+        if(EditorApplication.isPlayingOrWillChangePlaymode)return;
+        int count=0;
+        foreach(string path in MidnightArtworkImporter.ArtworkPaths)
+        {
+            string absolute=System.IO.Path.Combine(Application.dataPath,"..",path);
+            if(!System.IO.File.Exists(absolute)){Debug.LogWarning("[LobbyTheme] Missing artwork: "+path);continue;}
+            AssetDatabase.ImportAsset(path,ImportAssetOptions.ForceUpdate|ImportAssetOptions.ForceSynchronousImport);count++;
+        }
+        Debug.Log("[LobbyTheme] Reimported "+count+" whitelisted artwork textures. No Scene/Prefab/SaveAssets operation.");
+    }
+    [MenuItem(ReimportMenu,true)]
+    public static bool CanReimportMidnightArtwork()=>!EditorApplication.isPlayingOrWillChangePlaymode;
     [MenuItem(Root+"Midnight (next Play)")]
     public static void Midnight() { MidnightLobbyTheme.SelectForNextSession(true);Debug.Log("[LobbyTheme] 다음 Play부터 Midnight. 현재 실행은 종료 후 다시 시작하세요."); }
     [MenuItem(Root+"Legacy (next Play)")]

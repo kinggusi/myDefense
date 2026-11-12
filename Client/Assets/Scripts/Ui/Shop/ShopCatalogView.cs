@@ -166,6 +166,7 @@ public sealed partial class ShopCatalogView : MonoBehaviour
     {
         var rect=Rect(name,parent);Stretch(rect,x0,y0,x1,y1);Frame(rect,LobbyNeonGraphic.FrameStyle.Button);
         var graphic=rect.GetComponent<LobbyNeonGraphic>();graphic.raycastTarget=true;var button=rect.gameObject.AddComponent<Button>();button.targetGraphic=graphic;
+        if(MidnightLobbyTheme.Enabled)graphic.UseMidnightButtonGloss();
         float inset=MidnightLobbyTheme.Enabled?.06f:.04f;
         var label=Label(rect,"Label",text,MidnightLobbyTheme.Enabled?36:26,inset,inset,1-inset,1-inset);
         if(MidnightLobbyTheme.Enabled)MidnightLobbyTheme.Typography(label,36);

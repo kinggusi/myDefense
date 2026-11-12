@@ -33,6 +33,9 @@ public static class MidnightHeaderPresentation
             // Lobby DTO has no XP fields. Preserve the existing object/value/listeners but do
             // not present the authored 75/500 or slider fraction as live account data.
             var slider=profile.GetComponentInChildren<Slider>(true);if(slider!=null)slider.gameObject.SetActive(false);
+            var experience=profile.GetComponent<MidnightExperiencePlaceholder>();
+            if(experience==null)experience=profile.gameObject.AddComponent<MidnightExperiencePlaceholder>();
+            experience.Bind(lobby.text_UserLevel);
         }
         TMP_Text[] values={lobby.text_Heart,lobby.text_Gold,lobby.text_Diamond};
         string[] icons={"Heart","Coin","Gem"};
@@ -57,6 +60,7 @@ public static class MidnightHeaderPresentation
             var frame=LobbyFinalPresentation.Frame(plus.gameObject);frame.UseMidnightStyle();
             var visual=(RectTransform)frame.transform;visual.anchorMin=visual.anchorMax=visual.pivot=new Vector2(.5f,.5f);visual.sizeDelta=new Vector2(PlusSize,PlusSize);visual.anchoredPosition=Vector2.zero;
             frame.Configure(LobbyNeonGraphic.FrameStyle.Panel);frame.raycastTarget=false;
+            frame.UseMidnightButtonGloss();
             var hit=LobbyFinalPresentation.Get<Image>(plus.gameObject);hit.enabled=true;hit.color=Color.clear;hit.raycastTarget=true;
             var button=plus.GetComponent<Button>();if(button!=null)button.targetGraphic=frame;
             MidnightLobbyPresentation.StyleCurrencyPlus(plus);

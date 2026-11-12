@@ -7,6 +7,7 @@ using UnityEngine.UI;
 public sealed class LobbyNeonGraphic : MaskableGraphic
 {
     public enum FrameStyle { Card, Panel, Button }
+    public enum ShopButtonShape { None, Compact, Gacha }
 
     [SerializeField] private FrameStyle style = FrameStyle.Card;
     [SerializeField] private bool owned = true;
@@ -18,21 +19,44 @@ public sealed class LobbyNeonGraphic : MaskableGraphic
     private bool midnightStyle;
     private bool midnightPrimary;
     private bool midnightAccentSet;
+    private bool midnightButtonGloss;
+    private bool midnightMainHex;
+    private ShopButtonShape shopButtonShape;
+    private bool midnightDiscountChip;
     private Color midnightAccent;
 
     public bool IsMidnightStyle => midnightStyle;
+    public bool HasMidnightButtonGloss => midnightStyle&&midnightButtonGloss;
+    public bool HasMidnightMainHex => midnightStyle&&midnightMainHex;
+    public ShopButtonShape MidnightShopShape => shopButtonShape;
+    public bool HasMidnightDiscountChip => midnightStyle&&midnightDiscountChip;
+    public void UseMidnightDiscountChip()
+    {midnightDiscountChip=true;UseMidnightStyle();}
+    public void UseMidnightShopButton(ShopButtonShape shape)
+    {shopButtonShape=shape;UseMidnightButtonGloss();}
+    public bool UsesPreservedStatusFinish
+    {
+        get{for(var node=transform;node!=null;node=node.parent)if(node.name=="tab_bar")return true;return false;}
+    }
     public bool HasMidnightRibbon => midnightStyle&&style==FrameStyle.Card&&gradeTint;
     public static float MidnightCorner(FrameStyle kind,float width,float height)
         => kind==FrameStyle.Button?Mathf.Min(height*.12f,width*.055f):Mathf.Min(11f,Mathf.Min(width,height)*.075f);
     public void UseMidnightStyle()
     {
         midnightStyle = true;
+        // Serialized popup frames already have their Button owner. Generated controls opt in
+        // explicitly after adding Button; decorative badge frames must stay matte.
+        if(style!=FrameStyle.Card&&HasButtonOwner())midnightButtonGloss=true;
         SetVerticesDirty();
     }
+    public void UseMidnightButtonGloss()
+    {if(style==FrameStyle.Card||!HasButtonOwner())return;midnightStyle=true;midnightButtonGloss=true;SetVerticesDirty();}
+    private bool HasButtonOwner()=>GetComponent<Button>()!=null||(name=="LobbyNeonFrame"&&transform.parent!=null&&transform.parent.GetComponent<Button>()!=null);
     public void UseMidnightPrimary()
     {
         midnightPrimary=true;UseMidnightStyle();
     }
+    public void UseMidnightMainCta(){midnightMainHex=true;UseMidnightPrimary();}
     public void UseMidnightAccent(Color surface)
     {midnightAccentSet=true;midnightAccent=surface;UseMidnightStyle();}
 
@@ -80,6 +104,7 @@ public sealed class LobbyNeonGraphic : MaskableGraphic
     public void Configure(FrameStyle frameStyle)
     {
         style = frameStyle;
+        if(frameStyle==FrameStyle.Card)midnightButtonGloss=false;
         color = Color.white;
         SetVerticesDirty();
     }
@@ -123,11 +148,14 @@ public sealed class LobbyNeonGraphic : MaskableGraphic
             Color surface = midnightPrimary ? MidnightLobbyTheme.Accent : midnightAccentSet?midnightAccent:owned ? new Color(.10f,.135f,.205f,.97f) : new Color(.055f,.075f,.12f,.97f);
             Color midnightEdge = midnightPrimary ? new Color(.65f,.97f,1f,.75f) : gradeTint ? Alpha(rim,.43f) : new Color(.57f,.66f,.81f,.42f);
             float midnightCut=MidnightCorner(style,bounds.width,bounds.height);
-            MidnightSurfaceMesh.Draw(mesh,bounds,surface,midnightEdge,color,midnightCut,scale,style==FrameStyle.Button);
+            if(midnightDiscountChip)MidnightSurfaceMesh.DrawDiscountChip(mesh,bounds,surface,color,scale);
+            else if(midnightButtonGloss&&UsesPreservedStatusFinish)MidnightSurfaceMesh.DrawButton(mesh,bounds,surface,midnightEdge,color,midnightCut,scale,midnightPrimary,style==FrameStyle.Button);
+            else if(midnightButtonGloss)MidnightSurfaceMesh.DrawReferenceButton(mesh,bounds,color,shopButtonShape==ShopButtonShape.Compact?Mathf.Min(9f,bounds.height*.16f):midnightCut,scale,midnightPrimary,shopButtonShape==ShopButtonShape.Compact?false:style==FrameStyle.Button,midnightAccentSet?(Color?)midnightAccent:null,midnightMainHex,shopButtonShape==ShopButtonShape.Gacha);
+            else MidnightSurfaceMesh.Draw(mesh,bounds,surface,midnightEdge,color,midnightCut,scale,style==FrameStyle.Button);
             if (HasMidnightRibbon)
             {
-                Rect ribbon = new Rect(bounds.xMin+stroke*2, bounds.yMax-bounds.height*.145f,
-                    bounds.width*.76f,bounds.height*.13f);
+                Rect ribbon = new Rect(bounds.xMin+stroke*2, bounds.yMax-bounds.height*.13f,
+                    bounds.width*.76f,bounds.height*.115f);
                 Ribbon(mesh,ribbon,Color.Lerp(surface,rim,owned?.48f:.18f));
             }
             return;

@@ -12,6 +12,14 @@ public sealed partial class ShopCatalogView
     private Canvas midnightCanvas;
     private bool adInHeader;
     private string lastMidnightStatus;
+    private RectTransform midnightHeroClip;
+    private MidnightHeroArtworkFollower heroFollower;
+    private bool recoveryRefreshVisible;
+    public void ShowRecoveryRefresh(bool visible)
+    {
+        recoveryRefreshVisible=visible;
+        if(midnightLayout&&refreshButton!=null)refreshButton.gameObject.SetActive(visible);
+    }
     private void OnTransformParentChanged(){midnightCanvas=null;}
     private void LateUpdate()
     {
@@ -24,8 +32,9 @@ public sealed partial class ShopCatalogView
     private void ApplyMidnightSafeBottom(float bottom)
     {
         midnightSafeBottom=Mathf.Max(0,bottom);
-        if(scroll!=null){var rect=(RectTransform)scroll.transform;rect.offsetMin=new Vector2(rect.offsetMin.x,(adInHeader?225:310)+midnightSafeBottom);}
-        if(rerollButton!=null&&!adInHeader){var rect=(RectTransform)rerollButton.transform;rect.offsetMin=new Vector2(rect.offsetMin.x,232+midnightSafeBottom);rect.offsetMax=new Vector2(rect.offsetMax.x,292+midnightSafeBottom);}
+        if(scroll!=null){var rect=(RectTransform)scroll.transform;rect.offsetMin=new Vector2(rect.offsetMin.x,(adInHeader?MidnightLobbyTheme.ContentBottom:355)+midnightSafeBottom);}
+        if(rerollButton!=null&&!adInHeader){var rect=(RectTransform)rerollButton.transform;rect.offsetMin=new Vector2(rect.offsetMin.x,277+midnightSafeBottom);rect.offsetMax=new Vector2(rect.offsetMax.x,337+midnightSafeBottom);}
+        if(midnightHeroClip!=null)midnightHeroClip.offsetMin=new Vector2(0,MidnightLobbyTheme.ContentBottom+midnightSafeBottom);
     }
     private static ShopCatalogView BuildMidnight(Transform parent)
     {
@@ -57,20 +66,22 @@ public sealed partial class ShopCatalogView
         if(midnightLayout&&content==null)return;
         midnightLayout=true;
         var title=transform.Find("Title")?.GetComponent<Text>();
-        if(title!=null){MidnightLobbyPresentation.Top(title.rectTransform,.055f,.65f,165,275);MidnightLobbyTheme.Typography(title,88,FontStyle.BoldAndItalic);}
+        if(title!=null){MidnightLobbyPresentation.Top(title.rectTransform,.055f,.65f,200,360);MidnightLobbyTheme.DisplayTypography(title,120);}
         var eyebrow=transform.Find("MidnightEyebrow");if(eyebrow!=null)eyebrow.gameObject.SetActive(false);
         if(walletText!=null)walletText.gameObject.SetActive(false);
-        if(statusText!=null){MidnightLobbyPresentation.Top(statusText.rectTransform,.06f,.94f,285,370);statusText.color=MidnightLobbyTheme.Muted;MidnightLobbyTheme.Typography(statusText,30,FontStyle.Normal);}
+        if(statusText!=null){MidnightLobbyPresentation.Top(statusText.rectTransform,.06f,.94f,350,435);statusText.color=MidnightLobbyTheme.Muted;MidnightLobbyTheme.Typography(statusText,30,FontStyle.Normal);}
         if(discountText!=null)discountText.gameObject.SetActive(false);
         if(refreshButton!=null)
         {
-            MidnightLobbyPresentation.Top((RectTransform)refreshButton.transform,.85f,.95f,177,267);
-            var refreshLabel=refreshButton.GetComponentInChildren<Text>();if(refreshLabel!=null){refreshLabel.text="↻";MidnightLobbyTheme.Typography(refreshLabel,48);}
+            refreshButton.gameObject.SetActive(recoveryRefreshVisible);
+            MidnightLobbyPresentation.Top((RectTransform)refreshButton.transform,.88f,.96f,250,320);
+            var refreshFrame=refreshButton.GetComponent<LobbyNeonGraphic>();if(refreshFrame!=null)refreshFrame.color=new Color(1,1,1,0);
+            var refreshLabel=refreshButton.GetComponentInChildren<Text>();if(refreshLabel!=null){refreshLabel.text="↻";MidnightLobbyTheme.Typography(refreshLabel,40);refreshLabel.color=MidnightLobbyTheme.Muted;}
         }
         if(scroll!=null)
         {
-            var rect=(RectTransform)scroll.transform;rect.anchorMin=new Vector2(.04f,0);rect.anchorMax=new Vector2(.96f,1);
-            rect.offsetMin=new Vector2(0,310);rect.offsetMax=new Vector2(0,-285);
+            var rect=(RectTransform)scroll.transform;rect.anchorMin=new Vector2(.025f,0);rect.anchorMax=new Vector2(.975f,1);
+            rect.offsetMin=new Vector2(0,355);rect.offsetMax=new Vector2(0,-350);
             var image=scroll.GetComponent<Image>();if(image!=null)image.color=new Color(0,0,0,.001f);
         }
         if(rerollButton!=null&&!adInHeader){var rect=(RectTransform)rerollButton.transform;rect.anchorMin=new Vector2(.06f,0);rect.anchorMax=new Vector2(.94f,0);rect.offsetMin=new Vector2(0,232);rect.offsetMax=new Vector2(0,292);}
@@ -82,6 +93,7 @@ public sealed partial class ShopCatalogView
 
     private void RenderMidnight(ShopCatalog catalog,Action<ShopOffer> purchase)
     {
+        if(heroFollower!=null)heroFollower.Bind(null);
         if(rerollButton!=null&&rerollButton.transform.IsChildOf(content))rerollButton.transform.SetParent(transform,false);
         adInHeader=false;
         for(int i=content.childCount-1;i>=0;i--){var child=content.GetChild(i).gameObject;child.SetActive(false);if(Application.isPlaying)Destroy(child);else DestroyImmediate(child);}
@@ -93,21 +105,24 @@ public sealed partial class ShopCatalogView
         var gachas=offers.Where(o=>o.rewardType=="GACHA").ToArray();
         if(gachas.Length>0)
         {
-            var hero=Row("GachaObservatory",900);
-            var art=MidnightLobbyTheme.Art(hero,"CrystalArtwork",MidnightLobbyTheme.GachaResource,0,.17f,1,1);
-            var crop=art.GetComponent<MidnightArtworkCrop>();crop.focalPoint=new Vector2(1,.5f);crop.Refresh();
-            var title=Label(hero,"HeroTitle","왹져 뽑기",88,.025f,.57f,.64f,.81f,TextAnchor.MiddleLeft);title.fontStyle=FontStyle.BoldAndItalic;
-            Label(hero,"HeroDescription","신규 왹져 획득!\n다양한 왹져를\n만나보세요!",34,.035f,.33f,.50f,.57f,TextAnchor.MiddleLeft).color=MidnightLobbyTheme.Ink;
+            var hero=Row("GachaObservatory",890);
+            var artBox=Rect("CrystalArtworkBox",hero);Stretch(artBox,.39f,.26f,1.03f,1.16f);
+            EnsureHeroArtworkLayer(artBox);
+            var title=Label(hero,"HeroTitle","왹져 뽑기",120,.025f,.72f,.62f,.94f,TextAnchor.MiddleLeft);MidnightLobbyTheme.DisplayTypography(title,120);
+            Label(hero,"HeroDescription","신규 왹져 획득!\n다양한 왹져를\n만나보세요!",31,.035f,.55f,.43f,.73f,TextAnchor.MiddleLeft).color=MidnightLobbyTheme.Ink;
             if(ten!=null)
             {
-                var chip=Rect("DiscountBadge",hero);Stretch(chip,.015f,.205f,.38f,.275f);Frame(chip,LobbyNeonGraphic.FrameStyle.Button);
-                Label(chip,"Label",$"주간 할인 {ten.discountRemaining}회 남음",28,.05f,.05f,.95f,.95f);
+                var chip=Rect("DiscountBadge",hero);Stretch(chip,.015f,.205f,.30f,.265f);Frame(chip,LobbyNeonGraphic.FrameStyle.Button);
+                chip.GetComponent<LobbyNeonGraphic>().UseMidnightAccent(new Color(.12f,.26f,.44f,.94f));
+                chip.GetComponent<LobbyNeonGraphic>().UseMidnightDiscountChip();
+                Label(chip,"Label",$"주간 할인 {ten.discountRemaining}회",26,.05f,.05f,.95f,.95f);
             }
             for(int i=0;i<gachas.Length;i++)
             {
                 var offer=gachas[i];float width=1f/gachas.Length;
                 var button=Button(hero,"Offer_"+offer.offerId,$"{offer.rewardAmount}회  {offer.price:N0}",i*width+.01f,.015f,(i+1)*width-.01f,.17f);
-                PriceButton(button,offer.currencyType,52);
+                PriceButton(button,offer.currencyType,48);
+                button.GetComponent<LobbyNeonGraphic>().UseMidnightShopButton(LobbyNeonGraphic.ShopButtonShape.Gacha);
                 button.onClick.AddListener(()=>purchase(offer));button.interactable=offer.CanBuy&&!busy;
                 buyButtons.Add(button);cards[offer.offerId]=(RectTransform)button.transform;
                 if(offer.rewardAmount==10)AccentButton(button);
@@ -115,56 +130,84 @@ public sealed partial class ShopCatalogView
                     Label(hero,"RegularPrice_"+offer.offerId,$"정상가 {offer.regularPrice:N0} {ShopPresentation.Currency(offer.currencyType)}",25,i*width+.01f,.175f,(i+1)*width-.01f,.215f).color=MidnightLobbyTheme.Muted;
             }
         }
-        foreach(var group in offers.Where(o=>o.rewardType!="GACHA").GroupBy(o=>o.category))
+        // Presentation grouping only: the original ShopOffer, category, limit and callback are
+        // retained. RESOURCE plus actual DAILY offers share a four-column supply shelf.
+        foreach(var group in offers.Where(o=>o.rewardType!="GACHA").GroupBy(o=>o.category=="RESOURCE"||o.category=="DAILY"?"SUPPLY":o.category))
         {
-            var heading=Row("Section_"+group.Key,96);
-            string label=group.Key=="DAILY"?"오늘의 조각":group.Key=="LUCKY"?"럭키 골드 특가":"오늘의 보급";
-            Label(heading,"SectionTitle",label,52,.01f,0,adInHeader?.99f:.53f,1,TextAnchor.MiddleLeft).fontStyle=FontStyle.Bold;
+            var heading=Row("Section_"+group.Key,88);
+            string label=group.Key=="LUCKY"?"럭키 골드 특가":"오늘의 보급";
+            Label(heading,"SectionTitle",label,48,.01f,.12f,adInHeader?.99f:.53f,1,TextAnchor.MiddleLeft).fontStyle=FontStyle.Bold;
             if(!adInHeader)
             {
-                rerollButton.transform.SetParent(heading,false);Stretch((RectTransform)rerollButton.transform,.55f,.1f,.99f,.9f);
-                MidnightLobbyTheme.Typography(rerollText,30);adInHeader=true;
+                rerollButton.transform.SetParent(heading,false);Stretch((RectTransform)rerollButton.transform,.61f,.30f,.99f,.94f);
+                rerollButton.GetComponent<LobbyNeonGraphic>().UseMidnightShopButton(LobbyNeonGraphic.ShopButtonShape.Compact);
+                MidnightLobbyTheme.Typography(rerollText,27);
+                MidnightLobbyPresentation.UtilityIcon(rerollButton.transform,8,"MidnightUtilityIcon",.045f,.16f);
+                MidnightLobbyPresentation.UtilityIcon(rerollButton.transform,9,"MidnightRefreshIcon",.84f,.955f);
+                LobbyFinalPresentation.Place(rerollText.rectTransform,.18f,.06f,.82f,.94f);
+                Label(heading,"RerollScope","일일·럭키 상품만 변경",20,.54f,0,.99f,.28f).color=MidnightLobbyTheme.Muted;adInHeader=true;
             }
             var entries=group.ToArray();
             for(int start=0;start<entries.Length;start+=4)
             {
-                var row=Row("ProductRow_"+group.Key+"_"+start,350);
-                row.GetComponent<LayoutElement>().preferredHeight=400;
-                int columns=group.Key=="RESOURCE"?Mathf.Min(4,entries.Length-start):4;
+                var row=Row("ProductRow_"+group.Key+"_"+start,380);
+                int columns=4;
                 for(int column=0;column<columns&&start+column<entries.Length;column++)
                 {
                     float width=1f/columns;
                     var offer=entries[start+column];var card=Rect("Offer_"+offer.offerId,row);Stretch(card,column*width+.007f,0,(column+1)*width-.007f,1);
                     Frame(card,LobbyNeonGraphic.FrameStyle.Panel);card.GetComponent<LobbyNeonGraphic>().raycastTarget=true;
+                    card.GetComponent<LobbyNeonGraphic>().UseMidnightAccent(new Color(.085f,.125f,.20f,.97f));
                     if(!string.IsNullOrEmpty(offer.grade))card.GetComponent<LobbyNeonGraphic>().SetGrade(offer.grade);
-                    var icon=Rect("Icon",card);Stretch(icon,.15f,.48f,.85f,.88f);
+                    var icon=Rect("Icon",card);Stretch(icon,.055f,.44f,.945f,.94f);
                     if(offer.rewardType=="DNA"||offer.rewardType=="GROWTH_CELL"||offer.rewardType=="GOLD")
-                        MidnightIconAtlas.Place(icon,offer.rewardType=="DNA"?MidnightIconAtlas.Icon.Dna:offer.rewardType=="GROWTH_CELL"?MidnightIconAtlas.Icon.Cells:MidnightIconAtlas.Icon.Coin);
+                        MidnightShopIconAtlas.Place(icon,offer.rewardType=="DNA"?MidnightShopIconAtlas.Icon.Dna:offer.rewardType=="GROWTH_CELL"?MidnightShopIconAtlas.Icon.Cells:MidnightShopIconAtlas.Icon.Coin);
                     else
                     {
                         var sprite=Resources.Load<LobbyUnitPortraitCatalog>(LobbyUnitPortraitCatalog.ResourcePath)?.Find(offer.alienId,offer.grade);
                         if(sprite!=null){var image=icon.gameObject.AddComponent<Image>();image.sprite=sprite;image.preserveAspect=true;image.raycastTarget=false;}
-                        else Label(icon,"Symbol","◆",70,0,0,1,1).color=new Color(.77f,.64f,1f);
+                        else MidnightShopIconAtlas.Place(icon,MidnightShopIconAtlas.Icon.Shards);
                     }
                     bool discounted=offer.regularPrice>offer.price;
                     string product=offer.rewardType=="GOLD"?"골드":offer.rewardType=="DNA"?"왹져DNA":offer.rewardType=="GROWTH_CELL"?"성장세포":AlienName?.Invoke(offer.alienId)??"유닛 조각";
-                    Label(card,"Name",$"{product}\nx{offer.rewardAmount:N0}",32,.06f,.30f,.94f,.51f);
-                    if(discounted)Label(card,"RegularPrice",$"정상가 {offer.regularPrice:N0}",23,.05f,.25f,.95f,.31f).color=MidnightLobbyTheme.Muted;
-                    Label(card,"Limit",offer.purchased?"구매 완료":offer.remainingPurchases<0?"":$"남은 구매 {offer.remainingPurchases}회",23,.04f,.19f,.96f,.25f).color=MidnightLobbyTheme.Muted;
+                    if(offer.category=="DAILY")Label(card,"DailyBadge","일일",19,.06f,.90f,.94f,.98f,TextAnchor.MiddleLeft).color=MidnightLobbyTheme.Muted;
+                    Label(card,"Name",$"{product}\nx{offer.rewardAmount:N0}",28,.06f,.29f,.94f,.49f);
+                    if(discounted)Label(card,"RegularPrice",$"정상가 {offer.regularPrice:N0}",20,.05f,.24f,.95f,.30f).color=MidnightLobbyTheme.Muted;
+                    if(offer.purchased||group.Key!="SUPPLY")
+                        Label(card,"Limit",offer.purchased?"구매 완료":offer.remainingPurchases<0?"":$"남은 {offer.remainingPurchases}회",20,.04f,.18f,.96f,.24f).color=MidnightLobbyTheme.Muted;
                     var buy=Button(card,"Buy",offer.purchased?"완료":$"{offer.price:N0}",.05f,.025f,.95f,.185f);
-                    PriceButton(buy,offer.currencyType,36);
+                    PriceButton(buy,offer.currencyType,32);
+                    buy.GetComponent<LobbyNeonGraphic>().UseMidnightShopButton(LobbyNeonGraphic.ShopButtonShape.Compact);
                     buy.onClick.AddListener(()=>purchase(offer));buy.interactable=offer.CanBuy&&!busy;buyButtons.Add(buy);cards[offer.offerId]=card;
                 }
             }
         }
-        rerollText.text=catalog.adAvailable?$"광고 리롤 {catalog.rerollsRemaining}회  ↻":"광고 연결 준비 중";
+        rerollText.text=catalog.adAvailable?$"광고 리롤 {catalog.rerollsRemaining}회":"광고 연결 준비 중";
         rerollButton.interactable=!busy&&catalog.adAvailable&&catalog.rerollsRemaining>0;
         if(!adInHeader){var rect=(RectTransform)rerollButton.transform;rect.anchorMin=new Vector2(.06f,0);rect.anchorMax=new Vector2(.94f,0);}
-        statusText.text="";RefreshMidnightStatus();ApplyMidnightSafeBottom(Mathf.Max(0,midnightSafeBottom));
+        ShowRecoveryRefresh(false);statusText.text="";RefreshMidnightStatus();ApplyMidnightSafeBottom(Mathf.Max(0,midnightSafeBottom));
     }
     private RectTransform Row(string name,float height)
     {
         var row=Rect(name,content);row.gameObject.AddComponent<LayoutElement>().preferredHeight=height;return row;
+    }
+    private void EnsureHeroArtworkLayer(RectTransform placeholder)
+    {
+        if(midnightHeroClip==null)
+        {
+            midnightHeroClip=Rect("MidnightHeroArtworkClip",transform);
+            midnightHeroClip.anchorMin=new Vector2(.025f,0);midnightHeroClip.anchorMax=new Vector2(.975f,1);
+            midnightHeroClip.offsetMin=new Vector2(0,MidnightLobbyTheme.ContentBottom+Mathf.Max(0,midnightSafeBottom));midnightHeroClip.offsetMax=new Vector2(0,-145);
+            midnightHeroClip.gameObject.AddComponent<RectMask2D>();
+            midnightHeroClip.SetSiblingIndex(scroll.transform.GetSiblingIndex());
+            var group=midnightHeroClip.gameObject.AddComponent<CanvasGroup>();group.interactable=false;group.blocksRaycasts=false;
+            var box=Rect("ArtworkBox",midnightHeroClip);
+            var art=MidnightLobbyTheme.Art(box,"CrystalArtwork",MidnightLobbyTheme.GachaCutoutResource,0,0,1,1);
+            art.GetComponent<MidnightArtworkCrop>().enabled=false;art.uvRect=new Rect(0,0,1,1);
+            var contain=art.gameObject.AddComponent<AspectRatioFitter>();contain.aspectMode=AspectRatioFitter.AspectMode.FitInParent;contain.aspectRatio=art.texture!=null?(float)art.texture.width/art.texture.height:.75f;
+            heroFollower=midnightHeroClip.gameObject.AddComponent<MidnightHeroArtworkFollower>();heroFollower.artworkBox=box;heroFollower.visibility=group;
+        }
+        heroFollower.Bind(placeholder);
     }
     private static void AccentButton(Button button)
     {
@@ -178,7 +221,7 @@ public sealed partial class ShopCatalogView
         if(lastMidnightStatus==message)return;lastMidnightStatus=message;
         bool visible=!string.IsNullOrWhiteSpace(message);
         statusText.gameObject.SetActive(visible);
-        var rect=(RectTransform)scroll.transform;rect.offsetMax=new Vector2(rect.offsetMax.x,visible?-385:-285);
+        var rect=(RectTransform)scroll.transform;rect.offsetMax=new Vector2(rect.offsetMax.x,visible?-450:-350);
     }
     private static void PriceButton(Button button,string currency,int fontSize)
     {

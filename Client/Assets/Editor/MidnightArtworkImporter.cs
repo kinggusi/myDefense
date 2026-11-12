@@ -5,15 +5,19 @@ using UnityEngine;
 /// <summary>Only the Midnight illustrations and six-icon atlas. Never edits .meta text.</summary>
 public sealed class MidnightArtworkImporter : AssetPostprocessor
 {
-    public const int ImportVersion=2;
+    public const int ImportVersion=3;
     public override uint GetVersion() => ImportVersion;
-    public static bool IsMidnightArtwork(string path)
-    {
-        return path=="Assets/Resources/Lobby/Midnight/observatory-background.png"
-            ||path=="Assets/Resources/Lobby/Midnight/gacha-prism.png"
-            ||path=="Assets/Resources/Lobby/Midnight/neptune-observatory.png"
-            ||path=="Assets/Resources/Lobby/Midnight/status-material-icons-v3.png";
-    }
+    private static readonly string[] paths={
+        "Assets/Resources/Lobby/Midnight/observatory-background.png",
+        "Assets/Resources/Lobby/Midnight/gacha-prism.png",
+        "Assets/Resources/Lobby/Midnight/neptune-observatory.png",
+        "Assets/Resources/Lobby/Midnight/status-material-icons-v3.png",
+        "Assets/Resources/Lobby/Midnight/shop-item-icons-v4.png",
+        "Assets/Resources/Lobby/Midnight/main-observatory-v4.png",
+        "Assets/Resources/Lobby/Midnight/gacha-prism-cutout-v5.png"};
+    public static System.Collections.Generic.IEnumerable<string> ArtworkPaths
+    {get{foreach(string path in paths)yield return path;}}
+    public static bool IsMidnightArtwork(string path)=>System.Array.IndexOf(paths,path)>=0;
     private void OnPreprocessTexture()
     {
         if(!IsMidnightArtwork(assetPath))return;
