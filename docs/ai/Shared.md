@@ -77,15 +77,13 @@ User/System과 Battle이 함께 사용하는 계약만 둡니다.
 - 결과는 드롭 대상 위치에 생성
 
 ## Mutation
-- PendingMutationType: 모든 등급에서 보유 가능
-- ActiveMutationType: Mythic에서만 활성화
-- A + B DNA는 둘 중 하나를 각각 50% 확률로 계승
-- DNA를 계승한 Mythic은 생성 즉시 해당 Mutation을 무료로 자동 활성화
-- DNA가 없는 Mythic은 개인 인게임 골드를 지불해 랜덤 Mutation 활성화
-- 최초 랜덤 Mutation 비용은 300 인게임 골드
+- 보드 위 Alien은 Normal부터 Mythic까지 Injector로 받은 DNA의 능력치·효과를 즉시 적용한다. 계정 해금 여부는 적용 조건에 포함하지 않는다.
+- Merge에서 양쪽에 DNA가 없으면 결과에도 없다. 한쪽만 있으면 그대로 계승하고, 같으면 한 종류를 유지한다. 서로 다르면 각각 50% 확률로 하나를 계승한다.
+- 모든 결과 Alien은 생성 즉시 계승 변이를 한 번만 적용한다. Mythic으로 승급해도 별도 활성화 입력이나 비용 없이 효과가 이어진다.
+- DNA 없는 Mythic의 최초 랜덤 변이는 개인 인게임 골드 300을 소비하며 꽝형(`BLANK`)을 포함한다.
 - 재변이 비용은 `600 → 1,200 → 2,400 → 4,800`, 이후 4,800 고정
 - 재변이 시 현재 Mutation을 후보에서 제외하여 반드시 다른 Mutation 획득
-- Mutation된 Mythic에 Injector를 사용하면 기존 Mutation을 Injector Mutation으로 즉시 무료 교체
+- Mythic에 Injector를 사용하면 해당 변이를 즉시 무료 적용하며, 기존 변이가 있으면 교체한다.
 
 ## Damage
 ```text

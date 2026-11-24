@@ -37,8 +37,9 @@ E:\study\MyDefenseGame\Client\_localbuild\FusionClient\Client.exe
 3. 빈 슬롯으로 드래그한 뒤 다시 다른 빈 슬롯으로 이동한다.
 4. 서로 다른 Alien을 겹치면 Merge되지 않고 두 슬롯이 교환된다.
 5. 같은 species·grade Alien을 겹치면 정확히 한 번 Merge되고 다음 grade 전체 풀에서 결과가 생성된다.
-6. Injector가 있는 경우 빈 슬롯 이동, 대상 적용, Pending DNA 계승을 확인한다.
-7. 한쪽 조작이 상대 화면에 동일한 권위 결과로 보이는지 확인한다.
+6. 보드의 Injector를 빈 슬롯으로 옮긴 뒤, Normal부터 Legendary까지 각 등급의 유닛에 사용한다. 사용 직후 대상의 능력치와 해당 전투 효과를 첫 공격부터 확인한다.
+7. 같은 종·같은 등급의 재료로 DNA 없음/없음, 한쪽만 보유, 동일 DNA, 서로 다른 DNA를 각각 합친다. 결과는 순서대로 변이 없음, 유일한 DNA, 동일 DNA 한 번, 두 DNA 중 하나다. 서로 다른 DNA의 50% 분기는 제어 가능한 난수로 자동 검증한다.
+8. 양쪽 창에서 결과 유닛의 DNA와 실제 공격 효과가 즉시 일치하는지 확인한다.
 
 ## 4. Boss·탈락·관전·종료 (P0-4, P0-6)
 
@@ -57,7 +58,7 @@ E:\study\MyDefenseGame\Client\_localbuild\FusionClient\Client.exe
 3. 선택 대기 재료는 이동·공격하지 않는다.
 4. `리롤`은 선택으로 오인되지 않고 후보 전체를 바꾸며 남은 횟수와 10초 Timer를 갱신한다.
 5. 후보를 선택하면 Mythic 한 개만 생성된다.
-6. 잠금 Mythic을 선택하면 계승 DNA는 `SEALED`, 해금 Mythic이면 `ACTIVE`로 적용된다.
+6. DNA가 있는 재료로 만든 Mythic은 선택 직후 계승 효과가 한 번만 이어져야 한다. 별도 버튼을 누르지 않고 양쪽 창에서 능력치·첫 공격을 대조하고, 선택 직전과 직후에 개인 Gold가 같은지 확인한다.
 
 ## 6. 공격·Projectile·Gold 장부 (P0-5-8, P0-8)
 
@@ -70,7 +71,7 @@ E:\study\MyDefenseGame\Client\_localbuild\FusionClient\Client.exe
 
 ## 7. 재접속 (P0-9)
 
-1. Client의 현재 Gold, 보드, Pending Mutation, Mythic 선택, Wave, Boss Timer, Monster HP/위치를 기록한다.
+1. Client의 현재 Gold, 보드, 유닛별 DNA와 적용 중인 변이 효과, Mythic 선택, Wave, Boss Timer, Monster HP/위치를 기록한다.
 2. Client만 종료한다. Host의 세션·Gold·보드는 유지되어야 한다.
 3. 같은 `dev-client` User ID로 Client를 다시 실행한다.
 4. Player 2 슬롯을 다른 사용자에게 빼앗기지 않고 기존 슬롯으로 복귀하는지 확인한다.

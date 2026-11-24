@@ -76,7 +76,7 @@ cd server
 - MYTHIC은 최종 등급이며 `DISABLED`
 - MYTHIC 후보 Pool은 `AlienSpec.grade == MYTHIC`인 20종 전체에서 자동 파생
 - 후보는 서로 달라야 하고 owned/isLocked/specLocked는 후보 확률이나 필터에 사용하지 않음
-- owned=true MYTHIC만 Mutation 가능
+- 보드 위 NORMAL~MYTHIC은 Injector 또는 계승 DNA의 능력치·효과를 즉시 적용한다. 계정 보유 여부는 이 효과의 조건에 포함하지 않는다.
 - 전투 중 Spring Boot API를 반복 호출하지 않음
 - Fusion State Authority가 Kidnap, Merge, 후보, Reroll, 선택과 Gold 사용을 검증할 예정
 
@@ -93,7 +93,7 @@ weights total 10000. `alien-spec.json` remains the shared Alien catalog.
 The `MutationSpec`, `MutationConfig`, and `InjectorPool` sheets define the battle
 Mutation Injector contract. `BLANK` is valid for random Mythic activation but is
 not injector-enabled. Injector results use the seven non-BLANK mutation types with
-equal pool weight. The current canonical costs are 300 Gold for initial activation,
+equal pool weight. The current canonical costs are 300 Gold for the initial random roll on a Mythic without DNA,
 600/1200/2400/4800 for the first four rerolls, and 4800 after the fourth reroll;
 injector replacement is free. The BalanceTool emits `mutation-spec.json`,
 `mutation-config.json`, and `injector-pool.json`, and includes them in the manifest.

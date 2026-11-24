@@ -2,7 +2,7 @@
 
 ## 1. 개요
 - 장르: 2인 협동 머지 디펜스
-- 핵심 재미: 전투 중 납치, 같은 종 머지, 신화 생체변이, 협동 생존
+- 핵심 재미: 전투 중 납치, 같은 종 머지, 생체변이와 DNA 계승, 협동 생존
 
 ## 2. 용어
 - 전투 중 소환: 납치(Kidnap)
@@ -116,9 +116,8 @@ Mythic 1·2는 향후 튜토리얼 완료 보상으로 제공한다. 현재는 l
 - 원하는 Mutation을 확정하는 매개체
 - 별도 최종 형태가 아님
 - 랜덤으로 같은 Mutation을 얻은 경우와 최종 결과 동일
-- Normal~Mythic Alien에게 사용할 수 있지만, 미해금/잠금 Mythic에는 사용할 수 없음
-- 사용하면 Pending Mutation DNA를 보유
-- Merge 이후에도 계승
+- Normal부터 Mythic까지 보드에 배치된 모든 등급의 Alien에 사용 가능
+- 사용 즉시 해당 DNA의 능력치와 전투 효과를 적용
 - Kidnap 시 낮은 확률로 등장하며 Alien과 동일하게 필드 슬롯 1칸을 차지
 
 ## 10. DNA 계승
@@ -126,26 +125,18 @@ Mythic 1·2는 향후 튜토리얼 완료 보상으로 제공한다. 현재는 l
 - A + NONE → A
 - NONE + A → A
 - A + A → A
-- A + B → A 또는 B 중 하나 랜덤
+- A + B → A 또는 B 중 하나를 각각 50% 확률로 계승
 
-서로 다른 DNA가 만나도 Merge는 허용한다. 둘 중 하나만 남는 실수 유발 포인트로 사용한다.
-서로 다른 DNA의 선택 확률은 각각 50%다.
+같은 종·같은 등급이면 서로 다른 DNA끼리도 Merge할 수 있다. 결과 Alien은 생성 즉시 계승한 변이 한 종류의 효과를 적용받는다.
 
-## 11. Pending / Active Mutation
-### PendingMutationType
-- Normal~Legendary에서 보유 가능
-- DNA만 계승
-- 스탯, 공격 메커니즘, 외형 변화 없음
-
-### ActiveMutationType
-- Mythic에서만 활성화
-- 스탯, 공격 메커니즘, 외형 변화 적용
+## 11. 전투 중 변이 효과
+- 모든 등급에서 보유 DNA에 해당하는 스탯, 공격 메커니즘, 외형 변화를 적용한다.
+- 같은 DNA를 가진 두 유닛이 합쳐져도 해당 효과는 한 번만 적용된다.
 
 ## 12. Mythic Mutation
 ### DNA가 있는 Mythic
-- 해금된 Mythic이면 Legendary Merge 결과와 함께 계승된 DNA Mutation이 무료로 자동 활성화
-- 미해금 Mythic이면 DNA를 보존하되 `SEALED` 상태로 저장하고 효과를 적용하지 않음
-- `SEALED` DNA의 활성화 시점과 UI는 해금 시스템 연동 후 확정
+- Legendary Merge로 Mythic을 만들면 이전 등급에서 계승된 변이가 추가 비용이나 버튼 조작 없이 즉시 이어진다.
+- 보드에 배치된 Mythic의 변이 효과와 Injector 사용에는 계정 해금 여부를 조건으로 두지 않는다.
 
 ### DNA가 없는 Mythic
 - 순수 Mythic이 생성되면 Mutation 버튼 활성화
@@ -157,7 +148,7 @@ Mythic 1·2는 향후 튜토리얼 완료 보상으로 제공한다. 현재는 l
 - 재변이 비용은 `600 → 1,200 → 2,400 → 4,800` 인게임 골드 순서로 증가하고 이후 4,800으로 고정
 - 현재 적용 중인 Mutation은 재변이 후보에서 제외하여 반드시 다른 Mutation 획득
 - Injector로 확정한 Mutation도 재변이 가능
-- 이미 Mutation된 Mythic에 Injector를 사용하면 기존 Mutation을 해당 Injector Mutation으로 즉시 무료 교체
+- Mythic에 Injector를 사용하면 지정 Mutation을 즉시 무료로 적용한다. 기존 변이가 있으면 교체한다.
 
 ## 13. Mutation 8종
 1. 광역형

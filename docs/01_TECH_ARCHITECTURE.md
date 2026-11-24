@@ -109,8 +109,7 @@ Spring에서 관리:
 
 런타임 상태:
 - AlienRuntimeState
-- PendingMutationType
-- ActiveMutationType
+- 전투 보드의 변이 DNA와 현재 적용 중인 효과. State Authority는 Injector 사용 및 Merge 결과를 확정할 때 모든 등급의 변이 상태와 공격 Snapshot을 함께 갱신한다.
 - MutationRerollCount
 - OwnerPlayerRef
 - GridPosition

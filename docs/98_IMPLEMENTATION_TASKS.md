@@ -273,7 +273,7 @@ P0-1-1~4 → P0-1-5 → P0-1-6
 | P0-5-4 | jjangash | 검증 대기 | 기존 24칸·첫 빈칸·누적 비용 규칙을 Fusion 검증으로 이전 | P0-5-3 |
 | P0-5-5 | jjangash | 검증 대기 | State Authority 일반 Merge 요청·검증 RPC 및 동일 종·등급 권한 검증 구현 | P0-5-1 |
 | P0-5-6 | jjangash | 검증 대기 | 동일 종·등급 머지는 다음 등급 풀로 승급하고, 머지 불가 점유 슬롯은 서버 권위로 교환 | P0-5-5 |
-| P0-5-7 | jjangash | 검증 대기 | Pending Mutation DNA 계승과 Mutation Injector 사용을 Fusion 상태에 적용 | P0-5-6 |
+| P0-5-7 | jjangash | 부분 완료 | 모든 등급에서 Injector 사용·DNA 계승 직후 변이 능력치와 효과를 Fusion 상태에 반영 | P0-5-6 |
 | P0-5-8 | kinggusi | 검증 대기 | authoritative Monster 사망 이벤트를 개인/팀 Gold 장부와 Kill 통계에 전달 | P0-3-4, P0-5-2 |
 
 ### P0-6 Boss Timer·공용 Lane
@@ -296,7 +296,7 @@ P0-1-1~4 → P0-1-5 → P0-1-6
 | P0-7-3 | jjangash | 검증 대기 | Networked 후보 3종과 남은 리롤 횟수 저장 | P0-7-2 |
 | P0-7-4 | jjangash | 검증 대기 | 후보 전체 리롤 RPC 구현 | P0-7-3 |
 | P0-7-5 | jjangash | 검증 대기 | 최종 Mythic 선택 RPC 구현 | P0-7-3 |
-| P0-7-6 | jjangash | 검증 대기 | 선택된 Mythic에 계승 DNA 상태 적용: 해금 Mythic은 ACTIVE, 잠금 Mythic은 SEALED로 보존하고 효과 차단 | P0-7-5 |
+| P0-7-6 | jjangash | 부분 완료 | 선택된 Mythic에 계승 변이를 비용·활성화 입력 없이 즉시 이어 적용. 보드 위 유닛은 계정 해금 여부와 무관 | P0-7-5 |
 | P0-7-7 | jjangash | 검증 대기 | Legendary 후보 선택 Unity UI 구현 | P0-7-3 |
 | P0-7-8 | kinggusi | 검증 대기 | 선택 대기 중 잠긴 재료 Alien의 공격·이동 중단 | P0-7-1 |
 
@@ -380,14 +380,16 @@ P0-1-1~4 → P0-1-5 → P0-1-6
 
 ### P1-1 Mutation
 
+2026-11-25 전 등급 즉시 적용 정책을 확정했다. User/System의 Fusion·StatCalculator 반영과 Battle의 전 등급 전투 효과 검증이 남아 있다. 이전 Mythic 전용 검증 결과는 변경된 정책의 통과 근거에서 제외한다. 기준은 [마스터 정책](99_MASTER.md), 절차는 [P0](P0_INTEGRATION_TEST_SCENARIO.md)·[P1 통합 시나리오](P1_INTEGRATION_TEST_SCENARIO.md)를 따른다.
+
 | Task ID | 담당 | 상태 | Codex 작업 |
 |---|---|---|---|
 | P1-1-1 | jjangash | 검증 대기 | 순수 Mythic Mutation 버튼 상태 구현 |
 | P1-1-2 | jjangash | 검증 대기 | 최초 Mutation 300골드 차감·랜덤 추첨 |
 | P1-1-3 | jjangash | 검증 대기 | 재변이 비용 `600→1,200→2,400→4,800` 구현 |
 | P1-1-4 | jjangash | 검증 대기 | 현재 Mutation을 재추첨 후보에서 제외 |
-| P1-1-5 | jjangash | 검증 대기 | Mutation된 Mythic에 Injector 사용 시 무료 교체 |
-| P1-1-6 | kinggusi | 검증 대기 | Mutation별 외형·Animation·Effect 연결 |
+| P1-1-5 | jjangash | 부분 완료 | 보드 위 모든 Mythic에서 Injector 무료 즉시 적용·기존 변이 교체 |
+| P1-1-6 | kinggusi | 부분 완료 | 전 등급에서 사용·계승 즉시 Mutation별 외형·Animation·Effect 연결 및 확인 |
 
 ### P1-2 Mutation StatCalculator
 
@@ -712,7 +714,7 @@ Task 상태만 바꾸는 커밋은 구현 커밋에 함께 포함할 수 있다.
 - P0-5-2: Lane과 마지막 공격자에 관계없이 canonical `killGold`를 두 플레이어의 독립 개인 지갑에 동일하게 지급.
 - P0-5-4: 24칸 첫 빈 슬롯·누적 비용 Kidnap 권위 검증.
 - P0-5-5/P0-5-6: 동일 종·등급 Merge, 다음 등급 승급, 불가 조합 Swap.
-- P0-5-7: Mutation Injector 사용과 Pending DNA 계승.
+- P0-5-7: 당시 검증 대상은 Mutation Injector 사용과 Pending DNA 계승이었다. 현행 검증은 위 P0-5-7과 P0 통합 시나리오를 따른다.
 - P0-5-8: Monster 사망 이벤트와 Gold 장부 연결.
 - P0-6 Boss Timer·공용 Lane: TickTimer, Boss 처치/시간초과, MatchState 전환.
 - P0-8 Damage/Projectile/Hit: 네트워크 Projectile, 권위 충돌, DamagePayload, Kill/Support Kill 장부.
@@ -830,7 +832,9 @@ Task 상태만 바꾸는 커밋은 구현 커밋에 함께 포함할 수 있다.
 - 독립 리뷰: 조건부 PASS. 실제 Fusion 2클라이언트 후보 동기화, 리롤 Gold 차감, 타이머 만료, 선택 후 조작 복구 수동 검증이 남아 있다.
 - 현재 사용자 검증 대기: Legendary 2개 Merge → 후보 3종 → 무료/유료 리롤 → 선택/타임아웃 → 선택 후 보드 조작 복구.
 
-### P0-7 Mythic 후보와 봉인 DNA 정책 (2026-07-27)
+### P0-7 Mythic 후보와 봉인 DNA 정책 (2026-07-27 당시 기록)
+
+아래는 당시 구현 기록이다. 보드 위 유닛의 변이에는 2026-11-25에 확정한 마스터 정책 6~7절을 적용한다. 아래의 `PENDING`·`SEALED` 분기와 잠금 Mythic의 Injector 거부는 교체 대상이다.
 
 - Legendary Merge의 Mythic 후보 풀은 현재 해금 여부와 무관하게 canonical Mythic 후보를 사용한다. 후보 확률의 공정성을 위해 미해금 Mythic도 후보로 제시할 수 있다.
 - Mutation Injector는 미해금/잠금 Mythic에 직접 사용할 수 없다. State Authority가 canonical `AlienSpec.isLocked`를 현재 해금 프록시로 확인하고 요청을 거부한다.
