@@ -54,6 +54,32 @@ namespace MyDefense.Battle.Tests
                 && wave.MoveSpeedMultiplier > 0f), Is.True);
         }
 
+        [TestCase(1, 0, false, 0)]
+        [TestCase(1, 1, true, 0)]
+        [TestCase(1, 3, true, 2)]
+        [TestCase(1, 4, false, 0)]
+        [TestCase(5, 7, true, 6)]
+        public void DevelopmentInitialWaveResolvesOnlyCanonicalWavesOfTheSelectedStage(
+            int stage, int initialWave, bool expected, int expectedCursor)
+        {
+            DailyBattleExecutionPlan plan = BuildPlan(stage);
+            Assert.That(BattleWaveExecutor.TryResolveDevelopmentDailyWaveCursor(plan, initialWave, out int cursor),
+                Is.EqualTo(expected));
+            Assert.That(cursor, Is.EqualTo(expectedCursor));
+        }
+
+        [Test]
+        public void DevelopmentInitialWaveRejectsProductionPlanAndUnattachedExecutor()
+        {
+            CanonicalCompositeBattleBalanceProvider provider = LoadProvider();
+            Assert.That(DailyBattleExecutionPlanBuilder.TryBuildCultivation(
+                Context(provider, 1), provider, DailyBattleSessionTrust.ProductionAdapter,
+                out DailyBattleExecutionPlan plan, out string error), Is.True, error);
+            Assert.That(BattleWaveExecutor.TryResolveDevelopmentDailyWaveCursor(plan, 1, out _), Is.False);
+            Assert.That(CreateExecutor().TryArmDevelopmentDailyInitialWave(1, out error), Is.False);
+            Assert.That(error, Does.Contain("offline Fusion State Authority"));
+        }
+
         [Test]
         public void CultivationPlan_RejectsUntrustedAndMismatchedCanonicalContext()
         {

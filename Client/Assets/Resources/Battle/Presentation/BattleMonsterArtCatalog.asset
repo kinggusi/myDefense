@@ -1,0 +1,296 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 324ec703e17d0dc4dbeb8d8b6b0de2a0, type: 3}
+  m_Name: BattleMonsterArtCatalog
+  m_EditorClassIdentifier: Assembly-CSharp::MyDefense.Battle.Presentation.BattleMonsterArtCatalog
+  _normal:
+    _texture: {fileID: 2800000, guid: bc62f73dce09e4349a5798c253d91d23, type: 3}
+    _frames:
+    - x: 73
+      y: 1126
+      width: 251
+      height: 245
+    - x: 414
+      y: 1126
+      width: 262
+      height: 244
+    - x: 762
+      y: 1126
+      width: 245
+      height: 245
+    - x: 71
+      y: 777
+      width: 252
+      height: 254
+    - x: 407
+      y: 785
+      width: 270
+      height: 247
+    - x: 760
+      y: 777
+      width: 249
+      height: 252
+    - x: 72
+      y: 428
+      width: 251
+      height: 257
+    - x: 400
+      y: 428
+      width: 279
+      height: 254
+    - x: 760
+      y: 429
+      width: 248
+      height: 254
+    - x: 74
+      y: 68
+      width: 247
+      height: 264
+    - x: 403
+      y: 68
+      width: 276
+      height: 260
+    - x: 760
+      y: 68
+      width: 252
+      height: 262
+    _pivots:
+    - {x: 0.4302789, y: 0.008163265}
+    - {x: 0.4923664, y: 0.008196721}
+    - {x: 0.5836735, y: 0.008163265}
+    - {x: 0.43650794, y: 0.007874016}
+    - {x: 0.5037037, y: 0.008097166}
+    - {x: 0.58232933, y: 0.007936508}
+    - {x: 0.43426296, y: 0.007782101}
+    - {x: 0.5125448, y: 0.007874016}
+    - {x: 0.5846774, y: 0.007874016}
+    - {x: 0.4331984, y: 0.007575758}
+    - {x: 0.5072464, y: 0.0076923077}
+    - {x: 0.57539684, y: 0.007633588}
+    _referenceHeight: 362
+    _normalizeHeight: 1
+  _elite:
+    _texture: {fileID: 2800000, guid: a1e3ba31ba1a11146afdd739049f6bf0, type: 3}
+    _frames:
+    - x: 32
+      y: 1136
+      width: 299
+      height: 270
+    - x: 392
+      y: 1135
+      width: 299
+      height: 270
+    - x: 760
+      y: 1139
+      width: 290
+      height: 268
+    - x: 33
+      y: 780
+      width: 298
+      height: 265
+    - x: 387
+      y: 778
+      width: 309
+      height: 265
+    - x: 757
+      y: 771
+      width: 296
+      height: 275
+    - x: 32
+      y: 413
+      width: 296
+      height: 270
+    - x: 387
+      y: 409
+      width: 298
+      height: 272
+    - x: 760
+      y: 409
+      width: 291
+      height: 276
+    - x: 30
+      y: 48
+      width: 301
+      height: 273
+    - x: 387
+      y: 44
+      width: 298
+      height: 274
+    - x: 757
+      y: 50
+      width: 297
+      height: 272
+    _pivots:
+    - {x: 0.49832776, y: 0.0074074073}
+    - {x: 0.50501674, y: 0.0074074073}
+    - {x: 0.5, y: 0.0074626864}
+    - {x: 0.4966443, y: 0.00754717}
+    - {x: 0.5048544, y: 0.00754717}
+    - {x: 0.5, y: 0.0072727273}
+    - {x: 0.5033784, y: 0.0074074073}
+    - {x: 0.52348995, y: 0.007352941}
+    - {x: 0.49828178, y: 0.007246377}
+    - {x: 0.5016611, y: 0.0073260074}
+    - {x: 0.52348995, y: 0.00729927}
+    - {x: 0.4983165, y: 0.007352941}
+    _referenceHeight: 362
+    _normalizeHeight: 1
+  _boss:
+    _texture: {fileID: 2800000, guid: 4ef7ff1d6e6260f49a78d73c4554cbc2, type: 3}
+    _frames:
+    - x: 21
+      y: 1134
+      width: 321
+      height: 273
+    - x: 370
+      y: 1138
+      width: 338
+      height: 259
+    - x: 745
+      y: 1137
+      width: 319
+      height: 268
+    - x: 22
+      y: 771
+      width: 315
+      height: 269
+    - x: 378
+      y: 773
+      width: 333
+      height: 259
+    - x: 740
+      y: 775
+      width: 327
+      height: 262
+    - x: 27
+      y: 409
+      width: 305
+      height: 268
+    - x: 378
+      y: 409
+      width: 336
+      height: 259
+    - x: 750
+      y: 409
+      width: 310
+      height: 265
+    - x: 29
+      y: 50
+      width: 300
+      height: 262
+    - x: 377
+      y: 47
+      width: 332
+      height: 257
+    - x: 756
+      y: 44
+      width: 297
+      height: 268
+    _pivots:
+    - {x: 0.49844238, y: 0.0073260074}
+    - {x: 0.5118343, y: 0.0077220076}
+    - {x: 0.5015674, y: 0.0074626864}
+    - {x: 0.50476193, y: 0.007434944}
+    - {x: 0.4954955, y: 0.0077220076}
+    - {x: 0.5045872, y: 0.007633588}
+    - {x: 0.50491804, y: 0.0074626864}
+    - {x: 0.49107143, y: 0.0077220076}
+    - {x: 0.5, y: 0.00754717}
+    - {x: 0.50666666, y: 0.007633588}
+    - {x: 0.5, y: 0.007782101}
+    - {x: 0.5016835, y: 0.0074626864}
+    _referenceHeight: 362
+    _normalizeHeight: 1
+  _portal:
+    _texture: {fileID: 2800000, guid: 9394ac4377ffb944781ab9ddb2209ac6, type: 3}
+    _frames:
+    - x: 0
+      y: 444
+      width: 444
+      height: 443
+    - x: 444
+      y: 444
+      width: 443
+      height: 443
+    - x: 887
+      y: 444
+      width: 443
+      height: 443
+    - x: 1330
+      y: 444
+      width: 444
+      height: 443
+    - x: 0
+      y: 0
+      width: 444
+      height: 444
+    - x: 444
+      y: 0
+      width: 443
+      height: 444
+    - x: 887
+      y: 0
+      width: 443
+      height: 444
+    - x: 1330
+      y: 0
+      width: 444
+      height: 444
+    _pivots:
+    - {x: 0.5, y: 0.5}
+    - {x: 0.5, y: 0.5}
+    - {x: 0.5, y: 0.5}
+    - {x: 0.5, y: 0.5}
+    - {x: 0.5, y: 0.5}
+    - {x: 0.5, y: 0.5}
+    - {x: 0.5, y: 0.5}
+    - {x: 0.5, y: 0.5}
+    _referenceHeight: 443.5
+    _normalizeHeight: 0
+  _merge:
+    _texture: {fileID: 2800000, guid: 641a7bee5dd2f604ca72ec639e513376, type: 3}
+    _frames:
+    - x: 0
+      y: 512
+      width: 512
+      height: 512
+    - x: 512
+      y: 512
+      width: 512
+      height: 512
+    - x: 1024
+      y: 512
+      width: 512
+      height: 512
+    - x: 0
+      y: 0
+      width: 512
+      height: 512
+    - x: 512
+      y: 0
+      width: 512
+      height: 512
+    - x: 1024
+      y: 0
+      width: 512
+      height: 512
+    _pivots:
+    - {x: 0.5, y: 0.5}
+    - {x: 0.5, y: 0.5}
+    - {x: 0.5, y: 0.5}
+    - {x: 0.5, y: 0.5}
+    - {x: 0.5, y: 0.5}
+    - {x: 0.5, y: 0.5}
+    _referenceHeight: 512
+    _normalizeHeight: 0
+  _shader: {fileID: 4800000, guid: 46f3fec6daecaf848a36b19168e10de7, type: 3}
+  _effectShader: {fileID: 10753, guid: 0000000000000000f000000000000000, type: 0}

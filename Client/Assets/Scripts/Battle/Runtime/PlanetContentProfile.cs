@@ -51,6 +51,10 @@ namespace MyDefense.Battle.Runtime
             1f,
             new Vector3(50f, -30f, 0f));
         [SerializeField] private GameObject[] _environmentEffects = Array.Empty<GameObject>();
+        [SerializeField] private bool _requiresBattlefieldTheme;
+        [SerializeField] private Texture2D _battlefieldTerrain;
+        [SerializeField] private Texture2D _battlefieldSurfaces;
+        [SerializeField] private Vector2 _battlefieldAtlasSplit = new(.5f, .5f);
 
         public string MapId => _mapId;
         public bool Enabled => _enabled;
@@ -60,8 +64,34 @@ namespace MyDefense.Battle.Runtime
         public Material EnvironmentMaterial => _environmentMaterial;
         public PlanetLightingSettings Lighting => _lighting;
         public GameObject[] EnvironmentEffects => _environmentEffects ?? Array.Empty<GameObject>();
+        public bool RequiresBattlefieldTheme => _requiresBattlefieldTheme;
+        public Texture2D BattlefieldTerrain => _battlefieldTerrain;
+        public Texture2D BattlefieldSurfaces => _battlefieldSurfaces;
+        public Vector2 BattlefieldAtlasSplit => _battlefieldAtlasSplit;
+
+        public bool ValidateBattlefieldTheme(out string error)
+        {
+            error = null;
+            if (!_requiresBattlefieldTheme) return true;
+            if (_battlefieldTerrain == null || _battlefieldSurfaces == null || _environmentMaterial == null)
+                error = MapId + " battlefield requires Terrain, Surfaces and a presentation Material; no SF/background fallback is allowed.";
+            else if (_battlefieldTerrain.height <= _battlefieldTerrain.width)
+                error = MapId + " battlefield Terrain must be portrait ground artwork.";
+            else if (_battlefieldSurfaces.width != _battlefieldSurfaces.height || _battlefieldSurfaces.width % 2 != 0)
+                error = MapId + " battlefield Surfaces must be a square, evenly divisible 2x2 atlas.";
+            else if (_battlefieldAtlasSplit.x < .1f || _battlefieldAtlasSplit.x > .9f
+                || _battlefieldAtlasSplit.y < .1f || _battlefieldAtlasSplit.y > .9f)
+                error = MapId + " battlefield atlas split must preserve four usable cells.";
+            return error == null;
+        }
 
 #if UNITY_EDITOR
+        public void ConfigureBattlefieldForEditor(bool required, Texture2D terrain, Texture2D surfaces, Vector2? split = null)
+        {
+            _requiresBattlefieldTheme = required; _battlefieldTerrain = terrain; _battlefieldSurfaces = surfaces;
+            _battlefieldAtlasSplit = split ?? new Vector2(.5f, .5f);
+        }
+
         public void ConfigureForEditor(
             string mapId,
             bool enabled,

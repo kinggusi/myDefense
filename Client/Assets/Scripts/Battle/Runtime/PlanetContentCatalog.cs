@@ -148,6 +148,7 @@ namespace MyDefense.Battle.Runtime
                     errors.Add("Duplicate PlanetContentProfile mapId: '" + mapId + "'.");
                 if (!profile.Enabled)
                     errors.Add("PlanetContentProfile is disabled: '" + mapId + "'.");
+                if (!profile.ValidateBattlefieldTheme(out string battlefieldError)) errors.Add(battlefieldError);
 
                 ValidatePresentationPrefab(profile.EnvironmentPrefab, mapId + " environmentPrefab", errors);
                 GameObject[] effects = profile.EnvironmentEffects;

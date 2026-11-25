@@ -16,13 +16,16 @@ MonoBehaviour:
   _enabled: 1
   _environmentPrefab: {fileID: 1979171656637192572, guid: d120903ae3379f04abf3c11f006afee0, type: 3}
   _backgroundSprite: {fileID: 0}
-  _backgroundColor: {r: 0.25, g: 0.0875, b: 0.00625, a: 1}
-  _environmentMaterial: {fileID: 2100000, guid: 263e41254dd0c5a40bff938229dbc590, type: 2}
+  _backgroundColor: {r: 0.025, g: 0.035, b: 0.065, a: 1}
+  _environmentMaterial: {fileID: 2100000, guid: 9552c4a960215e743a8c37fae9e7df78, type: 2}
   _lighting:
-    _ambientColor: {r: 0.675, g: 0.4475, b: 0.33374998, a: 1}
+    _ambientColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
     _ambientIntensity: 0.8
-    _directionalColor: {r: 1, g: 0.7725, b: 0.65875, a: 1}
+    _directionalColor: {r: 1, g: 1, b: 1, a: 1}
     _directionalIntensity: 1
     _directionalEulerAngles: {x: 50, y: -30, z: 0}
-  _environmentEffects:
-  - {fileID: 4443111646763333869, guid: ae6d03ed957169649966ca786dd46f7b, type: 3}
+  _environmentEffects: []
+  _requiresBattlefieldTheme: 1
+  _battlefieldTerrain: {fileID: 2800000, guid: 9619b0ee8a715f746b16b33a60c9288a, type: 3}
+  _battlefieldSurfaces: {fileID: 2800000, guid: f24218ff6f9a9de49a96f699daaa9938, type: 3}
+  _battlefieldAtlasSplit: {x: 0.5, y: 0.5}

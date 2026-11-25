@@ -6,6 +6,10 @@
 
 ## 0. 사용 방법
 
+> Battle 표현 디테일 후속(2026-11-24): 실제 Battle에 9행성 상세 Terrain, 중앙 ID/Monster 수·한글 상태/Boss 행·UFO Kidnap, 밝은 합성짝 이중선/한글 라벨·권위 승인 효과, 3종 Monster 보행/포탈/피격/사망 표현을 연결했다. 집중143/143, 전체950/951(기존 Balance hash fixture1 FAIL), 최종 Development/production compile build 성공·C#/Shader0, 독립 리뷰 필수0. 동일PC 실제 두 Standalone W009/W010 및 Boss 처치·소멸/최종 한글 표시를 확인했고 kinggusi가 효과·이동을 PASS로 회신했다. 최종 양쪽 사람 비주얼 인수·Elite 다수/장시간·실제2PC는 별도이며 **부분 완료/검증 대기**를 유지한다. [검증 기록](test-reports/BATTLE-PRESENTATION-POLISH-20261124.md). commit/push 없음.
+
+> Battle 조작·합성 표시·매트 맵 보완(2026-11-24): HUD 반복 canonical 조회를 세션/선택 상태 캐시로 변경하고 Board registry·공유 picking/pose와 권위 위치를 유지하는 drag preview를 적용했다. 실제 종·등급 기준 배지/선택/Merge 짝,32장 원본을 보존한 sampler/AA 개선과9행성 새 matte Terrain·공통 SF atlas를 반영했다. 최종 집중264/264 PASS, 전체928/929(기존 Balance 고정 hash fixture1 FAIL), Dev/production compile build exit0, 독립 리뷰 필수0. 동일PC 두Client의 Kidnap/복제·짝 표시와 양쪽 move/merge/swap31건 일치, kinggusi의 실제 이동·Merge 부드러움 PASS 확인. jjangash 조작 및 양쪽 최종 비주얼 인수 전 **부분 완료/검증 대기**. [검증 기록](test-reports/BATTLE-INTERACTION-MATTE-20261124.md). 커밋/푸시 없음.
+
 > 후속 보안 보완(2026-11-02): 사용자 승인으로 뽑기·교배 난수원을 서버 SecureRandom으로 교체하고 교배 중복 조각의 int 상한 초과를 409/원자적 rollback으로 차단했다. 확률·가격·보상·게임 데이터 불변. 집중149/149·서버557/557·Balance84/84 PASS, 독립 리뷰 PASS(필수0), PM 범위 수락. 운영 인증·매칭 유예는 유지하며 운영 보안 전체 완료가 아니다. [검증 기록](test-reports/JWT-ECONOMY-HARDENING-2026-11-02.md). 커밋/푸시 없음.
 
 > 후속 사용자 지정 디자인(2026-11-02): **P3-1-3 클랜 화면 시안 반영**. 큰 외곽 네온/상단 빈 공간을 제거하고 저채도 남색 검색·추천 카드와 가입 후 identity/공지/멤버 통합 홈으로 재구성했다. 기존 마스코트·전체보기·관리/설정/권한/멱등 유지, 프로필·하단 탭·Battle/Shared 변경 없음. 집중61/61 PASS, 최종 전체817건 실행/기존 Battle hash1 실패 유지, 독립 코드리뷰 승인(필수0), Missing Script0. 실제 상세/공지/설정/관리 열기·닫기·휠스크롤/2비율 및 새 디자인 HTTP 생성→자유가입→MEMBER 표시 확인. 실사용 드래그·나머지 HTTP/로비 통합·최종 사람 디자인 인수 전 **부분 완료**다. Play 종료·SampleScene 복귀·임시 서버 종료. 커밋/푸시 없음. [검증 기록](test-reports/P3-1-3-CLAN-UI.md).
@@ -354,6 +358,20 @@ P0-1-1~4 → P0-1-5 → P0-1-6
 | P0-11-5 | jjangash | 완료 | Catalog 경로·중복 Task ID·Missing Scene·Production Build 포함을 검사하는 Editor 테스트 구현 | P0-11-3 |
 | P0-11-6 | jjangash | 완료 | Fusion 2클라이언트 기능 검증 실행 절차와 테스트 데이터 초기화 방식 구현 | P0-2-4, P0-11-3 |
 | P0-11-7 | jjangash | 검증 대기 | Hub와 `docs/P0_INTEGRATION_TEST_SCENARIO.md`로 공동 Smoke Test를 수행하고 검증 기록 확정 | P0-11-4~6 |
+
+| Task ID | 담당 | 상태 | 작업 | 선행 |
+|---|---|---|---|---|
+| P0-11-SHOWROOM-CHARACTER | kinggusi | 부분 완료 | 캐릭터 비교와 카메라 조작. 종별 에셋과 Animation Clip 연결은 제공 후 검증한다. | P0-11-3 |
+| P0-11-SHOWROOM-COMBAT | kinggusi | 부분 완료 | 오프라인 Fusion Authority 전투 명령 및 프리셋 검증. 임의 보드·해금 시드와 2클라이언트 격리 검증에는 User/System·Shared 계약이 필요하다. | P0-11-3 |
+| P0-11-SHOWROOM-CONTENT | kinggusi | 부분 완료 | 행성·Daily Profile, 실제 Lane·Waypoint, 격리 Wave 시작 검증. | P0-11-3 |
+
+계획과 실행 증거는 [Battle 쇼룸 검증 기록](test-reports/BATTLE-SHOWROOM.md)에 남긴다.
+
+> 2026-11-24 표현 연결: 쇼룸 후보 16종 포즈의 외곽 matte를 정리하고, 48칸 SF 타일·9행성 페인트 배경·Development 실제 Battle 외형 alias를 연결했다. 집중 EditMode 116/116, Battle Development/Production 컴파일 검사 및 새 쇼룸 빌드 성공. 동일 PC 두 Standalone의 외형 복제와 W080 Boss 처치 확인. 정식 캐릭터 ID/고유 스킬, Editor Host 및 실제 2PC·장시간·사람 비주얼 인수는 별도이며 기존 부분 완료 상태를 유지한다. commit/push 미수행.
+
+> 2026-11-24 행성 지표형 맵 후속: 사용자의 그림체 분리 지적에 따라 9행성 각각의 지표·타일·실제 Lane·테두리 아트 18 PNG와 Profile을 적용했다. 공통 Battle.unity/4×6/Waypoint/전투 규칙은 유지한다. 최종 집중 EditMode 200/200, 쇼룸·Battle Development·Production 컴파일 검사 및 독립 리뷰 PASS. 최종 9행성 Unity 렌더와 동일 PC 새 2클라이언트 NEPTUNE W009 완료/유닛 복제를 확인했다. 실제 2PC·장시간·사용자 최종 비주얼 인수·정식 ID/고유 스킬 연결은 미완료이며 위 세 쇼룸 항목은 부분 완료를 유지한다. 변경/증거/실행법은 Battle 쇼룸 검증 기록의 마지막 절에 있으며 commit/push는 하지 않았다.
+
+> 2026-11-24 실제 Battle HUD 후속: 사용자 요청으로 메인 UI 참조의 남색/금속/청록 디자인을 기존 Battle.unity 상단·Kidnap·전투 Gold·변이/공명·신화 후보에 적용했다. 9행성 원화/4×6/권위 요청/수식은 보존했다. 집중 EditMode 282/282, 독립 리뷰 PASS, Battle-only Development/Production 빌드 성공. 동일 PC 실제 두 창에서 납치 비용/가격 갱신·복제·공명·Mutation 활성화를 확인하고, R4에서 제품/개발 drawer 배타와 가로·세로 배치를 재검증했다. World 직접 드래그는 자동 조작에서 확인되지 않아 사용자 확인 대기이며 최종 사람 디자인 인수도 미완료다. 기존 Task 완료로 승격하지 않는다. 상세/실행법은 [Battle HUD 보고서](test-reports/BATTLE-HUD-20261124.md). commit/push 미수행.
 
 ### P0 자동 검증 체크포인트 (2026-08-01)
 

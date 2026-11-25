@@ -95,6 +95,144 @@ namespace MyDefense.Battle.Editor
                 + CatalogPath);
         }
 
+        [MenuItem("MyDefense/Battle/Apply Painted Planet Backgrounds")]
+        public static void GeneratePaintedContent()
+        {
+            AssetDatabase.Refresh();
+            EnsureFolder(ResourcesFolder); EnsureFolder(ProfilesFolder); EnsureFolder(PrefabsFolder);
+            // Validate all files before touching an existing Profile or Prefab.
+            var sprites = new Dictionary<string, Sprite>(StringComparer.Ordinal);
+            foreach (PlanetVisualRecipe recipe in Recipes)
+            {
+                string artPath = "Assets/Art/Battle/Planets/" + recipe.MapId + "_Background.png";
+                if (AssetImporter.GetAtPath(artPath) is not TextureImporter importer)
+                    throw new FileNotFoundException("Required planet background is missing", artPath);
+                importer.textureType = TextureImporterType.Sprite;
+                importer.spriteImportMode = SpriteImportMode.Single; importer.spritePixelsPerUnit = 100f;
+                importer.npotScale = TextureImporterNPOTScale.None; importer.maxTextureSize = 4096;
+                importer.mipmapEnabled = false; importer.wrapMode = TextureWrapMode.Clamp;
+                importer.filterMode = FilterMode.Bilinear;
+                importer.textureCompression = TextureImporterCompression.Uncompressed;
+                importer.isReadable = false; importer.SaveAndReimport();
+                Sprite sprite = AssetDatabase.LoadAssetAtPath<Sprite>(artPath);
+                if (sprite == null) throw new InvalidOperationException("Cannot import planet background: " + artPath);
+                sprites.Add(recipe.MapId, sprite);
+            }
+            var profiles = new List<PlanetContentProfile>();
+            foreach (PlanetVisualRecipe recipe in Recipes)
+            {
+                string prefabPath = PrefabsFolder + "/" + recipe.MapId + "_Environment.prefab";
+                var root = new GameObject(recipe.MapId + "_Environment");
+                GameObject environment;
+                try
+                {
+                    root.AddComponent<PlanetEnvironmentContent>();
+                    // Profile.BackgroundSprite supplies the complete painted
+                    // environment. No old primitive planet/ambient FX remain.
+                    environment = PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
+                }
+                finally { UnityEngine.Object.DestroyImmediate(root); }
+                if (environment == null) throw new InvalidOperationException("Could not save " + prefabPath);
+                string profilePath = ProfilesFolder + "/" + recipe.MapId + ".asset";
+                var profile = AssetDatabase.LoadAssetAtPath<PlanetContentProfile>(profilePath);
+                if (profile == null)
+                {
+                    profile = ScriptableObject.CreateInstance<PlanetContentProfile>();
+                    AssetDatabase.CreateAsset(profile, profilePath);
+                }
+                profile.ConfigureForEditor(recipe.MapId, true, environment, sprites[recipe.MapId],
+                    new Color(.025f, .035f, .065f), null,
+                    new PlanetLightingSettings(Color.gray, .8f, Color.white, 1f, new Vector3(50f, -30f, 0f)),
+                    Array.Empty<GameObject>());
+                profile.ConfigureBattlefieldForEditor(false, null, null);
+                EditorUtility.SetDirty(profile); profiles.Add(profile);
+            }
+            var catalog = AssetDatabase.LoadAssetAtPath<PlanetContentCatalog>(CatalogPath);
+            if (catalog == null)
+            { catalog = ScriptableObject.CreateInstance<PlanetContentCatalog>(); AssetDatabase.CreateAsset(catalog, CatalogPath); }
+            catalog.ConfigureForEditor(profiles); EditorUtility.SetDirty(catalog);
+            AssetDatabase.SaveAssets(); ValidateGeneratedCatalog(catalog);
+            Debug.Log("[PlanetContent] Applied all nine painted backgrounds. Board/Lane/Waypoint/Wave/Boss unchanged.");
+        }
+
+        [MenuItem("MyDefense/Battle/Apply Planet Battlefield Surface Themes")]
+        public static void GenerateBattlefieldContent()
+            =>GenerateBattlefieldContentInternal(false);
+
+        [MenuItem("MyDefense/Battle/Apply Matte Planet Battlefield Themes")]
+        public static void GenerateMatteBattlefieldContent()=>GenerateBattlefieldContentInternal(true);
+
+        [MenuItem("MyDefense/Battle/Apply Detailed SF Planet Battlefield Themes")]
+        public static void GenerateDetailedBattlefieldContent()=>GenerateBattlefieldContentInternal(true,true);
+
+        private static void GenerateBattlefieldContentInternal(bool matte,bool detailed=false)
+        {
+            string art = detailed?"Assets/Art/Battle/Planets/SFDetailBattlefields/":matte?"Assets/Art/Battle/Planets/MatteBattlefields/":"Assets/Art/Battle/Planets/Battlefields/";
+            string commonPath="Assets/Art/Battle/Planets/MatteBattlefields/SF_MatteSurfaces.png";
+            AssetDatabase.Refresh();
+            // All eighteen files must exist before any Profile/Prefab is changed.
+            foreach (PlanetVisualRecipe recipe in Recipes)
+            foreach (string suffix in new[] { "_Terrain.png", "_Surfaces.png" })
+            {
+                string path=matte&&suffix=="_Surfaces.png"?commonPath:art+recipe.MapId+suffix;
+                if (!File.Exists(Path.Combine(Application.dataPath,path.Substring(7))))throw new FileNotFoundException("Required battlefield artwork missing",path);
+            }
+            var terrain = new Dictionary<string, Texture2D>();
+            var surfaces = new Dictionary<string, Texture2D>();
+            Texture2D common=matte?ImportBattlefieldTexture(commonPath):null;
+            foreach (PlanetVisualRecipe recipe in Recipes)
+            {
+                Texture2D floor = ImportBattlefieldTexture(art + recipe.MapId + "_Terrain.png");
+                Texture2D atlas = matte?common:ImportBattlefieldTexture(art + recipe.MapId + "_Surfaces.png");
+                if (floor.height <= floor.width || atlas.width != atlas.height || atlas.width % 2 != 0)
+                    throw new InvalidOperationException("Invalid battlefield Terrain/2x2 Surfaces shape: " + recipe.MapId);
+                terrain.Add(recipe.MapId, floor); surfaces.Add(recipe.MapId, atlas);
+            }
+            Shader shader = AssetDatabase.LoadAssetAtPath<Shader>("Assets/Scripts/Battle/Presentation/BattleBoardSurface.shader");
+            if (shader == null) throw new InvalidOperationException("Battlefield surface shader missing.");
+            EnsureFolder(ResourcesFolder); EnsureFolder(ProfilesFolder); EnsureFolder(PrefabsFolder); EnsureFolder(MaterialsFolder);
+            var profiles = new List<PlanetContentProfile>();
+            foreach (PlanetVisualRecipe recipe in Recipes)
+            {
+                string materialPath = MaterialsFolder + "/" + recipe.MapId + "_Battlefield.mat";
+                Material material = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
+                if (material == null) { material = new Material(shader); AssetDatabase.CreateAsset(material, materialPath); }
+                material.shader = shader; material.mainTexture = terrain[recipe.MapId]; EditorUtility.SetDirty(material);
+                string prefabPath = PrefabsFolder + "/" + recipe.MapId + "_Environment.prefab";
+                var root = new GameObject(recipe.MapId + "_Environment");
+                GameObject environment;
+                try { root.AddComponent<PlanetEnvironmentContent>(); environment = PrefabUtility.SaveAsPrefabAsset(root, prefabPath); }
+                finally { UnityEngine.Object.DestroyImmediate(root); }
+                if (environment == null) throw new InvalidOperationException("Cannot save " + prefabPath);
+                string profilePath = ProfilesFolder + "/" + recipe.MapId + ".asset";
+                PlanetContentProfile profile = AssetDatabase.LoadAssetAtPath<PlanetContentProfile>(profilePath);
+                if (profile == null) { profile = ScriptableObject.CreateInstance<PlanetContentProfile>(); AssetDatabase.CreateAsset(profile, profilePath); }
+                profile.ConfigureForEditor(recipe.MapId, true, environment, null, new Color(.025f, .035f, .065f), material,
+                    new PlanetLightingSettings(Color.gray, .8f, Color.white, 1f, new Vector3(50f, -30f, 0f)), Array.Empty<GameObject>());
+                // Curated crop for the delivered Venus artwork: top-origin row
+                // boundary 589 of 1254. Keep the original PNG entirely unchanged.
+                Vector2 split = !matte && recipe.MapId == "VENUS" && surfaces[recipe.MapId].height == 1254
+                    ? new Vector2(.5f, 665f / 1254f) : new Vector2(.5f, .5f);
+                profile.ConfigureBattlefieldForEditor(true, terrain[recipe.MapId], surfaces[recipe.MapId], split);
+                EditorUtility.SetDirty(profile); profiles.Add(profile);
+            }
+            PlanetContentCatalog catalog = AssetDatabase.LoadAssetAtPath<PlanetContentCatalog>(CatalogPath);
+            if (catalog == null) { catalog = ScriptableObject.CreateInstance<PlanetContentCatalog>(); AssetDatabase.CreateAsset(catalog, CatalogPath); }
+            catalog.ConfigureForEditor(profiles); EditorUtility.SetDirty(catalog);
+            AssetDatabase.SaveAssets(); ValidateGeneratedCatalog(catalog);
+            Debug.Log("[PlanetContent] Applied nine required battlefield themes. Existing boards/paths/physics and old PNGs preserved.");
+        }
+
+        private static Texture2D ImportBattlefieldTexture(string path)
+        {
+            if (AssetImporter.GetAtPath(path) is not TextureImporter importer) throw new FileNotFoundException(path);
+            importer.textureType = TextureImporterType.Default; importer.npotScale = TextureImporterNPOTScale.None;
+            importer.maxTextureSize = 4096; importer.mipmapEnabled = true;
+            importer.filterMode = FilterMode.Trilinear; importer.anisoLevel = 4; importer.wrapMode = TextureWrapMode.Clamp;
+            importer.textureCompression = TextureImporterCompression.Uncompressed; importer.isReadable = false;
+            importer.SaveAndReimport(); return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+        }
+
         private static Material CreateOrUpdateMaterial(
             string mapId,
             string suffix,
@@ -447,6 +585,7 @@ namespace MyDefense.Battle.Editor
                     ambient, 0.8f, Color.Lerp(recipe.BaseColor, Color.white, 0.65f),
                     1f, new Vector3(50f, -30f, 0f)),
                 new[] { effectPrefab });
+            profile.ConfigureBattlefieldForEditor(false, null, null);
             EditorUtility.SetDirty(profile);
             return profile;
         }

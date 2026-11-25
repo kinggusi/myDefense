@@ -1,0 +1,410 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 23e5a45930ccb8d46a28d022acbfbc68, type: 3}
+  m_Name: BattleUnitArtCatalog
+  m_EditorClassIdentifier: Assembly-CSharp::MyDefense.Battle.Presentation.BattleUnitArtCatalog
+  _diad:
+    _poses:
+    - _original: {fileID: 2800000, guid: 23907413c2fece94c9e53cffea99ab29, type: 3}
+      _darkBold: {fileID: 2800000, guid: 2ec8e05c15365c64cb8784c2a04f430b, type: 3}
+      _frames:
+      - x: 104
+        y: 50
+        width: 320
+        height: 434
+      - x: 625
+        y: 54
+        width: 276
+        height: 433
+      - x: 1116
+        y: 49
+        width: 312
+        height: 425
+      _feet:
+      - 0.5234375
+      - 0.5054348
+      - 0.48397437
+    - _original: {fileID: 2800000, guid: f0a98977ef283ff4086a04c3df61177b, type: 3}
+      _darkBold: {fileID: 2800000, guid: 396d7c5021377f743b78eec12844fdc6, type: 3}
+      _frames:
+      - x: 118
+        y: 28
+        width: 316
+        height: 460
+      - x: 632
+        y: 36
+        width: 269
+        height: 452
+      - x: 1107
+        y: 27
+        width: 321
+        height: 446
+      _feet:
+      - 0.54113925
+      - 0.5408922
+      - 0.46105918
+    - _original: {fileID: 2800000, guid: 6e1237f270c9d8d408a568997ab9f83b, type: 3}
+      _darkBold: {fileID: 2800000, guid: c7ced4d77cef25a4aa9c034883b20fef, type: 3}
+      _frames:
+      - x: 58
+        y: 44
+        width: 423
+        height: 437
+      - x: 578
+        y: 58
+        width: 331
+        height: 423
+      - x: 1052
+        y: 42
+        width: 426
+        height: 432
+      _feet:
+      - 0.51891255
+      - 0.521148
+      - 0.48826292
+    - _original: {fileID: 2800000, guid: a57ef915869621d42a5af8a438764da8, type: 3}
+      _darkBold: {fileID: 2800000, guid: 3bc16c8eeba18cd42a2706de88a251bd, type: 3}
+      _frames:
+      - x: 111
+        y: 27
+        width: 342
+        height: 463
+      - x: 614
+        y: 38
+        width: 288
+        height: 452
+      - x: 1096
+        y: 27
+        width: 333
+        height: 450
+      _feet:
+      - 0.5277778
+      - 0.5208333
+      - 0.487988
+  _mecharon:
+    _poses:
+    - _original: {fileID: 2800000, guid: 1fed9b8c3ac4341419154c5fc7cbf5d4, type: 3}
+      _darkBold: {fileID: 2800000, guid: 09bacec2a94241b498ed9737a394709e, type: 3}
+      _frames:
+      - x: 120
+        y: 67
+        width: 310
+        height: 373
+      - x: 640
+        y: 67
+        width: 274
+        height: 358
+      - x: 1116
+        y: 69
+        width: 298
+        height: 355
+      _feet:
+      - 0.5
+      - 0.4580292
+      - 0.49832216
+    - _original: {fileID: 2800000, guid: 1ce11ea238fa88d4685b85b8445e9dbc, type: 3}
+      _darkBold: {fileID: 2800000, guid: c95e20747444a664180f19a6f3601d3b, type: 3}
+      _frames:
+      - x: 81
+        y: 41
+        width: 364
+        height: 410
+      - x: 607
+        y: 41
+        width: 315
+        height: 403
+      - x: 1081
+        y: 41
+        width: 364
+        height: 407
+      _feet:
+      - 0.49725273
+      - 0.50476193
+      - 0.51236266
+    - _original: {fileID: 2800000, guid: 5fed2b9eed4f0e9469da35d4df369de6, type: 3}
+      _darkBold: {fileID: 2800000, guid: 1bfba4a68f35c6e439023a5f2f73d71a, type: 3}
+      _frames:
+      - x: 120
+        y: 75
+        width: 304
+        height: 362
+      - x: 634
+        y: 73
+        width: 295
+        height: 352
+      - x: 1112
+        y: 75
+        width: 304
+        height: 348
+      _feet:
+      - 0.51480263
+      - 0.45084745
+      - 0.5115132
+    - _original: {fileID: 2800000, guid: 406f032c4c278b144ab834eddd8e6f78, type: 3}
+      _darkBold: {fileID: 2800000, guid: 33e6d585cbf184f438f0c26e22d15bc5, type: 3}
+      _frames:
+      - x: 82
+        y: 42
+        width: 366
+        height: 409
+      - x: 609
+        y: 42
+        width: 325
+        height: 402
+      - x: 1081
+        y: 41
+        width: 369
+        height: 406
+      _feet:
+      - 0.4931694
+      - 0.49076924
+      - 0.50271004
+  _puppeteer:
+    _poses:
+    - _original: {fileID: 2800000, guid: 76773d0f0647ae246a4497cf894f896d, type: 3}
+      _darkBold: {fileID: 2800000, guid: 1450219576783ee42924d04cfc019eaf, type: 3}
+      _frames:
+      - x: 112
+        y: 67
+        width: 300
+        height: 403
+      - x: 606
+        y: 68
+        width: 285
+        height: 401
+      - x: 1121
+        y: 68
+        width: 303
+        height: 402
+      _feet:
+      - 0.47666666
+      - 0.44561404
+      - 0.47029704
+    - _original: {fileID: 2800000, guid: a93a5722fc340e8498f8fc7fc0ead625, type: 3}
+      _darkBold: {fileID: 2800000, guid: 566233e97af9f684ca3b0dbb035709b5, type: 3}
+      _frames:
+      - x: 109
+        y: 60
+        width: 305
+        height: 411
+      - x: 605
+        y: 59
+        width: 284
+        height: 410
+      - x: 1120
+        y: 59
+        width: 307
+        height: 412
+      _feet:
+      - 0.4737705
+      - 0.5105634
+      - 0.4723127
+    - _original: {fileID: 2800000, guid: 5209ffc57405d434188b67bd05bc3d14, type: 3}
+      _darkBold: {fileID: 2800000, guid: 44c34c012f2d58447a443c946c882d22, type: 3}
+      _frames:
+      - x: 79
+        y: 65
+        width: 356
+        height: 405
+      - x: 571
+        y: 59
+        width: 391
+        height: 405
+      - x: 1103
+        y: 59
+        width: 368
+        height: 408
+      _feet:
+      - 0.46769664
+      - 0.44373402
+      - 0.47418478
+    - _original: {fileID: 2800000, guid: a74681447316a85439aafb805584a229, type: 3}
+      _darkBold: {fileID: 2800000, guid: 6008e516fb037b14991f779a9d6d5640, type: 3}
+      _frames:
+      - x: 109
+        y: 60
+        width: 305
+        height: 410
+      - x: 605
+        y: 59
+        width: 284
+        height: 410
+      - x: 1120
+        y: 59
+        width: 307
+        height: 412
+      _feet:
+      - 0.47540984
+      - 0.5105634
+      - 0.47394136
+  _doll:
+    _poses:
+    - _original: {fileID: 2800000, guid: ee08e7f06bdfd624490abd80f7c3bc12, type: 3}
+      _darkBold: {fileID: 2800000, guid: 9970dc8f42c7af542b774a89c19e65b4, type: 3}
+      _frames:
+      - x: 155
+        y: 87
+        width: 228
+        height: 324
+      - x: 671
+        y: 82
+        width: 192
+        height: 347
+      - x: 1154
+        y: 87
+        width: 228
+        height: 324
+      _feet:
+      - 0.49780703
+      - 0.47135416
+      - 0.5
+    - _original: {fileID: 2800000, guid: 7903881775ebfe346817194ed09b3cf9, type: 3}
+      _darkBold: {fileID: 2800000, guid: 2d120870cb485484c96754183a44ebbf, type: 3}
+      _frames:
+      - x: 106
+        y: 72
+        width: 334
+        height: 395
+      - x: 648
+        y: 73
+        width: 235
+        height: 404
+      - x: 1101
+        y: 72
+        width: 321
+        height: 395
+      _feet:
+      - 0.50449103
+      - 0.5042553
+      - 0.49376947
+    - _original: {fileID: 2800000, guid: 49dea9f94c2d41c49b5af89ca9f8237c, type: 3}
+      _darkBold: {fileID: 2800000, guid: 201361718c165cb4bb8b6ed4eaa75b4f, type: 3}
+      _frames:
+      - x: 130
+        y: 83
+        width: 280
+        height: 303
+      - x: 648
+        y: 100
+        width: 273
+        height: 314
+      - x: 1129
+        y: 84
+        width: 285
+        height: 308
+      _feet:
+      - 0.39821428
+      - 0.22161172
+      - 0.41754386
+    - _original: {fileID: 2800000, guid: 67fe3da90225c7843ab2aca10063d86a, type: 3}
+      _darkBold: {fileID: 2800000, guid: 9b2f94bf3c59eb543a059c61ffde0665, type: 3}
+      _frames:
+      - x: 141
+        y: 73
+        width: 264
+        height: 391
+      - x: 656
+        y: 75
+        width: 227
+        height: 401
+      - x: 1121
+        y: 73
+        width: 272
+        height: 392
+      _feet:
+      - 0.5037879
+      - 0.4845815
+      - 0.50919116
+  _diadEffects:
+    _texture: {fileID: 2800000, guid: 702c9ea40fbfccb45b0a69cc8b10eb2e, type: 3}
+    _frames:
+    - x: 89
+      y: 607
+      width: 362
+      height: 340
+    - x: 530
+      y: 678
+      width: 478
+      height: 168
+    - x: 1115
+      y: 626
+      width: 384
+      height: 298
+    - x: 23
+      y: 67
+      width: 489
+      height: 401
+    - x: 512
+      y: 122
+      width: 501
+      height: 308
+    - x: 1073
+      y: 179
+      width: 445
+      height: 180
+  _mecharonEffects:
+    _texture: {fileID: 2800000, guid: 091aa4e32ebbd354da98a2d07a31ea19, type: 3}
+    _frames:
+    - x: 52
+      y: 598
+      width: 448
+      height: 317
+    - x: 549
+      y: 638
+      width: 431
+      height: 246
+    - x: 1048
+      y: 663
+      width: 417
+      height: 170
+    - x: 34
+      y: 161
+      width: 477
+      height: 217
+    - x: 548
+      y: 121
+      width: 442
+      height: 334
+    - x: 1035
+      y: 154
+      width: 450
+      height: 203
+  _puppeteerEffects:
+    _texture: {fileID: 2800000, guid: 44e97816cd548b04c859c1fce1562664, type: 3}
+    _frames:
+    - x: 69
+      y: 622
+      width: 414
+      height: 243
+    - x: 553
+      y: 606
+      width: 434
+      height: 273
+    - x: 1086
+      y: 620
+      width: 365
+      height: 257
+    - x: 152
+      y: 203
+      width: 360
+      height: 160
+    - x: 512
+      y: 164
+      width: 485
+      height: 279
+    - x: 1060
+      y: 204
+      width: 405
+      height: 143
+  _boardTexture: {fileID: 2800000, guid: 51d21bcc02eea904bb8c7dc3c4404b9e, type: 3}
+  _reliefShader: {fileID: 4800000, guid: 9abe51629c42ff7468e22b96cf494d6f, type: 3}
+  _boardShader: {fileID: 4800000, guid: 7dc4e0e3c5220d94fbb0cd2c1bccc78e, type: 3}

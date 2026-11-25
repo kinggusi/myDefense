@@ -50,11 +50,40 @@ namespace MyDefense.Battle.Combat
         private Transform _presentationAttacker;
         private bool _hasProxyPresentationPosition;
         private Vector3 _proxyPresentationPosition;
+        private bool _presentationAnnounced;
+        private BattleProjectileSpawner _presentationSpawner;
         public event Action<HitEvent> AuthoritativeHit;
+        public static event Action<BattleProjectileNetworkState> PresentationSpawned;
+        internal void BindPresentationSpawner(BattleProjectileSpawner spawner) => _presentationSpawner = spawner;
+
+        public bool TryGetLocalPresentationPosition(out Vector3 position)
+        {
+            position = transform.position;
+            if (Object == null || !Object.IsValid || Runner == null) return false;
+            if (HasStateAuthority) return true;
+            _waveAuthority ??= FindFirstObjectByType<BattleWaveStateAuthority>();
+            if (_waveAuthority == null || _waveAuthority.Runner != Runner) return false;
+            int slot = _waveAuthority.GetNetworkedPlayerSlot(Runner.LocalPlayer);
+            if (slot == 0) return false;
+            if (slot != 2) return true;
+            if (!_hasProxyPresentationPosition) return false;
+            position = _proxyPresentationPosition; return true;
+        }
 
         public override void Spawned()
         {
             ResetProxyPresentation();
+            AnnouncePresentation();
+        }
+
+        private void AnnouncePresentation()
+        {
+            // Authority initializes after Runner.Spawn; a proxy receives the
+            // initialized snapshot in Spawned. Never publish the zero identity.
+            if (_presentationAnnounced || AttackerServerId <= 0 || RuntimeProjectileId == 0) return;
+            _presentationAnnounced = true;
+            try { PresentationSpawned?.Invoke(this); }
+            catch (Exception exception) { Debug.LogException(exception); }
         }
 
         public bool InitializeFromAuthority(
@@ -94,6 +123,7 @@ namespace MyDefense.Battle.Combat
             Speed = spec.Speed;
             HitRadius = spec.HitRadius;
             MoveTypeValue = (int)spec.MoveType;
+            AnnouncePresentation();
             return true;
         }
 
@@ -161,6 +191,7 @@ namespace MyDefense.Battle.Combat
 
         private void LateUpdate()
         {
+            if (Object != null && Object.IsValid) AnnouncePresentation();
             if (HasStateAuthority)
                 return;
 
@@ -216,7 +247,7 @@ namespace MyDefense.Battle.Combat
                 : null;
         }
 
-        private Vector3 ResolvePresentationTargetPosition()
+        public Vector3 ResolvePresentationTargetPosition()
         {
             if (Runner == null || !TargetNetworkId.IsValid
                 || !Runner.TryFindObject(TargetNetworkId, out NetworkObject targetObject)
@@ -235,6 +266,7 @@ namespace MyDefense.Battle.Combat
             _presentationAttacker = null;
             _hasProxyPresentationPosition = false;
             _proxyPresentationPosition = default;
+            _presentationAnnounced = false;
         }
 
         public bool TryApplyAuthoritativeHit(IDamageable target, NetworkId targetId, bool isCritical = false)
@@ -314,6 +346,11 @@ namespace MyDefense.Battle.Combat
                     // Audit metadata must not undo an already-applied authoritative hit.
                 }
             }
+
+            // The persistent spawner delivers this one-shot presentation RPC;
+            // the projectile may be despawned below in this same network tick.
+            _presentationSpawner?.PublishAcceptedPrimaryHit(
+                RuntimeProjectileId, AttackerServerId, targetId,BattleSessionId.ToString(),targetRuntimeId);
 
             if (PierceRemaining > 0)
                 PierceRemaining--;
@@ -510,6 +547,7 @@ namespace MyDefense.Battle.Combat
         public override void Despawned(NetworkRunner runner, bool hasState)
         {
             _hitTargets.Clear();
+            _presentationSpawner = null;
             ResetProxyPresentation();
         }
 

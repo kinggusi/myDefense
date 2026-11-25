@@ -15,6 +15,9 @@ namespace MyDefense.Battle
     [DisallowMultipleComponent]
     public sealed class BattleMonsterNetworkState : NetworkBehaviour
     {
+        public static event System.Action<BattleMonsterNetworkState> PresentationReady;
+        public static event System.Action<BattleMonsterNetworkState> PresentationRemoved;
+        private bool _presentationReady;
         [Networked] public NetworkString<_64> BattleSessionId { get; private set; }
         [Networked] public ulong RuntimeMonsterId { get; private set; }
         [Networked] public NetworkString<_32> MonsterId { get; private set; }
@@ -49,6 +52,7 @@ namespace MyDefense.Battle
 
         public override void Spawned()
         {
+            _presentationReady=false;
             _hasPresentationPosition = false;
             _networkTransform = GetComponent<NetworkTransform>();
             _monsterStat = GetComponent<MonsterStat>();
@@ -64,6 +68,7 @@ namespace MyDefense.Battle
                 MutationMoveSpeedMultiplier = 1f;
                 SyncHealthFromLocal();
             }
+            NotifyPresentationReady();
         }
 
         public override void FixedUpdateNetwork()
@@ -131,6 +136,7 @@ namespace MyDefense.Battle
 
         public override void Despawned(NetworkRunner runner, bool hasState)
         {
+            try{PresentationRemoved?.Invoke(this);}catch(System.Exception error){Debug.LogException(error);}_presentationReady=false;
             _hasPresentationPosition = false;
             _networkTransform = null;
             if (_monsterStat == null)
@@ -149,6 +155,7 @@ namespace MyDefense.Battle
 
             transform.localScale = Vector3.one * ResolvePresentationScale(PresentationScale);
             _monsterStat?.ApplyNetworkState(CurrentHp, MaxHp, IsDead);
+            NotifyPresentationReady();
         }
 
         /// <summary>
@@ -342,7 +349,15 @@ namespace MyDefense.Battle
             FieldOwnerPlayerId = identity.FieldOwnerPlayerId ?? string.Empty;
             SpawnWave = identity.SpawnWave;
             IsBoss = identity.IsBoss;
+            NotifyPresentationReady();
             return true;
+        }
+
+        private void NotifyPresentationReady()
+        {
+            if(_presentationReady||Object==null||!Object.IsValid||!IsInitialized)return;
+            _presentationReady=true;
+            try{PresentationReady?.Invoke(this);}catch(System.Exception error){Debug.LogException(error);}
         }
 
         public bool InitializePresentationScale(float scale)

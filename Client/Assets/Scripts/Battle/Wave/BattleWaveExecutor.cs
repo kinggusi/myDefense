@@ -25,6 +25,8 @@ namespace MyDefense.Battle
 
         [Header("Wave Configuration")]
         [SerializeField] private GameObject _monsterPrefab;
+        private BattleWaveStateAuthority _presentationAuthority;
+        public string PresentationSessionId=>_runtimeSession?.BattleSessionId;
         [SerializeField] private Transform _spawnPoint;
         // Legacy serialized values retained only to preserve the existing Battle scene.
         // Production wave execution is driven by WaveSpec/WaveSpawnSpec.
@@ -155,6 +157,7 @@ namespace MyDefense.Battle
         public bool IsP1ValidationArmed => _p1ValidationArmed;
         public bool IsP1ValidationStartConsumed => _p1ValidationStartConsumed;
         public int P1ValidationTargetWave => _p1ValidationTargetWave;
+        private int? _developmentDailyInitialLookupCursor;
 
         public bool TryForceDevelopmentPartialSettlementFailureFromAuthority()
         {
@@ -1065,12 +1068,50 @@ namespace MyDefense.Battle
             _p1ValidationStartConsumed = false;
             _p1ValidationTargetWave = 0;
             _p1ValidationLookupCursor = 0;
+            _developmentDailyInitialLookupCursor = null;
 #endif
             PublishSessionState();
             Debug.Log("[BattleWaveExecutor] Battle session initialized.");
         }
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
+        public bool TryArmDevelopmentDailyInitialWave(int initialWave, out string reason)
+        {
+            NetworkObject networkObject = GetComponent<NetworkObject>();
+            if (networkObject == null || !networkObject.IsValid || !networkObject.HasStateAuthority
+                || networkObject.Runner == null || networkObject.Runner.GameMode != GameMode.Single)
+                return FailP1Validation("An offline Fusion State Authority is required.", out reason);
+            if (_dailyBattlePlan?.Trust != DailyBattleSessionTrust.DevelopmentFixture || _runtimeSession == null
+                || !string.Equals(_runtimeSession.BattleSessionId, _dailyBattlePlan.SessionContext.battleSessionId, StringComparison.Ordinal)
+                || !string.Equals(_runtimeSession.MapId, _dailyBattlePlan.SessionContext.mapId, StringComparison.Ordinal))
+                return FailP1Validation("The initialized Development Daily plan must match this session.", out reason);
+            if (_developmentDailyInitialLookupCursor.HasValue || _p1ValidationArmed || _configuredWaveExecutionStarted
+                || _matchState != MatchState.RUNNING || _currentRound != 0 || _currentWaveSpec != null
+                || _isWaveRunning || _isBossActive || _currentBossInstance != null || SpawnedMonsterCount != 0
+                || _spawnAuditRecords.Count != 0 || _spawnOrdinals.Count != 0 || _waveLoopCoroutine != null
+                || _activeWaveCoroutine != null || _bossTimerCoroutine != null || _dailyBattleTimerCoroutine != null
+                || _dailyBattleRemainingSeconds != _dailyBattlePlan.TimeLimitSeconds)
+                return FailP1Validation("Daily validation Wave selection requires a fresh, unstarted session.", out reason);
+            if (!TryResolveDevelopmentDailyWaveCursor(_dailyBattlePlan, initialWave, out int lookupCursor))
+                return FailP1Validation("The requested Wave is unavailable in this Development Daily Stage.", out reason);
+
+            _developmentDailyInitialLookupCursor = lookupCursor;
+            reason = null;
+            return true;
+        }
+
+        public static bool TryResolveDevelopmentDailyWaveCursor(
+            DailyBattleExecutionPlan plan, int initialWave, out int lookupCursor)
+        {
+            lookupCursor = 0;
+            if (plan?.Trust != DailyBattleSessionTrust.DevelopmentFixture || initialWave <= 0
+                || !plan.TryGetWaveAfter(initialWave - 1, out DailyBattleWavePlan wave)
+                || wave.Wave != initialWave)
+                return false;
+            lookupCursor = initialWave - 1;
+            return true;
+        }
+
         public bool TryArmP1ValidationInitialWave(
             BattleP1ValidationSessionProfile profile,
             out string reason)
@@ -1401,6 +1442,8 @@ namespace MyDefense.Battle
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (_p1ValidationArmed && !_p1ValidationStartConsumed)
                 waveLookupCursor = _p1ValidationLookupCursor;
+            if (_developmentDailyInitialLookupCursor.HasValue)
+                waveLookupCursor = _developmentDailyInitialLookupCursor.Value;
 #endif
             if (_dailyBattlePlan != null)
             {
@@ -1453,6 +1496,7 @@ namespace MyDefense.Battle
             _currentWaveSpawns = spawns;
             _currentRound = nextWave.RoundNumber;
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
+            _developmentDailyInitialLookupCursor = null;
             if (_p1ValidationArmed)
             {
                 if (_currentRound != _p1ValidationTargetWave)
@@ -2083,6 +2127,8 @@ namespace MyDefense.Battle
                 return false;
             }
 
+            if(_presentationAuthority==null)_presentationAuthority=GetComponent<BattleWaveStateAuthority>();
+            _presentationAuthority?.PublishAcceptedMonsterPresentation(spawnedInstance.GetComponent<NetworkObject>(),runtimeContext.Identity.RuntimeMonsterId);
             return true;
         }
 
