@@ -37,9 +37,10 @@
 → 영구 Alien 획득 및 강화
 → 하트 소비 후 2인 매치 입장
 → Kidnap으로 Alien/Mutation Injector 획득
-→ 동일 종·동일 등급 Merge
+→ Injector 사용 시 즉시 변이 적용
+→ 동일 종·동일 등급 Merge 및 DNA 계승
 → Legendary Merge에서 Mythic 후보 선택
-→ Mutation 활성화 및 인게임 강화
+→ DNA 없는 Mythic의 선택적 랜덤 변이 및 인게임 강화
 → 80 Wave 클리어 또는 팀 전멸
 → Settlement
 → 계정 보상 지급
@@ -207,7 +208,7 @@ Kidnap 비용 = 50 + 누적 성공 횟수 × 10
 - 동일 Alien 종이면서 동일 등급인 두 Alien만 Merge할 수 있다.
 - 서로 다른 종 또는 서로 다른 등급은 Merge할 수 없다.
 - Normal~Unique 결과는 다음 등급 전체 풀에서 랜덤 선택한다.
-- Pending Mutation DNA는 Merge 결과로 계승한다.
+- 재료의 변이 DNA는 아래 규칙으로 결과 Alien에 계승한다.
 
 ### 6.2 DNA 계승 — 확정
 
@@ -219,7 +220,7 @@ Kidnap 비용 = 50 + 누적 성공 횟수 × 10
 | A | A | A |
 | A | B | A 또는 B, 각각 50% |
 
-서로 다른 DNA를 보유하더라도 동일 종·동일 등급 조건을 만족하면 Merge할 수 있다.
+서로 다른 DNA를 보유하더라도 동일 종·동일 등급 조건을 만족하면 Merge할 수 있다. 결과 Alien은 생성 즉시 계승한 한 종류의 변이 능력치와 전투 효과를 적용받는다. 같은 DNA 두 개를 합쳐도 효과는 한 번만 적용된다.
 
 ### 6.3 Legendary Merge — 확정
 
@@ -229,7 +230,7 @@ Kidnap 비용 = 50 + 누적 성공 횟수 × 10
 - 최대 3회 후보 리롤이 가능하다.
 - 한 후보 화면 안에서 같은 Mythic을 중복 제시하지 않는다.
 - 최종 선택한 Mythic은 Merge 대상 위치에 생성한다.
-- 계승 DNA가 있으면 선택된 Mythic에 해당 Mutation이 무료로 즉시 활성화된다.
+- 선택된 Mythic은 계승 DNA의 효과를 생성 즉시 이어받는다.
 - Merge 자체에는 별도의 골드 비용이 없다.
 
 ### 6.4 Legendary 선택 추가 정책 — 미정
@@ -252,16 +253,12 @@ Kidnap 비용 = 50 + 누적 성공 횟수 × 10
 
 - Kidnap에서 낮은 확률로 필드에 등장한다.
 - Alien처럼 한 슬롯을 차지한다.
-- Normal~Mythic Alien에게 사용할 수 있다.
-- Normal~Legendary에 사용하면 `PendingMutationType` DNA를 보유한다.
-- Pending DNA는 스탯, 외형, 공격 메커니즘을 변경하지 않는다.
-- Pending DNA는 Merge를 통해 계승된다.
+- 보드에 배치된 Normal부터 Mythic까지 모든 등급의 Alien에 사용할 수 있다.
+- 사용 즉시 대상은 Injector의 DNA를 보유하고 해당 변이의 능력치, 공격 효과와 외형을 적용받는다. 계정의 영구 해금 여부는 보드 위 유닛의 변이 효과에 영향을 주지 않는다.
 
 ### 7.2 DNA 보유 Mythic — 확정
 
-- Legendary Merge로 Mythic이 생성되는 즉시 계승 DNA를 `ActiveMutationType`으로 전환한다.
-- 활성화는 무료다.
-- 추가 버튼이나 골드 비용이 없다.
+- Legendary Merge로 생성된 Mythic에도 이전 등급에서 적용되던 변이 중 계승된 하나가 즉시 이어진다. 별도 활성화 버튼이나 인게임 골드는 필요 없다.
 
 ### 7.3 DNA 없는 순수 Mythic — 확정
 
@@ -280,9 +277,7 @@ Kidnap 비용 = 50 + 누적 성공 횟수 × 10
 
 ### 7.5 Mythic에 Injector 사용 — 확정
 
-- 이미 Mutation된 Mythic에도 Injector를 사용할 수 있다.
-- 기존 Mutation을 Injector의 Mutation으로 즉시 교체한다.
-- 교체 골드 비용은 없다.
+- DNA 유무와 관계없이 Mythic에 Injector를 사용하면 지정 변이가 즉시 적용된다. 기존 변이가 있으면 새 변이로 교체한다. 두 경우 모두 인게임 골드 비용은 없다.
 
 ### 7.6 Mutation 8종 — 확정
 
@@ -1013,7 +1008,7 @@ Shared 계약 변경 시 양쪽 담당자에게 알리고 양쪽 컴파일을 �
 | 동일 종·동일 등급 Merge | 구현 | 다음 등급 랜덤 구현 |
 | DNA 계승 | 구현 | A/B 50% 포함 |
 | Legendary 후보 3종·3회 리롤 | 미구현 | 현재는 즉시 단일 랜덤 Mythic 생성 |
-| Pending/Active Mutation 모델 | 부분 구현 | 자동 활성화·랜덤 활성화·재변이 필요 |
+| 전 등급 변이 즉시 적용 | 부분 구현 | 2026-11-25 정책 확정. 등급·해금에 따른 기존 효과 제한 수정 및 두 클라이언트 검증 대기 |
 | Gacha 18종 | 서버·Unity 기반 | 멱등 구매와 UI 존재 |
 | Breeding 20종 | 서버 기반 | Unity UI 연결 필요 |
 | Alien 영구 강화 | 서버·Unity 기반 | 최종 비용·성장 곡선 재조정 필요 |

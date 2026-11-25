@@ -4,6 +4,7 @@ using UnityEngine.UI;
 
 namespace MyDefense.Battle
 {
+    [DefaultExecutionOrder(1700)]
     public class MonsterHealthView : MonoBehaviour
     {
         [SerializeField] private MonsterStat _monsterStat;
@@ -16,6 +17,11 @@ namespace MyDefense.Battle
         private Camera _mainCamera;
         private Vector3 _initialMonsterLossyScale = Vector3.one;
         private Vector3 _initialCanvasLocalScale = Vector3.one;
+        private bool _presentationDead;
+        private int _lastHpInt=int.MinValue,_lastMaxInt=int.MinValue;
+        public int TextRefreshCount {get;private set;}
+        public Renderer SetPresentationRenderer(Renderer renderer){Renderer previous=_monsterRenderer;_monsterRenderer=renderer;return previous;}
+        public void SetPresentationDead(bool dead){_presentationDead=dead;if(_healthCanvasRoot!=null)_healthCanvasRoot.gameObject.SetActive(!dead);}
 
         private void Awake()
         {
@@ -110,6 +116,7 @@ namespace MyDefense.Battle
 
             if (_healthCanvasRoot != null && _monsterRenderer != null)
             {
+                _healthCanvasRoot.gameObject.SetActive(!_presentationDead);
                 Vector3 center = _monsterRenderer.bounds.center;
                 _healthCanvasRoot.position = new Vector3(
                     center.x,
@@ -151,15 +158,16 @@ namespace MyDefense.Battle
             int curInt = Mathf.RoundToInt(currentHp);
             int maxInt = Mathf.RoundToInt(maxHp);
 
-            if (_hpText != null)
+            if (_hpText != null && (_lastHpInt!=curInt||_lastMaxInt!=maxInt))
             {
                 _hpText.text = $"{curInt} / {maxInt}";
+                _lastHpInt=curInt;_lastMaxInt=maxInt;TextRefreshCount++;
             }
 
             if (_hpSlider != null)
             {
-                _hpSlider.maxValue = maxHp;
-                _hpSlider.value = currentHp;
+                if(!Mathf.Approximately(_hpSlider.maxValue,maxHp))_hpSlider.maxValue = maxHp;
+                if(!Mathf.Approximately(_hpSlider.value,currentHp))_hpSlider.value = currentHp;
             }
         }
     }

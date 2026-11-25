@@ -11,7 +11,7 @@
 - 같은 종만 Merge 가능한가?
 - 다음 등급 전체 풀 랜덤인가?
 - Kidnap 99.5/0.5 규칙을 지키는가?
-- Pending과 Active Mutation을 구분하는가?
+- 모든 등급의 보드 유닛이 Injector 또는 계승 DNA의 능력치·효과를 즉시 한 번만 적용받는가? Mythic 승급에서도 비용과 조작 없이 효과가 이어지는가?
 
 ## Damage
 - Battle이 피해 공식을 중복 계산하지 않는가?

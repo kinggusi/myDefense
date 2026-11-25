@@ -15,18 +15,18 @@ P1 Mutation·공명·행성 Balance·Settlement를 실제 Fusion Host/Standalone
 
 ## 1. Mutation 활성화·재변이
 
-1. 해금된 순수 Mythic을 선택한다.
+1. 보드에서 DNA가 없는 Mythic을 선택한다.
 2. `Activate Mutation (300 G)`를 한 번 누른다.
-3. 개인 Gold만 300 감소하고 8종 중 하나가 활성화되는지 확인한다.
+3. 개인 Gold가 정확히 300 감소하고 꽝형(`BLANK`)을 포함한 8종 중 하나가 활성화되는지 확인한다.
 4. 같은 Mythic에서 재변이를 반복한다.
 5. 비용이 `600 → 1,200 → 2,400 → 4,800 → 4,800`인지 확인한다.
 6. 재변이 직후 결과가 직전 Mutation과 다른지 확인한다.
-7. Mutation Injector를 적용하면 Gold 차감 없이 Injector Mutation으로 교체되는지 확인한다.
-8. SEALED 또는 미해금 Mythic에는 활성화·Injector 사용이 차단되는지 확인한다.
+7. DNA 없는 Mythic과 이미 변이된 Mythic에 각각 Injector를 사용한다. 두 경우 모두 Gold 차감 없이 해당 변이가 즉시 적용되고, 교체 뒤에는 새 변이의 능력치와 효과만 적용되어야 한다.
+8. 현재 개발 Fixture는 잠금 Mythic의 생성을 거부한다. 해당 종을 보드에 배치할 수 있는 테스트 장치를 마련한 뒤, 격리 세션에서 DNA 없는 미해금 Mythic을 각각 새로 준비해 300골드 랜덤 변이와 무료 Injector 적용·교체를 검사한다. 양쪽 화면에서 해당 DNA와 효과가 일치해야 한다.
 
 ## 2. Mutation 전투 효과
 
-각 Mutation을 가진 Mythic이 실제 Monster/Boss를 공격하도록 두고 아래를 확인한다.
+Normal·Epic·Unique·Legendary·Mythic에 Injector를 적용한 뒤 실제 Monster/Boss를 공격시켜 능력치와 아래 효과를 확인한다. 꽝형은 DNA 없는 Mythic의 랜덤 변이로 검증한다.
 
 - `GIANT`: 주 대상 주변에 Splash 피해가 적용된다.
 - `BERSERK`: 일반 Monster보다 Boss 대상 단일 피해 배율이 커진다.

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using MyDefense.Battle.Balance.Canonical;
+using MyDefense.Battle.Presentation;
 using UnityEngine;
 
 namespace MyDefense.Battle.Runtime
@@ -15,6 +16,7 @@ namespace MyDefense.Battle.Runtime
         [SerializeField] private Transform _contentRoot;
         [SerializeField] private Camera _backgroundCamera;
         [SerializeField] private Light _directionalLight;
+        [SerializeField] private MeshRenderer _legacyBattleGround;
 
         private GameObject _activeEnvironment;
         private string _activeMapId;
@@ -28,11 +30,17 @@ namespace MyDefense.Battle.Runtime
         private Color _previousDirectionalColor;
         private float _previousDirectionalIntensity;
         private Quaternion _previousDirectionalRotation;
+        private MeshRenderer _hiddenLegacyGround;
+        private bool _previousLegacyGroundEnabled;
+        private PlanetBattlefieldView _activeBattlefield;
+        private PlanetBattlefieldLayout _battlefieldLayout;
 
         public string ActiveMapId => _activeMapId;
         public PlanetContentProfile ActiveProfile => _activeProfile;
         public GameObject ActiveEnvironment => _activeEnvironment;
         public string LastError { get; private set; }
+        public PlanetBattlefieldView ActiveBattlefield => _activeBattlefield;
+        public void SetBattlefieldLayout(PlanetBattlefieldLayout layout) => _battlefieldLayout = layout;
 
         public bool TryApply(
             string authoritativeMapId,
@@ -90,6 +98,7 @@ namespace MyDefense.Battle.Runtime
                 LastError = error;
                 return false;
             }
+            if (!profile.ValidateBattlefieldTheme(out error)) { LastError = error; return false; }
             if (string.IsNullOrWhiteSpace(authoritativeMapId)
                 || !string.Equals(authoritativeMapId, profile.MapId, StringComparison.Ordinal))
             {
@@ -122,6 +131,8 @@ namespace MyDefense.Battle.Runtime
                 && ReferenceEquals(_activeProfile, profile)
                 && string.Equals(_activeMapId, authoritativeMapId, StringComparison.Ordinal))
             {
+                SetLegacyGroundHidden((profile.RequiresBattlefieldTheme || profile.BackgroundSprite != null)
+                    && (_capturedCamera != null || _backgroundCamera != null || Camera.main != null));
                 LastError = null;
                 error = null;
                 return true;
@@ -129,16 +140,21 @@ namespace MyDefense.Battle.Runtime
 
             Transform parent = ResolveContentRoot();
             GameObject replacement = null;
+            PlanetBattlefieldView battlefield = null;
             try
             {
                 CaptureGlobalState();
                 replacement = Instantiate(profile.EnvironmentPrefab, parent, false);
                 replacement.name = "PlanetEnvironment_" + authoritativeMapId;
                 InstantiateEffects(profile, replacement.transform);
+                if (profile.RequiresBattlefieldTheme)
+                    battlefield = new PlanetBattlefieldView(replacement.transform, profile,
+                        _battlefieldLayout ?? PlanetBattlefieldLayout.FromScene(gameObject.scene));
                 ApplyPresentation(profile, replacement);
             }
             catch (Exception exception)
             {
+                battlefield?.Dispose();
                 DestroyOwnedObject(replacement);
                 if (_activeProfile != null && _activeEnvironment != null)
                     ApplyPresentation(_activeProfile, _activeEnvironment);
@@ -150,6 +166,8 @@ namespace MyDefense.Battle.Runtime
                 return false;
             }
 
+            _activeBattlefield?.Dispose();
+            _activeBattlefield = battlefield;
             DestroyOwnedObject(_activeEnvironment);
             _activeEnvironment = replacement;
             _activeMapId = authoritativeMapId;
@@ -161,6 +179,7 @@ namespace MyDefense.Battle.Runtime
 
         public void Clear()
         {
+            _activeBattlefield?.Dispose(); _activeBattlefield = null;
             DestroyOwnedObject(_activeEnvironment);
             _activeEnvironment = null;
             _activeMapId = null;
@@ -205,18 +224,20 @@ namespace MyDefense.Battle.Runtime
             if (targetCamera != null)
                 targetCamera.backgroundColor = profile.BackgroundColor;
 
-            if (profile.BackgroundSprite != null)
+            if (!profile.RequiresBattlefieldTheme && profile.BackgroundSprite != null)
             {
                 Transform existingBackground = environment.transform.Find("PlanetBackgroundSprite");
                 GameObject backgroundObject = existingBackground != null
                     ? existingBackground.gameObject
                     : new GameObject("PlanetBackgroundSprite");
                 backgroundObject.transform.SetParent(environment.transform, false);
-                backgroundObject.transform.localPosition = new Vector3(0f, 0f, 5f);
-                SpriteRenderer spriteRenderer = backgroundObject.GetComponent<SpriteRenderer>()
-                    ?? backgroundObject.AddComponent<SpriteRenderer>();
+                SpriteRenderer spriteRenderer = backgroundObject.GetComponent<SpriteRenderer>();
+                // Unity's Editor may return a missing-component fake null.
+                // Use Unity equality rather than the C# null-coalescing operator.
+                if (spriteRenderer == null) spriteRenderer = backgroundObject.AddComponent<SpriteRenderer>();
                 spriteRenderer.sprite = profile.BackgroundSprite;
                 spriteRenderer.sortingOrder = -1000;
+                FitBackdrop(targetCamera, spriteRenderer);
             }
 
             PlanetLightingSettings lighting = profile.Lighting;
@@ -232,6 +253,8 @@ namespace MyDefense.Battle.Runtime
                 targetLight.intensity = lighting.DirectionalIntensity;
                 targetLight.transform.rotation = Quaternion.Euler(lighting.DirectionalEulerAngles);
             }
+
+            SetLegacyGroundHidden((profile.RequiresBattlefieldTheme || profile.BackgroundSprite != null) && targetCamera != null);
 
             Material material = profile.EnvironmentMaterial;
             if (material == null)
@@ -250,6 +273,82 @@ namespace MyDefense.Battle.Runtime
                 if (isBackground || renderer.sharedMaterial == null)
                     renderer.sharedMaterial = material;
             }
+        }
+
+        private MeshRenderer ResolveLegacyGround()
+        {
+            if (_legacyBattleGround != null)
+                return _legacyBattleGround.gameObject.scene == gameObject.scene ? _legacyBattleGround : null;
+            // This exact root is the original opaque 30x30 laboratory plane in
+            // Battle.unity. Do not search children, other scenes, or substrings.
+            if (!string.Equals(gameObject.scene.path, "Assets/Scenes/Battle.unity", StringComparison.Ordinal)) return null;
+            MeshRenderer found = null;
+            foreach (GameObject root in gameObject.scene.GetRootGameObjects())
+            {
+                if (!string.Equals(root.name, "Lab_Ground", StringComparison.Ordinal)
+                    || !root.TryGetComponent(out MeshRenderer renderer)
+                    || root.GetComponent<MeshFilter>() == null || root.GetComponent<MeshCollider>() == null) continue;
+                if (found != null)
+                {
+                    Debug.LogWarning("[PlanetContent] Ambiguous exact Battle Lab_Ground roots; no legacy ground renderer was selected.");
+                    return null;
+                }
+                found = renderer;
+            }
+            return found;
+        }
+
+        private void SetLegacyGroundHidden(bool hidden)
+        {
+            MeshRenderer target = hidden ? ResolveLegacyGround() : null;
+            if (target != null && _hiddenLegacyGround == target)
+            { target.enabled = false; return; }
+            RestoreLegacyGround();
+            if (target == null) return;
+            _hiddenLegacyGround = target;
+            _previousLegacyGroundEnabled = target.enabled;
+            target.enabled = false;
+        }
+
+        private void RestoreLegacyGround()
+        {
+            if (_hiddenLegacyGround != null) _hiddenLegacyGround.enabled = _previousLegacyGroundEnabled;
+            _hiddenLegacyGround = null;
+        }
+
+        private void LateUpdate()
+        {
+            if (_activeEnvironment == null || _activeProfile == null || _activeProfile.RequiresBattlefieldTheme || _activeProfile.BackgroundSprite == null) return;
+            Transform backdrop = _activeEnvironment.transform.Find("PlanetBackgroundSprite");
+            if (backdrop != null)
+                FitBackdrop(_capturedCamera != null ? _capturedCamera : Camera.main, backdrop.GetComponent<SpriteRenderer>());
+        }
+
+        public static void FitBackdrop(Camera camera, SpriteRenderer renderer)
+        {
+            if (camera == null || renderer == null || renderer.sprite == null) return;
+            float distance = Mathf.Lerp(camera.nearClipPlane, camera.farClipPlane, .90f);
+            float halfHeight = camera.orthographic ? camera.orthographicSize
+                : distance * Mathf.Tan(camera.fieldOfView * .5f * Mathf.Deg2Rad);
+            Bounds artwork = renderer.sprite.bounds;
+            Vector3 size = artwork.size;
+            float scale = Mathf.Max(halfHeight * 2f / Mathf.Max(.001f, size.y),
+                halfHeight * 2f * camera.aspect / Mathf.Max(.001f, size.x)) * 1.01f;
+            float excessWidth = Mathf.Max(0f, size.x * scale - halfHeight * 2f * camera.aspect);
+            float excessHeight = Mathf.Max(0f, size.y * scale - halfHeight * 2f);
+            // The painted planets occupy the upper-right of each source image.
+            // Keep cover sizing, but crop excess from the left/bottom rather
+            // than losing that focal subject on a portrait or very wide screen.
+            Vector3 position = camera.transform.position + camera.transform.forward * distance
+                - camera.transform.right * (excessWidth * .5f)
+                - camera.transform.up * (excessHeight * .5f)
+                - camera.transform.rotation * (artwork.center * scale);
+            renderer.transform.SetPositionAndRotation(position, camera.transform.rotation);
+            // Environment roots are presentation-only and authored at scale 1.
+            // Compensate a parent scale as well so framing stays camera-owned.
+            Vector3 parentScale = renderer.transform.parent != null ? renderer.transform.parent.lossyScale : Vector3.one;
+            renderer.transform.localScale = new Vector3(scale / Mathf.Max(.001f, Mathf.Abs(parentScale.x)),
+                scale / Mathf.Max(.001f, Mathf.Abs(parentScale.y)), 1f);
         }
 
         private void CaptureGlobalState()
@@ -276,6 +375,7 @@ namespace MyDefense.Battle.Runtime
 
         private void RestoreGlobalState()
         {
+            RestoreLegacyGround();
             if (!_globalStateCaptured)
                 return;
 
@@ -319,6 +419,8 @@ namespace MyDefense.Battle.Runtime
         {
             Clear();
         }
+
+        private void OnDisable() => Clear();
 
 #if UNITY_EDITOR
         public void ConfigureForTests(

@@ -151,6 +151,7 @@ namespace MyDefense.Battle.Presentation
 
         private void OnGUI()
         {
+            if (BattleHudPresentation.HasActiveHud) return;
             if (!_isSpectating)
                 return;
 

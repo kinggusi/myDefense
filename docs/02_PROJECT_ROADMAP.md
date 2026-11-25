@@ -16,7 +16,7 @@
 - 순차 빈칸 배치
 - 누적 Kidnap 비용
 - Mutation Injector 모델
-- Pending Mutation 계승
+- 전 등급의 즉시 변이 적용과 Merge 시 DNA 계승
 - 빈칸 이동
 
 ## Phase 2. Data Pipeline
@@ -27,9 +27,9 @@
 - Spring Loader
 - 테스트 데이터: Normal 2, Epic 2, Mythic 1, Mutation 2, Injector 2
 
-## Phase 3. Mythic Mutation
-- PendingMutationType
-- ActiveMutationType
+## Phase 3. Mutation 전투 효과와 Mythic 재변이
+- 계승 DNA와 활성 변이의 Fusion 동기화
+- Mythic 승급 시 기존 효과 연속 적용
 - MutationRerollCount
 - 확정/랜덤 Mutation
 - 재변이 비용 증가

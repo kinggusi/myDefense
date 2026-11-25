@@ -8,6 +8,7 @@ using MyDefense.Shared.Contracts;
 using UnityEngine;
 using UnityEngine.Networking;
 using Object = UnityEngine.Object;
+using Unity.Profiling;
 
 namespace MyDefense.Battle.Presentation
 {
@@ -33,6 +34,16 @@ namespace MyDefense.Battle.Presentation
         private int _selectedLocalMythicSlot = -1;
         private bool _soloPlayerOneMode;
         private BattleWaveExecutor _dailyWaveExecutor;
+        private readonly Dictionary<long,GameObject> _unitViews=new();
+        private readonly List<GameObject> _visibleUnits=new();
+        private readonly List<long> _staleViewKeys=new();
+        private readonly Transform[,] _tileViews=new Transform[2,24];
+        private readonly bool[] _mirroredTiles=new bool[2];
+        public IReadOnlyList<GameObject> VisibleUnits=>_visibleUnits;
+        public BattleWaveStateAuthority Authority=>_authority;
+        public event Action<GameObject> UnitViewChanged;
+        public BattleBoardInteractionPresentation Interaction {get;private set;}
+        private static readonly ProfilerMarker ReconcileMarker=new("Battle.Board.Reconcile");
 
         public int SelectedLocalMythicSlot => _selectedLocalMythicSlot;
 
@@ -53,6 +64,19 @@ namespace MyDefense.Battle.Presentation
             _player2Grid = GameObject.Find("EnemyGridParent")?.transform;
             _unitPrefab = ResolveUnitPrefab();
             _unitPrefabResolved = true;
+            Interaction=GetComponent<BattleBoardInteractionPresentation>();
+            if(Interaction==null)Interaction=gameObject.AddComponent<BattleBoardInteractionPresentation>();
+            Interaction.Initialize(this,_authority);
+            BattleUnitArtCatalog artCatalog = Resources.Load<BattleUnitArtCatalog>(BattleUnitArtCatalog.ResourcePath);
+            if (artCatalog != null)
+            {
+                var surface = GetComponent<BattleBoardSurfaceView>() ?? gameObject.AddComponent<BattleBoardSurfaceView>();
+                surface.Configure(_player1Grid, _player2Grid, artCatalog);
+            }
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (GetComponent<BattleDevelopmentArtOverride>() == null)
+                gameObject.AddComponent<BattleDevelopmentArtOverride>();
+#endif
             _authority.KidnapApplied += ApplyKidnap;
             _authority.InjectorApplied += ApplyInjector;
             _authority.MutationApplied += ApplyMutation;
@@ -76,12 +100,20 @@ namespace MyDefense.Battle.Presentation
                 _authority.ResonanceUpgraded -= ApplyResonanceUpgrade;
             }
             UnbindDailyWaveEvents();
+            if(Interaction!=null)Interaction.CancelAll();
+            _unitViews.Clear();_visibleUnits.Clear();
+            Array.Clear(_tileViews,0,_tileViews.Length);
         }
 
         private void Update()
         {
             if (_authority == null || !_authority.Object || !_authority.Object.IsValid)
                 return;
+            using var profiling=ReconcileMarker.Auto();
+            _staleViewKeys.Clear();
+            foreach(var pair in _unitViews)if(pair.Value==null)_staleViewKeys.Add(pair.Key);
+            foreach(long key in _staleViewKeys)_unitViews.Remove(key);
+            _visibleUnits.RemoveAll(unit=>unit==null);
 
             BindDailyWaveEvents();
 
@@ -104,12 +136,12 @@ namespace MyDefense.Battle.Presentation
             Transform grid = playerSlot == 1 ? _player1Grid : _player2Grid;
             Transform tile = ResolveTile(grid, slotIndex);
             if (tile == null) return;
-            Transform unit = tile.Find("FusionKidnapUnit");
+            Transform unit = UnitAt(playerSlot,slotIndex);
             bool occupied = _authority.IsBoardOccupied(playerSlot, slotIndex);
             // During a drag the source object is temporarily reparented to the
             // grid, so its source tile is intentionally empty. Do not create a
             // second visual while the pointer is holding the original unit.
-            if (occupied && unit == null && !HasDraggingUnit(playerSlot, slotIndex))
+            if (occupied && unit == null)
                 if (_authority.IsBoardInjector(playerSlot, slotIndex))
                     ApplyInjector(playerSlot, slotIndex, _authority.GetBoardMutationType(playerSlot, slotIndex));
                 else
@@ -120,15 +152,25 @@ namespace MyDefense.Battle.Presentation
                 SyncUnitRuntimeState(unit.gameObject, playerSlot, slotIndex, _authority.GetBoardAlienId(playerSlot, slotIndex));
         }
 
-        private static bool HasDraggingUnit(int playerSlot, int slotIndex)
+        public Transform UnitAt(int playerSlot,int slotIndex)
         {
-            FusionKidnapUnitDrag[] drags = Object.FindObjectsByType<FusionKidnapUnitDrag>(FindObjectsSortMode.None);
-            foreach (FusionKidnapUnitDrag drag in drags)
-            {
-                if (drag != null && drag.IsDragging && drag.PlayerSlot == playerSlot && drag.SlotIndex == slotIndex)
-                    return true;
-            }
-            return false;
+            if((playerSlot!=1&&playerSlot!=2)||!IsValidBoardSlot(slotIndex))return null;
+            long key=((long)playerSlot<<32)|(uint)(slotIndex+1);
+            if(_unitViews.TryGetValue(key,out GameObject cached)&&cached!=null)return cached.transform;
+            Transform tile=ResolveTile(GetGrid(playerSlot),slotIndex);
+            Transform found=tile==null?null:tile.Find("FusionKidnapUnit");
+            if(found!=null)RegisterUnit(found.gameObject,playerSlot,slotIndex);
+            return found;
+        }
+
+        private void RegisterUnit(GameObject unit,int playerSlot,int slotIndex)
+        {
+            long key=((long)playerSlot<<32)|(uint)(slotIndex+1),oldKey=0;
+            if(_unitViews.TryGetValue(key,out GameObject existing)&&existing==unit)return;
+            foreach(var pair in _unitViews)if(pair.Value==unit){oldKey=pair.Key;break;}
+            if(oldKey!=0)_unitViews.Remove(oldKey);
+            _unitViews[key]=unit;if(!_visibleUnits.Contains(unit))_visibleUnits.Add(unit);
+            UnitViewChanged?.Invoke(unit);
         }
 
         private void ApplyKidnap(int playerSlot, int slotIndex, long alienId)
@@ -176,6 +218,7 @@ namespace MyDefense.Battle.Presentation
             ApplyInitialActiveMutationVisual(unit);
             FusionKidnapUnitDrag drag = unit.AddComponent<FusionKidnapUnitDrag>();
             drag.Initialize(this, _authority, playerSlot, slotIndex);
+            RegisterUnit(unit,playerSlot,slotIndex);
             Debug.Log($"[FusionKidnapBoardView] slot={playerSlot} alienId={alienId} grid={grid.name} tile={tile.name} row={row} column={column} mirrored={isMirroredField} index={slotIndex}.");
         }
 
@@ -212,6 +255,7 @@ namespace MyDefense.Battle.Presentation
             ApplyMutationVisual(unit, mutationType);
             FusionKidnapUnitDrag drag = unit.AddComponent<FusionKidnapUnitDrag>();
             drag.Initialize(this, _authority, playerSlot, slotIndex);
+            RegisterUnit(unit,playerSlot,slotIndex);
         }
 
         private static void ApplyMutationVisual(GameObject unit, string mutationType)
@@ -233,6 +277,7 @@ namespace MyDefense.Battle.Presentation
                     0.14f);
                 label.text = "M:" + marker;
                 label.gameObject.SetActive(true);
+                BattleHudPresentation.SuppressWorldMarker(label.GetComponent<Renderer>());
             }
             else if (label != null)
             {
@@ -258,9 +303,7 @@ namespace MyDefense.Battle.Presentation
             if (!TryDecodeUnitServerId(serverId, out int playerSlot, out int slotIndex))
                 return false;
 
-            Transform grid = playerSlot == 1 ? _player1Grid : _player2Grid;
-            Transform tile = ResolveTile(grid, slotIndex);
-            unit = tile == null ? null : tile.Find("FusionKidnapUnit");
+            unit=UnitAt(playerSlot,slotIndex);
             return unit != null;
         }
 
@@ -387,7 +430,10 @@ namespace MyDefense.Battle.Presentation
             if (activeMutationChanged)
                 ApplyMutationVisual(unit, data.activeMutationType);
             if (snapshotChanged)
+            {
                 ApplyAttackSnapshot(unit, playerSlot, alienId);
+                UnitViewChanged?.Invoke(unit);
+            }
         }
 
         private static bool ApplyAuthoritativeUnitState(
@@ -452,6 +498,9 @@ namespace MyDefense.Battle.Presentation
             };
         }
 
+        public static string GradeNameForPresentation(byte grade)=>GradeName(grade);
+        public void SelectMythicIfApplicable(int player,int slot){if(IsSelectableMythic(player,slot))_selectedLocalMythicSlot=slot;}
+
         public bool TryFindNearestSlot(int playerSlot, Vector3 worldPosition, int excludeSlotIndex, out int slotIndex)
         {
             slotIndex = -1;
@@ -492,7 +541,7 @@ namespace MyDefense.Battle.Presentation
             Transform sourceTile = ResolveTile(grid, fromSlotIndex);
             Transform targetTile = ResolveTile(grid, toSlotIndex);
             if (sourceTile == null || targetTile == null) return;
-            Transform sourceUnit = sourceTile.Find("FusionKidnapUnit");
+            Transform sourceUnit = UnitAt(playerSlot,fromSlotIndex);
 
             if (merged)
             {
@@ -509,8 +558,10 @@ namespace MyDefense.Battle.Presentation
                     ApplyAttackSnapshot(targetUnit.gameObject, playerSlot, resultAlienId);
                     ApplyGradeVisual(targetUnit, resultGrade, resultAlienId);
                     ApplyInitialActiveMutationVisual(targetUnit.gameObject);
+                    UnitViewChanged?.Invoke(targetUnit.gameObject);
                 }
                 Debug.Log($"[FusionKidnapBoardView] merge slot={playerSlot} source={fromSlotIndex} target={toSlotIndex} resultAlienId={resultAlienId} resultGrade={resultGrade}.");
+                Interaction?.Acknowledge(sourceUnit==null?null:sourceUnit.gameObject,playerSlot,fromSlotIndex,toSlotIndex);
                 return;
             }
 
@@ -526,6 +577,8 @@ namespace MyDefense.Battle.Presentation
                 playerSlot,
                 toSlotIndex,
                 _authority.GetBoardAlienId(playerSlot, toSlotIndex));
+            RegisterUnit(sourceUnit.gameObject,playerSlot,toSlotIndex);
+            Interaction?.Acknowledge(sourceUnit.gameObject,playerSlot,fromSlotIndex,toSlotIndex);
             Debug.Log($"[FusionKidnapBoardView] move slot={playerSlot} source={fromSlotIndex} target={toSlotIndex}.");
         }
 
@@ -550,6 +603,9 @@ namespace MyDefense.Battle.Presentation
                 playerSlot,
                 targetSlotIndex,
                 _authority.GetBoardAlienId(playerSlot, targetSlotIndex));
+            RegisterUnit(sourceUnit.gameObject,playerSlot,targetSlotIndex);
+            RegisterUnit(targetUnit.gameObject,playerSlot,sourceSlotIndex);
+            Interaction?.Acknowledge(sourceUnit.gameObject,playerSlot,sourceSlotIndex,targetSlotIndex);
             SyncUnitRuntimeState(
                 targetUnit.gameObject,
                 playerSlot,
@@ -586,6 +642,7 @@ namespace MyDefense.Battle.Presentation
                 ?? CreateUnitLabel(unit, "GradeLabel", new Vector3(0f, 0f, -0.58f), 48, 0.18f);
             label.gameObject.SetActive(true);
             label.text = grade switch { 1 => "E", 2 => "U", 3 => "L", 4 => "M", _ => "N" };
+            BattleHudPresentation.SuppressWorldMarker(label.GetComponent<Renderer>());
         }
 
         private static TextMesh FindUnitLabel(Transform unit, string labelName)
@@ -631,16 +688,26 @@ namespace MyDefense.Battle.Presentation
             };
         }
 
-        private static Transform ResolveTile(Transform grid, int slotIndex)
+        private Transform ResolveTile(Transform grid, int slotIndex)
         {
             if (grid == null || slotIndex < 0 || slotIndex >= 24) return null;
             int row = slotIndex / 6;
             int column = slotIndex % 6;
             bool isMirroredField = Mathf.Abs(Mathf.DeltaAngle(grid.localEulerAngles.y, 180f)) < 45f;
+            int cache=grid==_player1Grid?0:grid==_player2Grid?1:-1;
+            if(cache>=0)
+            {
+                if(_mirroredTiles[cache]!=isMirroredField){for(int i=0;i<24;i++)_tileViews[cache,i]=null;_mirroredTiles[cache]=isMirroredField;}
+                if(_tileViews[cache,slotIndex]!=null)return _tileViews[cache,slotIndex];
+            }
             int authoredColumn = isMirroredField ? 5 - column : column;
             int authoredRow = 3 - row;
-            return grid.Find($"Tile_{authoredColumn}_{authoredRow}");
+            Transform tile=grid.Find($"Tile_{authoredColumn}_{authoredRow}");
+            if(cache>=0)_tileViews[cache,slotIndex]=tile;
+            return tile;
         }
+
+        public Transform TileAt(int playerSlot,int slotIndex)=>ResolveTile(GetGrid(playerSlot),slotIndex);
 
         private static float SafeDivide(float value, float divisor)
         {

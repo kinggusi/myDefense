@@ -52,8 +52,9 @@
 - Legendary-to-Mythic Merge presents 3 distinct candidates from the current player's unlocked Mythic pool.
 - Legendary-to-Mythic candidates can be rerolled up to 3 times before one is selected.
 - Fixed evolution lineage and `evolutionTargetId` must not drive gameplay.
-- Pending Mutation DNA can exist before Mythic.
-- Active Mutation effects only apply to Mythic.
+- Mutation Injectors apply their DNA, stats, and effects immediately to any Alien on the board, from Normal through Mythic.
+- Merge inherits the only DNA present, keeps identical DNA once, or picks one of two different DNA types with equal probability. With no DNA on either Alien, the result has none. The result immediately uses the inherited Mutation at every grade, including Mythic, without an activation fee or button.
+- A Mythic without DNA can roll a random Mutation, including BLANK, for 300 inGameGold. Using an Injector on a Mythic immediately applies its Mutation for free and replaces any existing one.
 
 ## Domain Ownership
 ### User/System Domain

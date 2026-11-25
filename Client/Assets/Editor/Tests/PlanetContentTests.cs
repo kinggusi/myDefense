@@ -5,6 +5,7 @@ using MyDefense.Battle.Balance.Canonical;
 using MyDefense.Battle.Runtime;
 using NUnit.Framework;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.TestTools;
@@ -102,6 +103,10 @@ namespace MyDefense.Battle.Tests
                 PlanetContentValidator.ValidateCatalogAgainstCanonical(catalog, canonical);
             Assert.That(errors, Is.Empty, string.Join(Environment.NewLine, errors));
             Assert.That(catalog.Profiles, Has.Count.EqualTo(9));
+            var uniqueTerrains=new HashSet<Texture2D>();
+            var originalAtlases=new HashSet<Texture2D>();
+            int themedProfiles=0,matteProfiles=0;
+            Texture2D sharedMatte=AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Art/Battle/Planets/MatteBattlefields/SF_MatteSurfaces.png");
 
             foreach (string mapId in PlanetContentCatalog.CanonicalMapIds)
             {
@@ -122,6 +127,43 @@ namespace MyDefense.Battle.Tests
                 Assert.That(profile.MapId, Is.EqualTo(mapId));
                 Assert.That(profile.Enabled, Is.True);
                 Assert.That(profile.EnvironmentPrefab, Is.SameAs(environment));
+                if (profile.RequiresBattlefieldTheme)
+                {
+                    themedProfiles++;
+                    Assert.That(profile.ValidateBattlefieldTheme(out string themeError), Is.True, themeError);
+                    Assert.That(profile.BackgroundSprite, Is.Null, "The former planet poster must not remain a runtime dependency.");
+                    bool detailed=AssetDatabase.GetAssetPath(profile.BattlefieldTerrain).StartsWith("Assets/Art/Battle/Planets/SFDetailBattlefields/",StringComparison.Ordinal);
+                    bool matte=detailed||AssetDatabase.GetAssetPath(profile.BattlefieldTerrain).StartsWith("Assets/Art/Battle/Planets/MatteBattlefields/",StringComparison.Ordinal);
+                    string folder=detailed?"Assets/Art/Battle/Planets/SFDetailBattlefields/":matte?"Assets/Art/Battle/Planets/MatteBattlefields/":"Assets/Art/Battle/Planets/Battlefields/";
+                    Assert.That(uniqueTerrains.Add(profile.BattlefieldTerrain),Is.True,mapId+" must retain its own authored planetary terrain.");
+                    Assert.That(AssetDatabase.GetAssetPath(profile.BattlefieldTerrain),
+                        Is.EqualTo(folder + mapId + "_Terrain.png"));
+                    Assert.That(AssetDatabase.GetAssetPath(profile.BattlefieldSurfaces),
+                        Is.EqualTo(matte?"Assets/Art/Battle/Planets/MatteBattlefields/SF_MatteSurfaces.png":folder+mapId+"_Surfaces.png"));
+                    if(matte)
+                    {
+                        matteProfiles++;Assert.That(sharedMatte,Is.Not.Null);
+                        Assert.That(profile.BattlefieldSurfaces,Is.SameAs(sharedMatte),"Sharing is intentional only for the declared SF matte atlas.");
+                        Assert.That(profile.BattlefieldAtlasSplit,Is.EqualTo(new Vector2(.5f,.5f)));
+                    }
+                    else Assert.That(originalAtlases.Add(profile.BattlefieldSurfaces),Is.True,"Original per-planet atlases must remain unique.");
+                    Assert.That(profile.EnvironmentEffects, Is.Empty);
+                    Assert.That(environment.transform.childCount, Is.Zero);
+                    Assert.That(PlanetContentValidator.ValidatePresentationPrefab(environment), Is.Empty);
+                    continue;
+                }
+                if (profile.BackgroundSprite != null)
+                {
+                    Assert.That(AssetDatabase.GetAssetPath(profile.BackgroundSprite),
+                        Is.EqualTo("Assets/Art/Battle/Planets/" + mapId + "_Background.png"));
+                    Assert.That(profile.EnvironmentEffects, Is.Empty);
+                    Assert.That(profile.EnvironmentMaterial, Is.Null);
+                    Assert.That(environment.transform.childCount, Is.Zero,
+                        "Painted environment must not retain the geometric placeholder planet.");
+                    Assert.That(environment.GetComponentsInChildren<Collider>(true), Is.Empty);
+                    Assert.That(PlanetContentValidator.ValidatePresentationPrefab(environment), Is.Empty);
+                    continue;
+                }
                 Assert.That(profile.EnvironmentEffects, Has.Length.EqualTo(1));
                 Assert.That(profile.EnvironmentEffects[0], Is.SameAs(effect));
                 Assert.That(AssetDatabase.GetAssetPath(profile.EnvironmentMaterial),
@@ -132,16 +174,37 @@ namespace MyDefense.Battle.Tests
                 AssertGeneratedPresentationIsSafe(mapId, environment, effect);
                 AssertPlanetFeatureSignature(mapId, environment);
             }
+            if(themedProfiles>0)Assert.That(uniqueTerrains.Count,Is.EqualTo(9),"A generated catalog must not mix incomplete content recipes.");
+            if(matteProfiles>0)Assert.That(matteProfiles,Is.EqualTo(9),"Apply the matte recipe to all nine canonical planets together.");
         }
 
         [Test]
-        public void ResourcesPlanetPlaceholders_UseCameraSafeGutterAndHorizontalBackground()
+        public void ResourcesPlanetPresentation_UsesPaintedBackdropOrCameraSafePlaceholderGutter()
         {
             foreach (string mapId in PlanetContentCatalog.CanonicalMapIds)
             {
                 GameObject environment = AssetDatabase.LoadAssetAtPath<GameObject>(
                     "Assets/Prefabs/Battle/PlanetContent/" + mapId + "_Environment.prefab");
                 Assert.That(environment, Is.Not.Null, mapId);
+
+                PlanetContentProfile profile = AssetDatabase.LoadAssetAtPath<PlanetContentProfile>(
+                    "Assets/Resources/Battle/PlanetContent/Profiles/" + mapId + ".asset");
+                if (profile.RequiresBattlefieldTheme)
+                {
+                    Assert.That(profile.BackgroundSprite, Is.Null);
+                    Assert.That(profile.BattlefieldTerrain.height, Is.GreaterThan(profile.BattlefieldTerrain.width));
+                    Assert.That(environment.GetComponentsInChildren<Renderer>(true), Is.Empty,
+                        "Passive battlefield meshes are created through the common runtime applicator.");
+                    continue;
+                }
+                if (profile.BackgroundSprite != null)
+                {
+                    Assert.That(profile.BackgroundSprite.rect.width, Is.GreaterThan(1000f));
+                    Assert.That(profile.BackgroundSprite.rect.height, Is.GreaterThan(500f));
+                    Assert.That(environment.GetComponentsInChildren<Renderer>(true), Is.Empty,
+                        "Runtime camera-fitted Sprite supplies the painted background.");
+                    continue;
+                }
 
                 Transform background = environment.transform.Find("PlanetBackground");
                 Assert.That(background, Is.Not.Null, mapId + " needs an XZ background.");
@@ -381,6 +444,79 @@ namespace MyDefense.Battle.Tests
             Assert.That(_applicator.ActiveEnvironment, Is.Not.SameAs(first));
             Assert.That(first == null, Is.True, "The replaced environment must be destroyed in EditMode.");
             Assert.That(_applicator.ActiveMapId, Is.EqualTo("EARTH"));
+        }
+
+        [TestCase(true)]
+        [TestCase(false)]
+        public void PaintedBackdropMasksOnlyActualBattleGroundRendererAndRestoresItsOriginalState(bool initiallyEnabled)
+        {
+            var originalScene = _applicatorObject.scene;
+            var battle = EditorSceneManager.OpenPreviewScene("Assets/Scenes/Battle.unity");
+            var otherSceneGround = GameObject.CreatePrimitive(PrimitiveType.Plane);
+            otherSceneGround.name = "Lab_Ground";
+            UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(otherSceneGround, originalScene);
+            var similar = GameObject.CreatePrimitive(PrimitiveType.Plane);
+            similar.name = "Lab_Ground_Decoration";
+            var texture = new Texture2D(4, 4, TextureFormat.RGBA32, false);
+            Sprite sprite = Sprite.Create(texture, new Rect(0, 0, 4, 4), Vector2.one * .5f, 1f);
+            try
+            {
+                UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(_applicatorObject, battle);
+                UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(similar, battle);
+                GameObject actual = battle.GetRootGameObjects().Single(root => root.name == "Lab_Ground");
+                MeshRenderer ground = actual.GetComponent<MeshRenderer>();
+                MeshCollider collider = actual.GetComponent<MeshCollider>();
+                Assert.That(ground, Is.Not.Null); Assert.That(collider, Is.Not.Null);
+                Assert.That(ground.bounds.size.x, Is.GreaterThanOrEqualTo(29f), "Use the real opaque 30x30 Battle plane.");
+                ground.enabled = initiallyEnabled;
+                Vector3 position = actual.transform.position, scale = actual.transform.localScale;
+                Quaternion rotation = actual.transform.rotation;
+                bool collisionEnabled = collider.enabled;
+                Material material = ground.sharedMaterial;
+                Mesh collisionMesh = collider.sharedMesh;
+                Camera camera = battle.GetRootGameObjects().SelectMany(root => root.GetComponentsInChildren<Camera>(true)).First();
+                _applicator.ConfigureForTests(_fixture.Catalog, null, camera);
+                PlanetContentProfile painted = _fixture.Profiles.Single(profile => profile.MapId == "NEPTUNE");
+                painted.ConfigureForEditor(painted.MapId, true, painted.EnvironmentPrefab, sprite,
+                    painted.BackgroundColor, painted.EnvironmentMaterial, painted.Lighting, painted.EnvironmentEffects);
+                CanonicalPlanetBattleRegistry canonical = PlanetContentTestFactory.LoadCanonicalPlanets();
+
+                Assert.That(_applicator.TryApply("NEPTUNE", canonical, out string error), Is.True, error);
+                GameObject first = _applicator.ActiveEnvironment;
+                Assert.That(first.transform.Find("PlanetBackgroundSprite").GetComponent<SpriteRenderer>().sprite, Is.SameAs(sprite));
+                Assert.That(ground.enabled, Is.False, "The opaque legacy plane must not cover the distant painted backdrop.");
+                ground.enabled = true; // Reapply enforces hiding without overwriting the original saved state.
+                Assert.That(_applicator.TryApply("NEPTUNE", canonical, out error), Is.True, error);
+                Assert.That(_applicator.ActiveEnvironment, Is.SameAs(first)); Assert.That(ground.enabled, Is.False);
+                Assert.That(_applicator.TryApply("UNKNOWN", canonical, out _), Is.False);
+                Assert.That(_applicator.ActiveEnvironment, Is.SameAs(first)); Assert.That(ground.enabled, Is.False,
+                    "A failed replacement preserves the currently active painted presentation.");
+                Assert.That(_applicator.TryApply("EARTH", canonical, out error), Is.True, error);
+                Assert.That(ground.enabled, Is.EqualTo(initiallyEnabled), "A non-painted Profile restores the original renderer state.");
+                Assert.That(_applicator.TryApply("NEPTUNE", canonical, out error), Is.True, error);
+                typeof(PlanetContentApplicator).GetMethod("OnDisable", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+                    .Invoke(_applicator, null);
+                Assert.That(_applicator.ActiveEnvironment, Is.Null); Assert.That(ground.enabled, Is.EqualTo(initiallyEnabled));
+                Assert.That(_applicator.TryApply("NEPTUNE", canonical, out error), Is.True, error);
+                Assert.That(ground.enabled, Is.False);
+                _applicator.Clear();
+                Assert.That(ground.enabled, Is.EqualTo(initiallyEnabled));
+                Assert.That(_applicator.TryApplyResolvedProfile("NEPTUNE", null, out _), Is.False);
+                Assert.That(ground.enabled, Is.EqualTo(initiallyEnabled), "First-apply failure cannot hide an unowned renderer.");
+                Assert.That(actual.activeSelf, Is.True); Assert.That(collider.enabled, Is.EqualTo(collisionEnabled));
+                Assert.That(collider.sharedMesh, Is.SameAs(collisionMesh)); Assert.That(ground.sharedMaterial, Is.SameAs(material));
+                Assert.That(actual.transform.position, Is.EqualTo(position)); Assert.That(actual.transform.rotation, Is.EqualTo(rotation));
+                Assert.That(actual.transform.localScale, Is.EqualTo(scale));
+                Assert.That(otherSceneGround.GetComponent<MeshRenderer>().enabled, Is.True, "An exact name in another Scene must be untouched.");
+                Assert.That(similar.GetComponent<MeshRenderer>().enabled, Is.True, "Similar names must be untouched.");
+            }
+            finally
+            {
+                if (_applicator != null) _applicator.Clear();
+                EditorSceneManager.ClosePreviewScene(battle);
+                UnityEngine.Object.DestroyImmediate(otherSceneGround);
+                UnityEngine.Object.DestroyImmediate(sprite); UnityEngine.Object.DestroyImmediate(texture);
+            }
         }
 
         [Test]

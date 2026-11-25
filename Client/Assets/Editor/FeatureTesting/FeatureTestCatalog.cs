@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using MyDefense.Battle.Showroom;
 #if UNITY_EDITOR
 using UnityEditor;
 using UnityEngine;
@@ -99,6 +100,12 @@ namespace MyDefenseGame.Editor.FeatureTesting
         {
             return new FeatureTestCatalog(new[]
             {
+                Case(BattleShowroomScenes.CharacterId, "Battle Showroom | Character", "kinggusi", BattleShowroomScenes.Character, FeatureTestType.Scene,
+                    "Offline Editor or standalone Development build", "Reset or reopen the isolated scene", "BattleShowroomTests", "Alien ID, grade, level, Mutation appearance comparison, missing assets and camera", "docs/test-reports/BATTLE-SHOWROOM.md"),
+                Case(BattleShowroomScenes.CombatId, "Battle Showroom | Combat", "kinggusi", BattleShowroomScenes.Combat, FeatureTestType.FusionSolo,
+                    "Fusion Single State Authority, offline", "Reset and await a fresh session", "BattleShowroomTests", "Actual command request, authoritative result, board and Gold", "docs/test-reports/BATTLE-SHOWROOM.md"),
+                Case(BattleShowroomScenes.ContentId, "Battle Showroom | Map & Content", "kinggusi", BattleShowroomScenes.Content, FeatureTestType.Scene,
+                    "Canonical Balance and environment Profiles", "Reset or reopen the isolated scene", "BattleShowroomTests", "Planet and Daily layouts, viewpoint, lane and spawn order", "docs/test-reports/BATTLE-SHOWROOM.md"),
                 Case("P3-1-3-CLAN", "클랜 검색·가입·역할 UI", "jjangash", "Assets/Scenes/Tests/UserSystem/P3_01_03_Clan_Test.unity", FeatureTestType.Scene,
                     "Editor UI-only fixture; NO HTTP/실제 재화 변경 없음", "Play 종료 후 재실행; 실제 계정 초기화 금지", "ClanClientTests;ClanServiceTest;ClanPersistenceConcurrencyTest", "미가입·신청·MEMBER/DEPUTY/LEADER·긴 목록·닫기·스크롤·재시도·화면비", "docs/test-reports/P3-1-3-CLAN-UI.md"),
                 Case("P3-1-3-CLAN-HTTP", "클랜 격리 서버 HTTP UI", "jjangash", "Assets/Scenes/Tests/UserSystem/P3_01_03_Clan_Http_Test.unity", FeatureTestType.Scene,
@@ -110,7 +117,7 @@ namespace MyDefenseGame.Editor.FeatureTesting
                 Case("P1-5-7-AUTH", "계정 진입·로딩 UI", "jjangash", "Assets/Scenes/Tests/AuthStartupUiTest.unity", FeatureTestType.Scene,
                     "UI-only fixture; 실제 게스트 E2E는 SampleScene과 isolated local 서버", "Play 종료 후 재실행; 운영 credential 삭제 금지", "AuthClientTests", "시작·복구·실패 재시도·화면 비율; Google/Apple 실제 기기 연동 별도", "docs/test-reports/AUTH-STARTUP-2026-09-18.md"),
                 Case("P0-2-5", "Battle Session Adapter", "kinggusi", "Assets/Scenes/Battle.unity", FeatureTestType.FusionTwoClient,
-                    "Photon App ID와 동일 Session", "Host/Client 종료 후 Scene 재로드", "BattleSceneSessionAdapterTests;BattleMatchStartCoordinatorTests", "Host/Client Session·필드·공용 Lane", "docs/test-reports/P0-2-5.md"),
+                    "Photon App ID와 동일 Session", "Host/Client 종료 후 Scene 재로드", "BattleSceneSessionAdapterTests;BattleMatchStartCoordinatorTests;BattleHudPresentationTests;BattleBoardInteractionPresentationTests;BattlePresentationQualityTests;BattleMonsterPresentationTests", "Host/Client Session·필드·공용 Lane; 실제 Battle navy/cyan HUD의 800x960·960x540·1080x1920 및 safeArea; 실제 참가자 ID와 Monster수 별도 중앙정렬·복제 Wave/전투 Gold·painted 납치 CTA; 납치·변이·공명·3후보/리롤 명령 1회; 종료/관전/선택 잠금·HUD 뒤 드래그 차단·Dev drawer·Disable 복원; 실제종/등급 badge·CanMerge짝 강조·권위 승인 Merge FX1회/거절0회/후보선택 추가0회; 렌더만 이동하는드래그·Client 승인/거절대기·MSAA복원·상세SF행성; 실제 성공Spawn Portal→Normal/Elite/Boss 보행·HP·death fade·중복/latejoin FX방지·P2 remap/Daily P1 lane·전후프레임/조회횟수", "docs/test-reports/P0-2-5.md"),
                 Case("P0-4-6", "탈락 관전 카메라", "kinggusi", "Assets/Scenes/Battle.unity", FeatureTestType.FusionTwoClient,
                     "2인 Battle Session", "Session 종료 및 Battle Scene 재로드", "BattleSpectatorCameraControllerTests", "탈락 후 상대 필드 관전·입력 차단·복귀", "docs/test-reports/P0-4-6.md"),
                 Case("P0-5-1", "Networked in-game Gold", "jjangash", "Assets/Scenes/Battle.unity", FeatureTestType.FusionTwoClient,

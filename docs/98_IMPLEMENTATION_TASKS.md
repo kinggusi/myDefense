@@ -6,6 +6,10 @@
 
 ## 0. 사용 방법
 
+> Battle 표현 디테일 후속(2026-11-24): 실제 Battle에 9행성 상세 Terrain, 중앙 ID/Monster 수·한글 상태/Boss 행·UFO Kidnap, 밝은 합성짝 이중선/한글 라벨·권위 승인 효과, 3종 Monster 보행/포탈/피격/사망 표현을 연결했다. 집중143/143, 전체950/951(기존 Balance hash fixture1 FAIL), 최종 Development/production compile build 성공·C#/Shader0, 독립 리뷰 필수0. 동일PC 실제 두 Standalone W009/W010 및 Boss 처치·소멸/최종 한글 표시를 확인했고 kinggusi가 효과·이동을 PASS로 회신했다. 최종 양쪽 사람 비주얼 인수·Elite 다수/장시간·실제2PC는 별도이며 **부분 완료/검증 대기**를 유지한다. [검증 기록](test-reports/BATTLE-PRESENTATION-POLISH-20261124.md). commit/push 없음.
+
+> Battle 조작·합성 표시·매트 맵 보완(2026-11-24): HUD 반복 canonical 조회를 세션/선택 상태 캐시로 변경하고 Board registry·공유 picking/pose와 권위 위치를 유지하는 drag preview를 적용했다. 실제 종·등급 기준 배지/선택/Merge 짝,32장 원본을 보존한 sampler/AA 개선과9행성 새 matte Terrain·공통 SF atlas를 반영했다. 최종 집중264/264 PASS, 전체928/929(기존 Balance 고정 hash fixture1 FAIL), Dev/production compile build exit0, 독립 리뷰 필수0. 동일PC 두Client의 Kidnap/복제·짝 표시와 양쪽 move/merge/swap31건 일치, kinggusi의 실제 이동·Merge 부드러움 PASS 확인. jjangash 조작 및 양쪽 최종 비주얼 인수 전 **부분 완료/검증 대기**. [검증 기록](test-reports/BATTLE-INTERACTION-MATTE-20261124.md). 커밋/푸시 없음.
+
 > 후속 보안 보완(2026-11-02): 사용자 승인으로 뽑기·교배 난수원을 서버 SecureRandom으로 교체하고 교배 중복 조각의 int 상한 초과를 409/원자적 rollback으로 차단했다. 확률·가격·보상·게임 데이터 불변. 집중149/149·서버557/557·Balance84/84 PASS, 독립 리뷰 PASS(필수0), PM 범위 수락. 운영 인증·매칭 유예는 유지하며 운영 보안 전체 완료가 아니다. [검증 기록](test-reports/JWT-ECONOMY-HARDENING-2026-11-02.md). 커밋/푸시 없음.
 
 > 후속 사용자 지정 디자인(2026-11-02): **P3-1-3 클랜 화면 시안 반영**. 큰 외곽 네온/상단 빈 공간을 제거하고 저채도 남색 검색·추천 카드와 가입 후 identity/공지/멤버 통합 홈으로 재구성했다. 기존 마스코트·전체보기·관리/설정/권한/멱등 유지, 프로필·하단 탭·Battle/Shared 변경 없음. 집중61/61 PASS, 최종 전체817건 실행/기존 Battle hash1 실패 유지, 독립 코드리뷰 승인(필수0), Missing Script0. 실제 상세/공지/설정/관리 열기·닫기·휠스크롤/2비율 및 새 디자인 HTTP 생성→자유가입→MEMBER 표시 확인. 실사용 드래그·나머지 HTTP/로비 통합·최종 사람 디자인 인수 전 **부분 완료**다. Play 종료·SampleScene 복귀·임시 서버 종료. 커밋/푸시 없음. [검증 기록](test-reports/P3-1-3-CLAN-UI.md).
@@ -273,7 +277,7 @@ P0-1-1~4 → P0-1-5 → P0-1-6
 | P0-5-4 | jjangash | 검증 대기 | 기존 24칸·첫 빈칸·누적 비용 규칙을 Fusion 검증으로 이전 | P0-5-3 |
 | P0-5-5 | jjangash | 검증 대기 | State Authority 일반 Merge 요청·검증 RPC 및 동일 종·등급 권한 검증 구현 | P0-5-1 |
 | P0-5-6 | jjangash | 검증 대기 | 동일 종·등급 머지는 다음 등급 풀로 승급하고, 머지 불가 점유 슬롯은 서버 권위로 교환 | P0-5-5 |
-| P0-5-7 | jjangash | 검증 대기 | Pending Mutation DNA 계승과 Mutation Injector 사용을 Fusion 상태에 적용 | P0-5-6 |
+| P0-5-7 | jjangash | 부분 완료 | 모든 등급에서 Injector 사용·DNA 계승 직후 변이 능력치와 효과를 Fusion 상태에 반영 | P0-5-6 |
 | P0-5-8 | kinggusi | 검증 대기 | authoritative Monster 사망 이벤트를 개인/팀 Gold 장부와 Kill 통계에 전달 | P0-3-4, P0-5-2 |
 
 ### P0-6 Boss Timer·공용 Lane
@@ -296,7 +300,7 @@ P0-1-1~4 → P0-1-5 → P0-1-6
 | P0-7-3 | jjangash | 검증 대기 | Networked 후보 3종과 남은 리롤 횟수 저장 | P0-7-2 |
 | P0-7-4 | jjangash | 검증 대기 | 후보 전체 리롤 RPC 구현 | P0-7-3 |
 | P0-7-5 | jjangash | 검증 대기 | 최종 Mythic 선택 RPC 구현 | P0-7-3 |
-| P0-7-6 | jjangash | 검증 대기 | 선택된 Mythic에 계승 DNA 상태 적용: 해금 Mythic은 ACTIVE, 잠금 Mythic은 SEALED로 보존하고 효과 차단 | P0-7-5 |
+| P0-7-6 | jjangash | 부분 완료 | 선택된 Mythic에 계승 변이를 비용·활성화 입력 없이 즉시 이어 적용. 보드 위 유닛은 계정 해금 여부와 무관 | P0-7-5 |
 | P0-7-7 | jjangash | 검증 대기 | Legendary 후보 선택 Unity UI 구현 | P0-7-3 |
 | P0-7-8 | kinggusi | 검증 대기 | 선택 대기 중 잠긴 재료 Alien의 공격·이동 중단 | P0-7-1 |
 
@@ -355,6 +359,20 @@ P0-1-1~4 → P0-1-5 → P0-1-6
 | P0-11-6 | jjangash | 완료 | Fusion 2클라이언트 기능 검증 실행 절차와 테스트 데이터 초기화 방식 구현 | P0-2-4, P0-11-3 |
 | P0-11-7 | jjangash | 검증 대기 | Hub와 `docs/P0_INTEGRATION_TEST_SCENARIO.md`로 공동 Smoke Test를 수행하고 검증 기록 확정 | P0-11-4~6 |
 
+| Task ID | 담당 | 상태 | 작업 | 선행 |
+|---|---|---|---|---|
+| P0-11-SHOWROOM-CHARACTER | kinggusi | 부분 완료 | 캐릭터 비교와 카메라 조작. 종별 에셋과 Animation Clip 연결은 제공 후 검증한다. | P0-11-3 |
+| P0-11-SHOWROOM-COMBAT | kinggusi | 부분 완료 | 오프라인 Fusion Authority 전투 명령 및 프리셋 검증. 임의 보드·해금 시드와 2클라이언트 격리 검증에는 User/System·Shared 계약이 필요하다. | P0-11-3 |
+| P0-11-SHOWROOM-CONTENT | kinggusi | 부분 완료 | 행성·Daily Profile, 실제 Lane·Waypoint, 격리 Wave 시작 검증. | P0-11-3 |
+
+계획과 실행 증거는 [Battle 쇼룸 검증 기록](test-reports/BATTLE-SHOWROOM.md)에 남긴다.
+
+> 2026-11-24 표현 연결: 쇼룸 후보 16종 포즈의 외곽 matte를 정리하고, 48칸 SF 타일·9행성 페인트 배경·Development 실제 Battle 외형 alias를 연결했다. 집중 EditMode 116/116, Battle Development/Production 컴파일 검사 및 새 쇼룸 빌드 성공. 동일 PC 두 Standalone의 외형 복제와 W080 Boss 처치 확인. 정식 캐릭터 ID/고유 스킬, Editor Host 및 실제 2PC·장시간·사람 비주얼 인수는 별도이며 기존 부분 완료 상태를 유지한다. commit/push 미수행.
+
+> 2026-11-24 행성 지표형 맵 후속: 사용자의 그림체 분리 지적에 따라 9행성 각각의 지표·타일·실제 Lane·테두리 아트 18 PNG와 Profile을 적용했다. 공통 Battle.unity/4×6/Waypoint/전투 규칙은 유지한다. 최종 집중 EditMode 200/200, 쇼룸·Battle Development·Production 컴파일 검사 및 독립 리뷰 PASS. 최종 9행성 Unity 렌더와 동일 PC 새 2클라이언트 NEPTUNE W009 완료/유닛 복제를 확인했다. 실제 2PC·장시간·사용자 최종 비주얼 인수·정식 ID/고유 스킬 연결은 미완료이며 위 세 쇼룸 항목은 부분 완료를 유지한다. 변경/증거/실행법은 Battle 쇼룸 검증 기록의 마지막 절에 있으며 commit/push는 하지 않았다.
+
+> 2026-11-24 실제 Battle HUD 후속: 사용자 요청으로 메인 UI 참조의 남색/금속/청록 디자인을 기존 Battle.unity 상단·Kidnap·전투 Gold·변이/공명·신화 후보에 적용했다. 9행성 원화/4×6/권위 요청/수식은 보존했다. 집중 EditMode 282/282, 독립 리뷰 PASS, Battle-only Development/Production 빌드 성공. 동일 PC 실제 두 창에서 납치 비용/가격 갱신·복제·공명·Mutation 활성화를 확인하고, R4에서 제품/개발 drawer 배타와 가로·세로 배치를 재검증했다. World 직접 드래그는 자동 조작에서 확인되지 않아 사용자 확인 대기이며 최종 사람 디자인 인수도 미완료다. 기존 Task 완료로 승격하지 않는다. 상세/실행법은 [Battle HUD 보고서](test-reports/BATTLE-HUD-20261124.md). commit/push 미수행.
+
 ### P0 자동 검증 체크포인트 (2026-08-01)
 
 - Latest Unity EditMode regression: **335/335 passed**, failed 0, skipped 0.
@@ -380,14 +398,16 @@ P0-1-1~4 → P0-1-5 → P0-1-6
 
 ### P1-1 Mutation
 
+2026-11-25 전 등급 즉시 적용 정책을 확정했다. User/System의 Fusion·StatCalculator 반영과 Battle의 전 등급 전투 효과 검증이 남아 있다. 이전 Mythic 전용 검증 결과는 변경된 정책의 통과 근거에서 제외한다. 기준은 [마스터 정책](99_MASTER.md), 절차는 [P0](P0_INTEGRATION_TEST_SCENARIO.md)·[P1 통합 시나리오](P1_INTEGRATION_TEST_SCENARIO.md)를 따른다.
+
 | Task ID | 담당 | 상태 | Codex 작업 |
 |---|---|---|---|
 | P1-1-1 | jjangash | 검증 대기 | 순수 Mythic Mutation 버튼 상태 구현 |
 | P1-1-2 | jjangash | 검증 대기 | 최초 Mutation 300골드 차감·랜덤 추첨 |
 | P1-1-3 | jjangash | 검증 대기 | 재변이 비용 `600→1,200→2,400→4,800` 구현 |
 | P1-1-4 | jjangash | 검증 대기 | 현재 Mutation을 재추첨 후보에서 제외 |
-| P1-1-5 | jjangash | 검증 대기 | Mutation된 Mythic에 Injector 사용 시 무료 교체 |
-| P1-1-6 | kinggusi | 검증 대기 | Mutation별 외형·Animation·Effect 연결 |
+| P1-1-5 | jjangash | 부분 완료 | 보드 위 모든 Mythic에서 Injector 무료 즉시 적용·기존 변이 교체 |
+| P1-1-6 | kinggusi | 부분 완료 | 전 등급에서 사용·계승 즉시 Mutation별 외형·Animation·Effect 연결 및 확인 |
 
 ### P1-2 Mutation StatCalculator
 
@@ -712,7 +732,7 @@ Task 상태만 바꾸는 커밋은 구현 커밋에 함께 포함할 수 있다.
 - P0-5-2: Lane과 마지막 공격자에 관계없이 canonical `killGold`를 두 플레이어의 독립 개인 지갑에 동일하게 지급.
 - P0-5-4: 24칸 첫 빈 슬롯·누적 비용 Kidnap 권위 검증.
 - P0-5-5/P0-5-6: 동일 종·등급 Merge, 다음 등급 승급, 불가 조합 Swap.
-- P0-5-7: Mutation Injector 사용과 Pending DNA 계승.
+- P0-5-7: 당시 검증 대상은 Mutation Injector 사용과 Pending DNA 계승이었다. 현행 검증은 위 P0-5-7과 P0 통합 시나리오를 따른다.
 - P0-5-8: Monster 사망 이벤트와 Gold 장부 연결.
 - P0-6 Boss Timer·공용 Lane: TickTimer, Boss 처치/시간초과, MatchState 전환.
 - P0-8 Damage/Projectile/Hit: 네트워크 Projectile, 권위 충돌, DamagePayload, Kill/Support Kill 장부.
@@ -830,7 +850,9 @@ Task 상태만 바꾸는 커밋은 구현 커밋에 함께 포함할 수 있다.
 - 독립 리뷰: 조건부 PASS. 실제 Fusion 2클라이언트 후보 동기화, 리롤 Gold 차감, 타이머 만료, 선택 후 조작 복구 수동 검증이 남아 있다.
 - 현재 사용자 검증 대기: Legendary 2개 Merge → 후보 3종 → 무료/유료 리롤 → 선택/타임아웃 → 선택 후 보드 조작 복구.
 
-### P0-7 Mythic 후보와 봉인 DNA 정책 (2026-07-27)
+### P0-7 Mythic 후보와 봉인 DNA 정책 (2026-07-27 당시 기록)
+
+아래는 당시 구현 기록이다. 보드 위 유닛의 변이에는 2026-11-25에 확정한 마스터 정책 6~7절을 적용한다. 아래의 `PENDING`·`SEALED` 분기와 잠금 Mythic의 Injector 거부는 교체 대상이다.
 
 - Legendary Merge의 Mythic 후보 풀은 현재 해금 여부와 무관하게 canonical Mythic 후보를 사용한다. 후보 확률의 공정성을 위해 미해금 Mythic도 후보로 제시할 수 있다.
 - Mutation Injector는 미해금/잠금 Mythic에 직접 사용할 수 없다. State Authority가 canonical `AlienSpec.isLocked`를 현재 해금 프록시로 확인하고 요청을 거부한다.

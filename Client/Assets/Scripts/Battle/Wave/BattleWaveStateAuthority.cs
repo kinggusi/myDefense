@@ -527,6 +527,7 @@ namespace MyDefense.Battle
 
         public override void Spawned()
         {
+            ResetPresentationEvents();
             IsSpawnedForAccess = true;
             _executor = GetComponent<BattleWaveExecutor>();
             if (_executor == null)
@@ -1182,6 +1183,7 @@ namespace MyDefense.Battle
         private void RPC_BoardChanged(int playerSlot, int fromSlotIndex, int toSlotIndex, bool merged, long resultAlienId, byte resultGrade)
         {
             BoardChanged?.Invoke(playerSlot, fromSlotIndex, toSlotIndex, merged, resultAlienId, resultGrade);
+            if(merged&&fromSlotIndex!=toSlotIndex)PublishMergePresentation(playerSlot,fromSlotIndex,toSlotIndex);
         }
 
         [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
@@ -1378,6 +1380,7 @@ namespace MyDefense.Battle
 
         public override void Despawned(NetworkRunner runner, bool hasState)
         {
+            ResetPresentationEvents();
             IsSpawnedForAccess = false;
             _killDeduplicator.Clear();
             if (_executor == null)
